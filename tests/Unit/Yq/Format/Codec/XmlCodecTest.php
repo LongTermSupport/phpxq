@@ -120,6 +120,13 @@ final class XmlCodecTest extends TestCase
         yield 'strict valueless attribute' => ['<a b/>', new FormatOptions(xmlStrictMode: true)];
     }
 
+    public function testSyntaxErrorNamesTheLine(): void
+    {
+        $this->expectException(FormatException::class);
+        $this->expectExceptionMessageIsOrContains('XML syntax error on line 3: invalid character entity &bogus;');
+        $this->decode("<a>\n<b>x</b>\n<c>&bogus;</c></a>", new FormatOptions(xmlStrictMode: true));
+    }
+
     public function testEmptyInputHasNoDocuments(): void
     {
         self::assertSame([], [...new XmlDecoder()->decode("  \n", new FormatOptions())]);

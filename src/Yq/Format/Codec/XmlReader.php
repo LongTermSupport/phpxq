@@ -39,6 +39,25 @@ final class XmlReader
      */
     public function read(): XmlElement
     {
+        try {
+            return $this->readDocument();
+        } catch (FormatException $formatException) {
+            $prefix = 'XML syntax error: ';
+            if (!str_starts_with($formatException->getMessage(), $prefix)) {
+                throw $formatException;
+            }
+
+            $line = 1 + substr_count($this->source, "\n", 0, min($this->pos, $this->length));
+
+            throw new FormatException(\sprintf('XML syntax error on line %d: %s', $line, substr($formatException->getMessage(), \strlen($prefix))), 0, $formatException);
+        }
+    }
+
+    /**
+     * @throws FormatException
+     */
+    private function readDocument(): XmlElement
+    {
         $root = new XmlElement();
         $elem = $root;
         while ($this->pos < $this->length) {
