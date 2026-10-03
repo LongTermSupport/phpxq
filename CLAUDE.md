@@ -37,6 +37,8 @@ Full detail on any rule: `bin/hooks-daemon explain-rule <ID>`.
 
 <!-- handler: block-pip-break-system -->
 
+<!-- handler: block-plan-time-estimates -->
+
 <!-- handler: block-secret-file-read -->
 
 <!-- handler: block-security-antipatterns -->
@@ -54,6 +56,8 @@ Full detail on any rule: `bin/hooks-daemon explain-rule <ID>`.
 <!-- handler: conflict-marker-commit-gate -->
 
 <!-- handler: daemon-location-guard -->
+
+<!-- handler: enforce-markdown-organization -->
 
 <!-- handler: enforce-project-containment -->
 
@@ -113,6 +117,8 @@ Full detail on any rule: `bin/hooks-daemon explain-rule <ID>`.
 
 <!-- handler: usage-pause-tool-gate -->
 
+<!-- handler: validate-instruction-content -->
+
 <!-- handler: verification-result-gate -->
 
 | ID                                     | Blocked                                                                                                                                                                                                                                                         | Why                                                                                                                                                                                                           | Fix                                                                                                                                                                                                                   |
@@ -133,6 +139,7 @@ Full detail on any rule: `bin/hooks-daemon explain-rule <ID>`.
 | R-GIT-MESSAGE-BACKTICK                 | an unescaped backtick in a double-quoted git commit/tag message                                                                                                                                                                                                 | Bash performs command substitution inside double quotes -- the span is EXECUTED, not quoted                                                                                                                   | Use single quotes, or git commit -F <file>                                                                                                                                                                            |
 | R-GIT-STASH-PUSH                       | `git stash` / `git stash push` / `git stash save`                                                                                                                                                                                                               | Stashes get forgotten, lost, and block git pull                                                                                                                                                               | Use git commit instead — WIP commits are fine                                                                                                                                                                         |
 | R-PIP-BREAK-SYSTEM-PACKAGES            | `pip install --break-system-packages`                                                                                                                                                                                                                           | Bypasses PEP 668 protection and can corrupt the system Python installation                                                                                                                                    | Use a virtual environment or `pip install --user` instead                                                                                                                                                             |
+| R-PLAN-TIME-ESTIMATE                   | Time estimates not allowed in plan documents                                                                                                                                                                                                                    | Time estimates in plans create false expectations and pressure                                                                                                                                                | Break work into concrete tasks and implementation steps; let the user decide scheduling                                                                                                                               |
 | R-SECRET-READ                          | Read/Write/Edit/NotebookEdit/Grep targeting a protected path                                                                                                                                                                                                    | The file's contents must NEVER be read into context by any route — not Read, not Bash, not an interpreter one-liner, not a copy                                                                               | Use `bin/hooks-daemon secret-meta <path>` for metadata, or ask the user                                                                                                                                               |
 | R-SECRET-BASH-MENTION                  | a Bash command whose text mentions a protected path                                                                                                                                                                                                             | The file's contents must NEVER be read into context by any route — not Read, not Bash, not an interpreter one-liner, not a copy                                                                               | Use `bin/hooks-daemon secret-meta <path>` for metadata, or ask the user                                                                                                                                               |
 | R-SECRET-SCRIPT-AUTHOR                 | a script authored via Write/Edit whose content references a protected path                                                                                                                                                                                      | The file's contents must NEVER be read into context by any route — not Read, not Bash, not an interpreter one-liner, not a copy                                                                               | Use `bin/hooks-daemon secret-meta <path>` for metadata, or ask the user                                                                                                                                               |
@@ -155,6 +162,9 @@ Full detail on any rule: `bin/hooks-daemon explain-rule <ID>`.
 | R-WRITE-CLOBBER                        | `Write` to an existing file you have not read this session                                                                                                                                                                                                      | You cannot know what you are destroying, so you could not report the loss even afterwards                                                                                                                     | `Read` the file then retry, or use `Edit` for a targeted change                                                                                                                                                       |
 | R-CONFLICT-MARKER-COMMIT               | a commit whose added lines carry a merge-conflict marker                                                                                                                                                                                                        | A leftover marker becomes history, and one disguised by the markdown formatter reads as prose to every later check                                                                                            | Resolve the conflict at each line listed below, re-stage, and commit again                                                                                                                                            |
 | R-DAEMON-DIR-CD                        | `cd`/`pushd` into `.claude/hooks-daemon/`                                                                                                                                                                                                                       | Daemon CLI commands must be run from PROJECT ROOT, causing path confusion otherwise                                                                                                                           | Run daemon commands from project root, e.g. `bin/hooks-daemon status`                                                                                                                                                 |
+| R-MARKDOWN-WRONG-LOCATION              | MARKDOWN FILE IN WRONG LOCATION — a new `.md` file written to an unrecognised location                                                                                                                                                                          | Markdown files must follow project organization rules                                                                                                                                                         | Move it into an allowed location, declare its sub-project under `projects:`, or configure `extra_allowed_markdown_paths`                                                                                              |
+| R-MARKDOWN-UNTRACKED-MEMORY            | UNTRACKED CLAUDE MEMORY IS DISABLED FOR THIS PROJECT — a write to `~/.claude/projects/*/memory/*.md`                                                                                                                                                            | That knowledge is per-checkout, un-reviewed, and invisible to teammates — it drifts from the repo and bypasses code review                                                                                    | Document it in tracked project docs instead (CLAUDE.md, .claude/rules/\*.md, docs/)                                                                                                                                   |
+| R-MARKDOWN-PLAN-SYNC                   | a `.claude/settings.json` `plansDirectory` out of sync with the daemon's plan_workflow config                                                                                                                                                                   | Plan workflow requires plansDirectory to match daemon config to redirect writes correctly                                                                                                                     | Fix `.claude/settings.json`'s `plansDirectory` key, then restart your session                                                                                                                                         |
 | R-WRITE-OUTSIDE-PROJECT-ROOT           | a write whose target is outside the repository root                                                                                                                                                                                                             | Outside the repo nothing is version-controlled, reviewed or durable — a container's temp directory is wiped on restart, and every other path rule is scoped to the repo so none of them judges it             | Write it inside the repository — `untracked/scratch/` is the scratch location                                                                                                                                         |
 | R-PROJECT-CONTAINMENT-EVALUATION-ERROR | a call this guard could not finish evaluating                                                                                                                                                                                                                   | An exception during evaluation is not a decision the guard actually made -- treating it as "no match" would let a genuine out-of-root write through unexamined whenever the SAME defect crashed the check     | This is a bug in the guard itself, not something to work around -- report it via the hooks-daemon skill (issue-report)                                                                                                |
 | R-TDD-TEST-FIRST                       | creating a production source file without its test file                                                                                                                                                                                                         | TDD requires the test file to exist before the source file                                                                                                                                                    | Create the test file first (RED), then the source file (GREEN)                                                                                                                                                        |
@@ -204,6 +214,14 @@ Full detail on any rule: `bin/hooks-daemon explain-rule <ID>`.
 | R-USAGE-PAUSE-PROMPT                   | A prompt, cron tick or supervisor message while the session is paused on its usage ceiling                                                                                                                                                                      | The session stopped taking on work to keep the account under its usage ceiling, and each prompt would cost a full model turn                                                                                  | Nothing to do -- the session resumes by itself at the window reset; a human can override it with `bin/hooks-daemon usage-pause clear` (run in a terminal)                                                             |
 | R-USAGE-PAUSE-STOP                     | a stop while a usage-paused session's crons are not exactly the one resume cron                                                                                                                                                                                 | A paused session is woken only by its resume cron, so any other cron would drive it past the usage ceiling and a missing one would never wake it                                                              | CronList, CronDelete every cron, CronCreate the one resume cron as the pause directive gave it, then stop again                                                                                                       |
 | R-USAGE-PAUSE-TOOL                     | any tool except CronCreate, CronDelete, CronList, SendMessage, TaskStop, ToolSearch while the session is paused on its usage ceiling                                                                                                                            | The session stopped taking on work to keep the account under its usage ceiling                                                                                                                                | Replace the session's crons with the one resume cron, then stop; the session resumes at the window reset                                                                                                              |
+| R-INSTRUCTION-IMPLEMENTATION-LOG       | implementation logs (e.g. 'created the file X', 'added the class Y')                                                                                                                                                                                            | Instruction files hold permanent instructions, not a log of past edits                                                                                                                                        | Remove the log sentence; put implementation history in git or a plan JOURNAL/                                                                                                                                         |
+| R-INSTRUCTION-STATUS-INDICATOR         | status indicators (e.g. checkmark + 'Complete', 'Done', 'Success', 'Fixed')                                                                                                                                                                                     | A completion emoji records a moment in time, not a permanent fact                                                                                                                                             | Remove the status marker; instruction files describe the project, not its history                                                                                                                                     |
+| R-INSTRUCTION-TIMESTAMP                | timestamps (ISO dates such as 2024-03-15)                                                                                                                                                                                                                       | A dated entry is a log line, and instruction files are not a log                                                                                                                                              | Remove the date; if it is genuinely load-bearing, put it in git history                                                                                                                                               |
+| R-INSTRUCTION-LLM-SUMMARY              | LLM summaries (section headings such as '## Summary', '## Key Points', '## Overview')                                                                                                                                                                           | A summary heading is the shape an LLM's own turn-report takes, not project documentation                                                                                                                      | Remove the heading and fold any durable content into the surrounding instructions                                                                                                                                     |
+| R-INSTRUCTION-TEST-OUTPUT              | test output counts (e.g. '42 tests passed', '1 test failed')                                                                                                                                                                                                    | A test run's result is a point-in-time fact, not a stable instruction                                                                                                                                         | Remove the count; CI already reports this on every run                                                                                                                                                                |
+| R-INSTRUCTION-FILE-LISTING             | changelog-style file listings (e.g. 'created src/Service/Foo.php')                                                                                                                                                                                              | A file path preceded by a past-tense action verb is changelog narrative                                                                                                                                       | Remove the log line; a bare path reference used as documentation stays allowed                                                                                                                                        |
+| R-INSTRUCTION-CHANGE-SUMMARY           | change summaries (e.g. 'Added 15 lines', 'Removed 8 lines')                                                                                                                                                                                                     | A line-count delta describes one diff, not a stable instruction                                                                                                                                               | Remove the summary; the diff itself is preserved in git                                                                                                                                                               |
+| R-INSTRUCTION-COMPLETION-INDICATOR     | completion indicators (e.g. 'ALL DONE!', 'Task complete!', 'Finished task')                                                                                                                                                                                     | A completion phrase announces a session's end, not a fact about the project                                                                                                                                   | Remove the phrase; instruction files should never celebrate finishing a task                                                                                                                                          |
 | R-VERIFICATION-RESULT-NOT-CONSUMED     | a verifier followed by a mutator with nothing consuming the result                                                                                                                                                                                              | The verifier can fail and the mutator would still run                                                                                                                                                         | Gate with `&&`, an explicit exit-code check, or `set -euo pipefail`                                                                                                                                                   |
 
 ## Advisories and other active handlers
@@ -351,3 +369,139 @@ One line each; these fire with their own guidance when relevant. Full text: `bin
 - worktree_create — semantic worktree naming
 
 </hooksdaemon>
+
+<phpqaci>
+<!-- Auto-generated by php-qa-ci on composer install/update. Do not edit this section — changes will be overwritten. -->
+
+## php-qa-ci — Branch and PR Conventions
+
+**Rule**: A PR represents a new feature or a bug fix. It never represents a single plan.
+Plans represent atomic pieces of work. A feature or bug fix may be composed of zero or more plans.
+
+**Allowed branch prefixes for PRs**: `feature/`, `bugfix/`, `chore/`, `hotfix/`.
+**Disallowed for PRs**: `plan/*` — plans land as commits on a feature/bugfix branch.
+
+`bin/qa -t branchNamePolicy` enforces this. CI runs it as part of `bin/qa -t allStatic`.
+
+**Detailed docs** (read in vendor): see `vendor/lts/php-qa-ci/CLAUDE/branch-policy.md`
+for full convention, rationale, examples of multi-plan feature branches, and how
+to extend the allow-list per project via `qaConfig/branchNamePolicy.yaml`.
+
+## php-qa-ci — Defence Before Fix (Net + Filter)
+
+Static analysis is the NET (catches the bug CLASS, permanently); TDD is the FILTER
+(reproduces the INSTANCE on the production path and proves the fix). Belt and braces.
+When a rule goes RED, fix by WIRING the contract to a real producer — never by deleting
+the flagged element to silence the rule. Pure coding-standards issues are static-only
+(no behaviour to assert); behavioural/contract defects get the full net + filter. Every
+nullable member is two paths — test BOTH (value-present and null); prefer non-nullable
+where null is not a valid state.
+
+**This is a first-class method with a specification.** Before fixing ANY defect, read the
+Defence Before Fix agent prompt once and follow it — attribute the class, build the rule,
+prove it fires, sweep, fix every instance, enforce, then fix the original with a test:
+<https://defence-before-fix.github.io/defence-before-fix-project-prompt.md>
+(method specification: <https://defence-before-fix.github.io/raw/SPEC.md>). Toolchain
+commands: `vendor/bin/phpstan-rule <identifier> <path>` proves one rule on one path,
+`vendor/bin/rule-doc <identifier>` resolves a printed identifier offline, `vendor/bin/rules`
+lists every defence active in this project.
+
+**Detailed docs** (read in vendor): `vendor/lts/php-qa-ci/CLAUDE/DefenceBeforeFix.md`.
+
+## php-qa-ci — Full Pipeline Is the Proof
+
+**QA is NOT passing until the full unfiltered pipeline passes**: `CI=true bin/qa` with
+NO `-t` flag, run end to end, exit 0. Single steps (`-t allCS`, `-t stan`, `-t phpunit`,
+per-file `-p`) exist for fast iteration on hot areas only — they are working tools, not
+evidence. Never declare work complete, close a plan/task, or report "QA green" on the
+strength of individual steps alone: finish with one full unfiltered run (single-threaded,
+after all editing is done) and report ITS exit code.
+
+**The full run belongs to the coordinating (main) session, never a sub-agent.** Run it
+yourself in the background so its output stays out of context —
+`CI=true bin/qa > var/qa/full-pipeline.log 2>&1` with Bash `run_in_background` — and
+take the exit code as the verdict; on a failure, hand the log path to the
+`php-qa-ci_full-pipeline-runner` agent for a per-lane summary. A sub-agent runs targeted
+QA only (`bin/qa -t <tool> -p <path>`, `bin/qa --agent-mode -t phpstan -p <file>`),
+commits, and hands the commit back. Where the Claude Code hooks daemon (v3.67.0+) is
+installed, composer install/update configures its `subagent_full_qa_blocker` to deny a
+sub-agent's full run: `vendor/lts/php-qa-ci/docs/hooks-daemon-full-qa-blocker.md`.
+
+## php-qa-ci — Agent Mode (terse per-file QA)
+
+`bin/qa --agent-mode -t phpstan -p <file>` (or `PHPQACI_AGENT_MODE=1` with the same
+command) replaces the console transcript with two or three lines — a count, a report
+path, and an instruction — and writes the findings to
+`var/qa/phpstan-file-reports/<file>.json`. Read that JSON and fix what it lists; do not
+work from the summary, which carries counts only. Exit 2 means another QA run held the
+lock and NOTHING was analysed, so it is never a green. Only `phpstan` supports it today;
+any other tool refuses the run rather than printing its usual output. Full contract:
+`vendor/lts/php-qa-ci/docs/agent-mode.md`.
+
+## php-qa-ci — Go With the Tools
+
+Every rule php-qa-ci ships is deliberate: the point of a shared harness is that all
+the projects using it end up with consistent, correct code. When a rule is added or
+tightened and the pipeline goes red, CONFORM THE CODE: rename, move, restructure —
+however wide the sweep, including the downstream packages the change drags along (a
+library rename is a major bump; that is fine). Do NOT stop to ask whether a QA failure
+should be fixed, do not carve a project exception out of a shipped tier to dodge it,
+and do not pin or hold the toolchain back to stay green. Fighting the harness is the
+defect. (A rule that is genuinely wrong is a php-qa-ci bug: fix it upstream, with a
+test, rather than working around it locally.)
+
+## php-qa-ci — QA in Dynamic Workflows / Multi-Agent Orchestration
+
+When QA runs inside an orchestrated workflow (Workflow tool, agent fan-outs), the QA
+phase MUST use the deployed php-qa-ci machinery — never hand-rolled tool invocations:
+
+- **Run→fix cycling via the dedicated sub-agents**: `php-qa-ci_qa-tool-runner` /
+  `php-qa-ci_phpstan-runner` / `php-qa-ci_phpunit-runner` to execute single lanes
+  (they wrap `bin/qa -t <tool>`), and `php-qa-ci_phpstan-fixer` /
+  `php-qa-ci_phpunit-fixer` to remediate. Cycle run→fix→run until green or
+  escalation — never stop after one fix.
+- **Every execution goes through `bin/qa`** (`-t allCS`, `-t stan`, `-t allStatic`,
+  `-t phpunit`) — never invoke phars/binaries directly.
+- **The full pipeline is the coordinator's gate**: the coordinating session runs
+  `CI=true bin/qa` itself, once, as a barrier after every editing agent has finished
+  (see "Full Pipeline Is the Proof" above). No sub-agent runs it; with the hooks daemon
+  configured, a sub-agent's attempt is denied.
+- **Concurrency**: full-codebase `bin/qa -t <tool>` runs are SINGLE-THREADED too —
+  one QA executor at a time. Parallel agents may only use per-file mode
+  (`bin/qa -t stan -p <file>`).
+- **Fixers never suppress**: no baselines, no `@phpstan-ignore`, no loosened
+  assertions — fix causes, or stop and report honestly.
+- **Audit the green**: after a fix cycle reports green, run
+  `php-qa-ci_qa-fix-auditor` (opus, read-only) over the fix diff to catch cheating —
+  suppressions, loosened assertions, type-guard theatre, scope games. AUDIT FAIL goes
+  back to the fixer, never shipped.
+- **Model economy**: runner agents are cheap models by design; keep them so. Do not
+  route mechanical QA runs through top-tier models.
+
+## php-qa-ci — Claude Hooks-Daemon Lint Integration
+
+If this project runs the Claude hooks-daemon, its `lint_on_edit` handler's default
+extended PHP command is `phpstan analyse {file}` — which hits php-qa-ci's redirect
+stub (`vendor/bin/phpstan` always exits 1) and FALSE-FAILS every PHP Write/Edit.
+`.claude/hooks-daemon.yaml` must route the lint through the pipeline:
+
+```yaml
+handlers:
+  post_tool_use:
+    lint_on_edit:
+      options:
+        command_overrides:
+          PHP:
+            extended: "env PHPQACI_AGENT_MODE=1 qa -t phpstan -p {file}"
+```
+
+(The daemon resolves the bare `qa` against the project bin dirs; `-p` accepts the
+absolute `{file}` path. `PHPQACI_AGENT_MODE=1` is what keeps the injected output to
+two or three lines instead of fifty — see the agent-mode section above; drop it for the
+full console transcript.) After editing, restart the daemon (`/hooks-daemon restart`).
+If you see `R-LINT-FAILURE` on a PHP edit that per-file `bin/qa -t phpstan -p <file>`
+reports clean, this missing override is the first thing to check — composer
+install/update also prints an `ACTION REQUIRED` notice when it detects the gap.
+(This section auto-disappears from the block once the override is configured.)
+
+</phpqaci>
