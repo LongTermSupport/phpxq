@@ -63,6 +63,16 @@ final class Values
      */
     public static function compare(mixed $left, mixed $right): int
     {
+        // Same-type shortcuts for the commonest sort keys; typeName() twice dominated group_by / sort_by
+        // (bench group-medium, CLAUDE/Plan/00007-performance-optimisation-round/results.md).
+        if (\is_string($left)) {
+            if (\is_string($right)) {
+                return strcmp($left, $right) <=> 0;
+            }
+        } elseif (\is_int($left) && \is_int($right)) {
+            return (float)$left <=> (float)$right;
+        }
+
         $leftType  = self::typeName($left);
         $rightType = self::typeName($right);
         if ($leftType !== $rightType) {
