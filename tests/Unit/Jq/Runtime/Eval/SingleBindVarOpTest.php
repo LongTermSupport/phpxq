@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval;
 
+use LTS\PhpXq\Jq\Runtime\Arithmetic;
 use LTS\PhpXq\Jq\Runtime\Eval\FieldOp;
 use LTS\PhpXq\Jq\Runtime\Eval\SingleBindVarOp;
 use LTS\PhpXq\Jq\Runtime\Eval\SingleOperatorOp;
 use LTS\PhpXq\Jq\Runtime\Eval\VarOp;
-use LTS\PhpXq\Jq\Runtime\Arithmetic;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(SingleBindVarOp::class)]
 final class SingleBindVarOpTest extends OpTestCase
 {

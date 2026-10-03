@@ -13,15 +13,15 @@ use LTS\PhpXq\Jq\Runtime\StreamBuiltin;
  *
  * @internal
  */
-final class NativeStreamOp implements Op
+final readonly class NativeStreamOp implements Op
 {
     /**
      * @param list<Op> $arguments
      */
     public function __construct(
-        private readonly StreamBuiltin $builtin,
-        private readonly array $arguments,
-        private readonly RunState $state,
+        private StreamBuiltin $builtin,
+        private array $arguments,
+        private RunState $state,
     ) {
     }
 

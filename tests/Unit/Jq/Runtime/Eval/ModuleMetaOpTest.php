@@ -16,12 +16,18 @@ use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Jq\Runtime\LoadedModule;
 use LTS\PhpXq\Jq\Runtime\ModuleLoaderInterface;
 use LTS\PhpXq\Json\JsonObject;
+use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\AssertsRaised;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(ModuleMetaOp::class)]
 final class ModuleMetaOpTest extends OpTestCase
 {
+    use AssertsRaised;
+
     public function testDescribesTheModule(): void
     {
         $program = new Program(
@@ -47,7 +53,7 @@ final class ModuleMetaOpTest extends OpTestCase
                     new JsonObject(['as' => 'data', 'is_data' => true, 'relpath' => 'data']),
                     new JsonObject(['is_data' => false, 'relpath' => 'inc']),
                 ],
-                'defs' => ['a/0', 'c/1'],
+                'defs'     => ['a/0', 'c/1'],
             ]),
             $result,
         );
@@ -62,10 +68,7 @@ final class ModuleMetaOpTest extends OpTestCase
 
     public function testRejectsNonStringInput(): void
     {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('modulemeta input module name must be a string');
-
-        self::outputs(new ModuleMetaOp(self::loader(new Program([], null, [], null))), 1);
+        self::assertRaises(JqException::class, 'modulemeta input module name must be a string', static fn (): mixed => self::outputs(new ModuleMetaOp(self::loader(new Program([], null, [], null))), 1));
     }
 
     public function testLoadFailuresBecomeRuntimeErrors(): void
@@ -82,10 +85,7 @@ final class ModuleMetaOpTest extends OpTestCase
             }
         };
 
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('module not found: nope');
-
-        self::outputs(new ModuleMetaOp($loader), 'nope');
+        self::assertRaises(JqException::class, 'module not found: nope', static fn (): mixed => self::outputs(new ModuleMetaOp($loader), 'nope'));
     }
 
     private static function loader(Program $program): ModuleLoaderInterface

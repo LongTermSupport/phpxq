@@ -9,6 +9,9 @@ use LTS\PhpXq\Jq\Runtime\Eval\SingleIfOp;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(SingleIfOp::class)]
 final class SingleIfOpTest extends OpTestCase
 {

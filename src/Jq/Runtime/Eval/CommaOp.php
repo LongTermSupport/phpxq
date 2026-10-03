@@ -11,11 +11,11 @@ use Closure;
  *
  * @internal
  */
-final class CommaOp implements Op
+final readonly class CommaOp implements Op
 {
     public function __construct(
-        private readonly Op $left,
-        private readonly Op $right,
+        private Op $left,
+        private Op $right,
     ) {
     }
 

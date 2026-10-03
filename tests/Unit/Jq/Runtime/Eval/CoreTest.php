@@ -19,6 +19,9 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(Core::class)]
 #[CoversClass(NodeCompiler::class)]
 final class CoreTest extends TestCase
@@ -28,6 +31,23 @@ final class CoreTest extends TestCase
     protected function setUp(): void
     {
         $this->modules = \dirname(__DIR__, 4) . '/Conformance/Jq/modules';
+    }
+
+    /**
+     * @param list<string> $expected
+     */
+    #[DataProvider('modulePrograms')]
+    public function testModules(string $program, array $expected): void
+    {
+        $outputs = ProgramHarness::outputs($program, 'null', [], [$this->modules]);
+
+        if ('get_search_list' === $program) {
+            self::assertSame(['["' . $this->modules . '"]'], $outputs);
+
+            return;
+        }
+
+        self::assertSame($expected, $outputs);
     }
 
     /**
@@ -48,23 +68,6 @@ final class CoreTest extends TestCase
         yield 'search list'                  => ['get_search_list', []];
     }
 
-    /**
-     * @param list<string> $expected
-     */
-    #[DataProvider('modulePrograms')]
-    public function testModules(string $program, array $expected): void
-    {
-        $outputs = ProgramHarness::outputs($program, 'null', [], [$this->modules]);
-
-        if ('get_search_list' === $program) {
-            self::assertSame(['["' . $this->modules . '"]'], $outputs);
-
-            return;
-        }
-
-        self::assertSame($expected, $outputs);
-    }
-
     public function testModulemetaDescribesAModule(): void
     {
         $outputs = ProgramHarness::outputs('modulemeta', '"c"', [], [$this->modules]);
@@ -73,6 +76,18 @@ final class CoreTest extends TestCase
             ['{"whatever":null,"deps":[{"as":"foo","is_data":false,"relpath":"a"},{"search":"./","as":"d","is_data":false,"relpath":"d"},{"search":"./","as":"d2","is_data":false,"relpath":"d"},{"search":"./../lib/jq","as":"e","is_data":false,"relpath":"e"},{"search":"./../lib/jq","as":"f","is_data":false,"relpath":"f"},{"as":"d","is_data":true,"relpath":"data"}],"defs":["a/0","c/0"]}'],
             $outputs,
         );
+    }
+
+    #[DataProvider('brokenImports')]
+    public function testImportErrorsAreCompileErrors(string $program): void
+    {
+        $parser = new Parser(new Lexer());
+
+        $this->expectException(JqCompileException::class);
+
+        new Compiler(ProgramHarness::registry(), $parser, new FileModuleLoader([$this->modules], $parser, new JsonDecoder()))
+            ->compile($parser->parse($program))
+        ;
     }
 
     /**
@@ -87,17 +102,6 @@ final class CoreTest extends TestCase
         yield 'syntax error in module'    => ['import "syntaxerror" as e; .'];
         yield 'undefined module function' => ['import "a" as foo; foo::nonexistent'];
         yield 'unknown alias'             => ['nope::a'];
-    }
-
-    #[DataProvider('brokenImports')]
-    public function testImportErrorsAreCompileErrors(string $program): void
-    {
-        $parser = new Parser(new Lexer());
-
-        $this->expectException(JqCompileException::class);
-
-        new Compiler(ProgramHarness::registry(), $parser, new FileModuleLoader([$this->modules], $parser, new JsonDecoder()))
-            ->compile($parser->parse($program));
     }
 
     public function testModulesAreCompiledOncePerCompiler(): void
@@ -133,9 +137,11 @@ final class CoreTest extends TestCase
     {
         $registry = new DefaultBuiltinRegistry();
         $registry->addPrelude('def one: 1; def two: one + one; def count(n): if n > 0 then n, count(n - 1) else empty end;');
-        $parser = new Parser(new Lexer());
+
+        $parser  = new Parser(new Lexer());
         $program = new Compiler($registry, $parser, new FileModuleLoader([], $parser, new JsonDecoder()))
-            ->compile($parser->parse('[two, count(3)]'));
+            ->compile($parser->parse('[two, count(3)]'))
+        ;
 
         $seen = [];
         $program->run(new StubContext(), null, static function (mixed $value) use (&$seen): void {
@@ -150,10 +156,12 @@ final class CoreTest extends TestCase
         $registry = new DefaultBuiltinRegistry();
         // would fail to compile if it were compiled eagerly
         $registry->addPrelude('def broken: undefined_function; def fine: 1;');
+
         $parser = new Parser(new Lexer());
 
         $program = new Compiler($registry, $parser, new FileModuleLoader([], $parser, new JsonDecoder()))
-            ->compile($parser->parse('fine'));
+            ->compile($parser->parse('fine'))
+        ;
         $seen = [];
         $program->run(new StubContext(), null, static function (mixed $value) use (&$seen): void {
             $seen[] = $value;

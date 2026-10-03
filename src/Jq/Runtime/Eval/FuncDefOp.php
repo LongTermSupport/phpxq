@@ -12,9 +12,9 @@ use Closure;
  *
  * @internal
  */
-final class FuncDefOp implements Op
+final readonly class FuncDefOp implements Op
 {
-    public function __construct(private readonly Op $rest)
+    public function __construct(private Op $rest)
     {
     }
 

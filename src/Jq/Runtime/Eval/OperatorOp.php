@@ -34,7 +34,7 @@ final class OperatorOp extends AbstractOp
     {
         $operation = $this->operation;
         $left      = $this->left;
-        if (null !== $this->rightSingle) {
+        if ($this->rightSingle instanceof SingleOp) {
             $rightValue = $this->rightSingle->value($env, $input);
             $left->run($env, $input, static function (mixed $leftValue) use ($operation, $rightValue, $emit): void {
                 $emit($operation($leftValue, $rightValue));
@@ -45,7 +45,7 @@ final class OperatorOp extends AbstractOp
 
         $leftSingle = $this->leftSingle;
         $this->right->run($env, $input, static function (mixed $rightValue) use ($operation, $left, $leftSingle, $env, $input, $emit): void {
-            if (null !== $leftSingle) {
+            if ($leftSingle instanceof SingleOp) {
                 $emit($operation($leftSingle->value($env, $input), $rightValue));
 
                 return;

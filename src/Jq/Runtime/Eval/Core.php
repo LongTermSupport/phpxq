@@ -62,7 +62,7 @@ final class Core
             $this->ensureCompiled($function);
         }
 
-        if (null === $program->body) {
+        if (!$program->body instanceof Node) {
             return new IdentityOp();
         }
 
@@ -81,7 +81,7 @@ final class Core
      */
     public function ensureCompiled(FuncInfo $function): void
     {
-        if (null !== $function->op || $function->compiling || null === $function->home) {
+        if ($function->op instanceof Op || $function->compiling || !$function->home instanceof DefSet) {
             return;
         }
 
@@ -131,7 +131,7 @@ final class Core
      */
     private function prelude(): DefSet
     {
-        if (null !== $this->prelude) {
+        if ($this->prelude instanceof DefSet) {
             return $this->prelude;
         }
 

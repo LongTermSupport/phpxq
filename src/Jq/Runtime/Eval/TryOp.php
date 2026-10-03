@@ -13,11 +13,11 @@ use LTS\PhpXq\Jq\Runtime\JqException;
  *
  * @internal
  */
-final class TryOp implements Op
+final readonly class TryOp implements Op
 {
     public function __construct(
-        private readonly Op $body,
-        private readonly ?Op $handler,
+        private Op $body,
+        private ?Op $handler,
     ) {
     }
 
@@ -26,12 +26,12 @@ final class TryOp implements Op
         $downstream = new Downstream();
         try {
             $this->body->run($env, $input, $downstream->guard($emit));
-        } catch (JqException $exception) {
+        } catch (JqException $jqException) {
             if ($downstream->active()) {
-                throw $exception;
+                throw $jqException;
             }
 
-            $this->handler?->run($env, $exception->value, $emit);
+            $this->handler?->run($env, $jqException->value, $emit);
         }
     }
 
@@ -40,12 +40,12 @@ final class TryOp implements Op
         $downstream = new Downstream();
         try {
             $this->body->paths($env, $path, $input, $downstream->guardPaths($emit));
-        } catch (JqException $exception) {
+        } catch (JqException $jqException) {
             if ($downstream->active()) {
-                throw $exception;
+                throw $jqException;
             }
 
-            $this->handler?->paths($env, null, $exception->value, $emit);
+            $this->handler?->paths($env, null, $jqException->value, $emit);
         }
     }
 }

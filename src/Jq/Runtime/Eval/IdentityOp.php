@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Runtime\Eval;
 use Closure;
 
 /**
- * `.`
+ * `.`.
  *
  * @internal
  */

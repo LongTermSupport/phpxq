@@ -16,7 +16,7 @@ final class DefSet
     /** @var list<FuncInfo> */
     private array $functions = [];
 
-    /** @var array<string, list<int>> positions in $functions per name/arity */
+    /** @var array<string, list<int>> positions in per name/arity */
     private array $index = [];
 
     /** @var list<DefSet> */
@@ -28,13 +28,13 @@ final class DefSet
     /** @var array<string, list<mixed>> */
     private array $data = [];
 
-    public function __construct(private readonly ?DefSet $parent = null)
+    public function __construct(private readonly ?self $parent = null)
     {
     }
 
     public function add(FuncInfo $function): void
     {
-        $this->index[$function->definition->signature()][] = \count($this->functions);
+        $this->index[$function->definition->signature()][]  = \count($this->functions);
         $this->functions[]                                  = $function;
     }
 
@@ -51,12 +51,12 @@ final class DefSet
         return $this->functions;
     }
 
-    public function include(DefSet $set): void
+    public function include(self $set): void
     {
         $this->includes[] = $set;
     }
 
-    public function alias(string $name, DefSet $set): void
+    public function alias(string $name, self $set): void
     {
         $this->aliases[$name][] = $set;
     }

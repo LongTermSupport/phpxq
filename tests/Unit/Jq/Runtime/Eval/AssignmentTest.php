@@ -10,15 +10,21 @@ use LTS\PhpXq\Jq\Runtime\Eval\FieldOp;
 use LTS\PhpXq\Jq\Runtime\Eval\IterateOp;
 use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Json\JsonObject;
+use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\AssertsRaised;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(Assignment::class)]
 final class AssignmentTest extends TestCase
 {
+    use AssertsRaised;
+
     public function testSetAllReplacesEveryPath(): void
     {
-        $result = Assignment::setAll([1, 2, 3], [[0], [2]], static fn (mixed $old): mixed => $old * 10);
+        $result = Assignment::setAll([1, 2, 3], [[0], [2]], static fn (mixed $old): mixed => Arithmetic::multiply($old, 10));
 
         self::assertSame([10, 2, 30], $result);
     }
@@ -27,7 +33,7 @@ final class AssignmentTest extends TestCase
     {
         self::assertEquals(
             new JsonObject(['a' => 2]),
-            Assignment::setAll(new JsonObject(['a' => 1]), [['a']], static fn (mixed $old): mixed => $old + 1),
+            Assignment::setAll(new JsonObject(['a' => 1]), [['a']], static fn (mixed $old): mixed => Arithmetic::add($old, 1)),
         );
     }
 
@@ -62,7 +68,7 @@ final class AssignmentTest extends TestCase
         $result = Assignment::setAll(
             new JsonObject(['a' => new JsonObject(['b' => 1])]),
             [['a'], ['a', 'b']],
-            static fn (mixed $old): mixed => $old instanceof JsonObject ? new JsonObject(['b' => 5]) : $old + 1,
+            static fn (mixed $old): mixed => $old instanceof JsonObject ? new JsonObject(['b' => 5]) : Arithmetic::add($old, 1),
         );
 
         self::assertEquals(new JsonObject(['a' => new JsonObject(['b' => 6])]), $result);
@@ -70,18 +76,12 @@ final class AssignmentTest extends TestCase
 
     public function testBatchedStructureErrorsKeepJqsMessages(): void
     {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('Cannot index array with string ("a")');
-
-        Assignment::setAll([1], [['a'], ['b']], static fn (): mixed => 1);
+        self::assertRaises(JqException::class, 'Cannot index array with string ("a")', static fn (): mixed => Assignment::setAll([1], [['a'], ['b']], static fn (): mixed => 1));
     }
 
     public function testBatchedWriteRejectsHugeIndexes(): void
     {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('Array index too large');
-
-        Assignment::setAll([], [[0], [536870912]], static fn (): mixed => 1);
+        self::assertRaises(JqException::class, 'Array index too large', static fn (): mixed => Assignment::setAll([], [[0], [536870912]], static fn (): mixed => 1));
     }
 
     public function testUpdateAllDeletesPathsWithoutAnOutput(): void
@@ -97,7 +97,7 @@ final class AssignmentTest extends TestCase
 
     public function testUpdateAllSequentialPath(): void
     {
-        $result = Assignment::updateAll([1, 2, 3], [[0]], static fn (mixed $old): array => [$old + 1]);
+        $result = Assignment::updateAll([1, 2, 3], [[0]], static fn (mixed $old): array => [Arithmetic::add($old, 1)]);
 
         self::assertSame([2, 2, 3], $result);
         self::assertSame([2, 3], Assignment::updateAll([1, 2, 3], [[0]], static fn (): array => []));
@@ -113,7 +113,7 @@ final class AssignmentTest extends TestCase
         $result = Assignment::updateAll(
             new JsonObject(['a' => 1, 'b' => 2, 'c' => 3]),
             [['a'], ['b'], ['c']],
-            static fn (mixed $old): array => 2 === $old ? [] : [$old * 10],
+            static fn (mixed $old): array => 2 === $old ? [] : [Arithmetic::multiply($old, 10)],
         );
 
         self::assertEquals(new JsonObject(['a' => 10, 'c' => 30]), $result);
@@ -129,10 +129,7 @@ final class AssignmentTest extends TestCase
 
     public function testCollectRejectsExpressionsThatAreNotPaths(): void
     {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('Invalid path expression with result 5');
-
-        Assignment::collect(new \LTS\PhpXq\Jq\Runtime\Eval\ConstOp(5), null, null);
+        self::assertRaises(JqException::class, 'Invalid path expression with result 5', static fn (): mixed => Assignment::collect(new \LTS\PhpXq\Jq\Runtime\Eval\ConstOp(5), null, null));
     }
 
     public function testArithmeticOperationsCanDriveSetAll(): void

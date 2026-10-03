@@ -12,11 +12,11 @@ use Closure;
  *
  * @internal
  */
-final class IndexOp implements Op
+final readonly class IndexOp implements Op
 {
     public function __construct(
-        private readonly Op $target,
-        private readonly Op $index,
+        private Op $target,
+        private Op $index,
     ) {
     }
 
@@ -39,7 +39,7 @@ final class IndexOp implements Op
                     throw PathErrors::access($key, $value);
                 }
 
-                $result = Access::index($value, $key);
+                $result      = Access::index($value, $key);
                 $valuePath[] = $key;
                 $emit($valuePath, $result);
             });

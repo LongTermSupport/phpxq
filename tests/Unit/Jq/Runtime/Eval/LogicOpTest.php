@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval;
 
+use Closure;
 use LTS\PhpXq\Jq\Runtime\Eval\LogicOp;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(LogicOp::class)]
 final class LogicOpTest extends OpTestCase
 {
@@ -27,13 +31,10 @@ final class LogicOpTest extends OpTestCase
 
     public function testTheRightOperandIsOnlyEvaluatedWhenNeeded(): void
     {
-        $evaluated = 0;
-        $right     = new class($evaluated) extends \LTS\PhpXq\Jq\Runtime\Eval\AbstractOp {
-            public function __construct(private int &$evaluated)
-            {
-            }
+        $right = new class extends \LTS\PhpXq\Jq\Runtime\Eval\AbstractOp {
+            public int $evaluated = 0;
 
-            public function run(?\LTS\PhpXq\Jq\Runtime\Eval\Env $env, mixed $input, \Closure $emit): void
+            public function run(?\LTS\PhpXq\Jq\Runtime\Eval\Env $env, mixed $input, Closure $emit): void
             {
                 ++$this->evaluated;
                 $emit(true);
@@ -42,10 +43,10 @@ final class LogicOpTest extends OpTestCase
 
         self::outputs(new LogicOp(self::constant(false), $right, true));
         self::outputs(new LogicOp(self::constant(true), $right, false));
-        self::assertSame(0, $evaluated);
+        self::assertSame(0, $right->evaluated);
 
         self::outputs(new LogicOp(self::constant(true), $right, true));
-        self::assertSame(1, $evaluated);
+        self::assertSame(1, $right->evaluated);
     }
 
     public function testResultsAreBooleans(): void

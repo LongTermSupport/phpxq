@@ -11,9 +11,21 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(Compiler::class)]
 final class CompilerTest extends TestCase
 {
+    /**
+     * @param list<string> $expected
+     */
+    #[DataProvider('programs')]
+    public function testPrograms(string $program, string $input, array $expected): void
+    {
+        self::assertSame($expected, ProgramHarness::outputs($program, $input, ['name' => 'value']));
+    }
+
     /**
      * @return iterable<string, array{string, string, list<string>}>
      */
@@ -220,13 +232,10 @@ final class CompilerTest extends TestCase
         yield 'big batch update'             => ['[range(1000)] | .[] += 1 | add', 'null', ['500500']];
     }
 
-    /**
-     * @param list<string> $expected
-     */
-    #[DataProvider('programs')]
-    public function testPrograms(string $program, string $input, array $expected): void
+    #[DataProvider('runtimeErrors')]
+    public function testRuntimeErrors(string $program, string $input, string $message): void
     {
-        self::assertSame($expected, ProgramHarness::outputs($program, $input, ['name' => 'value']));
+        self::assertSame($message, ProgramHarness::error($program, $input));
     }
 
     /**
@@ -257,12 +266,6 @@ final class CompilerTest extends TestCase
         yield 'uncaught break'          => ['[.[] | error]', '["a"]', 'a'];
     }
 
-    #[DataProvider('runtimeErrors')]
-    public function testRuntimeErrors(string $program, string $input, string $message): void
-    {
-        self::assertSame($message, ProgramHarness::error($program, $input));
-    }
-
     public function testOutputsBeforeAnErrorAreStillEmitted(): void
     {
         $seen = [];
@@ -271,16 +274,23 @@ final class CompilerTest extends TestCase
             $compiler = ProgramHarness::registry();
             $parser   = new \LTS\PhpXq\Jq\Parser\Parser(new \LTS\PhpXq\Jq\Parser\Lexer());
             $program  = new Compiler($compiler, $parser, new \LTS\PhpXq\Jq\Runtime\FileModuleLoader([], $parser, new \LTS\PhpXq\Json\JsonDecoder()))
-                ->compile($parser->parse('1, error("stop"), 3'));
+                ->compile($parser->parse('1, error("stop"), 3'))
+            ;
             $program->run(new Eval\Support\StubContext(), null, static function (mixed $value) use (&$seen): void {
                 $seen[] = $value;
             });
             self::fail('expected an error');
-        } catch (JqException $exception) {
-            self::assertSame('stop', $exception->getMessage());
+        } catch (JqException $jqException) {
+            self::assertSame('stop', $jqException->getMessage());
         }
 
         self::assertSame([1], $seen);
+    }
+
+    #[DataProvider('compileErrors')]
+    public function testCompileErrors(string $program, string $message): void
+    {
+        self::assertSame($message, ProgramHarness::compileError($program));
     }
 
     /**
@@ -301,12 +311,6 @@ final class CompilerTest extends TestCase
         yield 'label out of scope'      => ['(label $a | 1), break $a', '$*label-a is not defined at <top-level>, line 1:'];
         yield 'variable out of scope'   => ['(1 as $x | $x), $x', '$x is not defined at <top-level>, line 1:'];
         yield 'function out of scope'   => ['(def f: 1; f), f', 'f/0 is not defined at <top-level>, line 1:'];
-    }
-
-    #[DataProvider('compileErrors')]
-    public function testCompileErrors(string $program, string $message): void
-    {
-        self::assertSame($message, ProgramHarness::compileError($program));
     }
 
     public function testCompilingTwiceReusesThePrelude(): void

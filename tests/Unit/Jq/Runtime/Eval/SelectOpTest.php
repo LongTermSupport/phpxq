@@ -9,6 +9,9 @@ use LTS\PhpXq\Jq\Runtime\Eval\SelectOp;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(SelectOp::class)]
 final class SelectOpTest extends OpTestCase
 {

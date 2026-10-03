@@ -15,12 +15,18 @@ use LTS\PhpXq\Jq\Runtime\Eval\Op;
 use LTS\PhpXq\Jq\Runtime\Eval\VarBinder;
 use LTS\PhpXq\Jq\Runtime\Eval\VarOp;
 use LTS\PhpXq\Jq\Runtime\JqException;
+use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\AssertsRaised;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(BindAltOp::class)]
 final class BindAltOpTest extends OpTestCase
 {
+    use AssertsRaised;
+
     public function testFallsThroughToTheNextAlternativeOnADestructuringError(): void
     {
         // `.[] as {a: $x} ?// $x | $x`
@@ -43,7 +49,7 @@ final class BindAltOpTest extends OpTestCase
             [new ArrayBinder([new VarBinder()]), new VarBinder()],
             [['a'], ['b']],
             ['a', 'b'],
-            self::pair(),
+            $this->pair(),
         );
 
         self::assertSame([[1, null]], self::outputs($op, [1]));
@@ -60,10 +66,7 @@ final class BindAltOpTest extends OpTestCase
             new ErrorOp(self::constant('boom')),
         );
 
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('boom');
-
-        self::outputs($op, 1);
+        self::assertRaises(JqException::class, 'boom', static fn (): mixed => self::outputs($op, 1));
     }
 
     public function testTheLastAlternativesErrorPropagates(): void
@@ -87,14 +90,14 @@ final class BindAltOpTest extends OpTestCase
         $calls = 0;
 
         try {
-            $op->run(null, 1, static function () use (&$calls): void {
+            $op->run(null, 1, static function () use (&$calls): never {
                 ++$calls;
 
                 throw new JqException('downstream');
             });
             self::fail('expected an exception');
-        } catch (JqException $exception) {
-            self::assertSame('downstream', $exception->getMessage());
+        } catch (JqException $jqException) {
+            self::assertSame('downstream', $jqException->getMessage());
             self::assertSame(1, $calls);
         }
     }
@@ -112,7 +115,7 @@ final class BindAltOpTest extends OpTestCase
         self::assertSame([[[0], 'x']], self::pathOutputs($op, ['x']));
     }
 
-    private static function pair(): Op
+    private function pair(): Op
     {
         return new ArrayOp(new CommaOp(new VarOp(1), new VarOp(0)));
     }

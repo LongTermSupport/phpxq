@@ -9,6 +9,9 @@ use LTS\PhpXq\Jq\Runtime\Eval\IfOp;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(IfOp::class)]
 final class IfOpTest extends OpTestCase
 {

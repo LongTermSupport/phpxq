@@ -11,6 +11,9 @@ use LTS\PhpXq\Jq\Runtime\Eval\Env;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(AbstractOp::class)]
 #[CoversClass(AbstractSingleOp::class)]
 final class AbstractOpsTest extends OpTestCase
@@ -33,7 +36,7 @@ final class AbstractOpsTest extends OpTestCase
         $op = new class extends AbstractSingleOp {
             public function value(?Env $env, mixed $input): mixed
             {
-                return $input . '!';
+                return \is_string($input) ? $input . '!' : null;
             }
         };
 

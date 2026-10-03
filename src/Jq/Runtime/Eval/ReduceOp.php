@@ -12,15 +12,15 @@ use Closure;
  *
  * @internal
  */
-final class ReduceOp implements Op
+final readonly class ReduceOp implements Op
 {
-    private readonly ?SingleOp $updateSingle;
+    private ?SingleOp $updateSingle;
 
     public function __construct(
-        private readonly Op $source,
-        private readonly Binder $binder,
-        private readonly Op $init,
-        private readonly Op $update,
+        private Op $source,
+        private Binder $binder,
+        private Op $init,
+        private Op $update,
     ) {
         $this->updateSingle = $update instanceof SingleOp ? $update : null;
     }
@@ -33,7 +33,7 @@ final class ReduceOp implements Op
             $single = $this->updateSingle;
             $this->source->run($env, $input, function (mixed $item) use (&$state, $update, $single, $env): void {
                 $this->binder->bind($env, $item, static function (?Env $bound) use (&$state, $update, $single): void {
-                    if (null !== $single) {
+                    if ($single instanceof SingleOp) {
                         $state = $single->value($bound, $state);
 
                         return;

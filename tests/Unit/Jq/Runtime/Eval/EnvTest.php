@@ -8,6 +8,9 @@ use LTS\PhpXq\Jq\Runtime\Eval\Env;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(Env::class)]
 final class EnvTest extends TestCase
 {
@@ -19,6 +22,6 @@ final class EnvTest extends TestCase
         self::assertSame($inner, Env::at($inner, 0));
         self::assertSame($outer, Env::at($inner, 1));
         self::assertNull(Env::at($inner, 2));
-        self::assertSame('outer', Env::at($inner, 1)?->value);
+        self::assertSame('outer', $outer->value);
     }
 }

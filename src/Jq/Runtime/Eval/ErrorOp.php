@@ -20,11 +20,11 @@ final class ErrorOp extends AbstractOp
 
     public function run(?Env $env, mixed $input, Closure $emit): void
     {
-        if (null === $this->message) {
+        if (!$this->message instanceof Op) {
             throw new JqException($input);
         }
 
-        $this->message->run($env, $input, static function (mixed $value): void {
+        $this->message->run($env, $input, static function (mixed $value): never {
             throw new JqException($value);
         });
     }

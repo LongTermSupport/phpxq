@@ -11,12 +11,12 @@ use Closure;
  *
  * @internal
  */
-final class SingleIfOp implements SingleOp
+final readonly class SingleIfOp implements SingleOp
 {
     public function __construct(
-        private readonly SingleOp $condition,
-        private readonly SingleOp $then,
-        private readonly ?SingleOp $else,
+        private SingleOp $condition,
+        private SingleOp $then,
+        private ?SingleOp $else,
     ) {
     }
 
@@ -27,7 +27,7 @@ final class SingleIfOp implements SingleOp
             return $this->then->value($env, $input);
         }
 
-        return null === $this->else ? $input : $this->else->value($env, $input);
+        return $this->else instanceof SingleOp ? $this->else->value($env, $input) : $input;
     }
 
     public function run(?Env $env, mixed $input, Closure $emit): void
@@ -40,7 +40,7 @@ final class SingleIfOp implements SingleOp
         $condition = $this->condition->value($env, $input);
         if (null !== $condition && false !== $condition) {
             $this->then->paths($env, $path, $input, $emit);
-        } elseif (null === $this->else) {
+        } elseif (!$this->else instanceof SingleOp) {
             $emit($path, $input);
         } else {
             $this->else->paths($env, $path, $input, $emit);

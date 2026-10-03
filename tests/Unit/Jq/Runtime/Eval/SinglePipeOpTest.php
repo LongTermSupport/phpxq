@@ -9,6 +9,9 @@ use LTS\PhpXq\Jq\Runtime\Eval\SinglePipeOp;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(SinglePipeOp::class)]
 final class SinglePipeOpTest extends OpTestCase
 {

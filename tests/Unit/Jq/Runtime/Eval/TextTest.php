@@ -8,6 +8,9 @@ use LTS\PhpXq\Jq\Runtime\Eval\Text;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(Text::class)]
 final class TextTest extends TestCase
 {

@@ -10,6 +10,9 @@ use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\StubContext;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(RunState::class)]
 final class RunStateTest extends TestCase
 {

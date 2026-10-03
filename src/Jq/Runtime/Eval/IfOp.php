@@ -12,14 +12,14 @@ use Closure;
  *
  * @internal
  */
-final class IfOp implements Op
+final readonly class IfOp implements Op
 {
-    private readonly ?SingleOp $conditionSingle;
+    private ?SingleOp $conditionSingle;
 
     public function __construct(
-        private readonly Op $condition,
-        private readonly Op $then,
-        private readonly ?Op $else,
+        private Op $condition,
+        private Op $then,
+        private ?Op $else,
     ) {
         $this->conditionSingle = $condition instanceof SingleOp ? $condition : null;
     }
@@ -28,11 +28,11 @@ final class IfOp implements Op
     {
         $then = $this->then;
         $else = $this->else;
-        if (null !== $this->conditionSingle) {
+        if ($this->conditionSingle instanceof SingleOp) {
             $condition = $this->conditionSingle->value($env, $input);
             if (null !== $condition && false !== $condition) {
                 $then->run($env, $input, $emit);
-            } elseif (null === $else) {
+            } elseif (!$else instanceof Op) {
                 $emit($input);
             } else {
                 $else->run($env, $input, $emit);
@@ -44,7 +44,7 @@ final class IfOp implements Op
         $this->condition->run($env, $input, static function (mixed $condition) use ($then, $else, $env, $input, $emit): void {
             if (null !== $condition && false !== $condition) {
                 $then->run($env, $input, $emit);
-            } elseif (null === $else) {
+            } elseif (!$else instanceof Op) {
                 $emit($input);
             } else {
                 $else->run($env, $input, $emit);
@@ -59,7 +59,7 @@ final class IfOp implements Op
         $this->condition->run($env, $input, static function (mixed $condition) use ($then, $else, $env, $path, $input, $emit): void {
             if (null !== $condition && false !== $condition) {
                 $then->paths($env, $path, $input, $emit);
-            } elseif (null === $else) {
+            } elseif (!$else instanceof Op) {
                 $emit($path, $input);
             } else {
                 $else->paths($env, $path, $input, $emit);

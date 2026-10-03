@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval;
 
+use Closure;
 use LTS\PhpXq\Jq\Runtime\BreakException;
 use LTS\PhpXq\Jq\Runtime\Eval\CommaOp;
 use LTS\PhpXq\Jq\Runtime\Eval\ErrorOp;
@@ -11,13 +12,19 @@ use LTS\PhpXq\Jq\Runtime\Eval\FieldOp;
 use LTS\PhpXq\Jq\Runtime\Eval\IdentityOp;
 use LTS\PhpXq\Jq\Runtime\Eval\TryOp;
 use LTS\PhpXq\Jq\Runtime\JqException;
+use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\AssertsRaised;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use stdClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(TryOp::class)]
 final class TryOpTest extends OpTestCase
 {
+    use AssertsRaised;
+
     public function testWithoutHandlerAnErrorEndsTheOutput(): void
     {
         $op = new TryOp(new CommaOp(self::constant(1), new ErrorOp(self::constant('x'))), null);
@@ -41,11 +48,10 @@ final class TryOpTest extends OpTestCase
 
     public function testErrorsRaisedByTheContinuationAreNotTheBodysErrors(): void
     {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('downstream');
-
-        new TryOp(self::constant(1), self::constant('handler'))->run(null, null, static function (): void {
-            throw new JqException('downstream');
+        self::assertRaises(JqException::class, 'downstream', static function (): void {
+            new TryOp(self::constant(1), self::constant('handler'))->run(null, null, static function (): never {
+                throw new JqException('downstream');
+            });
         });
     }
 
@@ -55,7 +61,8 @@ final class TryOpTest extends OpTestCase
         new TryOp(new CommaOp(self::constant(1), new ErrorOp(self::constant('late'))), self::constant('handled'))
             ->run(null, null, static function (mixed $value) use (&$seen): void {
                 $seen[] = $value;
-            });
+            })
+        ;
 
         self::assertSame([1, 'handled'], $seen);
     }
@@ -68,7 +75,7 @@ final class TryOpTest extends OpTestCase
             {
             }
 
-            public function run(?\LTS\PhpXq\Jq\Runtime\Eval\Env $env, mixed $input, \Closure $emit): void
+            public function run(?\LTS\PhpXq\Jq\Runtime\Eval\Env $env, mixed $input, Closure $emit): void
             {
                 throw new BreakException($this->label);
             }
@@ -94,11 +101,10 @@ final class TryOpTest extends OpTestCase
 
     public function testPathModeContinuationErrorsPropagate(): void
     {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('downstream');
-
-        new TryOp(new IdentityOp(), null)->paths(null, [], 1, static function (): void {
-            throw new JqException('downstream');
+        self::assertRaises(JqException::class, 'downstream', static function (): void {
+            new TryOp(new IdentityOp(), null)->paths(null, [], 1, static function (): never {
+                throw new JqException('downstream');
+            });
         });
     }
 }

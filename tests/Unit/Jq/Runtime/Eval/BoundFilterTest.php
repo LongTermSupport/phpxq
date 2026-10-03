@@ -10,6 +10,9 @@ use LTS\PhpXq\Jq\Runtime\Eval\VarOp;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(BoundFilter::class)]
 final class BoundFilterTest extends TestCase
 {

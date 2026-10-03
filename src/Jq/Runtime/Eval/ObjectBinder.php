@@ -13,12 +13,12 @@ use Closure;
  *
  * @internal
  */
-final class ObjectBinder implements Binder
+final readonly class ObjectBinder implements Binder
 {
     /**
      * @param non-empty-list<array{?string, ?Op, ?Binder}> $entries
      */
-    public function __construct(private readonly array $entries)
+    public function __construct(private array $entries)
     {
     }
 
@@ -38,11 +38,11 @@ final class ObjectBinder implements Binder
             return;
         }
 
-        [$variable, $keyOp, $binder] = $this->entries[$index];
+        [$variable, $keyOp, $binder]  = $this->entries[$index];
         $withKey                      = function (mixed $key) use ($variable, $binder, $env, $value, $index, $continue): void {
             $member = Access::index($value, $key);
             $inner  = null === $variable ? $env : new Env($env, $member);
-            if (null === $binder) {
+            if (!$binder instanceof Binder) {
                 $this->step($inner, $value, $index + 1, $continue);
 
                 return;
@@ -53,7 +53,7 @@ final class ObjectBinder implements Binder
             });
         };
 
-        if (null === $keyOp) {
+        if (!$keyOp instanceof Op) {
             $withKey($variable);
 
             return;

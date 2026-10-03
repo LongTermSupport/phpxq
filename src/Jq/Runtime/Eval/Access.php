@@ -137,7 +137,7 @@ final class Access
     public static function bounds(int $length, mixed $from, mixed $to): array
     {
         $fromNumber = null === $from || \is_int($from) || \is_float($from) || $from instanceof PreciseNumber;
-        $toNumber   = null === $to || \is_int($to) || \is_float($to) || $to instanceof PreciseNumber;
+        $toNumber   = null === $to   || \is_int($to) || \is_float($to) || $to instanceof PreciseNumber;
         if (!$fromNumber || !$toNumber) {
             throw new JqException('Start and end indices of an array slice must be numbers');
         }

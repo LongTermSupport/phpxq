@@ -6,12 +6,18 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval;
 
 use LTS\PhpXq\Jq\Runtime\Eval\IterateOp;
 use LTS\PhpXq\Jq\Runtime\JqException;
+use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\AssertsRaised;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(IterateOp::class)]
 final class IterateOpTest extends OpTestCase
 {
+    use AssertsRaised;
+
     public function testIteratesTheInputWithoutATarget(): void
     {
         self::assertSame([1, 2], self::outputs(new IterateOp(null), [1, 2]));
@@ -27,18 +33,12 @@ final class IterateOpTest extends OpTestCase
 
     public function testRejectsScalars(): void
     {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('Cannot iterate over number (123)');
-
-        self::outputs(new IterateOp(null), 123);
+        self::assertRaises(JqException::class, 'Cannot iterate over number (123)', static fn (): mixed => self::outputs(new IterateOp(null), 123));
     }
 
     public function testRejectsNull(): void
     {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('Cannot iterate over null (null)');
-
-        self::outputs(new IterateOp(null), null);
+        self::assertRaises(JqException::class, 'Cannot iterate over null (null)', static fn (): mixed => self::outputs(new IterateOp(null)));
     }
 
     public function testPathModeReportsIndexesAndKeys(): void
@@ -50,10 +50,7 @@ final class IterateOpTest extends OpTestCase
 
     public function testPathModeRejectsAComputedValue(): void
     {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('Invalid path expression near attempt to iterate through [1]');
-
-        self::pathOutputs(new IterateOp(self::constant([1])));
+        self::assertRaises(JqException::class, 'Invalid path expression near attempt to iterate through [1]', static fn (): mixed => self::pathOutputs(new IterateOp(self::constant([1]))));
     }
 
     public function testPathModeRejectsNonIterableValues(): void

@@ -9,6 +9,9 @@ use LTS\PhpXq\Jq\Runtime\Eval\IterateOp;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(ArrayOp::class)]
 final class ArrayOpTest extends OpTestCase
 {

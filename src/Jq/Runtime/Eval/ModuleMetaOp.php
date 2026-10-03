@@ -30,8 +30,8 @@ final class ModuleMetaOp extends AbstractSingleOp
 
         try {
             $module = $this->loader->loadLibrary($input, null, null);
-        } catch (JqCompileException $exception) {
-            throw new JqException($exception->getMessage());
+        } catch (JqCompileException $jqCompileException) {
+            throw new JqException($jqCompileException->getMessage());
         }
 
         $program = $module->program;
@@ -47,7 +47,8 @@ final class ModuleMetaOp extends AbstractSingleOp
 
             $dependencies[] = $dependency
                 ->with('is_data', ImportKind::Data === $import->kind)
-                ->with('relpath', $import->path);
+                ->with('relpath', $import->path)
+            ;
         }
 
         $definitions = [];

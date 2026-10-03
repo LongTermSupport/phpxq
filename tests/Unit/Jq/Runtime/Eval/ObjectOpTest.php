@@ -6,12 +6,19 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval;
 
 use LTS\PhpXq\Jq\Runtime\Eval\ObjectOp;
 use LTS\PhpXq\Jq\Runtime\JqException;
+use LTS\PhpXq\Json\JsonObject;
+use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\AssertsRaised;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(ObjectOp::class)]
 final class ObjectOpTest extends OpTestCase
 {
+    use AssertsRaised;
+
     public function testLastEntryVariesFastest(): void
     {
         $op = new ObjectOp([
@@ -70,15 +77,13 @@ final class ObjectOpTest extends OpTestCase
         $result = self::outputs($op)[0];
 
         self::assertEquals(self::object(['a' => 3, 'b' => 2]), $result);
+        self::assertInstanceOf(JsonObject::class, $result);
         self::assertSame(['a', 'b'], $result->keys());
     }
 
     public function testRejectsNonStringKeys(): void
     {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('Object keys must be strings');
-
-        self::outputs(new ObjectOp([[self::generator([1]), self::constant(1)]]));
+        self::assertRaises(JqException::class, 'Object keys must be strings', static fn (): mixed => self::outputs(new ObjectOp([[self::generator([1]), self::constant(1)]])));
     }
 
     public function testRejectsNonStringKeysInSingleEntries(): void

@@ -14,9 +14,9 @@ use stdClass;
  *
  * @internal
  */
-final class LabelOp implements Op
+final readonly class LabelOp implements Op
 {
-    public function __construct(private readonly Op $body)
+    public function __construct(private Op $body)
     {
     }
 
@@ -25,9 +25,9 @@ final class LabelOp implements Op
         $token = new stdClass();
         try {
             $this->body->run(new Env($env, $token), $input, $emit);
-        } catch (BreakException $exception) {
-            if ($exception->label !== $token) {
-                throw $exception;
+        } catch (BreakException $breakException) {
+            if ($breakException->label !== $token) {
+                throw $breakException;
             }
         }
     }
@@ -37,9 +37,9 @@ final class LabelOp implements Op
         $token = new stdClass();
         try {
             $this->body->paths(new Env($env, $token), $path, $input, $emit);
-        } catch (BreakException $exception) {
-            if ($exception->label !== $token) {
-                throw $exception;
+        } catch (BreakException $breakException) {
+            if ($breakException->label !== $token) {
+                throw $breakException;
             }
         }
     }

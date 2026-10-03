@@ -9,9 +9,21 @@ use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 
+/**
+ * @internal
+ */
 #[CoversClass(SingleLogicOp::class)]
 final class SingleLogicOpTest extends OpTestCase
 {
+    #[DataProvider('truthTable')]
+    public function testTruthTable(mixed $left, mixed $right, bool $isAnd, bool $expected): void
+    {
+        $op = new SingleLogicOp(self::constant($left), self::constant($right), $isAnd);
+
+        self::assertSame($expected, $op->value(null, null));
+        self::assertSame([$expected], self::outputs($op));
+    }
+
     /**
      * @return iterable<string, array{mixed, mixed, bool, bool}>
      */
@@ -24,14 +36,5 @@ final class SingleLogicOpTest extends OpTestCase
         yield 'false or true'   => [false, true, false, true];
         yield 'null or false'   => [null, false, false, false];
         yield 'true or false'   => [true, false, false, true];
-    }
-
-    #[DataProvider('truthTable')]
-    public function testTruthTable(mixed $left, mixed $right, bool $isAnd, bool $expected): void
-    {
-        $op = new SingleLogicOp(self::constant($left), self::constant($right), $isAnd);
-
-        self::assertSame($expected, $op->value(null, null));
-        self::assertSame([$expected], self::outputs($op));
     }
 }

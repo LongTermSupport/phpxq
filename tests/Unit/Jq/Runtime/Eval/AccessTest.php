@@ -8,13 +8,19 @@ use LTS\PhpXq\Jq\Runtime\Eval\Access;
 use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Json\PreciseNumber;
+use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\AssertsRaised;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(Access::class)]
 final class AccessTest extends TestCase
 {
+    use AssertsRaised;
+
     public function testObjectMembers(): void
     {
         $object = new JsonObject(['a' => 1]);
@@ -88,6 +94,12 @@ final class AccessTest extends TestCase
         yield 'needle longer' => [[1], [1, 2], []];
     }
 
+    #[DataProvider('invalidIndexes')]
+    public function testIndexErrors(mixed $target, mixed $key, string $message): void
+    {
+        self::assertRaises(JqException::class, $message, static fn (): mixed => Access::index($target, $key));
+    }
+
     /**
      * @return iterable<string, array{mixed, mixed, string}>
      */
@@ -101,15 +113,6 @@ final class AccessTest extends TestCase
         yield 'object by null'     => [new JsonObject([]), null, 'Cannot index object with null (null)'];
         yield 'number by slice'    => [1, new JsonObject(['start' => 1]), 'Cannot index number with object ({"start":1})'];
         yield 'object by array'    => [new JsonObject([]), [1], 'Cannot index object with array ([1])'];
-    }
-
-    #[DataProvider('invalidIndexes')]
-    public function testIndexErrors(mixed $target, mixed $key, string $message): void
-    {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage($message);
-
-        Access::index($target, $key);
     }
 
     public function testSlicesArraysAndStrings(): void
@@ -126,6 +129,15 @@ final class AccessTest extends TestCase
         $this->expectException(JqException::class);
 
         Access::slice(5, 1, 2);
+    }
+
+    /**
+     * @param array{int, int} $expected
+     */
+    #[DataProvider('bounds')]
+    public function testBounds(int $length, mixed $from, mixed $to, array $expected): void
+    {
+        self::assertSame($expected, Access::bounds($length, $from, $to));
     }
 
     /**
@@ -147,21 +159,9 @@ final class AccessTest extends TestCase
         yield 'precise number'     => [5, new PreciseNumber(1.0, '1.0'), 2, [1, 2]];
     }
 
-    /**
-     * @param array{int, int} $expected
-     */
-    #[DataProvider('bounds')]
-    public function testBounds(int $length, mixed $from, mixed $to, array $expected): void
-    {
-        self::assertSame($expected, Access::bounds($length, $from, $to));
-    }
-
     public function testBoundsRejectNonNumbers(): void
     {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('Start and end indices of an array slice must be numbers');
-
-        Access::bounds(3, 'a', null);
+        self::assertRaises(JqException::class, 'Start and end indices of an array slice must be numbers', static fn (): mixed => Access::bounds(3, 'a', null));
     }
 
     public function testEachVisitsArrayElementsAndObjectValues(): void
@@ -179,10 +179,8 @@ final class AccessTest extends TestCase
 
     public function testEachRejectsScalars(): void
     {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('Cannot iterate over string ("x")');
-
-        Access::each('x', static function (): void {
+        self::assertRaises(JqException::class, 'Cannot iterate over string ("x")', static function (): void {
+            Access::each('x', static function (): void {});
         });
     }
 

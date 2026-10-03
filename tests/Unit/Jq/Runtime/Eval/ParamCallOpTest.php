@@ -13,6 +13,9 @@ use LTS\PhpXq\Jq\Runtime\Eval\VarOp;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(ParamCallOp::class)]
 final class ParamCallOpTest extends OpTestCase
 {

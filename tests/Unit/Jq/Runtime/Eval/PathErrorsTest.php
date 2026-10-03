@@ -8,6 +8,9 @@ use LTS\PhpXq\Jq\Runtime\Eval\PathErrors;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(PathErrors::class)]
 final class PathErrorsTest extends TestCase
 {

@@ -9,6 +9,9 @@ use LTS\PhpXq\Jq\Runtime\JqException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(Downstream::class)]
 final class DownstreamTest extends TestCase
 {
@@ -29,7 +32,7 @@ final class DownstreamTest extends TestCase
     public function testStaysActiveWhenTheContinuationThrows(): void
     {
         $downstream = new Downstream();
-        $guarded    = $downstream->guard(static function (): void {
+        $guarded    = $downstream->guard(static function (): never {
             throw new JqException('x');
         });
 

@@ -11,6 +11,9 @@ use LTS\PhpXq\Jq\Runtime\Eval\IterateOp;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(ArithAssignOp::class)]
 final class ArithAssignOpTest extends OpTestCase
 {

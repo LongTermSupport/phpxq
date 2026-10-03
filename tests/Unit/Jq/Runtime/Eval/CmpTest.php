@@ -10,9 +10,28 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(Cmp::class)]
 final class CmpTest extends TestCase
 {
+    #[DataProvider('comparisons')]
+    public function testOperators(mixed $left, mixed $right, string $operator, bool $expected): void
+    {
+        $actual = match ($operator) {
+            'eq'    => Cmp::eq($left, $right),
+            'ne'    => Cmp::ne($left, $right),
+            'lt'    => Cmp::lt($left, $right),
+            'le'    => Cmp::le($left, $right),
+            'gt'    => Cmp::gt($left, $right),
+            'ge'    => Cmp::ge($left, $right),
+            default => self::fail('unknown operator ' . $operator),
+        };
+
+        self::assertSame($expected, $actual);
+    }
+
     /**
      * @return iterable<string, array{mixed, mixed, string, bool}>
      */
@@ -34,11 +53,5 @@ final class CmpTest extends TestCase
         yield 'nan ne nan'        => [\NAN, \NAN, 'ne', true];
         yield 'object equality'   => [new JsonObject(['a' => 1]), new JsonObject(['a' => 1]), 'eq', true];
         yield 'array ordering'    => [[1, 2], [1, 3], 'lt', true];
-    }
-
-    #[DataProvider('comparisons')]
-    public function testOperators(mixed $left, mixed $right, string $operator, bool $expected): void
-    {
-        self::assertSame($expected, Cmp::$operator($left, $right));
     }
 }

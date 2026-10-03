@@ -15,12 +15,15 @@ use LTS\PhpXq\Jq\Runtime\Eval\VarOp;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(CallOp::class)]
 final class CallOpTest extends OpTestCase
 {
     public function testTopLevelFunctionRunsWithoutACapturedEnvironment(): void
     {
-        $function     = self::function('f', 0);
+        $function     = $this->function('f', 0);
         $function->op = self::constant('result');
 
         self::assertSame(['result'], self::outputs(new CallOp($function, -1, []), 'ignored', new Env(null, 'caller')));
@@ -29,7 +32,7 @@ final class CallOpTest extends OpTestCase
     public function testClosureArgumentsAreBoundToTheCallersEnvironment(): void
     {
         // def f(g): g; called as f($caller) from an environment whose top entry is 'caller'
-        $function     = self::function('f', 1);
+        $function     = $this->function('f', 1);
         $function->op = new ParamCallOp(0);
 
         $call = new CallOp($function, -1, [new VarOp(0)]);
@@ -39,8 +42,9 @@ final class CallOpTest extends OpTestCase
 
     public function testNestedFunctionBodyStartsFromItsDefinitionEntry(): void
     {
-        $function     = self::function('f', 0);
+        $function     = $this->function('f', 0);
         $function->op = new VarOp(0);
+
         $definition   = new Env(new Env(null, 'outer'), 'definition-marker');
         $deeper       = new Env($definition, 'later');
 
@@ -50,13 +54,13 @@ final class CallOpTest extends OpTestCase
 
     public function testPathModeRunsTheBodyInPathMode(): void
     {
-        $function     = self::function('f', 0);
+        $function     = $this->function('f', 0);
         $function->op = new FieldOp('a');
 
         self::assertSame([[['a'], 1]], self::pathOutputs(new CallOp($function, -1, []), self::object(['a' => 1])));
     }
 
-    private static function function(string $name, int $arity): FuncInfo
+    private function function(string $name, int $arity): FuncInfo
     {
         $params = [];
         for ($i = 0; $i < $arity; ++$i) {

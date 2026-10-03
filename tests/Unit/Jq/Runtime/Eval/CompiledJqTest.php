@@ -12,6 +12,9 @@ use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\StubContext;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(CompiledJq::class)]
 final class CompiledJqTest extends TestCase
 {
@@ -36,7 +39,7 @@ final class CompiledJqTest extends TestCase
         $state->enter(new StubContext(['x' => 'outer'], []), ['x' => 'outer']);
 
         try {
-            $program->run(new StubContext(['x' => 'inner'], []), null, static function (): void {
+            $program->run(new StubContext(['x' => 'inner'], []), null, static function (): never {
                 throw new JqException('stop');
             });
             self::fail('expected an error');

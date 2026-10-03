@@ -10,6 +10,9 @@ use LTS\PhpXq\Jq\Runtime\Eval\PipeOp;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(PipeOp::class)]
 final class PipeOpTest extends OpTestCase
 {

@@ -8,13 +8,19 @@ use LTS\PhpXq\Jq\Runtime\Arithmetic;
 use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Json\PreciseNumber;
+use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\AssertsRaised;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(Arithmetic::class)]
 final class ArithmeticTest extends TestCase
 {
+    use AssertsRaised;
+
     public function testNormalizeKeepsIntegralValuesAsInts(): void
     {
         self::assertSame(3, Arithmetic::normalize(3.0));
@@ -39,6 +45,12 @@ final class ArithmeticTest extends TestCase
         self::assertNan(Arithmetic::normalize(\NAN));
     }
 
+    #[DataProvider('additions')]
+    public function testAdd(mixed $left, mixed $right, mixed $expected): void
+    {
+        self::assertEquals($expected, Arithmetic::add($left, $right));
+    }
+
     /**
      * @return iterable<string, array{mixed, mixed, mixed}>
      */
@@ -55,12 +67,6 @@ final class ArithmeticTest extends TestCase
         yield 'objects'           => [new JsonObject(['a' => 1, 'b' => 2]), new JsonObject(['b' => 3, 'c' => 4]), new JsonObject(['a' => 1, 'b' => 3, 'c' => 4])];
         yield 'beyond 2^53'       => [9007199254740992, 1, 9007199254740993.0];
         yield 'precise number'    => [new PreciseNumber(1.0E+1000, '1E+1000'), 0, \INF];
-    }
-
-    #[DataProvider('additions')]
-    public function testAdd(mixed $left, mixed $right, mixed $expected): void
-    {
-        self::assertEquals($expected, Arithmetic::add($left, $right));
     }
 
     public function testAddKeepsALoneNullOperandsPreciseLiteral(): void
@@ -80,6 +86,12 @@ final class ArithmeticTest extends TestCase
         self::assertSame(9, $sum->get('a'));
     }
 
+    #[DataProvider('subtractions')]
+    public function testSubtract(mixed $left, mixed $right, mixed $expected): void
+    {
+        self::assertSame($expected, Arithmetic::subtract($left, $right));
+    }
+
     /**
      * @return iterable<string, array{mixed, mixed, mixed}>
      */
@@ -92,10 +104,10 @@ final class ArithmeticTest extends TestCase
         yield 'array by empty'  => [[1], [], [1]];
     }
 
-    #[DataProvider('subtractions')]
-    public function testSubtract(mixed $left, mixed $right, mixed $expected): void
+    #[DataProvider('multiplications')]
+    public function testMultiply(mixed $left, mixed $right, mixed $expected): void
     {
-        self::assertSame($expected, Arithmetic::subtract($left, $right));
+        self::assertSame($expected, Arithmetic::multiply($left, $right));
     }
 
     /**
@@ -117,12 +129,6 @@ final class ArithmeticTest extends TestCase
         yield 'empty string'       => ['', 1000000000, ''];
     }
 
-    #[DataProvider('multiplications')]
-    public function testMultiply(mixed $left, mixed $right, mixed $expected): void
-    {
-        self::assertSame($expected, Arithmetic::multiply($left, $right));
-    }
-
     public function testMultiplyMergesObjectsRecursively(): void
     {
         $left  = new JsonObject(['a' => new JsonObject(['b' => 1, 'c' => 2]), 'd' => 1]);
@@ -136,10 +142,13 @@ final class ArithmeticTest extends TestCase
 
     public function testMultiplyRejectsHugeRepeats(): void
     {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('Repeat string result too long');
+        self::assertRaises(JqException::class, 'Repeat string result too long', static fn (): mixed => Arithmetic::multiply('abc', 1000000000));
+    }
 
-        Arithmetic::multiply('abc', 1000000000);
+    #[DataProvider('divisions')]
+    public function testDivide(mixed $left, mixed $right, mixed $expected): void
+    {
+        self::assertSame($expected, Arithmetic::divide($left, $right));
     }
 
     /**
@@ -156,10 +165,10 @@ final class ArithmeticTest extends TestCase
         yield 'adjacent'       => ['a,,b', ',', ['a', '', 'b']];
     }
 
-    #[DataProvider('divisions')]
-    public function testDivide(mixed $left, mixed $right, mixed $expected): void
+    #[DataProvider('remainders')]
+    public function testModulo(mixed $left, mixed $right, mixed $expected): void
     {
-        self::assertSame($expected, Arithmetic::divide($left, $right));
+        self::assertSame($expected, Arithmetic::modulo($left, $right));
     }
 
     /**
@@ -176,12 +185,6 @@ final class ArithmeticTest extends TestCase
         yield 'huge divisor'        => [5, 1.0E300, 5];
     }
 
-    #[DataProvider('remainders')]
-    public function testModulo(mixed $left, mixed $right, mixed $expected): void
-    {
-        self::assertSame($expected, Arithmetic::modulo($left, $right));
-    }
-
     public function testModuloWithNanIsNan(): void
     {
         self::assertNan(Arithmetic::modulo(\NAN, 3));
@@ -192,8 +195,10 @@ final class ArithmeticTest extends TestCase
     {
         self::assertSame(-3, Arithmetic::negate(3));
         self::assertSame(2.5, Arithmetic::negate(-2.5));
-        self::assertSame(0.0, abs(Arithmetic::negate(0)));
-        self::assertLessThan(0, fdiv(1.0, Arithmetic::negate(0)));
+        $zero = Arithmetic::negate(0);
+        self::assertIsFloat($zero);
+        self::assertSame(0.0, abs($zero));
+        self::assertLessThan(0, fdiv(1.0, $zero));
     }
 
     public function testNegatePreservesPreciseLiterals(): void
@@ -207,6 +212,15 @@ final class ArithmeticTest extends TestCase
 
         self::assertInstanceOf(PreciseNumber::class, $back);
         self::assertSame('13911860366432393', $back->literal);
+    }
+
+    /**
+     * @param callable(): mixed $operation
+     */
+    #[DataProvider('errors')]
+    public function testTypeErrors(string $name, callable $operation, string $message): void
+    {
+        self::assertRaises(JqException::class, $message, static fn (): mixed => $operation());
     }
 
     /**
@@ -225,18 +239,6 @@ final class ArithmeticTest extends TestCase
         yield 'modulo zero' => ['mod', static fn (): mixed => Arithmetic::modulo(1, 0), 'number (1) and number (0) cannot be divided (remainder) because the divisor is zero'];
         yield 'modulo tiny' => ['mod', static fn (): mixed => Arithmetic::modulo(1, 0.5), 'number (1) and number (0.5) cannot be divided (remainder) because the divisor is zero'];
         yield 'negate'      => ['neg', static fn (): mixed => Arithmetic::negate('foo'), 'string ("foo") cannot be negated'];
-    }
-
-    /**
-     * @param callable(): mixed $operation
-     */
-    #[DataProvider('errors')]
-    public function testTypeErrors(string $name, callable $operation, string $message): void
-    {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage($message);
-
-        $operation();
     }
 
     public function testSplit(): void

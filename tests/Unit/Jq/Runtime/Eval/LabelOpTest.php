@@ -14,6 +14,9 @@ use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use stdClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(LabelOp::class)]
 final class LabelOpTest extends OpTestCase
 {

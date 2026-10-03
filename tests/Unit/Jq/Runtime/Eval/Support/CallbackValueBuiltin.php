@@ -14,7 +14,7 @@ use LTS\PhpXq\Jq\Runtime\ValueBuiltin;
 final readonly class CallbackValueBuiltin implements ValueBuiltin
 {
     /**
-     * @param Closure(mixed, mixed...): mixed $callback
+     * @param Closure(mixed, mixed, mixed): mixed $callback
      */
     public function __construct(
         private string $name,

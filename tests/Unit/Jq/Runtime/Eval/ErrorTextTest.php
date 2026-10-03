@@ -11,12 +11,21 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(ErrorText::class)]
 final class ErrorTextTest extends TestCase
 {
     public function testJsonIsCompact(): void
     {
         self::assertSame('{"a":[1,2]}', ErrorText::json(new JsonObject(['a' => [1, 2]])));
+    }
+
+    #[DataProvider('dumps')]
+    public function testDumpTruncates(mixed $value, string $expected): void
+    {
+        self::assertSame($expected, ErrorText::dump($value));
     }
 
     /**
@@ -31,12 +40,6 @@ final class ErrorTextTest extends TestCase
         yield 'fits exactly'       => ['xx' . str_repeat('☆', 8), '"xx☆☆☆☆☆☆☆☆"'];
         yield 'long array'         => [range(1, 20), '[1,2,3,4,5,6,7,8,9,10,11,1...'];
         yield 'precise number'     => [new PreciseNumber(1.2345678901234568e29, '123456789012345678901234567890'), '12345678901234567890123456...'];
-    }
-
-    #[DataProvider('dumps')]
-    public function testDumpTruncates(mixed $value, string $expected): void
-    {
-        self::assertSame($expected, ErrorText::dump($value));
     }
 
     public function testTypeError(): void

@@ -11,11 +11,11 @@ use Closure;
  *
  * @internal
  */
-final class SingleIndexOp implements SingleOp
+final readonly class SingleIndexOp implements SingleOp
 {
     public function __construct(
-        private readonly SingleOp $target,
-        private readonly SingleOp $index,
+        private SingleOp $target,
+        private SingleOp $index,
     ) {
     }
 
@@ -39,7 +39,7 @@ final class SingleIndexOp implements SingleOp
                 throw PathErrors::access($key, $value);
             }
 
-            $result = Access::index($value, $key);
+            $result      = Access::index($value, $key);
             $valuePath[] = $key;
             $emit($valuePath, $result);
         });

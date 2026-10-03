@@ -10,6 +10,9 @@ use LTS\PhpXq\Jq\Runtime\Eval\Env;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(ClosureArg::class)]
 final class ClosureArgTest extends TestCase
 {

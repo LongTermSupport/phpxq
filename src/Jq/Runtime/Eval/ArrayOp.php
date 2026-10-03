@@ -20,11 +20,11 @@ final class ArrayOp extends AbstractSingleOp
 
     public function value(?Env $env, mixed $input): mixed
     {
-        if (null === $this->body) {
+        if (!$this->body instanceof Op) {
             return [];
         }
 
-        if (null !== $this->single) {
+        if ($this->single instanceof SingleOp) {
             return [$this->single->value($env, $input)];
         }
 

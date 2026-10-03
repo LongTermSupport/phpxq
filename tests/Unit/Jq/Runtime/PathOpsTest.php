@@ -8,13 +8,19 @@ use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Jq\Runtime\PathOps;
 use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Json\PreciseNumber;
+use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\AssertsRaised;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(PathOps::class)]
 final class PathOpsTest extends TestCase
 {
+    use AssertsRaised;
+
     public function testGetPath(): void
     {
         $value = new JsonObject(['foo' => ['a', 'b', 'c']]);
@@ -36,10 +42,16 @@ final class PathOpsTest extends TestCase
 
     public function testGetPathPropagatesTypeErrors(): void
     {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('Cannot index number with string ("b")');
+        self::assertRaises(JqException::class, 'Cannot index number with string ("b")', static fn (): mixed => PathOps::getPath(new JsonObject(['a' => 1]), ['a', 'b']));
+    }
 
-        PathOps::getPath(new JsonObject(['a' => 1]), ['a', 'b']);
+    /**
+     * @param list<mixed> $path
+     */
+    #[DataProvider('sets')]
+    public function testSetPath(mixed $value, array $path, mixed $new, mixed $expected): void
+    {
+        self::assertEquals($expected, PathOps::setPath($value, $path, $new));
     }
 
     /**
@@ -63,10 +75,13 @@ final class PathOpsTest extends TestCase
         yield 'numeric key'         => [new JsonObject([]), ['1'], 1, new JsonObject(['1' => 1])];
     }
 
-    #[DataProvider('sets')]
-    public function testSetPath(mixed $value, array $path, mixed $new, mixed $expected): void
+    /**
+     * @param list<mixed> $path
+     */
+    #[DataProvider('failingSets')]
+    public function testSetPathErrors(mixed $value, array $path, mixed $new, string $message): void
     {
-        self::assertEquals($expected, PathOps::setPath($value, $path, $new));
+        self::assertRaises(JqException::class, $message, static fn (): mixed => PathOps::setPath($value, $path, $new));
     }
 
     /**
@@ -84,21 +99,18 @@ final class PathOpsTest extends TestCase
         yield 'scalar by string'  => [5, ['a'], 1, 'Cannot index number with string ("a")'];
     }
 
-    #[DataProvider('failingSets')]
-    public function testSetPathErrors(mixed $value, array $path, mixed $new, string $message): void
-    {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage($message);
-
-        PathOps::setPath($value, $path, $new);
-    }
-
     public function testSetKeyOnStringSlicesIsRefused(): void
     {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('Cannot update string slices');
+        self::assertRaises(JqException::class, 'Cannot update string slices', static fn (): mixed => PathOps::setKey('foobar', new JsonObject(['start' => 1, 'end' => 3]), 'xyz'));
+    }
 
-        PathOps::setKey('foobar', new JsonObject(['start' => 1, 'end' => 3]), 'xyz');
+    /**
+     * @param list<list<mixed>> $paths
+     */
+    #[DataProvider('deletions')]
+    public function testDeletePaths(mixed $value, array $paths, mixed $expected): void
+    {
+        self::assertEquals($expected, PathOps::deletePaths($value, $paths));
     }
 
     /**
@@ -123,12 +135,12 @@ final class PathOpsTest extends TestCase
     }
 
     /**
-     * @param list<list<mixed>> $paths
+     * @param list<mixed> $paths
      */
-    #[DataProvider('deletions')]
-    public function testDeletePaths(mixed $value, array $paths, mixed $expected): void
+    #[DataProvider('failingDeletions')]
+    public function testDeletePathsErrors(mixed $value, array $paths, string $message): void
     {
-        self::assertEquals($expected, PathOps::deletePaths($value, $paths));
+        self::assertRaises(JqException::class, $message, static fn (): mixed => PathOps::deletePaths($value, $paths));
     }
 
     /**
@@ -140,17 +152,5 @@ final class PathOpsTest extends TestCase
         yield 'string key on array'    => [[1], [['a']], 'Cannot delete field at object index of array'];
         yield 'number key on object'   => [new JsonObject(['a' => 1]), [[0]], 'Cannot delete field at array index of object'];
         yield 'scalar'                 => [5, [['a']], 'Cannot delete fields from number'];
-    }
-
-    /**
-     * @param list<mixed> $paths
-     */
-    #[DataProvider('failingDeletions')]
-    public function testDeletePathsErrors(mixed $value, array $paths, string $message): void
-    {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage($message);
-
-        PathOps::deletePaths($value, $paths);
     }
 }

@@ -10,21 +10,27 @@ use LTS\PhpXq\Jq\Runtime\Eval\Env;
 use LTS\PhpXq\Jq\Runtime\Eval\ObjectBinder;
 use LTS\PhpXq\Jq\Runtime\Eval\VarBinder;
 use LTS\PhpXq\Jq\Runtime\JqException;
+use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\AssertsRaised;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(Binder::class)]
 #[CoversClass(VarBinder::class)]
 #[CoversClass(ArrayBinder::class)]
 #[CoversClass(ObjectBinder::class)]
 final class BinderTest extends OpTestCase
 {
+    use AssertsRaised;
+
     public function testVarBinderPushesTheValue(): void
     {
         $bound = self::bindAll(new VarBinder(), 5, new Env(null, 'outer'));
 
         self::assertCount(1, $bound);
-        self::assertSame([5, 'outer'], self::values($bound[0], 2));
+        self::assertSame([5, 'outer'], $this->values($bound[0], 2));
     }
 
     public function testArrayBinderPushesOneEntryPerElementInOrder(): void
@@ -33,23 +39,20 @@ final class BinderTest extends OpTestCase
 
         $bound = self::bindAll($binder, [1, 2]);
 
-        self::assertSame([2, 1], self::values($bound[0], 2));
+        self::assertSame([2, 1], $this->values($bound[0], 2));
     }
 
     public function testArrayBinderBindsNullForMissingElementsAndNullInput(): void
     {
         $binder = new ArrayBinder([new VarBinder(), new VarBinder()]);
 
-        self::assertSame([null, 1], self::values(self::bindAll($binder, [1])[0], 2));
-        self::assertSame([null, null], self::values(self::bindAll($binder, null)[0], 2));
+        self::assertSame([null, 1], $this->values(self::bindAll($binder, [1])[0], 2));
+        self::assertSame([null, null], $this->values(self::bindAll($binder, null)[0], 2));
     }
 
     public function testArrayBinderRejectsObjects(): void
     {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('Cannot index object with number (0)');
-
-        self::bindAll(new ArrayBinder([new VarBinder()]), self::object(['a' => 1]));
+        self::assertRaises(JqException::class, 'Cannot index object with number (0)', static fn (): mixed => self::bindAll(new ArrayBinder([new VarBinder()]), self::object(['a' => 1])));
     }
 
     public function testObjectBinderWithVariableKeys(): void
@@ -58,7 +61,7 @@ final class BinderTest extends OpTestCase
 
         $bound = self::bindAll($binder, self::object(['a' => 1, 'b' => 2]));
 
-        self::assertSame([2, 1], self::values($bound[0], 2));
+        self::assertSame([2, 1], $this->values($bound[0], 2));
     }
 
     public function testObjectBinderBindsTheMemberAndItsSubPattern(): void
@@ -66,7 +69,7 @@ final class BinderTest extends OpTestCase
         $binder = new ObjectBinder([['all', null, new ArrayBinder([new VarBinder()])]]);
         $bound  = self::bindAll($binder, self::object(['all' => [7]]));
 
-        self::assertSame([7, [7]], self::values($bound[0], 2));
+        self::assertSame([7, [7]], $this->values($bound[0], 2));
     }
 
     public function testObjectBinderWithKeyExpressionAndNoVariable(): void
@@ -76,8 +79,8 @@ final class BinderTest extends OpTestCase
         $bound = self::bindAll($binder, self::object(['a' => 1, 'b' => 2]));
 
         self::assertCount(2, $bound);
-        self::assertSame([1], self::values($bound[0], 1));
-        self::assertSame([2], self::values($bound[1], 1));
+        self::assertSame([1], $this->values($bound[0], 1));
+        self::assertSame([2], $this->values($bound[1], 1));
     }
 
     public function testObjectBinderKeyExpressionsSeeEarlierVariables(): void
@@ -89,7 +92,7 @@ final class BinderTest extends OpTestCase
 
         $bound = self::bindAll($binder, self::object(['k' => 'name', 'name' => 'found']));
 
-        self::assertSame(['found', 'name'], self::values($bound[0], 2));
+        self::assertSame(['found', 'name'], $this->values($bound[0], 2));
     }
 
     public function testObjectBinderRejectsNonObjects(): void
@@ -117,7 +120,7 @@ final class BinderTest extends OpTestCase
      *
      * @return list<mixed>
      */
-    private static function values(?Env $env, int $count): array
+    private function values(?Env $env, int $count): array
     {
         $values = [];
         for ($i = 0; $i < $count; ++$i) {

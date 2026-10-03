@@ -12,15 +12,15 @@ use Closure;
  *
  * @internal
  */
-final class CallOp implements Op
+final readonly class CallOp implements Op
 {
     /**
      * @param list<Op> $arguments
      */
     public function __construct(
-        private readonly FuncInfo $function,
-        private readonly int $depth,
-        private readonly array $arguments,
+        private FuncInfo $function,
+        private int $depth,
+        private array $arguments,
     ) {
     }
 

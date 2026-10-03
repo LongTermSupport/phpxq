@@ -11,11 +11,11 @@ use Closure;
  *
  * @internal
  */
-final class SinglePipeOp implements SingleOp
+final readonly class SinglePipeOp implements SingleOp
 {
     public function __construct(
-        private readonly SingleOp $left,
-        private readonly SingleOp $right,
+        private SingleOp $left,
+        private SingleOp $right,
     ) {
     }
 

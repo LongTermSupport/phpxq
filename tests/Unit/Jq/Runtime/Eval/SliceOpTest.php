@@ -11,6 +11,9 @@ use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(SliceOp::class)]
 final class SliceOpTest extends OpTestCase
 {
@@ -41,7 +44,7 @@ final class SliceOpTest extends OpTestCase
 
     public function testNullStaysNull(): void
     {
-        self::assertSame([null], self::outputs(new SliceOp(new IdentityOp(), self::constant(1), null), null));
+        self::assertSame([null], self::outputs(new SliceOp(new IdentityOp(), self::constant(1), null)));
     }
 
     public function testRejectsNonSliceableValues(): void

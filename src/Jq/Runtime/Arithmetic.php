@@ -104,15 +104,7 @@ final class Arithmetic
         if (\is_array($left) && \is_array($right)) {
             $kept = [];
             foreach ($left as $element) {
-                $removed = false;
-                foreach ($right as $candidate) {
-                    if (Values::equals($element, $candidate)) {
-                        $removed = true;
-
-                        break;
-                    }
-                }
-
+                $removed = array_any($right, static fn ($candidate): bool => Values::equals($element, $candidate));
                 if (!$removed) {
                     $kept[] = $element;
                 }

@@ -38,7 +38,7 @@ final class Assignment
     public static function setAll(mixed $input, array $paths, Closure $valueFor): mixed
     {
         $trie = \count($paths) > 1 ? PathTrie::build($paths) : null;
-        if (null !== $trie) {
+        if ($trie instanceof PathTrie) {
             $values = [];
             foreach ($paths as $index => $path) {
                 $values[$index] = $valueFor(PathOps::getPath($input, $path));
@@ -68,7 +68,7 @@ final class Assignment
     {
         $trie    = \count($paths) > 1 ? PathTrie::build($paths) : null;
         $deleted = [];
-        if (null !== $trie) {
+        if ($trie instanceof PathTrie) {
             $values  = [];
             $skipped = [];
             foreach ($paths as $index => $path) {

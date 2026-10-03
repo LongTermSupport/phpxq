@@ -9,6 +9,9 @@ use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(RecurseOp::class)]
 final class RecurseOpTest extends OpTestCase
 {
@@ -22,7 +25,7 @@ final class RecurseOpTest extends OpTestCase
     public function testScalarsEmitThemselves(): void
     {
         self::assertSame(['x'], self::outputs(new RecurseOp(), 'x'));
-        self::assertSame([null], self::outputs(new RecurseOp(), null));
+        self::assertSame([null], self::outputs(new RecurseOp()));
     }
 
     public function testPathModeReportsEveryPath(): void

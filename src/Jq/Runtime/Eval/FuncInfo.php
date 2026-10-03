@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Jq\Runtime\Eval;
 
-use LTS\PhpXq\Jq\Ast\FuncDef;
 use LogicException;
+use LTS\PhpXq\Jq\Ast\FuncDef;
 
 /**
  * A user or prelude function definition: its AST, where its body resolves names, and the compiled body once

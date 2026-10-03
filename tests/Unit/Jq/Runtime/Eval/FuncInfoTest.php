@@ -9,20 +9,23 @@ use LTS\PhpXq\Jq\Ast\FuncDef;
 use LTS\PhpXq\Jq\Ast\Identity;
 use LTS\PhpXq\Jq\Runtime\Eval\FuncInfo;
 use LTS\PhpXq\Jq\Runtime\Eval\IdentityOp;
+use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\AssertsRaised;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(FuncInfo::class)]
 final class FuncInfoTest extends TestCase
 {
+    use AssertsRaised;
+
     public function testBodyIsUnavailableUntilCompiled(): void
     {
         $info = new FuncInfo(new FuncDef('f', [], new Identity()), null, 0);
 
-        $this->expectException(LogicException::class);
-        $this->expectExceptionMessage('f/0 is not compiled yet');
-
-        $info->body();
+        self::assertRaises(LogicException::class, 'Function f/0 is not compiled yet', static fn (): mixed => $info->body());
     }
 
     public function testBodyReturnsTheCompiledOp(): void

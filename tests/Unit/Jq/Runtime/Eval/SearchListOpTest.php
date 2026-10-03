@@ -10,6 +10,9 @@ use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\StubContext;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(SearchListOp::class)]
 final class SearchListOpTest extends OpTestCase
 {

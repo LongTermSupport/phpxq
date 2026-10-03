@@ -202,7 +202,7 @@ final class PathOps
         while ($i < $total) {
             $path = $paths[$i];
             $key  = $path[$start];
-            $j   = $i + 1;
+            $j    = $i + 1;
             while ($j < $total && self::sameKey($key, $paths[$j][$start])) {
                 ++$j;
             }
@@ -303,7 +303,7 @@ final class PathOps
      */
     private static function sameKey(mixed $left, mixed $right): bool
     {
-        if (is_float($left) && is_nan($left) && is_float($right) && is_nan($right)) {
+        if (\is_float($left) && is_nan($left) && \is_float($right) && is_nan($right)) {
             return true;
         }
 

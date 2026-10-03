@@ -12,15 +12,15 @@ namespace LTS\PhpXq\Jq\Runtime\Eval;
  *
  * @internal
  */
-final class Env
+final readonly class Env
 {
     public function __construct(
-        public readonly ?Env $parent,
-        public readonly mixed $value,
+        public ?self $parent,
+        public mixed $value,
     ) {
     }
 
-    public static function at(?Env $env, int $depth): ?Env
+    public static function at(?self $env, int $depth): ?self
     {
         while ($depth-- > 0) {
             $env = $env?->parent;

@@ -13,12 +13,12 @@ use LTS\PhpXq\Json\JsonObject;
  *
  * @internal
  */
-final class SliceOp implements Op
+final readonly class SliceOp implements Op
 {
     public function __construct(
-        private readonly Op $target,
-        private readonly ?Op $from,
-        private readonly ?Op $to,
+        private Op $target,
+        private ?Op $from,
+        private ?Op $to,
     ) {
     }
 
@@ -42,7 +42,7 @@ final class SliceOp implements Op
                     throw PathErrors::access($key, $value);
                 }
 
-                $result = Access::slice($value, $from, $to);
+                $result      = Access::slice($value, $from, $to);
                 $valuePath[] = $key;
                 $emit($valuePath, $result);
             });
@@ -54,9 +54,9 @@ final class SliceOp implements Op
      */
     private function bounds(?Env $env, mixed $input, Closure $each): void
     {
-        $to = $this->to;
+        $to         = $this->to;
         $evaluateTo = static function (mixed $from) use ($to, $env, $input, $each): void {
-            if (null === $to) {
+            if (!$to instanceof Op) {
                 $each($from, null);
 
                 return;
@@ -67,7 +67,7 @@ final class SliceOp implements Op
             });
         };
 
-        if (null === $this->from) {
+        if (!$this->from instanceof Op) {
             $evaluateTo(null);
 
             return;

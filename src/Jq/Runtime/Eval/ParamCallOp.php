@@ -12,9 +12,9 @@ use LogicException;
  *
  * @internal
  */
-final class ParamCallOp implements Op
+final readonly class ParamCallOp implements Op
 {
-    public function __construct(private readonly int $depth)
+    public function __construct(private int $depth)
     {
     }
 

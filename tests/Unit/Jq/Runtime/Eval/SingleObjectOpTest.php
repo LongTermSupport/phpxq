@@ -7,12 +7,19 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval;
 use LTS\PhpXq\Jq\Runtime\Eval\FieldOp;
 use LTS\PhpXq\Jq\Runtime\Eval\SingleObjectOp;
 use LTS\PhpXq\Jq\Runtime\JqException;
+use LTS\PhpXq\Json\JsonObject;
+use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\AssertsRaised;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(SingleObjectOp::class)]
 final class SingleObjectOpTest extends OpTestCase
 {
+    use AssertsRaised;
+
     public function testBuildsTheObject(): void
     {
         $op = new SingleObjectOp([
@@ -32,14 +39,12 @@ final class SingleObjectOpTest extends OpTestCase
     {
         $result = new SingleObjectOp([[self::constant('1'), self::constant('x')]])->value(null, null);
 
+        self::assertInstanceOf(JsonObject::class, $result);
         self::assertSame(['1'], $result->keys());
     }
 
     public function testRejectsNonStringKeys(): void
     {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('Object keys must be strings');
-
-        self::outputs(new SingleObjectOp([[self::constant(null), self::constant(1)]]));
+        self::assertRaises(JqException::class, 'Object keys must be strings', static fn (): mixed => self::outputs(new SingleObjectOp([[self::constant(null), self::constant(1)]])));
     }
 }

@@ -8,6 +8,9 @@ use LTS\PhpXq\Jq\Runtime\Eval\ConstOp;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(ConstOp::class)]
 final class ConstOpTest extends OpTestCase
 {

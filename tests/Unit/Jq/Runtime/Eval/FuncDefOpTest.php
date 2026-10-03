@@ -10,6 +10,9 @@ use LTS\PhpXq\Jq\Runtime\Eval\VarOp;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(FuncDefOp::class)]
 final class FuncDefOpTest extends OpTestCase
 {

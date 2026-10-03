@@ -11,6 +11,9 @@ use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use stdClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(BreakOp::class)]
 final class BreakOpTest extends OpTestCase
 {
@@ -22,8 +25,8 @@ final class BreakOpTest extends OpTestCase
         try {
             self::outputs(new BreakOp(1), null, $env);
             self::fail('expected a BreakException');
-        } catch (BreakException $exception) {
-            self::assertSame($token, $exception->label);
+        } catch (BreakException $breakException) {
+            self::assertSame($token, $breakException->label);
         }
     }
 
@@ -34,8 +37,8 @@ final class BreakOpTest extends OpTestCase
         try {
             self::pathOutputs(new BreakOp(0), null, [], new Env(null, $token));
             self::fail('expected a BreakException');
-        } catch (BreakException $exception) {
-            self::assertSame($token, $exception->label);
+        } catch (BreakException $breakException) {
+            self::assertSame($token, $breakException->label);
         }
     }
 }

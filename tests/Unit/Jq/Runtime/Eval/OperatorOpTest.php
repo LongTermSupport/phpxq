@@ -9,6 +9,9 @@ use LTS\PhpXq\Jq\Runtime\Eval\OperatorOp;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(OperatorOp::class)]
 final class OperatorOpTest extends OpTestCase
 {

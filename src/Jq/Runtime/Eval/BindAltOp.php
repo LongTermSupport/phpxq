@@ -14,7 +14,7 @@ use LTS\PhpXq\Jq\Runtime\JqException;
  *
  * @internal
  */
-final class BindAltOp implements Op
+final readonly class BindAltOp implements Op
 {
     /**
      * @param non-empty-list<Binder>       $binders
@@ -22,11 +22,11 @@ final class BindAltOp implements Op
      * @param list<string>                 $variables canonical variable order seen by the body
      */
     public function __construct(
-        private readonly Op $source,
-        private readonly array $binders,
-        private readonly array $events,
-        private readonly array $variables,
-        private readonly Op $body,
+        private Op $source,
+        private array $binders,
+        private array $events,
+        private array $variables,
+        private Op $body,
     ) {
     }
 
@@ -82,7 +82,7 @@ final class BindAltOp implements Op
         $walk = $matched;
         for ($i = \count($names) - 1; $i >= 0; --$i) {
             $name = $names[$i];
-            if (!\array_key_exists($name, $seen) && null !== $walk) {
+            if (!\array_key_exists($name, $seen) && $walk instanceof Env) {
                 $seen[$name] = $walk->value;
             }
 

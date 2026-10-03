@@ -8,6 +8,9 @@ use LTS\PhpXq\Jq\Runtime\Eval\IdentityOp;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(IdentityOp::class)]
 final class IdentityOpTest extends OpTestCase
 {

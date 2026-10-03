@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Jq\Runtime\Eval;
 
-use Closure;
 use LTS\PhpXq\Jq\Runtime\BreakException;
 use stdClass;
 
@@ -27,9 +26,9 @@ final class UpdateAssignOp extends AbstractSingleOp
 
     public function value(?Env $env, mixed $input): mixed
     {
-        $paths = Assignment::collect($this->left, $env, $input);
+        $paths  = Assignment::collect($this->left, $env, $input);
         $single = $this->single;
-        if (null !== $single) {
+        if ($single instanceof SingleOp) {
             return Assignment::setAll($input, $paths, static fn (mixed $old): mixed => $single->value($env, $old));
         }
 
@@ -40,14 +39,14 @@ final class UpdateAssignOp extends AbstractSingleOp
         return Assignment::updateAll($input, $paths, static function (mixed $old) use ($update, $env, $token, $stop): array {
             $outcome = [];
             try {
-                $update->run($env, $old, static function (mixed $value) use (&$outcome, $stop): void {
+                $update->run($env, $old, static function (mixed $value) use (&$outcome, $stop): never {
                     $outcome = [$value];
 
                     throw $stop;
                 });
-            } catch (BreakException $exception) {
-                if ($exception->label !== $token) {
-                    throw $exception;
+            } catch (BreakException $breakException) {
+                if ($breakException->label !== $token) {
+                    throw $breakException;
                 }
             }
 

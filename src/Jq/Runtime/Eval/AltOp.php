@@ -13,11 +13,11 @@ use LTS\PhpXq\Jq\Runtime\JqException;
  *
  * @internal
  */
-final class AltOp implements Op
+final readonly class AltOp implements Op
 {
     public function __construct(
-        private readonly Op $left,
-        private readonly Op $right,
+        private Op $left,
+        private Op $right,
     ) {
     }
 
@@ -35,9 +35,9 @@ final class AltOp implements Op
                 $found = true;
                 $guarded($value);
             });
-        } catch (JqException $exception) {
+        } catch (JqException $jqException) {
             if ($downstream->active()) {
-                throw $exception;
+                throw $jqException;
             }
         }
 
@@ -60,9 +60,9 @@ final class AltOp implements Op
                 $found = true;
                 $guarded($valuePath, $value);
             });
-        } catch (JqException $exception) {
+        } catch (JqException $jqException) {
             if ($downstream->active()) {
-                throw $exception;
+                throw $jqException;
             }
         }
 

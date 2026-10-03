@@ -6,12 +6,18 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval;
 
 use LTS\PhpXq\Jq\Runtime\Eval\GetPathOp;
 use LTS\PhpXq\Jq\Runtime\JqException;
+use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\AssertsRaised;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(GetPathOp::class)]
 final class GetPathOpTest extends OpTestCase
 {
+    use AssertsRaised;
+
     public function testReadsTheValueAtThePath(): void
     {
         $input = self::object(['a' => [10, 20]]);
@@ -29,18 +35,12 @@ final class GetPathOpTest extends OpTestCase
 
     public function testRejectsAPathThatIsNotAnArray(): void
     {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('Path must be specified as an array');
-
-        self::outputs(new GetPathOp(self::constant('a')), 1);
+        self::assertRaises(JqException::class, 'Path must be specified as an array', static fn (): mixed => self::outputs(new GetPathOp(self::constant('a')), 1));
     }
 
     public function testTypeErrorsOnTheWayPropagate(): void
     {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('Cannot index number with string ("b")');
-
-        self::outputs(new GetPathOp(self::constant(['a', 'b'])), self::object(['a' => 1]));
+        self::assertRaises(JqException::class, 'Cannot index number with string ("b")', static fn (): mixed => self::outputs(new GetPathOp(self::constant(['a', 'b'])), self::object(['a' => 1])));
     }
 
     public function testPathModeExtendsTheCurrentPath(): void
@@ -61,6 +61,6 @@ final class GetPathOpTest extends OpTestCase
     {
         $this->expectException(JqException::class);
 
-        self::pathOutputs(new GetPathOp(self::constant(1)), null);
+        self::pathOutputs(new GetPathOp(self::constant(1)));
     }
 }

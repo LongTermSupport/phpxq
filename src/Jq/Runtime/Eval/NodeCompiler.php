@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Jq\Runtime\Eval;
 
 use Closure;
+use LogicException;
 use LTS\PhpXq\Jq\Ast\ArrayConstruct;
 use LTS\PhpXq\Jq\Ast\ArrayPattern;
 use LTS\PhpXq\Jq\Ast\Assign;
@@ -45,7 +46,6 @@ use LTS\PhpXq\Jq\Runtime\ValueBuiltin;
 use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Json\NumberParser;
 use LTS\PhpXq\Json\Values;
-use LogicException;
 
 /**
  * Translates AST nodes to {@see Op}s inside one name-resolution context: the {@see DefSet} the enclosing
@@ -53,14 +53,14 @@ use LogicException;
  *
  * @internal
  */
-final class NodeCompiler
+final readonly class NodeCompiler
 {
     private const array FORMATS = ['text', 'json', 'html', 'uri', 'csv', 'tsv', 'sh', 'base64', 'base64d', 'base32', 'base32d'];
 
     public function __construct(
-        private readonly Core $core,
-        private readonly ?DefSet $home,
-        private readonly int $limit,
+        private Core $core,
+        private ?DefSet $home,
+        private int $limit,
     ) {
     }
 
@@ -82,15 +82,15 @@ final class NodeCompiler
             $node instanceof Iterate             => new IterateOp($node->target instanceof Identity ? null : $this->compile($node->target, $scope)),
             $node instanceof Slice               => new SliceOp(
                 $this->compile($node->target, $scope),
-                null === $node->from ? null : $this->compile($node->from, $scope),
-                null === $node->to ? null : $this->compile($node->to, $scope),
+                $node->from instanceof Node ? $this->compile($node->from, $scope) : null,
+                $node->to instanceof Node ? $this->compile($node->to, $scope) : null,
             ),
             $node instanceof IfThenElse          => $this->conditional($node, $scope),
             $node instanceof TryCatch            => new TryOp(
                 $this->compile($node->body, $scope),
-                null === $node->handler ? null : $this->compile($node->handler, $scope),
+                $node->handler instanceof Node ? $this->compile($node->handler, $scope) : null,
             ),
-            $node instanceof ArrayConstruct      => new ArrayOp(null === $node->body ? null : $this->compile($node->body, $scope)),
+            $node instanceof ArrayConstruct      => new ArrayOp($node->body instanceof Node ? $this->compile($node->body, $scope) : null),
             $node instanceof ObjectConstruct     => $this->object($node, $scope),
             $node instanceof Negate              => $this->negate($node, $scope),
             $node instanceof Assign              => $this->assign($node, $scope),
@@ -148,8 +148,8 @@ final class NodeCompiler
     {
         $condition = $this->compile($node->condition, $scope);
         $then      = $this->compile($node->then, $scope);
-        $else      = null === $node->else ? null : $this->compile($node->else, $scope);
-        if ($condition instanceof SingleOp && $then instanceof SingleOp && (null === $else || $else instanceof SingleOp)) {
+        $else      = $node->else instanceof Node ? $this->compile($node->else, $scope) : null;
+        if ($condition instanceof SingleOp && $then instanceof SingleOp && (!$else instanceof Op || $else instanceof SingleOp)) {
             return new SingleIfOp($condition, $then, $else);
         }
 
@@ -172,7 +172,7 @@ final class NodeCompiler
                 : new LogicOp($left, $right, $isAnd);
         }
 
-        $operation = self::operation($node->op);
+        $operation = $this->operation($node->op);
 
         return $left instanceof SingleOp && $right instanceof SingleOp
             ? new SingleOperatorOp($left, $right, $operation)
@@ -182,7 +182,7 @@ final class NodeCompiler
     /**
      * @return Closure(mixed, mixed): mixed
      */
-    private static function operation(BinaryOp $operator): Closure
+    private function operation(BinaryOp $operator): Closure
     {
         return match ($operator) {
             BinaryOp::Add => Arithmetic::add(...),
@@ -226,10 +226,10 @@ final class NodeCompiler
         $entries = [];
         $single  = true;
         foreach ($node->entries as $entry) {
-            self::assertObjectKey($entry->key);
-            $key   = $this->compile($entry->key, $scope);
-            $value = $this->compile($entry->value, $scope);
-            $single = $single && $key instanceof SingleOp && $value instanceof SingleOp;
+            $this->assertObjectKey($entry->key);
+            $key       = $this->compile($entry->key, $scope);
+            $value     = $this->compile($entry->value, $scope);
+            $single    = $single && $key instanceof SingleOp && $value instanceof SingleOp;
             $entries[] = [$key, $value];
         }
 
@@ -251,7 +251,7 @@ final class NodeCompiler
      *
      * @throws JqCompileException
      */
-    private static function assertObjectKey(Node $key): void
+    private function assertObjectKey(Node $key): void
     {
         $constant = match (true) {
             $key instanceof NumberLiteral => NumberParser::parse($key->text),
@@ -279,10 +279,10 @@ final class NodeCompiler
 
     private function nestedDefinition(FuncDefScope $node, ?Scope $scope): Op
     {
-        $info      = new FuncInfo($node->def, null, 0);
-        $withSelf  = Scope::func($scope, $info);
+        $info           = new FuncInfo($node->def, null, 0);
+        $withSelf       = Scope::func($scope, $info);
         [$names, $body] = Core::expand($node->def);
-        $bodyScope = $withSelf;
+        $bodyScope      = $withSelf;
         foreach ($names as $name) {
             $bodyScope = Scope::param($bodyScope, $name);
         }
@@ -318,12 +318,12 @@ final class NodeCompiler
         $name  = $node->name;
         $arity = $node->arity();
         $depth = 0;
-        for ($entry = $scope; null !== $entry; $entry = $entry->parent) {
+        for ($entry = $scope; $entry instanceof Scope; $entry = $entry->parent) {
             if (ScopeKind::Param === $entry->kind && 0 === $arity && $entry->name === $name) {
                 return new ParamCallOp($depth);
             }
 
-            if (ScopeKind::Func === $entry->kind && $entry->arity === $arity && $entry->name === $name && null !== $entry->function) {
+            if (ScopeKind::Func === $entry->kind && $entry->arity === $arity && $entry->name === $name && $entry->function instanceof FuncInfo) {
                 return new CallOp($entry->function, $depth, $this->arguments($node, $scope));
             }
 
@@ -331,23 +331,23 @@ final class NodeCompiler
         }
 
         $function = $this->findFunction($name, $arity);
-        if (null !== $function && !$function->prelude) {
+        if ($function instanceof FuncInfo && !$function->prelude) {
             return $this->callTopLevel($function, $node, $scope);
         }
 
         $intrinsic = $this->intrinsic($node, $scope);
-        if (null !== $intrinsic) {
+        if ($intrinsic instanceof Op) {
             return $intrinsic;
         }
 
-        if (null !== $function) {
+        if ($function instanceof FuncInfo) {
             return $this->callTopLevel($function, $node, $scope);
         }
 
         $native = $this->core->builtins->lookup($name, $arity);
         if ($native instanceof ValueBuiltin) {
             $arguments = $this->arguments($node, $scope);
-            if (self::allSingle($arguments)) {
+            if ($this->allSingle($arguments)) {
                 return new SingleNativeOp($native, $arguments, $this->core->state);
             }
 
@@ -363,7 +363,7 @@ final class NodeCompiler
 
     private function findFunction(string $name, int $arity): ?FuncInfo
     {
-        if (null === $this->home) {
+        if (!$this->home instanceof DefSet) {
             return null;
         }
 
@@ -401,15 +401,9 @@ final class NodeCompiler
      *
      * @phpstan-assert-if-true list<SingleOp> $operations
      */
-    private static function allSingle(array $operations): bool
+    private function allSingle(array $operations): bool
     {
-        foreach ($operations as $operation) {
-            if (!$operation instanceof SingleOp) {
-                return false;
-            }
-        }
-
-        return true;
+        return array_all($operations, static fn (Op $operation): bool => $operation instanceof SingleOp);
     }
 
     private function intrinsic(FunctionCall $node, ?Scope $scope): ?Op
@@ -490,7 +484,7 @@ final class NodeCompiler
             $binder,
             $init,
             $this->compile($node->update, $inner),
-            null === $node->extract ? null : $this->compile($node->extract, $inner),
+            $node->extract instanceof Node ? $this->compile($node->extract, $inner) : null,
         );
     }
 
@@ -527,7 +521,7 @@ final class NodeCompiler
         foreach ($pattern->entries as $entry) {
             $keyOp = null;
             if (null !== $entry->key) {
-                self::assertObjectKey($entry->key);
+                $this->assertObjectKey($entry->key);
                 $keyOp = $this->compile($entry->key, $scope);
             }
 

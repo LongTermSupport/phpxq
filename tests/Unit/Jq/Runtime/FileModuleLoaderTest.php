@@ -10,12 +10,18 @@ use LTS\PhpXq\Jq\Runtime\FileModuleLoader;
 use LTS\PhpXq\Jq\Runtime\JqCompileException;
 use LTS\PhpXq\Json\JsonDecoder;
 use LTS\PhpXq\Json\JsonObject;
+use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\AssertsRaised;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(FileModuleLoader::class)]
 final class FileModuleLoaderTest extends TestCase
 {
+    use AssertsRaised;
+
     private string $modules;
 
     protected function setUp(): void
@@ -68,34 +74,22 @@ final class FileModuleLoaderTest extends TestCase
 
     public function testMissingModule(): void
     {
-        $this->expectException(JqCompileException::class);
-        $this->expectExceptionMessage('module not found: nonexistent');
-
-        $this->loader([$this->modules])->loadLibrary('nonexistent', null, null);
+        self::assertRaises(JqCompileException::class, 'module not found: nonexistent (searched: ' . $this->modules . ')', fn (): mixed => $this->loader([$this->modules])->loadLibrary('nonexistent', null, null));
     }
 
     public function testMissingDataFile(): void
     {
-        $this->expectException(JqCompileException::class);
-        $this->expectExceptionMessage('module not found: nonexistent');
-
-        $this->loader([$this->modules])->loadData('nonexistent', null, null);
+        self::assertRaises(JqCompileException::class, 'module not found: nonexistent (searched: ' . $this->modules . ')', fn (): mixed => $this->loader([$this->modules])->loadData('nonexistent', null, null));
     }
 
     public function testRefusesParentDirectoryTraversal(): void
     {
-        $this->expectException(JqCompileException::class);
-        $this->expectExceptionMessage('Relative paths to modules may not traverse to parent directories (../a)');
-
-        $this->loader([$this->modules])->loadLibrary('../a', null, null);
+        self::assertRaises(JqCompileException::class, 'Relative paths to modules may not traverse to parent directories (../a)', fn (): mixed => $this->loader([$this->modules])->loadLibrary('../a', null, null));
     }
 
     public function testRefusesEqualConsecutiveComponents(): void
     {
-        $this->expectException(JqCompileException::class);
-        $this->expectExceptionMessage('module names must not have equal consecutive components: foo/foo');
-
-        $this->loader([$this->modules])->loadLibrary('foo/foo', null, null);
+        self::assertRaises(JqCompileException::class, 'module names must not have equal consecutive components: foo/foo', fn (): mixed => $this->loader([$this->modules])->loadLibrary('foo/foo', null, null));
     }
 
     public function testSyntaxErrorsNameTheModule(): void
@@ -103,9 +97,9 @@ final class FileModuleLoaderTest extends TestCase
         try {
             $this->loader([$this->modules])->loadLibrary('syntaxerror', null, null);
             self::fail('expected a compile error');
-        } catch (JqCompileException $exception) {
-            self::assertStringContainsString('syntaxerror.jq', $exception->getMessage());
-            self::assertNotNull($exception->getPrevious());
+        } catch (JqCompileException $jqCompileException) {
+            self::assertStringContainsString('syntaxerror.jq', $jqCompileException->getMessage());
+            self::assertNotNull($jqCompileException->getPrevious());
         }
     }
 
@@ -114,9 +108,9 @@ final class FileModuleLoaderTest extends TestCase
         try {
             $this->loader([])->loadLibrary('nonexistent', null, null);
             self::fail('expected a compile error');
-        } catch (JqCompileException $exception) {
-            self::assertStringContainsString('/.jq', $exception->getMessage());
-            self::assertStringContainsString('/bin/../lib/jq', $exception->getMessage());
+        } catch (JqCompileException $jqCompileException) {
+            self::assertStringContainsString('/.jq', $jqCompileException->getMessage());
+            self::assertStringContainsString('/bin/../lib/jq', $jqCompileException->getMessage());
         }
     }
 

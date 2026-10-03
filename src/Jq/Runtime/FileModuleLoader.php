@@ -36,8 +36,8 @@ final readonly class FileModuleLoader implements ModuleLoaderInterface
 
         try {
             $program = $this->parser->parse($this->read($path));
-        } catch (JqCompileException $exception) {
-            throw new JqCompileException($exception->getMessage() . ' (in module ' . $path . ')', 0, $exception);
+        } catch (JqCompileException $jqCompileException) {
+            throw new JqCompileException($jqCompileException->getMessage() . ' (in module ' . $path . ')', 0, $jqCompileException);
         }
 
         return new LoadedModule($program, $path);
@@ -48,8 +48,8 @@ final readonly class FileModuleLoader implements ModuleLoaderInterface
         $path = $this->find($relativePath, $searchMetadata, $importerPath, '.json');
         try {
             return iterator_to_array($this->decoder->decodeAll($this->read($path)), false);
-        } catch (JsonSyntaxException $exception) {
-            throw new JqCompileException($exception->getMessage() . ' (in data file ' . $path . ')', 0, $exception);
+        } catch (JsonSyntaxException $jsonSyntaxException) {
+            throw new JqCompileException($jsonSyntaxException->getMessage() . ' (in data file ' . $path . ')', 0, $jsonSyntaxException);
         }
     }
 
@@ -58,7 +58,7 @@ final readonly class FileModuleLoader implements ModuleLoaderInterface
      */
     private function find(string $relativePath, mixed $searchMetadata, ?string $importerPath, string $suffix): string
     {
-        self::validate($relativePath);
+        $this->validate($relativePath);
         $searched = [];
         foreach ($this->searchDirectories($searchMetadata, $importerPath) as $directory) {
             $base       = basename($relativePath);
@@ -99,18 +99,18 @@ final readonly class FileModuleLoader implements ModuleLoaderInterface
                 continue;
             }
 
-            $expanded      = self::expand($entry);
+            $expanded      = $this->expand($entry);
             $directories[] = str_starts_with($expanded, '/') ? $expanded : $origin . '/' . $expanded;
         }
 
         foreach ([] === $this->libraryPaths ? self::DEFAULT_PATHS : $this->libraryPaths as $path) {
-            $directories[] = self::expand($path);
+            $directories[] = $this->expand($path);
         }
 
         return $directories;
     }
 
-    private static function expand(string $path): string
+    private function expand(string $path): string
     {
         if ('~' === $path || str_starts_with($path, '~/')) {
             $home = getenv('HOME');
@@ -128,7 +128,7 @@ final readonly class FileModuleLoader implements ModuleLoaderInterface
     /**
      * @throws JqCompileException
      */
-    private static function validate(string $relativePath): void
+    private function validate(string $relativePath): void
     {
         $previous = null;
         foreach (explode('/', $relativePath) as $component) {

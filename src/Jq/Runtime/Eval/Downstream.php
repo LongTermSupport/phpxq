@@ -41,7 +41,7 @@ final class Downstream
     {
         return function (?array $path, mixed $value) use ($emit): void {
             $this->active = true;
-            $emit($path, $value);
+            $emit(null === $path ? null : array_values($path), $value);
             $this->active = false;
         };
     }

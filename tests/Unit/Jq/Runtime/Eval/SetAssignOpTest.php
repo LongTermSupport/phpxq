@@ -8,12 +8,18 @@ use LTS\PhpXq\Jq\Runtime\Eval\FieldOp;
 use LTS\PhpXq\Jq\Runtime\Eval\IterateOp;
 use LTS\PhpXq\Jq\Runtime\Eval\SetAssignOp;
 use LTS\PhpXq\Jq\Runtime\JqException;
+use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\AssertsRaised;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(SetAssignOp::class)]
 final class SetAssignOpTest extends OpTestCase
 {
+    use AssertsRaised;
+
     public function testSetsEveryPath(): void
     {
         $op = new SetAssignOp(new IterateOp(null), self::constant(0));
@@ -40,19 +46,16 @@ final class SetAssignOpTest extends OpTestCase
 
     public function testCreatesMissingStructure(): void
     {
-        self::assertEquals([self::object(['a' => 1])], self::outputs(new SetAssignOp(new FieldOp('a'), self::constant(1)), null));
+        self::assertEquals([self::object(['a' => 1])], self::outputs(new SetAssignOp(new FieldOp('a'), self::constant(1))));
     }
 
     public function testEmptyRightHandSideYieldsNothing(): void
     {
-        self::assertSame([], self::outputs(new SetAssignOp(new FieldOp('a'), self::generator([])), null));
+        self::assertSame([], self::outputs(new SetAssignOp(new FieldOp('a'), self::generator([]))));
     }
 
     public function testTheLeftSideMustBeAPathExpression(): void
     {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('Invalid path expression with result 1');
-
-        self::outputs(new SetAssignOp(self::constant(1), self::constant(2)), 1);
+        self::assertRaises(JqException::class, 'Invalid path expression with result 1', static fn (): mixed => self::outputs(new SetAssignOp(self::constant(1), self::constant(2)), 1));
     }
 }

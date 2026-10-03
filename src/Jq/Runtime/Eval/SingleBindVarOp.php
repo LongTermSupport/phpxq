@@ -11,11 +11,11 @@ use Closure;
  *
  * @internal
  */
-final class SingleBindVarOp implements SingleOp
+final readonly class SingleBindVarOp implements SingleOp
 {
     public function __construct(
-        private readonly SingleOp $source,
-        private readonly SingleOp $body,
+        private SingleOp $source,
+        private SingleOp $body,
     ) {
     }
 

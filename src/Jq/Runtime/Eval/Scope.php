@@ -12,7 +12,7 @@ namespace LTS\PhpXq\Jq\Runtime\Eval;
 final readonly class Scope
 {
     public function __construct(
-        public ?Scope $parent,
+        public ?self $parent,
         public ScopeKind $kind,
         public string $name,
         public int $arity = 0,
@@ -20,22 +20,22 @@ final readonly class Scope
     ) {
     }
 
-    public static function variable(?Scope $parent, string $name): self
+    public static function variable(?self $parent, string $name): self
     {
         return new self($parent, ScopeKind::Variable, $name);
     }
 
-    public static function param(?Scope $parent, string $name): self
+    public static function param(?self $parent, string $name): self
     {
         return new self($parent, ScopeKind::Param, $name);
     }
 
-    public static function label(?Scope $parent, string $name): self
+    public static function label(?self $parent, string $name): self
     {
         return new self($parent, ScopeKind::Label, $name);
     }
 
-    public static function func(?Scope $parent, FuncInfo $function): self
+    public static function func(?self $parent, FuncInfo $function): self
     {
         return new self($parent, ScopeKind::Func, $function->definition->name, $function->definition->arity(), $function);
     }
@@ -56,7 +56,7 @@ final readonly class Scope
     private function depthOf(ScopeKind $kind, string $name): ?int
     {
         $depth = 0;
-        for ($scope = $this; null !== $scope; $scope = $scope->parent) {
+        for ($scope = $this; $scope instanceof self; $scope = $scope->parent) {
             if ($scope->kind === $kind && $scope->name === $name) {
                 return $depth;
             }

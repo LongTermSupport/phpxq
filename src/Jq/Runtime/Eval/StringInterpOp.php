@@ -19,8 +19,8 @@ final class StringInterpOp extends AbstractOp
     private readonly array $expressions;
 
     /**
-     * @param list<string|Op>            $parts
-     * @param Closure(mixed): string     $format
+     * @param list<string|Op>        $parts
+     * @param Closure(mixed): string $format
      */
     public function __construct(
         private readonly array $parts,

@@ -6,12 +6,18 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval;
 
 use LTS\PhpXq\Jq\Runtime\Eval\NegateOp;
 use LTS\PhpXq\Jq\Runtime\JqException;
+use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\AssertsRaised;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(NegateOp::class)]
 final class NegateOpTest extends OpTestCase
 {
+    use AssertsRaised;
+
     public function testNegatesEveryOutput(): void
     {
         self::assertSame([-1, 2], self::outputs(new NegateOp(self::generator([1, -2]))));
@@ -19,9 +25,6 @@ final class NegateOpTest extends OpTestCase
 
     public function testRejectsNonNumbers(): void
     {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('string ("a") cannot be negated');
-
-        self::outputs(new NegateOp(self::generator(['a'])));
+        self::assertRaises(JqException::class, 'string ("a") cannot be negated', static fn (): mixed => self::outputs(new NegateOp(self::generator(['a']))));
     }
 }

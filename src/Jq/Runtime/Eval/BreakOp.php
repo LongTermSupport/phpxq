@@ -6,15 +6,16 @@ namespace LTS\PhpXq\Jq\Runtime\Eval;
 
 use Closure;
 use LTS\PhpXq\Jq\Runtime\BreakException;
+use stdClass;
 
 /**
  * `break $name`.
  *
  * @internal
  */
-final class BreakOp implements Op
+final readonly class BreakOp implements Op
 {
-    public function __construct(private readonly int $depth)
+    public function __construct(private int $depth)
     {
     }
 
@@ -32,6 +33,6 @@ final class BreakOp implements Op
     {
         $value = Env::at($env, $this->depth)?->value;
 
-        return \is_object($value) ? $value : new \stdClass();
+        return \is_object($value) ? $value : new stdClass();
     }
 }

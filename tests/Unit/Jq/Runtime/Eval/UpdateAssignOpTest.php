@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval;
 
+use Closure;
 use LTS\PhpXq\Jq\Runtime\Arithmetic;
 use LTS\PhpXq\Jq\Runtime\BreakException;
 use LTS\PhpXq\Jq\Runtime\Eval\AbstractOp;
+use LTS\PhpXq\Jq\Runtime\Eval\Cmp;
 use LTS\PhpXq\Jq\Runtime\Eval\CommaOp;
 use LTS\PhpXq\Jq\Runtime\Eval\Env;
 use LTS\PhpXq\Jq\Runtime\Eval\FieldOp;
@@ -14,11 +16,14 @@ use LTS\PhpXq\Jq\Runtime\Eval\IdentityOp;
 use LTS\PhpXq\Jq\Runtime\Eval\IterateOp;
 use LTS\PhpXq\Jq\Runtime\Eval\SelectOp;
 use LTS\PhpXq\Jq\Runtime\Eval\SingleOperatorOp;
-use LTS\PhpXq\Jq\Runtime\Eval\Cmp;
 use LTS\PhpXq\Jq\Runtime\Eval\UpdateAssignOp;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
+use stdClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(UpdateAssignOp::class)]
 final class UpdateAssignOpTest extends OpTestCase
 {
@@ -53,9 +58,9 @@ final class UpdateAssignOpTest extends OpTestCase
     public function testOnlyTheFirstUpdateOutputIsEvaluated(): void
     {
         $update = new CommaOp(self::constant('first'), new class extends AbstractOp {
-            public function run(?Env $env, mixed $input, \Closure $emit): void
+            public function run(?Env $env, mixed $input, Closure $emit): void
             {
-                throw new BreakException(new \stdClass());
+                throw new BreakException(new stdClass());
             }
         });
         $op = new UpdateAssignOp(new IterateOp(null), $update);
@@ -66,9 +71,9 @@ final class UpdateAssignOpTest extends OpTestCase
     public function testAForeignBreakPropagates(): void
     {
         $update = new class extends AbstractOp {
-            public function run(?Env $env, mixed $input, \Closure $emit): void
+            public function run(?Env $env, mixed $input, Closure $emit): void
             {
-                throw new BreakException(new \stdClass());
+                throw new BreakException(new stdClass());
             }
         };
 

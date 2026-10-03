@@ -6,28 +6,31 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval;
 
 use LTS\PhpXq\Jq\Runtime\Eval\ErrorOp;
 use LTS\PhpXq\Jq\Runtime\JqException;
+use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\AssertsRaised;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(ErrorOp::class)]
 final class ErrorOpTest extends OpTestCase
 {
+    use AssertsRaised;
+
     public function testWithoutAMessageTheInputIsTheErrorValue(): void
     {
         try {
             self::outputs(new ErrorOp(null), self::object(['a' => 1]));
             self::fail('expected an error');
-        } catch (JqException $exception) {
-            self::assertEquals(self::object(['a' => 1]), $exception->value);
+        } catch (JqException $jqException) {
+            self::assertEquals(self::object(['a' => 1]), $jqException->value);
         }
     }
 
     public function testTheMessageOutputIsTheErrorValue(): void
     {
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('boom');
-
-        self::outputs(new ErrorOp(self::constant('boom')), 1);
+        self::assertRaises(JqException::class, 'boom', static fn (): mixed => self::outputs(new ErrorOp(self::constant('boom')), 1));
     }
 
     public function testNullIsAValidErrorValue(): void
@@ -35,8 +38,8 @@ final class ErrorOpTest extends OpTestCase
         try {
             self::outputs(new ErrorOp(self::constant(null)));
             self::fail('expected an error');
-        } catch (JqException $exception) {
-            self::assertNull($exception->value);
+        } catch (JqException $jqException) {
+            self::assertNull($jqException->value);
         }
     }
 

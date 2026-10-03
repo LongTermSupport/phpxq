@@ -8,6 +8,9 @@ use LTS\PhpXq\Jq\Runtime\Eval\EmptyOp;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(EmptyOp::class)]
 final class EmptyOpTest extends OpTestCase
 {

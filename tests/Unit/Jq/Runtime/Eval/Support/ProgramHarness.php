@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support;
 
 use Closure;
+use LogicException;
 use LTS\PhpXq\Jq\Parser\Lexer;
 use LTS\PhpXq\Jq\Parser\Parser;
 use LTS\PhpXq\Jq\Runtime\Arithmetic;
@@ -13,6 +14,7 @@ use LTS\PhpXq\Jq\Runtime\BuiltinRegistry;
 use LTS\PhpXq\Jq\Runtime\Compiler;
 use LTS\PhpXq\Jq\Runtime\DefaultBuiltinRegistry;
 use LTS\PhpXq\Jq\Runtime\FileModuleLoader;
+use LTS\PhpXq\Jq\Runtime\Filter;
 use LTS\PhpXq\Jq\Runtime\JqCompileException;
 use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Jq\Runtime\ModuleLoaderInterface;
@@ -62,7 +64,8 @@ final class ProgramHarness
         $encoder = new JsonEncoder();
         $parser  = new Parser(new Lexer());
         $program = new Compiler(self::registry(), $parser, new FileModuleLoader($libraryPaths, $parser, $decoder))
-            ->compile($parser->parse($program), array_keys($globals));
+            ->compile($parser->parse($program), array_keys($globals))
+        ;
 
         $outputs = [];
         foreach ($decoder->decodeAll($input) as $value) {
@@ -81,8 +84,8 @@ final class ProgramHarness
     {
         try {
             self::outputs($program, $input);
-        } catch (JqException $exception) {
-            return \is_string($exception->value) ? $exception->value : new JsonEncoder()->encode($exception->value, EncodeOptions::compact());
+        } catch (JqException $jqException) {
+            return \is_string($jqException->value) ? $jqException->value : new JsonEncoder()->encode($jqException->value, EncodeOptions::compact());
         }
 
         return '(no error)';
@@ -96,9 +99,10 @@ final class ProgramHarness
         $parser = new Parser(new Lexer());
         try {
             new Compiler(self::registry(), $parser, $loader ?? new FileModuleLoader([], $parser, new JsonDecoder()))
-                ->compile($parser->parse($program));
-        } catch (JqCompileException $exception) {
-            return $exception->getMessage();
+                ->compile($parser->parse($program))
+            ;
+        } catch (JqCompileException $jqCompileException) {
+            return $jqCompileException->getMessage();
         }
 
         return '(no error)';
@@ -126,12 +130,12 @@ final class ProgramHarness
         $value('tostring', 0, static fn (mixed $input): string => \is_string($input) ? $input : $encoder->encode($input, EncodeOptions::compact()));
         $value('tojson', 0, static fn (mixed $input): string => $encoder->encode($input, EncodeOptions::compact()));
         $value('type', 0, static fn (mixed $input): string => Values::typeName($input));
-        $value('floor', 0, static fn (mixed $input): int => (int)floor(Values::toFloat($input)));
+        $value('floor', 0, static fn (mixed $input): int => \is_int($input) || \is_float($input) ? (int)floor($input) : 0);
         $value('infinite', 0, static fn (): float => \INF);
         $value('nan', 0, static fn (): float => \NAN);
         $value('reverse', 0, static fn (mixed $input): array => array_reverse((array)$input));
-        $value('setpath', 2, static fn (mixed $input, mixed $path, mixed $new): mixed => PathOps::setPath($input, (array)$path, $new));
-        $value('delpaths', 1, static fn (mixed $input, mixed $paths): mixed => PathOps::deletePaths($input, (array)$paths));
+        $value('setpath', 2, static fn (mixed $input, mixed $path, mixed $new): mixed => PathOps::setPath($input, array_values((array)$path), $new));
+        $value('delpaths', 1, static fn (mixed $input, mixed $paths): mixed => PathOps::deletePaths($input, array_values(array_map(static fn (mixed $path): array => array_values((array)$path), (array)$paths))));
         $value('add', 0, static function (mixed $input): mixed {
             $total = null;
             foreach ($input instanceof JsonObject ? $input->values() : (array)$input as $element) {
@@ -146,33 +150,40 @@ final class ProgramHarness
             default  => \is_string($input) ? $input : $encoder->encode($input, EncodeOptions::compact()),
         });
         $value('pair', 2, static fn (mixed $input, mixed $first, mixed $second): array => [$first, $second]);
+        /** @param list<Filter> $filters */
         $stream('range', 1, static function (mixed $input, array $filters, Closure $emit): void {
-            $filters[0]->run($input, static function (mixed $limit) use ($emit): void {
-                for ($i = 0; $i < $limit; ++$i) {
+            self::filter($filters, 0)->run($input, static function (mixed $limit) use ($emit): void {
+                for ($i = 0; \is_int($limit) && $i < $limit; ++$i) {
                     $emit($i);
                 }
             });
         });
+        /** @param list<Filter> $filters */
         $stream('range', 2, static function (mixed $input, array $filters, Closure $emit): void {
-            $filters[0]->run($input, static function (mixed $from) use ($input, $filters, $emit): void {
-                $filters[1]->run($input, static function (mixed $to) use ($from, $emit): void {
+            self::filter($filters, 0)->run($input, static function (mixed $from) use ($input, $filters, $emit): void {
+                self::filter($filters, 1)->run($input, static function (mixed $to) use ($from, $emit): void {
+                    if (!\is_int($from) || !\is_int($to)) {
+                        return;
+                    }
+
                     for ($i = $from; $i < $to; ++$i) {
                         $emit($i);
                     }
                 });
             });
         });
+        /** @param list<Filter> $filters */
         $stream('first', 1, static function (mixed $input, array $filters, Closure $emit): void {
             $token = new stdClass();
             try {
-                $filters[0]->run($input, static function (mixed $output) use ($emit, $token): void {
+                self::filter($filters, 0)->run($input, static function (mixed $output) use ($emit, $token): never {
                     $emit($output);
 
                     throw new BreakException($token);
                 });
-            } catch (BreakException $exception) {
-                if ($exception->label !== $token) {
-                    throw $exception;
+            } catch (BreakException $breakException) {
+                if ($breakException->label !== $token) {
+                    throw $breakException;
                 }
             }
         });
@@ -180,5 +191,18 @@ final class ProgramHarness
         $registry->addPrelude(self::PRELUDE);
 
         return $registry;
+    }
+
+    /**
+     * @param array<mixed> $filters
+     */
+    private static function filter(array $filters, int $index): Filter
+    {
+        $filter = $filters[$index] ?? null;
+        if (!$filter instanceof Filter) {
+            throw new LogicException('Missing filter argument ' . $index);
+        }
+
+        return $filter;
     }
 }

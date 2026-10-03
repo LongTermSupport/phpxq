@@ -9,6 +9,9 @@ use LTS\PhpXq\Jq\Runtime\Eval\FieldOp;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+/**
+ * @internal
+ */
 #[CoversClass(CommaOp::class)]
 final class CommaOpTest extends OpTestCase
 {

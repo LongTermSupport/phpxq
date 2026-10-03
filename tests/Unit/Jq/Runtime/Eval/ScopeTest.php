@@ -12,6 +12,9 @@ use LTS\PhpXq\Jq\Runtime\Eval\ScopeKind;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(Scope::class)]
 #[CoversClass(ScopeKind::class)]
 final class ScopeTest extends TestCase

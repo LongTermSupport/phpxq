@@ -11,14 +11,17 @@ use LTS\PhpXq\Jq\Runtime\Eval\FuncInfo;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(DefSet::class)]
 final class DefSetTest extends TestCase
 {
     public function testFindsTheLatestDefinitionBelowTheLimit(): void
     {
         $set   = new DefSet();
-        $first = self::define($set, 'f');
-        $last  = self::define($set, 'f');
+        $first = $this->define($set, 'f');
+        $last  = $this->define($set, 'f');
 
         self::assertSame($last, $set->find('f', 0, \PHP_INT_MAX));
         self::assertSame($first, $set->find('f', 0, 1));
@@ -32,9 +35,9 @@ final class DefSetTest extends TestCase
     {
         $firstInclude  = new DefSet();
         $secondInclude = new DefSet();
-        $fromFirst     = self::define($firstInclude, 'e');
-        $fromSecond    = self::define($secondInclude, 'e');
-        $onlyFirst     = self::define($firstInclude, 'g');
+        $fromFirst     = $this->define($firstInclude, 'e');
+        $fromSecond    = $this->define($secondInclude, 'e');
+        $onlyFirst     = $this->define($firstInclude, 'g');
 
         $set = new DefSet();
         $set->include($firstInclude);
@@ -43,7 +46,7 @@ final class DefSetTest extends TestCase
         self::assertSame($fromSecond, $set->find('e', 0, \PHP_INT_MAX));
         self::assertSame($onlyFirst, $set->find('g', 0, \PHP_INT_MAX));
 
-        $own = self::define($set, 'e');
+        $own = $this->define($set, 'e');
         self::assertSame($own, $set->find('e', 0, \PHP_INT_MAX));
         self::assertSame($fromSecond, $set->find('e', 0, 0));
         self::assertNotSame($fromFirst, $set->find('e', 0, \PHP_INT_MAX));
@@ -52,12 +55,12 @@ final class DefSetTest extends TestCase
     public function testParentIsConsultedLast(): void
     {
         $parent = new DefSet();
-        $inner  = self::define($parent, 'map');
+        $inner  = $this->define($parent, 'map');
         $set    = new DefSet($parent);
 
         self::assertSame($inner, $set->find('map', 0, \PHP_INT_MAX));
 
-        $shadow = self::define($set, 'map');
+        $shadow = $this->define($set, 'map');
         self::assertSame($shadow, $set->find('map', 0, \PHP_INT_MAX));
     }
 
@@ -65,10 +68,10 @@ final class DefSetTest extends TestCase
     {
         $one = new DefSet();
         $two = new DefSet();
-        self::define($one, 'sym0');
-        self::define($one, 'sym1');
-        $oneSym1 = self::define($one, 'sym1');
-        $twoSym1 = self::define($two, 'sym1');
+        $this->define($one, 'sym0');
+        $this->define($one, 'sym1');
+        $oneSym1 = $this->define($one, 'sym1');
+        $twoSym1 = $this->define($two, 'sym1');
         $two->include(new DefSet());
 
         $set = new DefSet();
@@ -85,7 +88,7 @@ final class DefSetTest extends TestCase
     public function testAliasedLookupDoesNotFallBackToTheParent(): void
     {
         $parent = new DefSet();
-        self::define($parent, 'f');
+        $this->define($parent, 'f');
         $module = new DefSet($parent);
         $set    = new DefSet();
         $set->alias('m', $module);
@@ -102,7 +105,7 @@ final class DefSetTest extends TestCase
         self::assertNull($set->data('other'));
     }
 
-    private static function define(DefSet $set, string $name): FuncInfo
+    private function define(DefSet $set, string $name): FuncInfo
     {
         $info = new FuncInfo(new FuncDef($name, [], new Identity()), $set, $set->size() + 1);
         $set->add($info);
