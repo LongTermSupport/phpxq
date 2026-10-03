@@ -7,7 +7,9 @@
         "php": "^8.5"
     },
     "require-dev": {
-        "lts/php-qa-ci": "^85.0"
+        "lts/php-qa-ci": "^85.0",
+        "phpunit/phpunit": "^13.4",
+        "sebastian/comparator": "^8.4"
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
@@ -24,6 +26,9 @@
             ]
         }
     },
+    "bin": [
+        "bin/phpxq"
+    ],
     "config": {
         "allow-plugins": {
             "lts/php-qa-ci": true,

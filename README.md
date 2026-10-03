@@ -35,6 +35,28 @@ composer install     # dev dependencies only (lts/php-qa-ci)
 vendor/bin/qa        # full QA pipeline
 ```
 
+### Test suites
+
+`qaConfig/phpunit.xml` defines three suites. The default suite, `unit`, is what `vendor/bin/qa`
+runs. The upstream conformance suites, `jq` and `yq`, run the vendored upstream test cases
+against the front controller (`bin/phpxq jq ...` / `bin/phpxq yq ...`). They are red until each
+tool is implemented, so they are not part of the default run; add them to `defaultTestSuite`
+in `qaConfig/phpunit.xml` once they are ready to gate.
+
+```bash
+vendor/bin/phpunit -c qaConfig/phpunit.xml                    # default suite (unit)
+vendor/bin/phpunit -c qaConfig/phpunit.xml --testsuite jq     # upstream jq conformance
+vendor/bin/phpunit -c qaConfig/phpunit.xml --testsuite yq     # upstream yq conformance
+```
+
+The vendored fixtures record their upstream tag, commit and licence in a `NOTICE.md` beside them.
+`scripts/refresh-upstream-fixtures.bash` re-fetches them from the pinned tags.
+
+`scripts/conformance.bash [jq|yq|all]` runs everything, including the upstream shell suites (jq
+`shtest`, yq acceptance scripts), and checks the results against each tool's
+`tests/Conformance/<Tool>/known-gaps.txt`. It exits non-zero on an unexpected failure or on a known
+gap that now passes, so the gap lists shrink as the tools are built.
+
 The project has no production dependencies, so php-qa-ci's Safe-function Rector
 lane and its `thecodingmachine/safe` require-checker scan files are overridden in
 `qaConfig/`, and the `#[\SensitiveParameter]` check is disabled in `qaConfig/qa.php`.

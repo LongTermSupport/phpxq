@@ -1,6 +1,6 @@
 # Plan 00002: upstream conformance test harness
 
-**Status**: Not Started
+**Status**: Complete (delivered in PR #4)
 **Created**: 2026-10-03
 **Owner**: joseph
 **Priority**: High
@@ -46,21 +46,21 @@ Verified on 2026-10-03 against the upstream repositories:
 
 ### Phase 1: Investigate
 
-- [ ] ⬜ **Task 1.1**: Read the jq `.test` file format and the shell test scripts; document the parse rules in a supporting doc
-- [ ] ⬜ **Task 1.2**: Determine which yq tests are extractable (acceptance scripts, `pkg/yqlib` scenario data); document in a supporting doc
-- [ ] ⬜ **Task 1.3**: Check upstream licences and decide fetch-on-demand versus vendor; record the decision
+- [x] ✅ **Task 1.1**: Read the jq `.test` file format and the shell test scripts; document the parse rules in a supporting doc ([jq-test-format.md](jq-test-format.md))
+- [x] ✅ **Task 1.2**: Determine which yq tests are extractable (acceptance scripts, `pkg/yqlib` scenario data); document in a supporting doc ([yq-test-extractability.md](yq-test-extractability.md))
+- [x] ✅ **Task 1.3**: Check upstream licences and decide fetch-on-demand versus vendor; record the decision (vendored with attribution; see each `fixtures/NOTICE.md`)
 
 ### Phase 2: Build
 
-- [ ] ⬜ **Task 2.1**: Pin upstream versions and add a fetch script (dev only, no production dependency)
-- [ ] ⬜ **Task 2.2**: Implement a runner for jq `.test` files against the phpxq entry point (TDD for the parser)
-- [ ] ⬜ **Task 2.3**: Implement a runner for the yq acceptance scripts
-- [ ] ⬜ **Task 2.4**: Known-gap list file with a justification per entry; the runner fails on unexpected failures and on unexpectedly passing gaps
-- [ ] ⬜ **Task 2.5**: Summary report output (counts per suite) usable from CI
+- [x] ✅ **Task 2.1**: Pin upstream versions and add a fetch script (dev only, no production dependency) (`scripts/refresh-upstream-fixtures.bash`)
+- [x] ✅ **Task 2.2**: Implement a runner for jq `.test` files against the phpxq entry point (TDD for the parser)
+- [x] ✅ **Task 2.3**: Implement a runner for the yq acceptance scripts (`scripts/conformance-shell.bash`, which also runs the jq `shtest`)
+- [x] ✅ **Task 2.4**: Known-gap list file with a justification per entry; the runner fails on unexpected failures and on unexpectedly passing gaps (`tests/Conformance/*/known-gaps.txt`)
+- [x] ✅ **Task 2.5**: Summary report output (counts per suite) usable from CI (`scripts/conformance.bash`, non-zero exit on any problem)
 
 ### Phase 3: QA
 
-- [ ] ⬜ **Task 3.1**: This project's QA gate passes (`vendor/bin/qa`)
+- [x] ✅ **Task 3.1**: This project's QA gate passes (`vendor/bin/qa`)
 
 ## Dependencies
 
@@ -70,12 +70,14 @@ Verified on 2026-10-03 against the upstream repositories:
 
 ## Success Criteria
 
-- [ ] One command runs both upstream suites and prints a per-suite summary
-- [ ] Upstream versions are pinned and recorded
-- [ ] Known gaps are justified and enforced
-- [ ] No production dependency was added
-- [ ] This project's QA gate passes
+- [x] One command runs both upstream suites and prints a per-suite summary
+- [x] Upstream versions are pinned and recorded
+- [x] Known gaps are justified and enforced
+- [x] No production dependency was added
+- [x] This project's QA gate passes
 
 ## Delivery & Milestones
 
-- None yet.
+- Red conformance suites in place: `jq` (all `.test` cases from jq 1.8.2) and `yq` (documented examples from yq v4.54.1) as named PHPUnit suites, excluded from the default run.
+- `scripts/conformance.bash` runs those cases, the jq `shtest` and the yq acceptance scripts against each tool's `known-gaps.txt` and exits non-zero on any unexpected failure or pass.
+- Not wired into CI yet: the `qa.yml` gate runs `allCS` and `allStatic` only.

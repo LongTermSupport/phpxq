@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<!--
+  Project PHPUnit config for the php-qa-ci pipeline (paths are relative to qaConfig/).
+
+  The default suite is `unit`. The upstream conformance suites, `jq` and `yq`, are named suites that a
+  plain run skips, because they stay red until phpxq implements each tool. Add them to defaultTestSuite
+  when they are ready to gate:
+    defaultTestSuite="unit,jq"
+
+  Run a conformance suite explicitly with the testsuite option of vendor/bin/phpunit, passing this file
+  as the config and the suite name jq or yq (see README.md).
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/13.4/phpunit.xsd" colors="true" timeoutForLargeTests="300" timeoutForMediumTests="5" timeoutForSmallTests="1" failOnRisky="true" executionOrder="random" cacheDirectory="../var/qa/phpunit.cache" bootstrap="../tests/bootstrap.php" defaultTestSuite="unit" resolveDependencies="true">
+  <php>
+    <ini name="display_errors" value="1"/>
+    <ini name="error_reporting" value="-1"/>
+  </php>
+  <coverage>
+    <report>
+      <clover outputFile="../var/qa/phpunit_logs/coverage.clover"/>
+      <html outputDirectory="../var/qa/phpunit_coverage"/>
+      <text outputFile="php://stdout"/>
+      <xml outputDirectory="../var/qa/phpunit_logs/coverage-xml"/>
+    </report>
+  </coverage>
+  <logging>
+    <junit outputFile="../var/qa/phpunit_logs/phpunit.junit.xml"/>
+  </logging>
+  <testsuites>
+    <testsuite name="unit">
+      <directory suffix="Test.php">../tests/Unit</directory>
+    </testsuite>
+    <testsuite name="jq">
+      <directory suffix="Test.php">../tests/Conformance/Jq</directory>
+    </testsuite>
+    <testsuite name="yq">
+      <directory suffix="Test.php">../tests/Conformance/Yq</directory>
+    </testsuite>
+  </testsuites>
+  <source>
+    <include>
+      <directory suffix=".php">../src</directory>
+    </include>
+  </source>
+</phpunit>

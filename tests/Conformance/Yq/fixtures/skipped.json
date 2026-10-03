@@ -1,0 +1,494 @@
+[
+    {
+        "source": "operators/array-to-map.md",
+        "heading": "Array to Map",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "(.[] | select(. != null) ) as $i ireduce({}; .[$i | key] = $i)"
+    },
+    {
+        "source": "operators/assign-update.md",
+        "heading": "Update node from another file",
+        "reason": "several input files, which one stdin document cannot represent",
+        "snippet": "yq eval-all 'select(fileIndex==0).a = select(fileIndex==1) | select(fileIndex==0)' sample.yml another.yml"
+    },
+    {
+        "source": "operators/datetime.md",
+        "heading": "Date time formatting",
+        "reason": "no 'will output' block follows the command",
+        "snippet": "yq 'with_dtf(\"myformat\"; .a + \"3h\" | tz(\"Australia/Melbourne\"))'"
+    },
+    {
+        "source": "operators/env-variable-operators.md",
+        "heading": "Tip",
+        "reason": "no 'will output' block follows the command",
+        "snippet": "yq '(.. | select(tag == \"!!str\")) |= envsubst' file.yaml"
+    },
+    {
+        "source": "operators/env-variable-operators.md",
+        "heading": "Read string environment variable",
+        "reason": "needs environment variables set, which the CLI runner cannot supply",
+        "snippet": "myenv=\"cat meow\" yq --null-input '.a = env(myenv)'"
+    },
+    {
+        "source": "operators/env-variable-operators.md",
+        "heading": "Read boolean environment variable",
+        "reason": "needs environment variables set, which the CLI runner cannot supply",
+        "snippet": "myenv=\"true\" yq --null-input '.a = env(myenv)'"
+    },
+    {
+        "source": "operators/env-variable-operators.md",
+        "heading": "Read numeric environment variable",
+        "reason": "needs environment variables set, which the CLI runner cannot supply",
+        "snippet": "myenv=\"12\" yq --null-input '.a = env(myenv)'"
+    },
+    {
+        "source": "operators/env-variable-operators.md",
+        "heading": "Read yaml environment variable",
+        "reason": "needs environment variables set, which the CLI runner cannot supply",
+        "snippet": "myenv=\"{b: fish}\" yq --null-input '.a = env(myenv)'"
+    },
+    {
+        "source": "operators/env-variable-operators.md",
+        "heading": "Read boolean environment variable as a string",
+        "reason": "needs environment variables set, which the CLI runner cannot supply",
+        "snippet": "myenv=\"true\" yq --null-input '.a = strenv(myenv)'"
+    },
+    {
+        "source": "operators/env-variable-operators.md",
+        "heading": "Read numeric environment variable as a string",
+        "reason": "needs environment variables set, which the CLI runner cannot supply",
+        "snippet": "myenv=\"12\" yq --null-input '.a = strenv(myenv)'"
+    },
+    {
+        "source": "operators/env-variable-operators.md",
+        "heading": "Dynamically update a path from an environment variable",
+        "reason": "needs environment variables set, which the CLI runner cannot supply",
+        "snippet": "pathEnv=\".a.b[0].name\"  valueEnv=\"moo\" yq 'eval(strenv(pathEnv)) = strenv(valueEnv)' sample.yml"
+    },
+    {
+        "source": "operators/env-variable-operators.md",
+        "heading": "Dynamic key lookup with environment variable",
+        "reason": "needs environment variables set, which the CLI runner cannot supply",
+        "snippet": "myenv=\"cat\" yq '.[env(myenv)]' sample.yml"
+    },
+    {
+        "source": "operators/env-variable-operators.md",
+        "heading": "Replace strings with envsubst",
+        "reason": "needs environment variables set, which the CLI runner cannot supply",
+        "snippet": "myenv=\"cat\" yq --null-input '\"the ${myenv} meows\" | envsubst'"
+    },
+    {
+        "source": "operators/env-variable-operators.md",
+        "heading": "Replace strings with envsubst(nu), missing variables",
+        "reason": "documented output is an error message (stderr and exit code), not stdout",
+        "snippet": "yq --null-input '\"the ${myenvnonexisting} meows\" | envsubst(nu)'"
+    },
+    {
+        "source": "operators/env-variable-operators.md",
+        "heading": "Replace strings with envsubst(ne), empty variable",
+        "reason": "needs environment variables set, which the CLI runner cannot supply",
+        "snippet": "myenv=\"\" yq --null-input '\"the ${myenv} meows\" | envsubst(ne)'"
+    },
+    {
+        "source": "operators/env-variable-operators.md",
+        "heading": "Replace strings with envsubst(ne), missing variables with defaults",
+        "reason": "needs environment variables set, which the CLI runner cannot supply",
+        "snippet": "myEmptyEnv=\"\" yq --null-input '\"the ${myEmptyEnv-dog} meows\" | envsubst(ne)'"
+    },
+    {
+        "source": "operators/env-variable-operators.md",
+        "heading": "Replace string environment variable in document",
+        "reason": "needs environment variables set, which the CLI runner cannot supply",
+        "snippet": "myenv=\"cat meow\" yq '.v |= envsubst' sample.yml"
+    },
+    {
+        "source": "operators/env-variable-operators.md",
+        "heading": "(Default) Return all envsubst errors",
+        "reason": "documented output is an error message (stderr and exit code), not stdout",
+        "snippet": "yq --null-input '\"the ${notThere} ${alsoNotThere}\" | envsubst(nu)'"
+    },
+    {
+        "source": "operators/env-variable-operators.md",
+        "heading": "Fail fast, return the first envsubst error (and abort)",
+        "reason": "documented output is an error message (stderr and exit code), not stdout",
+        "snippet": "yq --null-input '\"the ${notThere} ${alsoNotThere}\" | envsubst(nu,ff)'"
+    },
+    {
+        "source": "operators/env-variable-operators.md",
+        "heading": "env() operation fails when security is enabled",
+        "reason": "documented output is an error message (stderr and exit code), not stdout",
+        "snippet": "yq --null-input 'env(\"MYENV\")'"
+    },
+    {
+        "source": "operators/env-variable-operators.md",
+        "heading": "strenv() operation fails when security is enabled",
+        "reason": "documented output is an error message (stderr and exit code), not stdout",
+        "snippet": "yq --null-input 'strenv(\"MYENV\")'"
+    },
+    {
+        "source": "operators/env-variable-operators.md",
+        "heading": "envsubst() operation fails when security is enabled",
+        "reason": "documented output is an error message (stderr and exit code), not stdout",
+        "snippet": "yq --null-input '\"value: ${MYENV}\" | envsubst'"
+    },
+    {
+        "source": "operators/equals.md",
+        "heading": "Equals / Not Equals",
+        "reason": "code block outside a given/then/output group",
+        "snippet": ".a == .b"
+    },
+    {
+        "source": "operators/equals.md",
+        "heading": "Equals / Not Equals",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "select(.a == .b)"
+    },
+    {
+        "source": "operators/error.md",
+        "heading": "Validate a particular value",
+        "reason": "documented output is an error message (stderr and exit code), not stdout",
+        "snippet": "yq 'select(.a == \"howdy\") or error(\".a [\" + .a + \"] is not howdy!\")' sample.yml"
+    },
+    {
+        "source": "operators/error.md",
+        "heading": "Validate the environment variable is a number - invalid",
+        "reason": "needs environment variables set, which the CLI runner cannot supply",
+        "snippet": "numberOfCats=\"please\" yq --null-input 'env(numberOfCats) | select(tag == \"!!int\") or error(\"numberOfCats is not a number :(\")'"
+    },
+    {
+        "source": "operators/error.md",
+        "heading": "Validate the environment variable is a number - valid",
+        "reason": "needs environment variables set, which the CLI runner cannot supply",
+        "snippet": "numberOfCats=\"3\" yq '\n\twith(env(numberOfCats); select(tag == \"!!int\") or error(\"numberOfCats is not a number :(\")) | \n\t.numPets = env(numberOfCats)\n' sample.yml"
+    },
+    {
+        "source": "operators/eval.md",
+        "heading": "Dynamically update a path from an environment variable",
+        "reason": "needs environment variables set, which the CLI runner cannot supply",
+        "snippet": "pathEnv=\".a.b[0].name\"  valueEnv=\"moo\" yq 'eval(strenv(pathEnv)) = strenv(valueEnv)' sample.yml"
+    },
+    {
+        "source": "operators/file-operators.md",
+        "heading": "Merging files",
+        "reason": "no 'will output' block follows the command",
+        "snippet": "yq eval-all 'select(fi == 0) * select(filename == \"file2.yaml\")' file1.yaml file2.yaml"
+    },
+    {
+        "source": "operators/file-operators.md",
+        "heading": "Get filename",
+        "reason": "depends on the input file name, which stdin does not have",
+        "snippet": "yq 'filename' sample.yml"
+    },
+    {
+        "source": "operators/file-operators.md",
+        "heading": "Get file index",
+        "reason": "depends on the input file name, which stdin does not have",
+        "snippet": "yq 'file_index' sample.yml"
+    },
+    {
+        "source": "operators/file-operators.md",
+        "heading": "Get file indices of multiple documents",
+        "reason": "several input files, which one stdin document cannot represent",
+        "snippet": "yq eval-all 'file_index' sample.yml another.yml"
+    },
+    {
+        "source": "operators/load.md",
+        "heading": "yaml",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "a: apple is included"
+    },
+    {
+        "source": "operators/load.md",
+        "heading": "xml",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "<this>is some xml</this>"
+    },
+    {
+        "source": "operators/load.md",
+        "heading": "properties",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "this.is = a properties file"
+    },
+    {
+        "source": "operators/load.md",
+        "heading": "base64",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "bXkgc2VjcmV0IGNoaWxsaSByZWNpcGUgaXMuLi4u"
+    },
+    {
+        "source": "operators/load.md",
+        "heading": "Simple example",
+        "reason": "expression loads files from disk (load operators)",
+        "snippet": "yq 'load(.myFile)' sample.yml"
+    },
+    {
+        "source": "operators/load.md",
+        "heading": "Replace node with referenced file",
+        "reason": "expression loads files from disk (load operators)",
+        "snippet": "yq '.something |= load(\"../../examples/\" + .file)' sample.yml"
+    },
+    {
+        "source": "operators/load.md",
+        "heading": "Replace _all_ nodes with referenced file",
+        "reason": "expression loads files from disk (load operators)",
+        "snippet": "yq '(.. | select(has(\"file\"))) |= load(\"../../examples/\" + .file)' sample.yml"
+    },
+    {
+        "source": "operators/load.md",
+        "heading": "Replace node with referenced file as string",
+        "reason": "expression loads files from disk (load operators)",
+        "snippet": "yq '.something |= load_str(\"../../examples/\" + .file)' sample.yml"
+    },
+    {
+        "source": "operators/load.md",
+        "heading": "Load from XML",
+        "reason": "expression loads files from disk (load operators)",
+        "snippet": "yq '.more_stuff = load_xml(\"../../examples/small.xml\")' sample.yml"
+    },
+    {
+        "source": "operators/load.md",
+        "heading": "Load from Properties",
+        "reason": "expression loads files from disk (load operators)",
+        "snippet": "yq '.more_stuff = load_props(\"../../examples/small.properties\")' sample.yml"
+    },
+    {
+        "source": "operators/load.md",
+        "heading": "Merge from properties",
+        "reason": "expression loads files from disk (load operators)",
+        "snippet": "yq '. *= load_props(\"../../examples/small.properties\")' sample.yml"
+    },
+    {
+        "source": "operators/load.md",
+        "heading": "Load from base64 encoded file",
+        "reason": "expression loads files from disk (load operators)",
+        "snippet": "yq '.more_stuff = load_base64(\"../../examples/base64.txt\")' sample.yml"
+    },
+    {
+        "source": "operators/load.md",
+        "heading": "load() operation fails when security is enabled",
+        "reason": "documented output is an error message (stderr and exit code), not stdout",
+        "snippet": "yq --null-input 'load(\"../../examples/thing.yml\")'"
+    },
+    {
+        "source": "operators/load.md",
+        "heading": "load_str() operation fails when security is enabled",
+        "reason": "documented output is an error message (stderr and exit code), not stdout",
+        "snippet": "yq --null-input 'load_str(\"../../examples/thing.yml\")'"
+    },
+    {
+        "source": "operators/load.md",
+        "heading": "load_xml() operation fails when security is enabled",
+        "reason": "documented output is an error message (stderr and exit code), not stdout",
+        "snippet": "yq --null-input 'load_xml(\"../../examples/small.xml\")'"
+    },
+    {
+        "source": "operators/load.md",
+        "heading": "load_props() operation fails when security is enabled",
+        "reason": "documented output is an error message (stderr and exit code), not stdout",
+        "snippet": "yq --null-input 'load_props(\"../../examples/small.properties\")'"
+    },
+    {
+        "source": "operators/load.md",
+        "heading": "load_base64() operation fails when security is enabled",
+        "reason": "documented output is an error message (stderr and exit code), not stdout",
+        "snippet": "yq --null-input 'load_base64(\"../../examples/base64.txt\")'"
+    },
+    {
+        "source": "operators/modulo.md",
+        "heading": "Number modulo - int by zero",
+        "reason": "documented output is an error message (stderr and exit code), not stdout",
+        "snippet": "yq '.a = .a % .b' sample.yml"
+    },
+    {
+        "source": "operators/multiply-merge.md",
+        "heading": "Merge two files together",
+        "reason": "no 'will output' block follows the command",
+        "snippet": "yq '. *= load(\"file2.yml\")' file1.yml"
+    },
+    {
+        "source": "operators/multiply-merge.md",
+        "heading": "Merging all files",
+        "reason": "no 'will output' block follows the command",
+        "snippet": "yq eval-all '. as $item ireduce ({}; . * $item )' *.yml"
+    },
+    {
+        "source": "operators/multiply-merge.md",
+        "heading": "Merge arrays of objects together, matching on a key",
+        "reason": "needs environment variables set, which the CLI runner cannot supply",
+        "snippet": "idPath=\".a\"  originalPath=\".myArray\"  otherPath=\".newArray\" yq eval-all '\n(\n  (( (eval(strenv(originalPath)) + eval(strenv(otherPath)))  | .[] | {(eval(strenv(idPath))):  .}) as $item ireduce ({}; . * $item )) as $uniqueMap\n  | ( $uniqueMap  | to_entries | .[]) as $item ireduce([]; . + $item.value)\n) as $mergedArray\n| select(fi == 0) | (eval(strenv(originalPath))) = $mergedArray\n' sample.yml another.yml"
+    },
+    {
+        "source": "operators/path.md",
+        "heading": "Delete - wrong parameter",
+        "reason": "documented output is an error message (stderr and exit code), not stdout",
+        "snippet": "yq 'delpaths([\"a\", 0])' sample.yml"
+    },
+    {
+        "source": "operators/recursive-descent-glob.md",
+        "heading": "match values form `..`",
+        "reason": "no 'will output' block follows the command",
+        "snippet": "yq '.. style= \"flow\"' file.yaml"
+    },
+    {
+        "source": "operators/recursive-descent-glob.md",
+        "heading": "match values and map keys form `...`",
+        "reason": "no 'will output' block follows the command",
+        "snippet": "yq '... style= \"flow\"' file.yaml"
+    },
+    {
+        "source": "operators/reduce.md",
+        "heading": "Reduce",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "<exp> as $<name> ireduce (<init>; <block>)"
+    },
+    {
+        "source": "operators/reduce.md",
+        "heading": "Reduce",
+        "reason": "code block outside a given/then/output group",
+        "snippet": ".[] as $item ireduce (0; . + $item)"
+    },
+    {
+        "source": "operators/reduce.md",
+        "heading": "Merge all yaml files together",
+        "reason": "several input files, which one stdin document cannot represent",
+        "snippet": "yq eval-all '. as $item ireduce ({}; . * $item )' sample.yml another.yml"
+    },
+    {
+        "source": "operators/sort-keys.md",
+        "heading": "Sort Keys",
+        "reason": "no 'will output' block follows the command",
+        "snippet": "yq -i -P 'sort_keys(..)' file1.yml\nyq -i -P 'sort_keys(..)' file2.yml\ndiff file1.yml file2.yml"
+    },
+    {
+        "source": "operators/string-operators.md",
+        "heading": "String blocks, bash and newlines",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "a: |"
+    },
+    {
+        "source": "operators/string-operators.md",
+        "heading": "String blocks, bash and newlines",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "m=$(echo \"cat\\n\") yq -n '.a = strenv(m)'"
+    },
+    {
+        "source": "operators/string-operators.md",
+        "heading": "String blocks, bash and newlines",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "printf -v m \"cat\\n\" ; m=\"$m\" yq -n '.a = strenv(m)'"
+    },
+    {
+        "source": "operators/string-operators.md",
+        "heading": "String blocks, bash and newlines",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "m=\"cat"
+    },
+    {
+        "source": "operators/string-operators.md",
+        "heading": "String blocks, bash and newlines",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "IFS= read -rd '' output < <(cat my_file)"
+    },
+    {
+        "source": "operators/system-operators.md",
+        "heading": "Usage",
+        "reason": "no 'will output' block follows the command",
+        "snippet": "yq --security-enable-system-operator --null-input '.field = system(\"command\"; \"arg1\")'"
+    },
+    {
+        "source": "operators/system-operators.md",
+        "heading": "system operator returns error when disabled",
+        "reason": "documented output is an error message (stderr and exit code), not stdout",
+        "snippet": "yq '.country = system(\"/usr/bin/echo\"; \"test\")' sample.yml"
+    },
+    {
+        "source": "operators/to_number.md",
+        "heading": "Cannot convert null",
+        "reason": "documented output is an error message (stderr and exit code), not stdout",
+        "snippet": "yq --null-input '.a.b | to_number'"
+    },
+    {
+        "source": "usage/base64.md",
+        "heading": "Encode base64: string",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "then"
+    },
+    {
+        "source": "usage/base64.md",
+        "heading": "Encode base64: string",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "will output"
+    },
+    {
+        "source": "usage/base64url.md",
+        "heading": "Encode base64url: string",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "then"
+    },
+    {
+        "source": "usage/base64url.md",
+        "heading": "Encode base64url: string",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "will output"
+    },
+    {
+        "source": "usage/csv-tsv.md",
+        "heading": "Encode",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "- name: Bobo"
+    },
+    {
+        "source": "usage/csv-tsv.md",
+        "heading": "Encode",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "- [Bobo, dog]"
+    },
+    {
+        "source": "usage/csv-tsv.md",
+        "heading": "Decode",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "name,type"
+    },
+    {
+        "source": "usage/formatting-expressions.md",
+        "heading": "Using expression files and comments",
+        "reason": "not a yq invocation",
+        "snippet": "./update.yq sample.yaml"
+    },
+    {
+        "source": "usage/formatting-expressions.md",
+        "heading": "Using expression files and comments",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "a:"
+    },
+    {
+        "source": "usage/formatting-expressions.md",
+        "heading": "Flags in expression files",
+        "reason": "not a yq invocation",
+        "snippet": "./update.yq sample.yaml"
+    },
+    {
+        "source": "usage/formatting-expressions.md",
+        "heading": "Flags in expression files",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "{"
+    },
+    {
+        "source": "usage/formatting-expressions.md",
+        "heading": "Commenting out yq expressions",
+        "reason": "expression or output comes from a file, which the CLI runner cannot supply",
+        "snippet": "yq --from-file update.yq sample.yml"
+    },
+    {
+        "source": "usage/xml.md",
+        "heading": "Parse xml: keep attribute namespace",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "<?xml version=\"1.0\"?>"
+    },
+    {
+        "source": "usage/xml.md",
+        "heading": "Parse xml: keep raw attribute namespace",
+        "reason": "code block outside a given/then/output group",
+        "snippet": "<?xml version=\"1.0\"?>"
+    }
+]

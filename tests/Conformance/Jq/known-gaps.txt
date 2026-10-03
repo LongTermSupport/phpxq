@@ -1,0 +1,15 @@
+# Known gaps for the jq conformance suite.
+#
+# Format (shared with the shell conformance runner): UTF-8 text, blank lines and lines starting
+# with # are ignored. Every other line is <glob><TAB><reason>, separated by a single tab. The glob
+# uses fnmatch semantics (* ? [..]) and is matched against the case id; the first matching entry
+# wins and the reason is mandatory. Entries whose glob starts with "shell:" belong to the shell
+# runner and are ignored by the PHP report.
+#
+# A case that fails and matches an entry is an expected failure. A case that fails without an entry,
+# or passes while matching an entry, makes the report fail. An entry matching no case is reported
+# as a stale-gap warning.
+#
+# As jq is built, the blanket entry below is replaced by specific, justified entries (one per
+# genuinely unsupported feature) and finally removed once the suite is fully green.
+*	phpxq jq is not implemented yet (Plan 00003)
