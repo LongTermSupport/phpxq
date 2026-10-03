@@ -40,8 +40,8 @@ final class YamlWriter
      * Plain words the core schema resolves to something other than a string.
      */
     private const array RESERVED_WORDS = [
-        'null' => true, 'Null' => true, 'NULL' => true,
-        'true' => true, 'True' => true, 'TRUE' => true,
+        'null'  => true, 'Null' => true, 'NULL' => true,
+        'true'  => true, 'True' => true, 'TRUE' => true,
         'false' => true, 'False' => true, 'FALSE' => true,
     ];
 
@@ -49,15 +49,15 @@ final class YamlWriter
      * YAML 1.1 booleans: `-P` keeps them quoted so a YAML 1.1 reader still sees strings.
      */
     private const array OLD_BOOLS = [
-        'y' => true, 'Y' => true, 'yes' => true, 'Yes' => true, 'YES' => true,
-        'n' => true, 'N' => true, 'no' => true, 'No' => true, 'NO' => true,
-        'on' => true, 'On' => true, 'ON' => true,
+        'y'   => true, 'Y' => true, 'yes' => true, 'Yes' => true, 'YES' => true,
+        'n'   => true, 'N' => true, 'no' => true, 'No' => true, 'NO' => true,
+        'on'  => true, 'On' => true, 'ON' => true,
         'off' => true, 'Off' => true, 'OFF' => true,
     ];
 
     private const array ESCAPES = [
-        "\0" => '0', "\x07" => 'a', "\x08" => 'b', "\t" => 't', "\n" => 'n', "\x0B" => 'v',
-        "\x0C" => 'f', "\r" => 'r', "\x1B" => 'e', '"' => '"', '\\' => '\\',
+        "\0"     => '0', "\x07" => 'a', "\x08" => 'b', "\t" => 't', "\n" => 'n', "\x0B" => 'v',
+        "\x0C"   => 'f', "\r" => 'r', "\x1B" => 'e', '"' => '"', '\\' => '\\',
         "\u{85}" => 'N', "\u{A0}" => '_', "\u{2028}" => 'L', "\u{2029}" => 'P',
     ];
 
@@ -395,7 +395,7 @@ final class YamlWriter
         }
 
         $quoted = NodeStyle::DoubleQuoted === $style || NodeStyle::SingleQuoted === $style
-            || NodeStyle::Literal === $style || NodeStyle::Folded === $style;
+                                                     || NodeStyle::Literal         === $style || NodeStyle::Folded === $style;
 
         $force = false;
         if ('' !== $tag && !$node->tagExplicit) {
@@ -611,16 +611,16 @@ final class YamlWriter
                     return '\\' . self::ESCAPES[$char];
                 }
 
-                $code = 1 === \strlen($char) ? \ord($char) : mb_ord($char, 'UTF-8');
+                $code = 1 === \strlen($char) ? \ord($char[0]) : mb_ord($char, 'UTF-8');
                 if ($code <= 0xFF) {
-                    return \sprintf('\\x%02X', $code);
+                    return \sprintf('\x%02X', $code);
                 }
 
                 if ($code <= 0xFFFF) {
-                    return \sprintf('\\u%04X', $code);
+                    return \sprintf('\u%04X', $code);
                 }
 
-                return \sprintf('\\U%08X', $code);
+                return \sprintf('\U%08X', $code);
             },
             $value,
         );
@@ -637,7 +637,7 @@ final class YamlWriter
     private function writeBlockScalarHints(string $value): void
     {
         if ('' !== $value && (' ' === $value[0] || "\n" === $value[0])) {
-            $this->indicator((string) $this->options->indent, false, false, false);
+            $this->indicator((string)$this->options->indent, false, false, false);
         }
 
         $length = \strlen($value);

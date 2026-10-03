@@ -36,7 +36,7 @@ final class YamlEmitter implements YamlEmitterInterface
     private function renderDocument(Node $node, EmitOptions $options, int $index): string
     {
         $isDocument = NodeKind::Document === $node->kind;
-        $root       = $isDocument && [] === $node->content ? new Node(NodeKind::Scalar, '!!null') : $node->root();
+        $root       = $isDocument && []  === $node->content ? new Node(NodeKind::Scalar, '!!null') : $node->root();
         $directives = $isDocument && '' !== $node->directives ? rtrim($node->directives, "\n") . "\n" : '';
         $markers    = !$options->noDocSeparator;
 
@@ -51,14 +51,14 @@ final class YamlEmitter implements YamlEmitterInterface
 
         $headComment = $isDocument ? $node->headComment : '';
         if ('' !== $headComment) {
-            $out .= (new YamlWriter($options))->commentBlock($headComment);
+            $out .= new YamlWriter($options)->commentBlock($headComment);
         }
 
         if ($markers && $isDocument && $this->needsStartMarker($node, $directives, '' !== $headComment, $index)) {
             $out .= $directives . "---\n";
         }
 
-        $out .= (new YamlWriter($options))->render($root, $isDocument ? $node->footComment : '');
+        $out .= new YamlWriter($options)->render($root, $isDocument ? $node->footComment : '');
 
         if ($markers && $isDocument && $node->explicitEnd) {
             $out .= "...\n";
@@ -84,6 +84,6 @@ final class YamlEmitter implements YamlEmitterInterface
     private function hasComments(Node $node, Node $root): bool
     {
         return '' !== $root->headComment || '' !== $root->lineComment || '' !== $root->footComment
-            || (NodeKind::Document === $node->kind && ('' !== $node->headComment || '' !== $node->footComment));
+                                         || (NodeKind::Document === $node->kind && ('' !== $node->headComment || '' !== $node->footComment));
     }
 }

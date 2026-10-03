@@ -17,6 +17,12 @@ use PHPUnit\Framework\TestCase;
  */
 final class YamlEmitterTest extends TestCase
 {
+    #[DataProvider('blockCases')]
+    public function testEmitsLikeGoYaml(Node $node, string $expected): void
+    {
+        self::assertSame($expected, new YamlEmitter()->emit($node));
+    }
+
     /**
      * @return iterable<string, array{Node, string}>
      */
@@ -326,44 +332,41 @@ final class YamlEmitterTest extends TestCase
         ];
     }
 
-    #[DataProvider('blockCases')]
-    public function testEmitsLikeGoYaml(Node $node, string $expected): void
-    {
-        self::assertSame($expected, (new YamlEmitter())->emit($node));
-    }
-
     public function testIndentOptionInSequenceUnderMapping(): void
     {
         $node = Node::mapping([Node::scalar('a'), Node::sequence([Node::scalar('1')])]);
 
-        self::assertSame("a:\n    - 1\n", (new YamlEmitter())->emit($node, new EmitOptions(indent: 4)));
+        self::assertSame("a:\n    - 1\n", new YamlEmitter()->emit($node, new EmitOptions(indent: 4)));
     }
 
     public function testIndentOptionPadsMappingInSequence(): void
     {
         $node = Node::sequence([self::map(['a', '1'], ['b', '2'])]);
 
-        self::assertSame("-   a: 1\n    b: 2\n", (new YamlEmitter())->emit($node, new EmitOptions(indent: 4)));
+        self::assertSame("-   a: 1\n    b: 2\n", new YamlEmitter()->emit($node, new EmitOptions(indent: 4)));
     }
 
     public function testIndentOptionNestedMappings(): void
     {
         $node = Node::mapping([Node::scalar('a'), Node::mapping([Node::scalar('b'), self::map(['c', '1'])])]);
 
-        self::assertSame("a:\n   b:\n      c: 1\n", (new YamlEmitter())->emit($node, new EmitOptions(indent: 3)));
+        self::assertSame("a:\n   b:\n      c: 1\n", new YamlEmitter()->emit($node, new EmitOptions(indent: 3)));
     }
 
     public function testCommentsHeadLineAndFoot(): void
     {
-        $key         = Node::scalar('a');
-        $key->headComment = '# head';
-        $value       = Node::scalar('1');
-        $value->lineComment = '# line';
-        $key2        = Node::scalar('b');
-        $key2->footComment = '# foot';
-        $node        = Node::mapping([$key, $value, $key2, Node::scalar('2')]);
+        $key                = Node::scalar('a');
+        $key->headComment   = '# head';
 
-        self::assertSame("# head\na: 1 # line\nb: 2\n# foot\n", (new YamlEmitter())->emit($node));
+        $value              = Node::scalar('1');
+        $value->lineComment = '# line';
+
+        $key2               = Node::scalar('b');
+        $key2->footComment  = '# foot';
+
+        $node               = Node::mapping([$key, $value, $key2, Node::scalar('2')]);
+
+        self::assertSame("# head\na: 1 # line\nb: 2\n# foot\n", new YamlEmitter()->emit($node));
     }
 
     public function testMultiLineCommentsAndBlankLinesAreVerbatim(): void
@@ -371,7 +374,7 @@ final class YamlEmitterTest extends TestCase
         $key              = Node::scalar('a');
         $key->headComment = "# one\n\n# two";
 
-        self::assertSame("# one\n\n# two\na: 1\n", (new YamlEmitter())->emit(Node::mapping([$key, Node::scalar('1')])));
+        self::assertSame("# one\n\n# two\na: 1\n", new YamlEmitter()->emit(Node::mapping([$key, Node::scalar('1')])));
     }
 
     public function testCommentWithoutHashGetsOne(): void
@@ -379,27 +382,30 @@ final class YamlEmitterTest extends TestCase
         $key              = Node::scalar('a');
         $key->headComment = 'plain';
 
-        self::assertSame("# plain\na: 1\n", (new YamlEmitter())->emit(Node::mapping([$key, Node::scalar('1')])));
+        self::assertSame("# plain\na: 1\n", new YamlEmitter()->emit(Node::mapping([$key, Node::scalar('1')])));
     }
 
     public function testCommentsAreIndentedWithTheirCollection(): void
     {
-        $inner             = Node::scalar('b');
-        $inner->headComment = '# inner head';
-        $innerFoot         = Node::scalar('c');
-        $innerFoot->footComment = '# inner foot';
-        $outer             = Node::mapping([Node::scalar('a'), Node::mapping([$inner, Node::scalar('1'), $innerFoot, Node::scalar('2')])]);
+        $inner                  = Node::scalar('b');
+        $inner->headComment     = '# inner head';
 
-        self::assertSame("a:\n  # inner head\n  b: 1\n  c: 2\n  # inner foot\n", (new YamlEmitter())->emit($outer));
+        $innerFoot              = Node::scalar('c');
+        $innerFoot->footComment = '# inner foot';
+
+        $outer                  = Node::mapping([Node::scalar('a'), Node::mapping([$inner, Node::scalar('1'), $innerFoot, Node::scalar('2')])]);
+
+        self::assertSame("a:\n  # inner head\n  b: 1\n  c: 2\n  # inner foot\n", new YamlEmitter()->emit($outer));
     }
 
     public function testLineCommentOnKeyOfBlockCollection(): void
     {
         $key              = Node::scalar('a');
         $key->lineComment = '# note';
+
         $node             = Node::mapping([$key, self::map(['b', '1'])]);
 
-        self::assertSame("a: # note\n  b: 1\n", (new YamlEmitter())->emit($node));
+        self::assertSame("a: # note\n  b: 1\n", new YamlEmitter()->emit($node));
     }
 
     public function testSequenceItemComments(): void
@@ -407,10 +413,11 @@ final class YamlEmitterTest extends TestCase
         $one              = Node::scalar('1');
         $one->headComment = '# first';
         $one->lineComment = '# l';
+
         $two              = Node::scalar('2');
         $two->footComment = '# end';
 
-        self::assertSame("# first\n- 1 # l\n- 2\n# end\n", (new YamlEmitter())->emit(Node::sequence([$one, $two])));
+        self::assertSame("# first\n- 1 # l\n- 2\n# end\n", new YamlEmitter()->emit(Node::sequence([$one, $two])));
     }
 
     public function testLineCommentAfterFlowCollection(): void
@@ -418,7 +425,7 @@ final class YamlEmitterTest extends TestCase
         $seq              = Node::sequence([Node::scalar('1')], NodeStyle::Flow);
         $seq->lineComment = '# c';
 
-        self::assertSame("a: [1] # c\n", (new YamlEmitter())->emit(Node::mapping([Node::scalar('a'), $seq])));
+        self::assertSame("a: [1] # c\n", new YamlEmitter()->emit(Node::mapping([Node::scalar('a'), $seq])));
     }
 
     public function testUnwrapScalar(): void
@@ -470,19 +477,19 @@ final class YamlEmitterTest extends TestCase
         $doc             = Node::document(self::map(['a', '1']));
         $doc->directives = "%YAML 1.1\n";
 
-        self::assertSame("%YAML 1.1\n---\na: 1\n", (new YamlEmitter())->emit($doc));
+        self::assertSame("%YAML 1.1\n---\na: 1\n", new YamlEmitter()->emit($doc));
     }
 
     public function testDocumentHeadCommentBeforeExplicitSeparator(): void
     {
-        $doc              = Node::document(self::map(['a', '1']));
-        $doc->headComment = "# hi\n# there";
+        $doc                = Node::document(self::map(['a', '1']));
+        $doc->headComment   = "# hi\n# there";
         $doc->explicitStart = true;
 
-        self::assertSame("# hi\n# there\n---\na: 1\n", (new YamlEmitter())->emit($doc));
+        self::assertSame("# hi\n# there\n---\na: 1\n", new YamlEmitter()->emit($doc));
 
         $doc->explicitStart = false;
-        self::assertSame("# hi\n# there\na: 1\n", (new YamlEmitter())->emit($doc));
+        self::assertSame("# hi\n# there\na: 1\n", new YamlEmitter()->emit($doc));
     }
 
     public function testDocumentFootComment(): void
@@ -490,16 +497,17 @@ final class YamlEmitterTest extends TestCase
         $doc              = Node::document(self::map(['a', '1']));
         $doc->footComment = '# bye';
 
-        self::assertSame("a: 1\n# bye\n", (new YamlEmitter())->emit($doc));
+        self::assertSame("a: 1\n# bye\n", new YamlEmitter()->emit($doc));
     }
 
     public function testCommentOnlyDocument(): void
     {
         $root              = Node::scalar('', '!!null');
         $root->headComment = "# only\n# comments";
+
         $doc               = Node::document($root);
 
-        self::assertSame("# only\n# comments\n", (new YamlEmitter())->emit($doc));
+        self::assertSame("# only\n# comments\n", new YamlEmitter()->emit($doc));
     }
 
     public function testStreamSeparators(): void
@@ -518,6 +526,7 @@ final class YamlEmitterTest extends TestCase
         $emitter            = new YamlEmitter();
         $a                  = Node::document(self::map(['a', '1']));
         $a->explicitStart   = true;
+
         $b                  = Node::document(self::map(['b', '2']));
         $b->explicitStart   = true;
 
@@ -531,14 +540,15 @@ final class YamlEmitterTest extends TestCase
     {
         $a                = Node::document(self::map(['a', '1']));
         $a->explicitStart = true;
+
         $b                = Node::document(self::map(['b', '2']));
 
-        self::assertSame("a: 1\nb: 2\n", (new YamlEmitter())->emitStream([$a, $b], new EmitOptions(noDocSeparator: true)));
+        self::assertSame("a: 1\nb: 2\n", new YamlEmitter()->emitStream([$a, $b], new EmitOptions(noDocSeparator: true)));
     }
 
     public function testStreamOfUnwrappedScalars(): void
     {
-        self::assertSame("test\n---\ntest2\n", (new YamlEmitter())->emitStream([Node::scalar('test'), Node::scalar('test2')]));
+        self::assertSame("test\n---\ntest2\n", new YamlEmitter()->emitStream([Node::scalar('test'), Node::scalar('test2')]));
     }
 
     public function testPrettyPrintNormalisesStyles(): void
@@ -559,7 +569,7 @@ final class YamlEmitterTest extends TestCase
 
         self::assertSame(
             "k:\n  - \"yes\"\n  - yesSir\n  - \"true\"\n  - \"Y\"\n  - yes\n  - |-\n    a\n    b\nm:\n  x: 1\n",
-            (new YamlEmitter())->emit($node, new EmitOptions(prettyPrint: true)),
+            new YamlEmitter()->emit($node, new EmitOptions(prettyPrint: true)),
         );
     }
 
@@ -568,14 +578,15 @@ final class YamlEmitterTest extends TestCase
         $key              = Node::scalar('a', '!!str', NodeStyle::DoubleQuoted);
         $key->headComment = '# c';
 
-        self::assertSame("# c\na: b\n", (new YamlEmitter())->emit(Node::mapping([$key, Node::scalar('b', '!!str', NodeStyle::SingleQuoted)]), new EmitOptions(prettyPrint: true)));
+        self::assertSame("# c\na: b\n", new YamlEmitter()->emit(Node::mapping([$key, Node::scalar('b', '!!str', NodeStyle::SingleQuoted)]), new EmitOptions(prettyPrint: true)));
     }
 
     public function testColours(): void
     {
-        $key = Node::scalar('a');
+        $key              = Node::scalar('a');
         $key->footComment = '# f';
-        $node = Node::mapping([
+
+        $node             = Node::mapping([
             $key, Node::scalar('str', '!!str'),
             Node::scalar('b'), Node::scalar('1'),
             Node::scalar('c'), Node::scalar('true'),
@@ -589,18 +600,18 @@ final class YamlEmitterTest extends TestCase
             . $esc . '36mb' . $esc . '0m: ' . $esc . '95m1' . $esc . "0m\n"
             . $esc . '36mc' . $esc . '0m: ' . $esc . '95mtrue' . $esc . "0m\n"
             . $esc . '36md' . $esc . "0m:\n  - " . $esc . '32mx' . $esc . "0m\n",
-            (new YamlEmitter())->emit($node, new EmitOptions(colors: true)),
+            new YamlEmitter()->emit($node, new EmitOptions(colors: true)),
         );
     }
 
     public function testCycleThroughAliasesTerminates(): void
     {
-        $anchor = self::map(['a', '1']);
-        $anchor->anchor = 'x';
+        $anchor            = self::map(['a', '1']);
+        $anchor->anchor    = 'x';
         $anchor->content[] = Node::scalar('self');
         $anchor->content[] = Node::alias('x', $anchor);
 
-        self::assertSame("&x\na: 1\nself: *x\n", (new YamlEmitter())->emit($anchor));
+        self::assertSame("&x\na: 1\nself: *x\n", new YamlEmitter()->emit($anchor));
     }
 
     public function testDoesNotMutateInput(): void
@@ -608,7 +619,7 @@ final class YamlEmitterTest extends TestCase
         $node = Node::mapping([Node::scalar('a'), Node::scalar("x\ny", '!!str')]);
         $copy = $node->deepCopy();
 
-        (new YamlEmitter())->emit($node, new EmitOptions(prettyPrint: true));
+        new YamlEmitter()->emit($node, new EmitOptions(prettyPrint: true));
 
         self::assertEquals($copy, $node);
     }

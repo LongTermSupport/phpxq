@@ -13,6 +13,18 @@ use PHPUnit\Framework\TestCase;
  */
 final class ScalarAnalysisTest extends TestCase
 {
+    #[DataProvider('cases')]
+    public function testFlags(string $value, bool $flowPlain, bool $blockPlain, bool $single, bool $block, bool $multiline): void
+    {
+        $analysis = ScalarAnalysis::of($value);
+
+        self::assertSame($flowPlain, $analysis->flowPlainAllowed, 'flowPlain');
+        self::assertSame($blockPlain, $analysis->blockPlainAllowed, 'blockPlain');
+        self::assertSame($single, $analysis->singleQuotedAllowed, 'single');
+        self::assertSame($block, $analysis->blockAllowed, 'block');
+        self::assertSame($multiline, $analysis->multiline, 'multiline');
+    }
+
     /**
      * @return iterable<string, array{string, bool, bool, bool, bool, bool}>
      */
@@ -62,17 +74,5 @@ final class ScalarAnalysisTest extends TestCase
         yield 'bmp is fine'           => ["caf\u{e9}", true, true, true, true, false];
 
         yield 'flow brackets'         => ['a[b', false, true, true, true, false];
-    }
-
-    #[DataProvider('cases')]
-    public function testFlags(string $value, bool $flowPlain, bool $blockPlain, bool $single, bool $block, bool $multiline): void
-    {
-        $analysis = ScalarAnalysis::of($value);
-
-        self::assertSame($flowPlain, $analysis->flowPlainAllowed, 'flowPlain');
-        self::assertSame($blockPlain, $analysis->blockPlainAllowed, 'blockPlain');
-        self::assertSame($single, $analysis->singleQuotedAllowed, 'single');
-        self::assertSame($block, $analysis->blockAllowed, 'block');
-        self::assertSame($multiline, $analysis->multiline, 'multiline');
     }
 }
