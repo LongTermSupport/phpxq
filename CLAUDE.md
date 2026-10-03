@@ -478,30 +478,4 @@ phase MUST use the deployed php-qa-ci machinery — never hand-rolled tool invoc
 - **Model economy**: runner agents are cheap models by design; keep them so. Do not
   route mechanical QA runs through top-tier models.
 
-## php-qa-ci — Claude Hooks-Daemon Lint Integration
-
-If this project runs the Claude hooks-daemon, its `lint_on_edit` handler's default
-extended PHP command is `phpstan analyse {file}` — which hits php-qa-ci's redirect
-stub (`vendor/bin/phpstan` always exits 1) and FALSE-FAILS every PHP Write/Edit.
-`.claude/hooks-daemon.yaml` must route the lint through the pipeline:
-
-```yaml
-handlers:
-  post_tool_use:
-    lint_on_edit:
-      options:
-        command_overrides:
-          PHP:
-            extended: "env PHPQACI_AGENT_MODE=1 qa -t phpstan -p {file}"
-```
-
-(The daemon resolves the bare `qa` against the project bin dirs; `-p` accepts the
-absolute `{file}` path. `PHPQACI_AGENT_MODE=1` is what keeps the injected output to
-two or three lines instead of fifty — see the agent-mode section above; drop it for the
-full console transcript.) After editing, restart the daemon (`/hooks-daemon restart`).
-If you see `R-LINT-FAILURE` on a PHP edit that per-file `bin/qa -t phpstan -p <file>`
-reports clean, this missing override is the first thing to check — composer
-install/update also prints an `ACTION REQUIRED` notice when it detects the gap.
-(This section auto-disappears from the block once the override is configured.)
-
 </phpqaci>

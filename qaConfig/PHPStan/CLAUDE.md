@@ -1,0 +1,126 @@
+# Custom PHPStan Rules
+
+Project-specific PHPStan rules that enforce architectural patterns and prevent bug classes.
+
+Deployed by php-qa-ci. Method: https://defence-before-fix.github.io/ (specification), first
+published at https://ltscommerce.dev/articles/defence-before-fix-static-analysis. The procedure
+this project follows is `vendor/lts/php-qa-ci/CLAUDE/DefenceBeforeFix.md`, invoked through the
+`defence-before-fix` skill.
+
+## Directory Structure
+
+```
+qaConfig/
+├── phpstan.neon              <- Register rules here
+└── PHPStan/
+    ├── CLAUDE.md             <- This file
+    └── Rules/
+        └── YourRule.php      <- Custom rules go here
+```
+
+## Creating a New Rule
+
+Before writing a PHPStan rule, confirm it is not a structural naming/layering/dependency rule — those belong in PHPArkitect (see php-qa-ci README "Where does a rule belong").
+
+### 1. Create the Rule Class
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace QaConfig\PHPStan\Rules;
+
+use PhpParser\Node;
+use PHPStan\Analyser\Scope;
+use PHPStan\Rules\Rule;
+use PHPStan\Rules\RuleErrorBuilder;
+
+/**
+ * Rule description: what pattern this catches and why it is dangerous.
+ *
+ * @implements Rule<Node\SomeNodeType>
+ */
+final class YourNewRule implements Rule
+{
+    public function getNodeType(): string
+    {
+        return Node\SomeNodeType::class;
+    }
+
+    /**
+     * @return list<\PHPStan\Rules\IdentifierRuleError>
+     */
+    public function processNode(Node $node, Scope $scope): array
+    {
+        // Detection logic here
+        // Return empty array if no violation
+        // Return array with RuleErrorBuilder if violation found
+        return [
+            RuleErrorBuilder::message('Clear explanation of what is wrong and how to fix it')
+                ->identifier('yourRule.violationType')
+                ->build(),
+        ];
+    }
+}
+```
+
+### 2. Register in phpstan.neon
+
+```neon
+rules:
+    - QaConfig\PHPStan\Rules\YourNewRule
+```
+
+### 3. Test the Rule
+
+Run PHPStan to verify the rule catches the pattern:
+
+```bash
+export CI=true && bin/qa -t stan
+```
+
+## Defence Before Fix Pattern
+
+When creating rules as part of the "Defence Before Fix" strategy:
+
+1. **Analyse** -- Understand the bug pattern from production incident
+2. **Create Rule** -- Write a PHPStan rule that catches ALL instances of the pattern
+3. **Run PHPStan** -- Verify the rule detects existing violations
+4. **TDD** -- Write failing tests for the specific bugs
+5. **Fix** -- Implement fixes, then verify both PHPStan and tests pass
+
+The rule creates permanent defence -- the bug class can never recur in future commits.
+
+**Net and Filter:** the static rule is the NET (catches the whole class structurally,
+permanently); TDD is the FILTER (reproduces the specific instance on the production path
+and proves the fix). Belt and braces — neither alone suffices.
+
+**Wire, don't delete.** When a rule goes RED, fix by WIRING the flagged contract to a
+real producer, proven by a production-path test. Deleting the flagged element to silence
+the rule bakes in the broken / half-built state — only delete when it is genuinely
+unwanted dead code (a deliberate scope decision).
+
+**Coverage theatre:** a test fixture that feeds a value production never sets yields
+false-green coverage and proves nothing — drive the real producer, not a hand-fed value.
+
+**Nullable ⇒ both paths:** a nullable member is two code paths; prove BOTH (with-value
+AND null). Prefer non-nullable where null is not a genuinely valid state.
+
+Full philosophy: `vendor/lts/php-qa-ci/CLAUDE/DefenceBeforeFix.md`.
+
+## Namespace
+
+- **Namespace:** `QaConfig\PHPStan\Rules`
+- **Autoloaded via:** `composer.json` `autoload-dev` PSR-4 entry mapping
+  `QaConfig\` to `qaConfig/`
+- **Available types:** Use `PhpParser\Node\*` for AST nodes, `PHPStan\Analyser\Scope`
+  for type information
+
+## Important
+
+- NEVER put rules in `src/PHPStan/` -- that is production code
+- PHPStan and PhpParser are dev-only dependencies
+- Rules must return `list<\PHPStan\Rules\IdentifierRuleError>` (use `RuleErrorBuilder`)
+- Use `.identifier()` on every error for baseline management
+- Error messages should explain both WHAT is wrong and HOW to fix it

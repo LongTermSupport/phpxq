@@ -1,0 +1,34 @@
+{
+    "name": "lts/php-jq-yq",
+    "description": "Pure PHP command-line equivalents of jq and yq",
+    "license": "MIT",
+    "type": "project",
+    "require": {
+        "php": "^8.5"
+    },
+    "require-dev": {
+        "lts/php-qa-ci": "^85.0"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "autoload": {
+        "psr-4": {
+            "LTS\\PhpJqYq\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "LTS\\PhpJqYq\\Tests\\": "tests/",
+            "QaConfig\\": [
+                "qaConfig/"
+            ]
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "lts/php-qa-ci": true,
+            "phpstan/extension-installer": true
+        },
+        "sort-packages": true
+    }
+}

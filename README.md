@@ -31,8 +31,13 @@ container. The PHP 8.5 environment is defined in `.claude/ccy/Dockerfile`; rebui
 it with `ccy --rebuild` after changing it.
 
 ```bash
-composer install     # dev dependencies only (PHP QA CI)
+composer install     # dev dependencies only (lts/php-qa-ci)
+vendor/bin/qa        # full QA pipeline
 ```
+
+The project has no production dependencies, so php-qa-ci's Safe-function Rector
+lane and its `thecodingmachine/safe` require-checker scan files are overridden in
+`qaConfig/`, and the `#[\SensitiveParameter]` check is disabled in `qaConfig/qa.php`.
 
 ## Claude Code hooks
 
