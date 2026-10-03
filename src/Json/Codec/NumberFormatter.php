@@ -37,6 +37,8 @@ final class NumberFormatter
             return (string)(int)$value;
         }
 
+        // PHP prints the shortest round-trip digits (serialize_precision -1). A fraction without an exponent
+        // is already laid out as jq lays it out: both switch to exponents below 1e-4.
         $repr = var_export($value, true);
         $sign = '';
         if ('-' === $repr[0]) {
@@ -47,22 +49,18 @@ final class NumberFormatter
         $exponentAt = strpos($repr, 'E');
         if (false !== $exponentAt) {
             $digits = rtrim(str_replace('.', '', substr($repr, 0, $exponentAt)), '0');
-            $decpt  = (int)substr($repr, $exponentAt + 1) + 1;
-        } else {
-            $dot      = (int)strpos($repr, '.');
-            $integral = substr($repr, 0, $dot);
-            $fraction = substr($repr, $dot + 1);
-            if ('0' !== $integral) {
-                $digits = rtrim($integral . $fraction, '0');
-                $decpt  = $dot;
-            } else {
-                $zeros  = strspn($fraction, '0');
-                $digits = rtrim(substr($fraction, $zeros), '0');
-                $decpt  = -$zeros;
-            }
+
+            return $sign . self::layout($digits, (int)substr($repr, $exponentAt + 1) + 1);
         }
 
-        return $sign . self::layout($digits, $decpt);
+        if (!str_ends_with($repr, '.0')) {
+            return $sign . $repr;
+        }
+
+        // integral beyond 1e15, which PHP still prints in full with a ".0"
+        $integral = substr($repr, 0, -2);
+
+        return $sign . self::layout(rtrim($integral, '0'), \strlen($integral));
     }
 
     private static function layout(string $digits, int $decpt): string

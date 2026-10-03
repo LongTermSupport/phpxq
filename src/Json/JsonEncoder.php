@@ -21,11 +21,14 @@ final class JsonEncoder implements JsonEncoderInterface
     private const string RESET = "\e[0m";
 
     /**
-     * Strings made only of characters that JSON never escapes and that are plain ASCII.
+     * Valid UTF-8 without a character that JSON escapes: printed as is (one pass checks both).
      */
-    private const string NOT_PLAIN_ASCII = '/[\x00-\x1f"\\\\\x7f-\xff]/';
+    private const string PLAIN_UTF8 = '/^[^\x00-\x1f"\\\\\x7f]*+$/Du';
 
-    private const string NEEDS_ESCAPE = '/[\x00-\x1f"\\\\\x7f]/';
+    /**
+     * Printable ASCII without quote and backslash: printed as is when every non-ASCII codepoint is escaped.
+     */
+    private const string PLAIN_ASCII = '/^[\x20\x21\x23-\x5b\x5d-\x7e]*+$/D';
 
     private const array ESCAPES = [
         "\x00" => '\u0000',
@@ -196,20 +199,19 @@ final class JsonEncoder implements JsonEncoderInterface
     }
 
     /**
-     * @return iterable<array-key, mixed> keys are strings or, for numeric looking names, ints
+     * The members in output order; with sorting, by the bytes of the key (jq sorts by codepoint, which is
+     * the same order for UTF-8). Numeric looking keys are ints in PHP's storage, hence the string flag.
+     *
+     * @return array<array-key, mixed>
      */
-    private function members(JsonObject $object, bool $sortKeys): iterable
+    private function members(JsonObject $object, bool $sortKeys): array
     {
-        if (!$sortKeys) {
-            return $object->entries();
+        $members = $object->toArray();
+        if ($sortKeys) {
+            ksort($members, \SORT_STRING);
         }
 
-        $sorted = [];
-        foreach ($object->sortedKeys() as $key) {
-            $sorted[$key] = $object->get($key);
-        }
-
-        return $sorted;
+        return $members;
     }
 
     /**
@@ -246,11 +248,7 @@ final class JsonEncoder implements JsonEncoderInterface
 
     private function quote(string $text, bool $ascii): string
     {
-        if (1 !== preg_match(self::NOT_PLAIN_ASCII, $text)) {
-            return '"' . $text . '"';
-        }
-
-        if (!$ascii && 1 !== preg_match(self::NEEDS_ESCAPE, $text) && 1 === preg_match('//u', $text)) {
+        if (1 === preg_match($ascii ? self::PLAIN_ASCII : self::PLAIN_UTF8, $text)) {
             return '"' . $text . '"';
         }
 

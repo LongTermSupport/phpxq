@@ -50,6 +50,32 @@ final class NumberFormatterTest extends TestCase
         self::assertSame($expected, NumberFormatter::format($value));
     }
 
+    public function testRandomDoublesRoundTripAndUseJqLayout(): void
+    {
+        mt_srand(42);
+        for ($i = 0; $i < 20000; ++$i) {
+            $unpacked = unpack('d', pack('NN', mt_rand(0, 0xFFFFFFFF), mt_rand(0, 0xFFFFFFFF)));
+            self::assertIsArray($unpacked);
+            $value = (float)$unpacked[1];
+            if (is_nan($value) || is_infinite($value)) {
+                continue;
+            }
+
+            $text = NumberFormatter::format($value);
+
+            self::assertSame($value, (float)$text, $text);
+            self::assertMatchesRegularExpression('/^-?(\d+(\.\d+)?|\d(\.\d+)?e[+-]\d{2,3})$/', $text);
+            self::assertDoesNotMatchRegularExpression('/\.0$|\.0e/', $text);
+        }
+
+        for ($i = 0; $i < 20000; ++$i) {
+            $value = mt_rand() / mt_rand(1, 1000000) * (0 === $i % 2 ? 1 : 1.0e-7);
+            $text  = NumberFormatter::format($value);
+
+            self::assertSame($value, (float)$text, $text);
+        }
+    }
+
     public function testNanIsNull(): void
     {
         self::assertSame('null', NumberFormatter::format(\NAN));
