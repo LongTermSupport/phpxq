@@ -72,7 +72,7 @@ final readonly class YqConformanceSuite implements ConformanceSuiteInterface
             }
 
             $source = $row['source'] ?? null;
-            foreach (self::fileExtensionFlags(\is_string($source) ? $source : '', $stringFlags) as $flag) {
+            foreach ($this->fileExtensionFlags(\is_string($source) ? $source : '', $stringFlags) as $flag) {
                 $args[] = $flag;
             }
 
@@ -117,7 +117,7 @@ final readonly class YqConformanceSuite implements ConformanceSuiteInterface
      *
      * @return list<string>
      */
-    private static function fileExtensionFlags(string $source, array $flags): array
+    private function fileExtensionFlags(string $source, array $flags): array
     {
         $format = match ($source) {
             'usage/toml.md' => 'toml',

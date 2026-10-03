@@ -397,8 +397,8 @@ final class YamlWriter
             $style   = NodeStyleEnum::Default;
         }
 
-        $quoted = NodeStyleEnum::DoubleQuoted                                                                                                                                === $style || NodeStyleEnum::SingleQuoted === $style
-                                                                                                                                                                                        || NodeStyleEnum::Literal         === $style || NodeStyleEnum::Folded === $style;
+        $quoted = NodeStyleEnum::DoubleQuoted                                                                                                                                                                             === $style || NodeStyleEnum::SingleQuoted === $style
+                                                                                                                                                                                                                                     || NodeStyleEnum::Literal         === $style || NodeStyleEnum::Folded === $style;
 
         $force = false;
         if ('' !== $tag && !$node->tagExplicit) {
