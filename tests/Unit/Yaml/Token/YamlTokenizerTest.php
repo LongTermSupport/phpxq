@@ -16,22 +16,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class YamlTokenizerTest extends TestCase
 {
-    /**
-     * @return list<Token>
-     */
-    private static function tokenize(string $yaml): array
-    {
-        return iterator_to_array((new YamlTokenizer())->tokenize($yaml), false);
-    }
-
-    /**
-     * @return list<string>
-     */
-    private static function summary(string $yaml): array
-    {
-        return array_map(static fn (Token $t): string => $t->type->name . ('' === $t->value ? '' : ':' . $t->value), self::tokenize($yaml));
-    }
-
     public function testStreamIsFramedByStartAndEnd(): void
     {
         $tokens = self::tokenize('');
@@ -111,5 +95,21 @@ final class YamlTokenizerTest extends TestCase
     {
         $this->expectException(YamlSyntaxException::class);
         self::tokenize("a: 'x");
+    }
+
+    /**
+     * @return list<Token>
+     */
+    private static function tokenize(string $yaml): array
+    {
+        return iterator_to_array(new YamlTokenizer()->tokenize($yaml), false);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function summary(string $yaml): array
+    {
+        return array_map(static fn (Token $t): string => $t->type->name . ('' === $t->value ? '' : ':' . $t->value), self::tokenize($yaml));
     }
 }

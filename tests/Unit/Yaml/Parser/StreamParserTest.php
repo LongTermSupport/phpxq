@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Yaml\Parser;
 
 use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
-use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKind;
 use LTS\PhpXq\Yaml\Parser\StreamParser;
 use PHPUnit\Framework\TestCase;
@@ -17,11 +16,10 @@ final class StreamParserTest extends TestCase
 {
     public function testDocumentsGeneratorYieldsDocumentNodes(): void
     {
-        $docs = iterator_to_array((new StreamParser("a: 1\n---\nb\n"))->documents(), false);
+        $docs = iterator_to_array(new StreamParser("a: 1\n---\nb\n")->documents(), false);
 
         self::assertCount(2, $docs);
         foreach ($docs as $doc) {
-            self::assertInstanceOf(Node::class, $doc);
             self::assertSame(NodeKind::Document, $doc->kind);
             self::assertCount(1, $doc->content);
         }
@@ -35,7 +33,7 @@ final class StreamParserTest extends TestCase
 
     public function testEmptyKeyAndValuePositions(): void
     {
-        $doc  = iterator_to_array((new StreamParser("a:\n"))->documents(), false)[0];
+        $doc  = iterator_to_array(new StreamParser("a:\n")->documents(), false)[0];
         $null = $doc->content[0]->content[1];
 
         self::assertSame('!!null', $null->tag);
@@ -45,7 +43,7 @@ final class StreamParserTest extends TestCase
     public function testNestedDepthDoesNotExhaustTheStack(): void
     {
         $yaml = str_repeat('[', 2000) . str_repeat(']', 2000);
-        $docs = iterator_to_array((new StreamParser($yaml))->documents(), false);
+        $docs = iterator_to_array(new StreamParser($yaml)->documents(), false);
 
         self::assertCount(1, $docs);
     }

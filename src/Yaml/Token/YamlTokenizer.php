@@ -30,7 +30,7 @@ final class YamlTokenizer implements YamlTokenizerInterface
         $items = [];
         while (true) {
             $scan    = $scanner->peek();
-            $items[] = [$scan->startIndex * 4, self::convert($scan)];
+            $items[] = [$scan->startIndex * 4, $this->convert($scan)];
             $scanner->skip();
             if (ScanToken::STREAM_END === $scan->type) {
                 break;
@@ -38,7 +38,15 @@ final class YamlTokenizer implements YamlTokenizerInterface
         }
 
         foreach ($scanner->loggedComments() as $comment) {
-            $text = '' !== $comment->head ? $comment->head : ('' !== $comment->line ? $comment->line : $comment->foot);
+            $text = $comment->head;
+            if ('' === $text) {
+                $text = $comment->line;
+            }
+
+            if ('' === $text) {
+                $text = $comment->foot;
+            }
+
             if ('' === $text) {
                 continue;
             }
@@ -55,9 +63,9 @@ final class YamlTokenizer implements YamlTokenizerInterface
         }
     }
 
-    private static function convert(ScanToken $t): Token
+    private function convert(ScanToken $t): Token
     {
-        $line   = $t->startLine + 1;
+        $line   = $t->startLine   + 1;
         $column = $t->startColumn + 1;
 
         return match ($t->type) {
@@ -80,7 +88,7 @@ final class YamlTokenizer implements YamlTokenizerInterface
             ScanToken::VALUE                => new Token(TokenType::Value, '', $line, $column),
             ScanToken::ALIAS                => new Token(TokenType::Alias, $t->value, $line, $column),
             ScanToken::ANCHOR               => new Token(TokenType::Anchor, $t->value, $line, $column),
-            ScanToken::TAG                  => new Token(TokenType::Tag, self::tagText($t), $line, $column),
+            ScanToken::TAG                  => new Token(TokenType::Tag, $this->tagText($t), $line, $column),
             default                         => new Token(
                 TokenType::Scalar,
                 $t->value,
@@ -97,7 +105,7 @@ final class YamlTokenizer implements YamlTokenizerInterface
         };
     }
 
-    private static function tagText(ScanToken $t): string
+    private function tagText(ScanToken $t): string
     {
         if ('' === $t->value) {
             return '!' === $t->suffix ? '!' : '!<' . $t->suffix . '>';

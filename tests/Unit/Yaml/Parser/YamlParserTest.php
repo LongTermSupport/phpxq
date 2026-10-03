@@ -19,20 +19,10 @@ use PHPUnit\Framework\TestCase;
  */
 final class YamlParserTest extends TestCase
 {
-    /**
-     * @return list<Node>
-     */
-    private static function parse(string $yaml): array
+    #[DataProvider('treeProvider')]
+    public function testTree(string $yaml, string $expected): void
     {
-        return iterator_to_array((new YamlParser())->parse($yaml), false);
-    }
-
-    private static function dump(string $yaml): string
-    {
-        $docs = self::parse($yaml);
-        self::assertCount(1, $docs);
-
-        return NodeDump::dump($docs[0]);
+        self::assertSame($expected, self::dump($yaml));
     }
 
     /**
@@ -54,7 +44,7 @@ final class YamlParserTest extends TestCase
         yield 'complex key' => ["? - a\n  - b\n: c\n", '{[!!str=a; !!str=b]: !!str=c}'];
         yield 'flow key' => ["[a, b]: c\n", '{flow[!!str=a; !!str=b]: !!str=c}'];
         yield 'single quoted' => ["a: 'it''s'\n", "{!!str=a: !!str/single=it's}"];
-        yield 'double quoted escapes' => ['a: "x\\ty\\n\\u00e9\\x41\\/\\\\"' . "\n", "{!!str=a: !!str/double=x\ty\n\u{e9}A/\\}"];
+        yield 'double quoted escapes' => ['a: "x\ty\n\u00e9\x41\/\\\"' . "\n", "{!!str=a: !!str/double=x\ty\n\u{e9}A/\\}"];
         yield 'double quoted line folding' => ["a: \"one\n  two\n\n  three\"\n", '{!!str=a: !!str/double=one two' . "\n" . 'three}'];
         yield 'double quoted escaped break' => ["a: \"one \\\n  two\"\n", '{!!str=a: !!str/double=one two}'];
         yield 'multi line plain' => ["a: one\n  two\n  three\nb: 1\n", '{!!str=a: !!str=one two three; !!str=b: !!int=1}'];
@@ -69,15 +59,15 @@ final class YamlParserTest extends TestCase
         yield 'anchor on collection' => ["a: &x\n  b: 1\nc: *x\n", '{!!str=a: &x {!!str=b: !!int=1}; !!str=c: *x}'];
         yield 'self referencing alias' => ["a: &a [*a]\n", '{!!str=a: &a flow[*a]}'];
         yield 'merge key tag' => ["a: &x {b: 1}\n<<: *x\n", '{!!str=a: &x flow{!!str=b: !!int=1}; !!merge=<<: *x}'];
-        yield 'explicit tags' => ["- !!str 12\n- !custom x\n- !<tag:yaml.org,2002:int> 3\n- ! y\n- !!map {a: b}\n", '[!tag:!!str ' . '!!str=12; !tag:!custom !custom=x; !tag:!!int !!int=3; !=y; !tag:!!map flow{!!str=a: !!str=b}]'];
+        yield 'explicit tags' => ["- !!str 12\n- !custom x\n- !<tag:yaml.org,2002:int> 3\n- ! y\n- !!map {a: b}\n", '[!tag:!!str !!str=12; !tag:!custom !custom=x; !tag:!!int !!int=3; !=y; !tag:!!map flow{!!str=a: !!str=b}]'];
         yield 'tag directive' => ["%TAG !e! tag:example.com,2000:\n---\na: !e!x 1\n", '{!!str=a: !tag:tag:example.com,2000:x tag:example.com,2000:x=1}'];
         yield 'anchor and tag only' => ["a: !!str\nb: &x\n", '{!!str=a: !tag:!!str !!str=; !!str=b: &x !!null=}'];
         yield 'tag and anchor order' => ["a: !!str &x v\nb: &y !!int 3\n", '{!!str=a: &x !tag:!!str !!str=v; !!str=b: &y !tag:!!int !!int=3}'];
         yield 'unicode' => ["é: ü\n", "{!!str=\u{e9}: !!str=\u{fc}}"];
     }
 
-    #[DataProvider('treeProvider')]
-    public function testTree(string $yaml, string $expected): void
+    #[DataProvider('commentProvider')]
+    public function testComments(string $yaml, string $expected): void
     {
         self::assertSame($expected, self::dump($yaml));
     }
@@ -106,12 +96,6 @@ final class YamlParserTest extends TestCase
         yield 'flow line comments' => ["[a, # in\n b] # out\n", 'flow[!!str=a#l(# in); !!str=b]#l(# out)'];
         yield 'sequence entry comment' => ["- # c\n  a: b\n", '[{!!str=a#h(# c): !!str=b}]'];
         yield 'comment text is kept raw' => ["k: v #  y  \n", '{!!str=k: !!str=v#l(#  y  )}'];
-    }
-
-    #[DataProvider('commentProvider')]
-    public function testComments(string $yaml, string $expected): void
-    {
-        self::assertSame($expected, self::dump($yaml));
     }
 
     public function testDocumentHeadAndFootComments(): void
@@ -228,13 +212,28 @@ final class YamlParserTest extends TestCase
 
     public function testDocumentsAreYieldedLazily(): void
     {
-        $generator = (new YamlParser())->parse("a: 1\n---\nb: 2\n---\nc: \"unterminated\n");
+        $generator = new YamlParser()->parse("a: 1\n---\nb: 2\n---\nc: \"unterminated\n");
         $first     = $generator->current();
 
-        self::assertInstanceOf(Node::class, $first);
+        self::assertSame('{!!str=a: !!int=1}', NodeDump::dump($first));
         $this->expectException(YamlSyntaxException::class);
         $generator->next();
         $generator->next();
+    }
+
+    #[DataProvider('errorProvider')]
+    public function testSyntaxErrors(string $yaml, int $line, string $problem): void
+    {
+        try {
+            self::parse($yaml);
+        } catch (YamlSyntaxException $e) {
+            self::assertSame($line, $e->yamlLine);
+            self::assertSame(\sprintf('yaml: line %d: %s', $line, $problem), $e->getMessage());
+
+            return;
+        }
+
+        self::fail('expected a syntax error');
     }
 
     /**
@@ -262,18 +261,19 @@ final class YamlParserTest extends TestCase
         yield 'simple key spanning lines' => ["a: |\ntext\n", 2, "could not find expected ':'"];
     }
 
-    #[DataProvider('errorProvider')]
-    public function testSyntaxErrors(string $yaml, int $line, string $problem): void
+    /**
+     * @return list<Node>
+     */
+    private static function parse(string $yaml): array
     {
-        try {
-            self::parse($yaml);
-        } catch (YamlSyntaxException $e) {
-            self::assertSame($line, $e->yamlLine);
-            self::assertSame(\sprintf('yaml: line %d: %s', $line, $problem), $e->getMessage());
+        return iterator_to_array(new YamlParser()->parse($yaml), false);
+    }
 
-            return;
-        }
+    private static function dump(string $yaml): string
+    {
+        $docs = self::parse($yaml);
+        self::assertCount(1, $docs);
 
-        self::fail('expected a syntax error');
+        return NodeDump::dump($docs[0]);
     }
 }

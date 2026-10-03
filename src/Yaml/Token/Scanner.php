@@ -39,9 +39,9 @@ final class Scanner
 
     private string $s;
 
-    private int $n;
+    private readonly int $n;
 
-    private bool $mb;
+    private readonly bool $mb;
 
     private int $p = 0;
 
@@ -58,22 +58,22 @@ final class Scanner
 
     private bool $simpleKeyAllowed = false;
 
-    /** @var list<bool> */
+    /** @var array<int, bool> */
     private array $skPossible = [];
 
-    /** @var list<bool> */
+    /** @var array<int, bool> */
     private array $skRequired = [];
 
-    /** @var list<int> */
+    /** @var array<int, int> */
     private array $skToken = [];
 
-    /** @var list<int> */
+    /** @var array<int, int> */
     private array $skIndex = [];
 
-    /** @var list<int> */
+    /** @var array<int, int> */
     private array $skLine = [];
 
-    /** @var list<int> */
+    /** @var array<int, int> */
     private array $skColumn = [];
 
     /** @var array<int, int> */
@@ -112,7 +112,7 @@ final class Scanner
      */
     public function __construct(string $source)
     {
-        $prepared = self::prepare($source, $this->crlf);
+        $prepared = self::normalise($source, $this->crlf);
         $this->n  = \strlen($prepared);
         $this->s  = $prepared . "\0\0\0\0";
         $this->mb = 1 === preg_match('/[\x80-\xFF]/', $prepared);
@@ -120,15 +120,27 @@ final class Scanner
 
     /**
      * Strips a UTF-8 BOM, rejects invalid UTF-8 and non-printable characters, and normalises CRLF, CR
-     * and NEL to LF. When the caller passes crlf and the text has comments, it receives the offsets of
-     * the line breaks that were CRLF, because go-yaml sees such a break as two when it looks ahead
-     * for comments.
-     *
-     * @param array<int, true>|null $crlf
+     * and NEL to LF.
      *
      * @throws YamlSyntaxException
      */
-    public static function prepare(string $yaml, ?array &$crlf = null): string
+    public static function prepare(string $yaml): string
+    {
+        $crlf = [];
+
+        return self::normalise($yaml, $crlf);
+    }
+
+    /**
+     * Does the work of prepare() and, when the text has comments, collects in crlf the offsets of the
+     * line breaks that were CRLF, because go-yaml sees such a break as two when it looks ahead for
+     * comments.
+     *
+     * @param array<int, true> $crlf
+     *
+     * @throws YamlSyntaxException
+     */
+    private static function normalise(string $yaml, array &$crlf): string
     {
         if (str_starts_with($yaml, "\xEF\xBB\xBF")) {
             $yaml = substr($yaml, 3);
@@ -150,11 +162,10 @@ final class Scanner
         }
 
         if (str_contains($yaml, "\r")) {
-            if (null !== $crlf && str_contains($yaml, '#') && str_contains($yaml, "\r\n")) {
-                $crlf  = [];
+            if (str_contains($yaml, '#') && str_contains($yaml, "\r\n")) {
                 $out   = '';
                 $parts = preg_split('/(\r\n|\r)/', $yaml, -1, \PREG_SPLIT_DELIM_CAPTURE);
-                foreach ((array) $parts as $i => $part) {
+                foreach ((array)$parts as $i => $part) {
                     if (1 === $i % 2) {
                         if ("\r\n" === $part) {
                             $crlf[\strlen($out)] = true;
@@ -201,6 +212,22 @@ final class Scanner
             $this->tokens = \array_slice($this->tokens, $this->head - 2);
             $this->head   = 2;
         }
+    }
+
+    /**
+     * Starts keeping a copy of every comment found, for {@see loggedComments()}.
+     */
+    public function logComments(): void
+    {
+        $this->log = [];
+    }
+
+    /**
+     * @return list<ScanComment> the comments found so far, in scan order; empty unless logComments() ran
+     */
+    public function loggedComments(): array
+    {
+        return $this->log ?? [];
     }
 
     // ---------------------------------------------------------------- comments
@@ -272,11 +299,11 @@ final class Scanner
     /**
      * Comment lines found while skipping to the next token; the caller stands on the first hash.
      */
-    private function scanComments(int $scanIndex, int $scanLine): void
+    private function scanComments(int $scanIndex): void
     {
-        $s    = $this->s;
-        $last = \count($this->tokens) - 1;
-        $tok  = $this->tokens[$last];
+        $s          = $this->s;
+        $last       = \count($this->tokens) - 1;
+        $tok        = $this->tokens[$last];
         $afterValue = ScanToken::VALUE === $tok->type;
         if (ScanToken::FLOW_ENTRY === $tok->type && $last > 0) {
             $tok = $this->tokens[$last - 1];
@@ -287,12 +314,10 @@ final class Scanner
         $recentEmpty = false;
         $firstEmpty  = $this->newlines <= 1;
         $col0        = $this->col();
-        $footLine    = -1;
-        {
-            $footLine = $this->line - $this->newlines + 1;
-            if (0 === $this->newlines && $col0 > 1) {
-                ++$footLine;
-            }
+
+        $footLine = $this->line - $this->newlines + 1;
+        if (0 === $this->newlines && $col0 > 1) {
+            ++$footLine;
         }
 
         $text         = '';
@@ -401,7 +426,7 @@ final class Scanner
             $text .= substr($s, $q, $e - $q);
             if ($realLine !== $this->line) {
                 $this->line = $realLine;
-                $this->ls   = (int) strrpos($s, "\n", $q - \strlen($s)) + 1;
+                $this->ls   = (int)strrpos($s, "\n", $q - \strlen($s)) + 1;
             }
 
             $this->p        = $e;
@@ -425,22 +450,6 @@ final class Scanner
         }
     }
 
-    /**
-     * Starts keeping a copy of every comment found, for {@see loggedComments()}.
-     */
-    public function logComments(): void
-    {
-        $this->log = [];
-    }
-
-    /**
-     * @return list<ScanComment> the comments found so far, in scan order; empty unless logComments() ran
-     */
-    public function loggedComments(): array
-    {
-        return $this->log ?? [];
-    }
-
     // ---------------------------------------------------------------- positions and errors
 
     private function col(): int
@@ -455,7 +464,7 @@ final class Scanner
             return $bytes;
         }
 
-        return $bytes - (int) preg_match_all('/[\x80-\xBF]/', substr($this->s, $lineStart, $bytes));
+        return $bytes - (int)preg_match_all('/[\x80-\xBF]/', substr($this->s, $lineStart, $bytes));
     }
 
     /**
@@ -526,7 +535,7 @@ final class Scanner
         $scanLine   = $this->line;
         $scanColumn = $this->col();
 
-        $this->scanToNextToken($scanIndex, $scanLine);
+        $this->scanToNextToken($scanIndex);
         $this->unrollIndent($this->col(), $scanIndex, $scanLine, $scanColumn);
 
         $s = $this->s;
@@ -692,7 +701,7 @@ final class Scanner
 
     // ---------------------------------------------------------------- indentation and simple keys
 
-    private function scanToNextToken(int $scanIndex, int $scanLine): void
+    private function scanToNextToken(int $scanIndex): void
     {
         $s = $this->s;
         while (true) {
@@ -706,7 +715,7 @@ final class Scanner
             $this->p = $p;
             $c       = $s[$p];
             if ('#' === $c) {
-                $this->scanComments($scanIndex, $scanLine);
+                $this->scanComments($scanIndex);
                 $p = $this->p;
                 $c = $s[$p];
             }
@@ -755,7 +764,7 @@ final class Scanner
             }
 
             $this->append(new ScanToken(ScanToken::BLOCK_END, $blockIndex, $blockLine, $blockColumn, $blockIndex, $blockLine, $blockColumn));
-            $this->indent = (int) array_pop($this->indents);
+            $this->indent = (int)array_pop($this->indents);
         }
     }
 
@@ -990,8 +999,8 @@ final class Scanner
     private function consumeIndicator(int $type): void
     {
         $this->newlines = 0;
-        $index  = $this->p;
-        $column = $this->col();
+        $index          = $this->p;
+        $column         = $this->col();
         ++$this->p;
         $this->append(new ScanToken($type, $index, $this->line, $column, $index + 1, $this->line, $column + 1));
     }
@@ -1118,7 +1127,7 @@ final class Scanner
             $this->error('found extremely long version number', $startLine);
         }
 
-        $value = (int) substr($this->s, $this->p, $len);
+        $value = (int)substr($this->s, $this->p, $len);
         $this->p += $len;
 
         return $value;
@@ -1149,10 +1158,10 @@ final class Scanner
 
     private function scanTag(): ScanToken
     {
-        $s         = $this->s;
-        $startIdx  = $this->p;
-        $startLine = $this->line;
-        $startCol  = $this->col();
+        $s              = $this->s;
+        $startIdx       = $this->p;
+        $startLine      = $this->line;
+        $startCol       = $this->col();
         $this->newlines = 0;
 
         if ('<' === $s[$this->p + 1]) {
@@ -1178,7 +1187,7 @@ final class Scanner
             }
         }
 
-        if (!$this->blankzAt($this->p) && !($this->flowLevel > 0 && ',' === $s[$this->p])) {
+        if (!$this->blankzAt($this->p) && ($this->flowLevel <= 0 || ',' !== $s[$this->p])) {
             $this->error('did not find expected whitespace or line break', $startLine);
         }
 
@@ -1219,7 +1228,7 @@ final class Scanner
 
             $chunk = substr($s, $this->p, $len);
             $this->p += $len;
-            $length += $len;
+            $length  += $len;
             $result .= $this->decodeUriEscapes($chunk, $startLine);
         }
 
@@ -1614,31 +1623,31 @@ final class Scanner
             $this->error('did not find expected hexdecimal number', $startLine);
         }
 
-        $value = (int) hexdec($hex);
+        $value = (int)hexdec($hex);
         if (($value >= 0xD800 && $value <= 0xDFFF) || $value > 0x10FFFF) {
             $this->error('found invalid Unicode character escape code', $startLine);
         }
 
-        $out .= self::utf8($value);
+        $out .= $this->utf8($value);
 
         return $p + $len;
     }
 
-    private static function utf8(int $cp): string
+    private function utf8(int $cp): string
     {
         if ($cp < 0x80) {
-            return \chr($cp);
+            return \chr($cp & 0x7F);
         }
 
         if ($cp < 0x800) {
-            return \chr(0xC0 | ($cp >> 6)) . \chr(0x80 | ($cp & 0x3F));
+            return \chr((0xC0 | ($cp >> 6)) & 0xFF) . \chr(0x80 | ($cp & 0x3F));
         }
 
         if ($cp < 0x10000) {
-            return \chr(0xE0 | ($cp >> 12)) . \chr(0x80 | (($cp >> 6) & 0x3F)) . \chr(0x80 | ($cp & 0x3F));
+            return \chr((0xE0 | ($cp >> 12)) & 0xFF) . \chr(0x80 | (($cp >> 6) & 0x3F)) . \chr(0x80 | ($cp & 0x3F));
         }
 
-        return \chr(0xF0 | ($cp >> 18)) . \chr(0x80 | (($cp >> 12) & 0x3F)) . \chr(0x80 | (($cp >> 6) & 0x3F)) . \chr(0x80 | ($cp & 0x3F));
+        return \chr((0xF0 | ($cp >> 18)) & 0xFF) . \chr(0x80 | (($cp >> 12) & 0x3F)) . \chr(0x80 | (($cp >> 6) & 0x3F)) . \chr(0x80 | ($cp & 0x3F));
     }
 
     private function scanBlockScalar(bool $literal): ScanToken
@@ -1662,7 +1671,7 @@ final class Scanner
                     $this->error('found an indentation indicator equal to 0', $startLine);
                 }
 
-                $increment = (int) $c;
+                $increment = (int)$c;
                 ++$this->p;
             }
         } elseif ($c >= '0' && $c <= '9') {
@@ -1670,7 +1679,7 @@ final class Scanner
                 $this->error('found an indentation indicator equal to 0', $startLine);
             }
 
-            $increment = (int) $c;
+            $increment = (int)$c;
             ++$this->p;
             $c = $s[$this->p];
             if ('+' === $c || '-' === $c) {

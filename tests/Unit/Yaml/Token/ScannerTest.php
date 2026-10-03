@@ -15,31 +15,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class ScannerTest extends TestCase
 {
-    /**
-     * @return list<ScanToken>
-     */
-    private static function tokens(string $yaml): array
-    {
-        $scanner = new Scanner($yaml);
-        $tokens  = [];
-        while (true) {
-            $token    = $scanner->peek();
-            $tokens[] = $token;
-            $scanner->skip();
-            if (ScanToken::STREAM_END === $token->type) {
-                return $tokens;
-            }
-        }
-    }
-
-    /**
-     * @return list<int>
-     */
-    private static function types(string $yaml): array
-    {
-        return array_map(static fn (ScanToken $t): int => $t->type, self::tokens($yaml));
-    }
-
     public function testBlockMappingTokens(): void
     {
         self::assertSame(
@@ -128,21 +103,19 @@ final class ScannerTest extends TestCase
         self::assertSame("a\nb\nc\nd", Scanner::prepare("\xEF\xBB\xBFa\r\nb\rc\xC2\x85d"));
     }
 
-    public function testPrepareReportsCrlfOffsetsWhenCommentsExist(): void
+    public function testCrlfBreaksCountTwiceWhenLookingAheadForComments(): void
     {
-        $crlf = [];
-        Scanner::prepare("a # c\r\nb\n", $crlf);
+        $head = static function (string $yaml): string {
+            $scanner = new Scanner($yaml);
+            $scanner->peek();
+            $scanner->skip();
+            $scanner->peek();
 
-        self::assertSame([5 => true], $crlf);
-    }
+            return $scanner->headComment;
+        };
 
-    /**
-     * @return iterable<string, array{string, string}>
-     */
-    public static function invalidInputProvider(): iterable
-    {
-        yield 'control character' => ["a: \x01", 'control characters are not allowed'];
-        yield 'invalid utf-8' => ["a: \xFF", 'invalid leading UTF-8 octet'];
+        self::assertSame('# a', $head("# a\nk: v\n"));
+        self::assertSame("# a\n", $head("# a\r\nk: v\r\n"));
     }
 
     #[DataProvider('invalidInputProvider')]
@@ -157,6 +130,15 @@ final class ScannerTest extends TestCase
         }
 
         self::fail('expected a syntax error');
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function invalidInputProvider(): iterable
+    {
+        yield 'control character' => ["a: \x01", 'control characters are not allowed'];
+        yield 'invalid utf-8' => ["a: \xFF", 'invalid leading UTF-8 octet'];
     }
 
     public function testUnterminatedQuoteIsAnError(): void
@@ -181,17 +163,17 @@ final class ScannerTest extends TestCase
         while (true) {
             $token = $scanner->peek();
             if ('' !== $scanner->headComment) {
-                $seen[] = 'head:' . $scanner->headComment;
+                $seen[]               = 'head:' . $scanner->headComment;
                 $scanner->headComment = '';
             }
 
             if ('' !== $scanner->lineComment) {
-                $seen[] = 'line:' . $scanner->lineComment;
+                $seen[]               = 'line:' . $scanner->lineComment;
                 $scanner->lineComment = '';
             }
 
             if ('' !== $scanner->footComment) {
-                $seen[] = 'foot:' . $scanner->footComment;
+                $seen[]               = 'foot:' . $scanner->footComment;
                 $scanner->footComment = '';
             }
 
@@ -202,5 +184,30 @@ final class ScannerTest extends TestCase
         }
 
         self::assertSame(['head:# head', 'line:# line', 'foot:# foot'], $seen);
+    }
+
+    /**
+     * @return list<ScanToken>
+     */
+    private static function tokens(string $yaml): array
+    {
+        $scanner = new Scanner($yaml);
+        $tokens  = [];
+        while (true) {
+            $token    = $scanner->peek();
+            $tokens[] = $token;
+            $scanner->skip();
+            if (ScanToken::STREAM_END === $token->type) {
+                return $tokens;
+            }
+        }
+    }
+
+    /**
+     * @return list<int>
+     */
+    private static function types(string $yaml): array
+    {
+        return array_map(static fn (ScanToken $t): int => $t->type, self::tokens($yaml));
     }
 }

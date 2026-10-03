@@ -15,6 +15,12 @@ use PHPUnit\Framework\TestCase;
  */
 final class ScalarResolverTest extends TestCase
 {
+    #[DataProvider('tagProvider')]
+    public function testResolve(string $plain, string $tag): void
+    {
+        self::assertSame($tag, ScalarResolver::resolve($plain));
+    }
+
     /**
      * @return iterable<string, array{string, string}>
      */
@@ -41,11 +47,5 @@ final class ScalarResolverTest extends TestCase
         foreach (['2001-02-30', '1900-02-29', '2001-12-14T21:59:43', '2001-12-14 21:59', '2001-12-14T25:00:00Z', '2001-12-14T23:59:60Z', '2001-12-14T23:59:59+0100', '12345-1-1', '2001-12-14T21:59:43.10-05:00x', '2001-12-14 21:59:43.10 -5'] as $value) {
             yield 'not a timestamp ' . $value => [$value, '!!str'];
         }
-    }
-
-    #[DataProvider('tagProvider')]
-    public function testResolve(string $plain, string $tag): void
-    {
-        self::assertSame($tag, ScalarResolver::resolve($plain));
     }
 }

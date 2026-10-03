@@ -27,6 +27,6 @@ final class YamlParser implements YamlParserInterface
      */
     public function parse(string $yaml): Generator
     {
-        yield from (new StreamParser($yaml))->documents();
+        yield from new StreamParser($yaml)->documents();
     }
 }

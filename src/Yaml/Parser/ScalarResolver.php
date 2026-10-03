@@ -49,10 +49,10 @@ final class ScalarResolver
         }
 
         return match ($plain) {
-            '~', 'null', 'Null', 'NULL'      => CoreSchema::TAG_NULL,
+            '~', 'null', 'Null', 'NULL'                       => CoreSchema::TAG_NULL,
             'true', 'True', 'TRUE', 'false', 'False', 'FALSE' => CoreSchema::TAG_BOOL,
-            '<<'                             => self::TAG_MERGE,
-            default                          => CoreSchema::TAG_STR,
+            '<<'                                              => self::TAG_MERGE,
+            default                                           => CoreSchema::TAG_STR,
         };
     }
 
@@ -83,7 +83,7 @@ final class ScalarResolver
 
     private static function floatFits(string $text): bool
     {
-        return !is_infinite((float) $text);
+        return !is_infinite((float)$text);
     }
 
     /**
@@ -137,21 +137,26 @@ final class ScalarResolver
             return false;
         }
 
-        $year  = (int) $m[1];
-        $month = (int) $m[2];
-        $day   = (int) $m[3];
+        $year  = (int)$m[1];
+        $month = (int)$m[2];
+        $day   = (int)$m[3];
         if ($month < 1 || $month > 12 || $day < 1 || $day > self::daysInMonth($year, $month)) {
             return false;
         }
 
-        $parts = [[4, 5, 6], [9, 10, 11]];
-        foreach ($parts as [$h, $i, $s]) {
-            if (isset($m[$h]) && '' !== $m[$h] && ((int) $m[$h] > 23 || (int) $m[$i] > 59 || (int) $m[$s] > 59)) {
+        $clocks = [
+            [$m[4] ?? '', $m[5] ?? '', $m[6] ?? ''],
+            [$m[9] ?? '', $m[10] ?? '', $m[11] ?? ''],
+        ];
+        foreach ($clocks as [$hour, $minute, $second]) {
+            if ('' !== $hour && ((int)$hour > 23 || (int)$minute > 59 || (int)$second > 59)) {
                 return false;
             }
         }
 
-        return !(isset($m[7]) && '' !== $m[7] && ((int) $m[7] > 24 || (int) $m[8] > 59));
+        $zoneHour = $m[7] ?? '';
+
+        return '' === $zoneHour || (int)$zoneHour <= 24 && (int)($m[8] ?? '') <= 59;
     }
 
     private static function daysInMonth(int $year, int $month): int

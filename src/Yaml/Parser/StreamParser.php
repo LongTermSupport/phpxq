@@ -25,7 +25,7 @@ final class StreamParser
 {
     private const string LONG_TAG_PREFIX = 'tag:yaml.org,2002:';
 
-    private Scanner $sc;
+    private readonly Scanner $sc;
 
     /** @var array<string, Node> */
     private array $anchors = [];
@@ -92,22 +92,22 @@ final class StreamParser
         if (
             $implicit
             && ScanToken::VERSION_DIRECTIVE !== $type
-            && ScanToken::TAG_DIRECTIVE !== $type
-            && ScanToken::DOCUMENT_START !== $type
-            && ScanToken::STREAM_END !== $type
+            && ScanToken::TAG_DIRECTIVE     !== $type
+            && ScanToken::DOCUMENT_START    !== $type
+            && ScanToken::STREAM_END        !== $type
         ) {
             $this->resetTagDirectives();
-            $doc->line   = $t->startLine + 1;
+            $doc->line   = $t->startLine   + 1;
             $doc->column = $t->startColumn + 1;
             $head        = $sc->headComment;
             if ('' !== $head) {
-                [$doc->headComment, $sc->headComment] = self::splitDocumentHead($head);
+                [$doc->headComment, $sc->headComment] = $this->splitDocumentHead($head);
             }
 
             $root = $this->parseNode(true, false);
         } elseif (ScanToken::STREAM_END !== $type) {
             $doc->explicitStart = true;
-            $doc->line          = $t->startLine + 1;
+            $doc->line          = $t->startLine   + 1;
             $doc->column        = $t->startColumn + 1;
             $doc->directives    = $this->processDirectives();
             $t                  = $sc->peek();
@@ -149,7 +149,7 @@ final class StreamParser
      *
      * @return array{string, string}
      */
-    private static function splitDocumentHead(string $head): array
+    private function splitDocumentHead(string $head): array
     {
         if (str_ends_with($head, "\n")) {
             return [rtrim($head, "\n"), ''];
@@ -166,17 +166,10 @@ final class StreamParser
     private function documentContent(): Node
     {
         $t = $this->sc->peek();
-        switch ($t->type) {
-            case ScanToken::VERSION_DIRECTIVE:
-            case ScanToken::TAG_DIRECTIVE:
-            case ScanToken::DOCUMENT_START:
-            case ScanToken::DOCUMENT_END:
-            case ScanToken::STREAM_END:
-                return $this->emptyScalar($t->startLine, $t->startColumn);
-
-            default:
-                return $this->parseNode(true, false);
-        }
+        return match ($t->type) {
+            ScanToken::VERSION_DIRECTIVE, ScanToken::TAG_DIRECTIVE, ScanToken::DOCUMENT_START, ScanToken::DOCUMENT_END, ScanToken::STREAM_END => $this->emptyScalar($t->startLine, $t->startColumn),
+            default => $this->parseNode(true, false),
+        };
     }
 
     private function resetTagDirectives(): void
@@ -229,7 +222,7 @@ final class StreamParser
         $t  = $sc->peek();
         if (ScanToken::ALIAS === $t->type) {
             $node         = new Node(NodeKind::Alias, '', NodeStyle::Default, $t->value);
-            $node->line   = $t->startLine + 1;
+            $node->line   = $t->startLine   + 1;
             $node->column = $t->startColumn + 1;
             $target       = $this->anchors[$t->value] ?? null;
             if (!$target instanceof Node) {
@@ -243,7 +236,7 @@ final class StreamParser
             return $node;
         }
 
-        $startLine = $t->startLine + 1;
+        $startLine = $t->startLine   + 1;
         $startCol  = $t->startColumn + 1;
         $anchor    = '';
         $tag       = '';
@@ -354,18 +347,18 @@ final class StreamParser
     private function register(Node $node, string $anchor): void
     {
         if ('' !== $anchor) {
-            $node->anchor         = $anchor;
+            $node->anchor           = $anchor;
             $this->anchors[$anchor] = $node;
         }
     }
 
     private function collection(NodeKind $kind, bool $flow, string $defaultTag, string $tag, string $anchor, int $line, int $column): Node
     {
-        $node        = new Node($kind, $defaultTag, $flow ? NodeStyle::Flow : NodeStyle::Default);
+        $node         = new Node($kind, $defaultTag, $flow ? NodeStyle::Flow : NodeStyle::Default);
         $node->line   = $line;
         $node->column = $column;
         if ('' !== $tag && '!' !== $tag) {
-            $node->tag         = self::shortTag($tag);
+            $node->tag         = $this->shortTag($tag);
             $node->tagExplicit = true;
         }
 
@@ -386,7 +379,7 @@ final class StreamParser
 
         $explicit = false;
         if ('' !== $tag && '!' !== $tag) {
-            $resolved = self::shortTag($tag);
+            $resolved = $this->shortTag($tag);
             $explicit = true;
         } elseif ('!' === $tag) {
             $resolved = '!';
@@ -404,7 +397,7 @@ final class StreamParser
         return $node;
     }
 
-    private static function shortTag(string $tag): string
+    private function shortTag(string $tag): string
     {
         if (str_starts_with($tag, self::LONG_TAG_PREFIX)) {
             return '!!' . substr($tag, \strlen(self::LONG_TAG_PREFIX));
@@ -419,7 +412,7 @@ final class StreamParser
     private function emptyScalar(int $line, int $column): Node
     {
         $node         = new Node(NodeKind::Scalar, CoreSchema::TAG_NULL);
-        $node->line   = $line + 1;
+        $node->line   = $line   + 1;
         $node->column = $column + 1;
 
         return $node;
@@ -530,9 +523,9 @@ final class StreamParser
             $this->splitStem($prior);
             $t = $sc->peek();
             if (
-                ScanToken::BLOCK_ENTRY !== $t->type
-                && ScanToken::KEY !== $t->type
-                && ScanToken::VALUE !== $t->type
+                ScanToken::BLOCK_ENTRY  !== $t->type
+                && ScanToken::KEY       !== $t->type
+                && ScanToken::VALUE     !== $t->type
                 && ScanToken::BLOCK_END !== $t->type
             ) {
                 $node->content[] = $this->parseNode(true, false);
@@ -561,7 +554,7 @@ final class StreamParser
                 $this->takeEnd($node);
                 $sc->skip();
                 if ('' !== $node->footComment && \count($node->content) > 1) {
-                    $node->content[\count($node->content) - 2]->footComment = $node->footComment;
+                    $node->content[\count($node->content) - 2]->footComment  = $node->footComment;
                     $node->footComment                                       = '';
                 }
 
@@ -572,7 +565,7 @@ final class StreamParser
 
             $node->content[] = $key;
             if ('' !== $key->footComment && \count($node->content) > 2) {
-                $node->content[\count($node->content) - 3]->footComment = $key->footComment;
+                $node->content[\count($node->content) - 3]->footComment  = $key->footComment;
                 $key->footComment                                        = '';
             }
 
@@ -604,6 +597,7 @@ final class StreamParser
     {
         $sc = $this->sc;
         $sc->skip();
+
         $first = true;
         while (true) {
             $t = $sc->peek();
@@ -642,8 +636,9 @@ final class StreamParser
     {
         $sc                = $this->sc;
         $pair              = new Node(NodeKind::Mapping, CoreSchema::TAG_MAP, NodeStyle::Flow);
-        $pair->line        = $keyToken->startLine + 1;
+        $pair->line        = $keyToken->startLine   + 1;
         $pair->column      = $keyToken->startColumn + 1;
+
         $sc->skip();
         $t = $sc->peek();
         if (ScanToken::VALUE !== $t->type && ScanToken::FLOW_ENTRY !== $t->type && ScanToken::FLOW_SEQUENCE_END !== $t->type) {
@@ -679,6 +674,7 @@ final class StreamParser
     {
         $sc = $this->sc;
         $sc->skip();
+
         $first = true;
         while (true) {
             $t = $sc->peek();
