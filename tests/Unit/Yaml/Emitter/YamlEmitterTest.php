@@ -492,6 +492,19 @@ final class YamlEmitterTest extends TestCase
         self::assertSame("# hi\n# there\na: 1\n", new YamlEmitter()->emit($doc));
     }
 
+    public function testDocumentHeadCommentEndingInNewlineIsFollowedByABlankLine(): void
+    {
+        $doc                = Node::document(self::map(['a', '1']));
+        $doc->headComment   = "# hi\n";
+        $doc->explicitStart = true;
+
+        self::assertSame("# hi\n\n---\na: 1\n", new YamlEmitter()->emit($doc));
+
+        $doc->headComment   = "# hi\n\n";
+        $doc->explicitStart = false;
+        self::assertSame("# hi\n\n\na: 1\n", new YamlEmitter()->emit($doc));
+    }
+
     public function testDocumentFootComment(): void
     {
         $doc              = Node::document(self::map(['a', '1']));

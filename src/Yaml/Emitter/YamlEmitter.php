@@ -52,6 +52,9 @@ final class YamlEmitter implements YamlEmitterInterface
         $headComment = $isDocument ? $node->headComment : '';
         if ('' !== $headComment) {
             $out .= new YamlWriter($options)->commentBlock($headComment);
+            if (str_ends_with($headComment, "\n")) {
+                $out .= "\n";
+            }
         }
 
         if ($markers && $isDocument && $this->needsStartMarker($node, $directives, '' !== $headComment, $index)) {
