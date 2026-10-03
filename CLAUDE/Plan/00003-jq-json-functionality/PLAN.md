@@ -1,6 +1,6 @@
 # Plan 00003: jq json functionality
 
-**Status**: Not Started
+**Status**: In Progress
 **Created**: 2026-10-03
 **Owner**: joseph
 **Priority**: High

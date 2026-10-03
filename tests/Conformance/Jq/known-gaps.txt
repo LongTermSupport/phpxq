@@ -12,4 +12,3 @@
 #
 # As jq is built, the blanket entry below is replaced by specific, justified entries (one per
 # genuinely unsupported feature) and finally removed once the suite is fully green.
-*	phpxq jq is not implemented yet (Plan 00003)

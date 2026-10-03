@@ -12,4 +12,3 @@
 #
 # As yq is built, the blanket entry below is replaced by specific, justified entries (one per
 # genuinely unsupported feature) and finally removed once the suite is fully green.
-*	phpxq yq is not implemented yet (Plan 00004)
