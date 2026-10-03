@@ -324,8 +324,32 @@ from `JQ_COLORS`/`NO_COLOR`), and the trailing separators (`--seq` RS, `--raw-ou
 
 Exit codes (`Cli\JqExitCode`): 0 success; 1 with `-e` when the last output was `false`/`null`; 2 usage or
 system error (also the message `Usage:\tjq [OPTIONS] FILTER [FILES...]`); 3 compile error; 4 with `-e` and no
-output; 5 uncaught runtime error or invalid JSON input. `halt`/`halt_error` set their own status. Until the CLI
-worker lands the application returns 70 with `jq: not implemented`, the code the harness already expects.
+output; 5 uncaught runtime error or invalid JSON input. `halt`/`halt_error` set their own status.
+
+Implementation notes (`src/Jq/Cli/`), where jq 1.8.2's own tests (`tests/Conformance/Jq/shell/tests/shtest`) fixed
+a detail:
+
+- Layout: `Options/` (`OptionParser`, `CliOptions`, `CliAction`, `UsageException`), `InputSource` (files or stdin,
+  lazily; `LineTracker` answers line numbers on demand, `StreamParser` produces `--stream` events with jq's
+  error wording, `ValueScanner` finds value extents), `ProgramRunner` (one input at a time, formatting and
+  error reports), `ProgramLoader` (parse, "Top-level program not given", definitions of `~/.jq` when it is a
+  file), `CliRuntimeContext`, `Console`/`OutputWriter` (buffered, closed-pipe safe), `ProgramDump`
+  (`--debug-dump-disasm`).
+- Options act in the order given: `-h` and `-V` end parsing on the spot (`-hV` is help, `-Vh` is version), `-c`
+  clears the pretty flag, `--tab` sets it, `--indent n` only changes the width, so `-c --indent 3` stays
+  compact. `--indent 0` without `-c` prints one element per line with no indentation (the encoder is asked for
+  indent 1 and the application strips it). `-r -a` still prints strings quoted, as jq does.
+- The exit status is that of the last input processed (jq overwrites it per input); an unreadable file is
+  reported, skipped, and makes the final status 2; a parse error prints `jq: parse error: <msg>` and stops
+  with 5; under `--seq` it is a `jq: ignoring parse error` warning (the decoder yields the exceptions).
+  A runtime error is `jq: error (at <file>:<line>): <msg>` or `... (not a string): <json>`, `<unknown>`
+  before any input was read.
+- `input_line_number`: the input provider implements `Runtime\InputPositionInterface` (additive contract), so
+  the builtin reads `$context->inputs() instanceof InputPositionInterface ? lineNumber() : 0`. jq counts a
+  value's line through the end of the line it ends on (`1\n` is line 1, a last value without newline is
+  line 0). `input_filename` comes from `RuntimeContext::inputFilename()`.
+- A `--raw-output0` string containing NUL stops the program run for that input with status 5; internally that
+  is a `HaltException` raised by the output step, because no jq construct can catch it.
 
 ## File ownership map
 

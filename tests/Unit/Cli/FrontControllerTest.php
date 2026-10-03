@@ -36,23 +36,13 @@ final class FrontControllerTest extends TestCase
         yield 'unknown tool' => [['sed', 's/a/b/']];
     }
 
-    #[DataProvider('provideTools')]
-    public function testKnownToolsAreNotImplementedYet(string $tool): void
+    public function testYqIsDelegatedToTheYqApplication(): void
     {
-        [$exit, $stdout, $stderr] = $this->invoke([$tool, '.']);
+        [$exit, $stdout, $stderr] = $this->invoke(['yq', '--version']);
 
-        self::assertSame(FrontControllerInterface::EXIT_NOT_IMPLEMENTED, $exit);
-        self::assertSame('', $stdout);
-        self::assertStringContainsString($tool . ': not implemented', $stderr);
-    }
-
-    /**
-     * @return iterable<string, array{string}>
-     */
-    public static function provideTools(): iterable
-    {
-        yield 'jq' => ['jq'];
-        yield 'yq' => ['yq'];
+        self::assertSame(FrontControllerInterface::EXIT_OK, $exit);
+        self::assertStringStartsWith('yq (https://github.com/mikefarah/yq/) version v', $stdout);
+        self::assertSame('', $stderr);
     }
 
     /**
