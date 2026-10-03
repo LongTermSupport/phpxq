@@ -145,6 +145,11 @@ handlers:
     tdd_enforcement:
       enabled: true
       priority: 32
+      options:
+        test_path_map:
+          - source_glob: "src/**"
+            test_dir: "tests/Unit"
+            mirror: true
     lsp_enforcement:
       enabled: false
       priority: 38
@@ -227,6 +232,9 @@ handlers:
       priority: 51
       options:
         allowed_markdown_paths: null
+        # Vendored upstream test fixtures carry their provenance and licence notice beside them.
+        extra_allowed_markdown_paths:
+          - '^tests/Conformance/[^/]+/fixtures/NOTICE\.md$'
     web_search_year:
       enabled: true
       priority: 55

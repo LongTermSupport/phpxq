@@ -1,0 +1,11 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use LTS\PhpXq\Cli\FrontController;
+
+require \dirname(__DIR__) . '/vendor/autoload.php';
+
+/** @var list<string> $argv */
+exit((new FrontController())->run(\array_slice($argv, 1), STDIN, STDOUT, STDERR));

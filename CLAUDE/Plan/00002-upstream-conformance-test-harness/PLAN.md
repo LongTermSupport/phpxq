@@ -1,6 +1,6 @@
 # Plan 00002: upstream conformance test harness
 
-**Status**: Not Started
+**Status**: In Progress
 **Created**: 2026-10-03
 **Owner**: joseph
 **Priority**: High
@@ -48,7 +48,7 @@ Verified on 2026-10-03 against the upstream repositories:
 
 - [ ] ⬜ **Task 1.1**: Read the jq `.test` file format and the shell test scripts; document the parse rules in a supporting doc
 - [ ] ⬜ **Task 1.2**: Determine which yq tests are extractable (acceptance scripts, `pkg/yqlib` scenario data); document in a supporting doc
-- [ ] ⬜ **Task 1.3**: Check upstream licences and decide fetch-on-demand versus vendor; record the decision
+- [x] ✅ **Task 1.3**: Check upstream licences and decide fetch-on-demand versus vendor; record the decision (vendored with attribution; see each `fixtures/NOTICE.md`)
 
 ### Phase 2: Build
 
@@ -78,4 +78,4 @@ Verified on 2026-10-03 against the upstream repositories:
 
 ## Delivery & Milestones
 
-- None yet.
+- Red conformance suites in place: `jq` (all `.test` cases from jq 1.8.2) and `yq` (documented examples from yq v4.54.1) as named PHPUnit suites, excluded from the default run. Not yet done: the jq `shtest` shell script, the yq acceptance `.sh` scripts, the known-gap list and the summary report (Tasks 2.3 to 2.5).
