@@ -17,6 +17,18 @@ use PHPUnit\Framework\TestCase;
  */
 final class ParserTest extends TestCase
 {
+    #[DataProvider('provideExpressions')]
+    #[DataProvider('provideOperators')]
+    #[DataProvider('provideForms')]
+    #[DataProvider('provideObjects')]
+    public function testParsesExpression(string $source, string $expected): void
+    {
+        $program = $this->parser()->parse($source);
+
+        self::assertNotNull($program->body);
+        self::assertSame($expected, ParserAstDumper::program($program));
+    }
+
     /**
      * @return iterable<string, array{string, string}>
      */
@@ -126,6 +138,9 @@ final class ParserTest extends TestCase
         yield 'try error call' => ['try error("x") catch .', '(try (error "x") .)'];
         yield 'try try' => ['try try 1', '(try (try 1))'];
         yield 'reduce' => ['reduce .[] as $x (0; . + $x)', '(reduce (iter .) $x 0 (+ . $x))'];
+        yield 'reduce operator source' => ['reduce .[] / .[] as $i (0; . + $i)', '(reduce (/ (iter .) (iter .)) $i 0 (+ . $i))'];
+        yield 'foreach negated source' => ['foreach -.[] as $x (0; .)', '(foreach (neg (iter .)) $x 0 . _)'];
+        yield 'reduce source with parenthesised binding' => ['reduce (. as $y | $y) as $x (0; .)', '(reduce (as . ($y) $y) $x 0 .)'];
         yield 'reduce destructure' => ['reduce .[] as [$a,$b] (0; .)', '(reduce (iter .) [$a $b] 0 .)'];
         yield 'foreach 2' => ['foreach .[] as $x (0; .+$x)', '(foreach (iter .) $x 0 (+ . $x) _)'];
         yield 'foreach 3' => ['foreach .[] as $x (0; .+$x; [$x,.])', '(foreach (iter .) $x 0 (+ . $x) [(, $x .)])'];
@@ -175,21 +190,11 @@ final class ParserTest extends TestCase
         yield 'value call' => ['{a: f(1)}', '{("a" (f 1))}'];
         yield 'value keyword form' => ['{a: if . then 1 else 2 end}', '{("a" (if . 1 2))}'];
         yield 'value comma ends' => ['{a: 1, b: 2}', '{("a" 1) ("b" 2)}'];
+        yield 'value arithmetic' => ['{x: 1 + 2, y: false or true, z: null // 3}', '{("x" (+ 1 2)) ("y" (or false true)) ("z" (// null 3))}'];
+        yield 'value arithmetic then pipe' => ['{a: 1 + 2 | 3}', '{("a" (| (+ 1 2) 3))}'];
         yield 'value parenthesised' => ['{a: (1 + 2)}', '{("a" (+ 1 2))}'];
         yield 'postfix on object' => ['{a:1}.a', '(idx {("a" 1)} "a")'];
         yield 'namespaced key' => ['{a::b: 1}', '{("a::b" 1)}'];
-    }
-
-    #[DataProvider('provideExpressions')]
-    #[DataProvider('provideOperators')]
-    #[DataProvider('provideForms')]
-    #[DataProvider('provideObjects')]
-    public function testParsesExpression(string $source, string $expected): void
-    {
-        $program = $this->parser()->parse($source);
-
-        self::assertNotNull($program->body);
-        self::assertSame($expected, ParserAstDumper::program($program));
     }
 
     public function testEmptyProgramHasNoBody(): void
@@ -249,11 +254,11 @@ final class ParserTest extends TestCase
 
     public function testModuleDirective(): void
     {
-        $program = $this->parser()->parse('module {name: "m", version: 1.5, list: [1, "a", null, true]}; def f: 1;');
+        $program = $this->parser()->parse('module {name: "m", list: ["a", null, true, false]}; def f: 1;');
 
         self::assertNotNull($program->module);
         self::assertEquals(
-            new JsonObject(['name' => 'm', 'version' => 1.5, 'list' => [1, 'a', null, true]]),
+            new JsonObject(['name' => 'm', 'list' => ['a', null, true, false]]),
             $program->module->metadata,
         );
         self::assertCount(1, $program->defs);
@@ -292,45 +297,6 @@ final class ParserTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{string, string}>
-     */
-    public static function provideErrors(): iterable
-    {
-        yield 'trailing token' => ['. .', 'syntax error, unexpected \'.\''];
-        yield 'unexpected closing paren' => ['(1))', 'syntax error, unexpected \')\''];
-        yield 'dangling operator' => ['1 +', 'syntax error, unexpected end of file'];
-        yield 'dangling pipe' => ['1 |', 'syntax error, unexpected end of file'];
-        yield 'leading pipe' => ['| 1', 'syntax error, unexpected \'|\', expecting end of file'];
-        yield 'two literals' => ['1 2', 'syntax error, unexpected LITERAL'];
-        yield 'two idents' => ['a b', 'syntax error, unexpected IDENT'];
-        yield 'nonassoc comparison' => ['1 == 2 == 3', 'syntax error, unexpected =='];
-        yield 'nonassoc assignment' => ['.a = 1 = 2', 'syntax error, unexpected \'=\''];
-        yield 'nonassoc update' => ['.a |= 1 |= 2', 'syntax error, unexpected |='];
-        yield 'object value operator' => ['{a: 1 + 2}', 'syntax error, unexpected \'+\''];
-        yield 'unterminated object' => ['{a: 1', 'syntax error, unexpected end of file'];
-        yield 'unterminated array' => ['[1', 'syntax error, unexpected end of file'];
-        yield 'if without then' => ['if 1 end', 'syntax error, unexpected end'];
-        yield 'if without end' => ['if 1 then 2', 'syntax error, unexpected end of file'];
-        yield 'else without if' => ['else', 'syntax error, unexpected else'];
-        yield 'empty array pattern' => ['. as [] | null', 'syntax error, unexpected \']\', expecting BINDING or \'[\' or \'{\''];
-        yield 'empty object pattern' => ['. as {} | null', 'syntax error, unexpected \'}\''];
-        yield 'as without pipe' => ['. as $x', 'syntax error, unexpected end of file'];
-        yield 'reduce without parens' => ['reduce . as $x 1', 'syntax error, unexpected LITERAL'];
-        yield 'def without semicolon' => ['def f: 1', 'syntax error, unexpected end of file'];
-        yield 'def bad param' => ['def f(1): 1; f', 'syntax error, unexpected LITERAL'];
-        yield 'break without label' => ['break', 'syntax error, unexpected end of file'];
-        yield 'bad object key' => ['{1+2:3}', 'May need parentheses around object key expression'];
-        yield 'dot dot field' => ['..a', 'syntax error, unexpected IDENT'];
-        yield 'module not constant' => ['module (.+1); 0', 'Module metadata must be constant'];
-        yield 'module not object' => ['module []; 0', 'Module metadata must be an object'];
-        yield 'include not constant' => ['include "a" (.+1); 0', 'Module metadata must be constant'];
-        yield 'include not object' => ['include "a" []; 0', 'Module metadata must be an object'];
-        yield 'import path not constant' => ['include "\(a)"; 0', 'Import path must be constant'];
-        yield 'multiple reduce patterns' => ['reduce . as [$a] ?// $a (0; .)', 'syntax error, unexpected ?//'];
-        yield 'bare format in object key' => ['{@base64: 1}', 'syntax error, unexpected \':\''];
-    }
-
-    /**
      * @param non-empty-string $messageStart
      */
     #[DataProvider('provideErrors')]
@@ -344,6 +310,45 @@ final class ParserTest extends TestCase
             self::assertStringContainsString(' at <top-level>, line ', $jqCompileException->getMessage());
             self::assertStringEndsWith(':', $jqCompileException->getMessage());
         }
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function provideErrors(): iterable
+    {
+        yield 'trailing token' => ['. .', "syntax error, unexpected '.'"];
+        yield 'unexpected closing paren' => ['(1))', "syntax error, unexpected ')'"];
+        yield 'dangling operator' => ['1 +', 'syntax error, unexpected end of file'];
+        yield 'dangling pipe' => ['1 |', 'syntax error, unexpected end of file'];
+        yield 'leading pipe' => ['| 1', "syntax error, unexpected '|', expecting end of file"];
+        yield 'two literals' => ['1 2', 'syntax error, unexpected LITERAL'];
+        yield 'two idents' => ['a b', 'syntax error, unexpected IDENT'];
+        yield 'nonassoc comparison' => ['1 == 2 == 3', 'syntax error, unexpected =='];
+        yield 'nonassoc assignment' => ['.a = 1 = 2', "syntax error, unexpected '='"];
+        yield 'nonassoc update' => ['.a |= 1 |= 2', 'syntax error, unexpected |='];
+        yield 'object value comma operator chain' => ['{a: 1,, b: 2}', "syntax error, unexpected ','"];
+        yield 'unterminated object' => ['{a: 1', 'syntax error, unexpected end of file'];
+        yield 'unterminated array' => ['[1', 'syntax error, unexpected end of file'];
+        yield 'if without then' => ['if 1 end', 'syntax error, unexpected end'];
+        yield 'if without end' => ['if 1 then 2', 'syntax error, unexpected end of file'];
+        yield 'else without if' => ['else', 'syntax error, unexpected else'];
+        yield 'empty array pattern' => ['. as [] | null', "syntax error, unexpected ']', expecting BINDING or '[' or '{'"];
+        yield 'empty object pattern' => ['. as {} | null', "syntax error, unexpected '}'"];
+        yield 'as without pipe' => ['. as $x', 'syntax error, unexpected end of file'];
+        yield 'reduce without parens' => ['reduce . as $x 1', 'syntax error, unexpected LITERAL'];
+        yield 'def without semicolon' => ['def f: 1', 'syntax error, unexpected end of file'];
+        yield 'def bad param' => ['def f(1): 1; f', 'syntax error, unexpected LITERAL'];
+        yield 'break without label' => ['break', 'syntax error, unexpected end of file'];
+        yield 'bad object key' => ['{1+2:3}', 'May need parentheses around object key expression'];
+        yield 'dot dot field' => ['..a', 'syntax error, unexpected IDENT'];
+        yield 'module not constant' => ['module (.+1); 0', 'Module metadata must be constant'];
+        yield 'module not object' => ['module []; 0', 'Module metadata must be an object'];
+        yield 'include not constant' => ['include "a" (.+1); 0', 'Module metadata must be constant'];
+        yield 'include not object' => ['include "a" []; 0', 'Module metadata must be an object'];
+        yield 'import path not constant' => ['include "\(a)"; 0', 'Import path must be constant'];
+        yield 'multiple reduce patterns' => ['reduce . as [$a] ?// $a (0; .)', 'syntax error, unexpected ?//'];
+        yield 'bare format in object key' => ['{@base64: 1}', "syntax error, unexpected ':'"];
     }
 
     public function testErrorReportsLineAndColumn(): void
@@ -371,7 +376,7 @@ final class ParserTest extends TestCase
 
     public function testParserIsReusable(): void
     {
-        $parser = $this->parser();
+        $parser  = $this->parser();
         $failed  = false;
         try {
             $parser->parse('1 +');

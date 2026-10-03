@@ -143,6 +143,8 @@ final class Parser implements ParserInterface
 
     private int $pos = 0;
 
+    private bool $bindingAllowed = true;
+
     public function __construct(private readonly LexerInterface $lexer)
     {
     }
@@ -162,7 +164,7 @@ final class Parser implements ParserInterface
     private function parseProgram(): Program
     {
         $module = null;
-        if (TokenType::KwModule === $this->type()) {
+        if (TokenType::KwModule === $this->tokens[$this->pos]->type) {
             ++$this->pos;
             $metaTok = $this->current();
             $meta    = $this->parsePipe();
@@ -171,17 +173,17 @@ final class Parser implements ParserInterface
         }
 
         $imports = [];
-        while (TokenType::KwImport === $this->type() || TokenType::KwInclude === $this->type()) {
+        while (TokenType::KwImport === $this->tokens[$this->pos]->type || TokenType::KwInclude === $this->tokens[$this->pos]->type) {
             $imports[] = $this->parseImport();
         }
 
         $defs = [];
-        while (TokenType::KwDef === $this->type()) {
+        while (TokenType::KwDef === $this->tokens[$this->pos]->type) {
             $defs[] = $this->parseDef();
         }
 
         $body = null;
-        if (TokenType::Eof !== $this->type()) {
+        if (TokenType::Eof !== $this->tokens[$this->pos]->type) {
             $body = $this->parsePipe();
             $tail = $this->tokens[$this->pos];
             if (TokenType::Eof !== $tail->type) {
@@ -223,7 +225,7 @@ final class Parser implements ParserInterface
         }
 
         $metadata = null;
-        if (TokenType::Semicolon !== $this->type()) {
+        if (TokenType::Semicolon !== $this->tokens[$this->pos]->type) {
             $metaTok  = $this->current();
             $metadata = $this->metadata($this->parsePipe(), $metaTok);
         }
@@ -287,7 +289,7 @@ final class Parser implements ParserInterface
      */
     private function flattenComma(?Node $node): array
     {
-        if (null === $node) {
+        if (!$node instanceof \LTS\PhpXq\Jq\Ast\Node) {
             return [];
         }
 
@@ -308,7 +310,7 @@ final class Parser implements ParserInterface
 
         ++$this->pos;
         $params = [];
-        if (TokenType::LParen === $this->type()) {
+        if (TokenType::LParen === $this->tokens[$this->pos]->type) {
             ++$this->pos;
             while (true) {
                 $param = $this->current();
@@ -321,7 +323,7 @@ final class Parser implements ParserInterface
                 }
 
                 ++$this->pos;
-                if (TokenType::Semicolon === $this->type()) {
+                if (TokenType::Semicolon === $this->tokens[$this->pos]->type) {
                     ++$this->pos;
 
                     continue;
@@ -342,7 +344,28 @@ final class Parser implements ParserInterface
 
     private function parsePipe(): Node
     {
-        return $this->parseExpr(self::LEVEL_PIPE);
+        $saved                = $this->bindingAllowed;
+        $this->bindingAllowed = true;
+        try {
+            return $this->parseExpr(self::LEVEL_PIPE);
+        } finally {
+            $this->bindingAllowed = $saved;
+        }
+    }
+
+    /**
+     * The source of `reduce`/`foreach`: an expression above the comma level in which `as` ends the source
+     * instead of starting a binding.
+     */
+    private function parseLoopSource(): Node
+    {
+        $saved                = $this->bindingAllowed;
+        $this->bindingAllowed = false;
+        try {
+            return $this->parseExpr(self::LEVEL_ALT);
+        } finally {
+            $this->bindingAllowed = $saved;
+        }
     }
 
     private function parseExpr(int $min): Node
@@ -457,7 +480,7 @@ final class Parser implements ParserInterface
 
             default:
                 $term = $this->parsePostfix();
-                if (TokenType::KwAs !== $this->tokens[$this->pos]->type) {
+                if (!$this->bindingAllowed || TokenType::KwAs !== $this->tokens[$this->pos]->type) {
                     return $term;
                 }
 
@@ -526,7 +549,7 @@ final class Parser implements ParserInterface
      */
     private function parseBracket(Node $target): Node
     {
-        $type = $this->type();
+        $type = $this->tokens[$this->pos]->type;
         if (TokenType::RBracket === $type) {
             ++$this->pos;
 
@@ -542,10 +565,10 @@ final class Parser implements ParserInterface
         }
 
         $from = $this->parsePipe();
-        if (TokenType::Colon === $this->type()) {
+        if (TokenType::Colon === $this->tokens[$this->pos]->type) {
             ++$this->pos;
             $to = null;
-            if (TokenType::RBracket !== $this->type()) {
+            if (TokenType::RBracket !== $this->tokens[$this->pos]->type) {
                 $to = $this->parsePipe();
             }
 
@@ -565,7 +588,7 @@ final class Parser implements ParserInterface
         switch ($tok->type) {
             case TokenType::Dot:
                 ++$this->pos;
-                if (TokenType::StringStart === $this->type()) {
+                if (TokenType::StringStart === $this->tokens[$this->pos]->type) {
                     return new Index(new Identity(), $this->parseString(null));
                 }
 
@@ -591,7 +614,7 @@ final class Parser implements ParserInterface
 
             case TokenType::Format:
                 ++$this->pos;
-                if (TokenType::StringStart === $this->type()) {
+                if (TokenType::StringStart === $this->tokens[$this->pos]->type) {
                     return $this->parseString($tok->text);
                 }
 
@@ -614,7 +637,7 @@ final class Parser implements ParserInterface
 
             case TokenType::LBracket:
                 ++$this->pos;
-                if (TokenType::RBracket === $this->type()) {
+                if (TokenType::RBracket === $this->tokens[$this->pos]->type) {
                     ++$this->pos;
 
                     return new ArrayConstruct(null);
@@ -648,7 +671,7 @@ final class Parser implements ParserInterface
                 ++$this->pos;
                 $body    = $this->parseTryOperand();
                 $handler = null;
-                if (TokenType::KwCatch === $this->type()) {
+                if (TokenType::KwCatch === $this->tokens[$this->pos]->type) {
                     ++$this->pos;
                     $handler = $this->parseTryOperand();
                 }
@@ -666,7 +689,7 @@ final class Parser implements ParserInterface
      */
     private function parseTryOperand(): Node
     {
-        if (TokenType::Minus === $this->type()) {
+        if (TokenType::Minus === $this->tokens[$this->pos]->type) {
             ++$this->pos;
 
             return new Negate($this->parseTryOperand());
@@ -683,7 +706,7 @@ final class Parser implements ParserInterface
         if (TokenType::LParen === $next->type) {
             ++$this->pos;
             $args = [$this->parsePipe()];
-            while (TokenType::Semicolon === $this->type()) {
+            while (TokenType::Semicolon === $this->tokens[$this->pos]->type) {
                 ++$this->pos;
                 $args[] = $this->parsePipe();
             }
@@ -746,7 +769,7 @@ final class Parser implements ParserInterface
     private function parseReduce(): Node
     {
         ++$this->pos;
-        $source  = $this->parsePostfix();
+        $source  = $this->parseLoopSource();
         $pattern = $this->parseSinglePattern();
         $this->expect(TokenType::LParen);
         $init = $this->parsePipe();
@@ -760,14 +783,14 @@ final class Parser implements ParserInterface
     private function parseForeach(): Node
     {
         ++$this->pos;
-        $source  = $this->parsePostfix();
+        $source  = $this->parseLoopSource();
         $pattern = $this->parseSinglePattern();
         $this->expect(TokenType::LParen);
         $init = $this->parsePipe();
         $this->expect(TokenType::Semicolon);
         $update  = $this->parsePipe();
         $extract = null;
-        if (TokenType::Semicolon === $this->type()) {
+        if (TokenType::Semicolon === $this->tokens[$this->pos]->type) {
             ++$this->pos;
             $extract = $this->parsePipe();
         }
@@ -793,7 +816,7 @@ final class Parser implements ParserInterface
     private function parsePatterns(): array
     {
         $patterns = [$this->parsePattern()];
-        while (TokenType::DestructAlt === $this->type()) {
+        while (TokenType::DestructAlt === $this->tokens[$this->pos]->type) {
             ++$this->pos;
             $patterns[] = $this->parsePattern();
         }
@@ -813,7 +836,7 @@ final class Parser implements ParserInterface
             case TokenType::LBracket:
                 ++$this->pos;
                 $elements = [$this->parsePattern()];
-                while (TokenType::Comma === $this->type()) {
+                while (TokenType::Comma === $this->tokens[$this->pos]->type) {
                     ++$this->pos;
                     $elements[] = $this->parsePattern();
                 }
@@ -825,7 +848,7 @@ final class Parser implements ParserInterface
             case TokenType::LBrace:
                 ++$this->pos;
                 $entries = [$this->parseObjectPatternEntry()];
-                while (TokenType::Comma === $this->type()) {
+                while (TokenType::Comma === $this->tokens[$this->pos]->type) {
                     ++$this->pos;
                     $entries[] = $this->parseObjectPatternEntry();
                 }
@@ -844,7 +867,7 @@ final class Parser implements ParserInterface
         $tok = $this->tokens[$this->pos];
         if (TokenType::Variable === $tok->type) {
             ++$this->pos;
-            if (TokenType::Colon !== $this->type()) {
+            if (TokenType::Colon !== $this->tokens[$this->pos]->type) {
                 return new ObjectPatternEntry($tok->text, null, null);
             }
 
@@ -879,7 +902,7 @@ final class Parser implements ParserInterface
         $tok = $this->tokens[$this->pos];
         if (TokenType::Format === $tok->type) {
             ++$this->pos;
-            if (TokenType::StringStart !== $this->type()) {
+            if (TokenType::StringStart !== $this->tokens[$this->pos]->type) {
                 throw $this->unexpected($this->current());
             }
 
@@ -891,7 +914,7 @@ final class Parser implements ParserInterface
 
     private function parseObject(): Node
     {
-        if (TokenType::RBrace === $this->type()) {
+        if (TokenType::RBrace === $this->tokens[$this->pos]->type) {
             ++$this->pos;
 
             return new ObjectConstruct([]);
@@ -903,7 +926,7 @@ final class Parser implements ParserInterface
             $tok       = $this->current();
             if (TokenType::Comma === $tok->type) {
                 ++$this->pos;
-                if (TokenType::RBrace === $this->type()) {
+                if (TokenType::RBrace === $this->tokens[$this->pos]->type) {
                     ++$this->pos;
 
                     break;
@@ -930,7 +953,7 @@ final class Parser implements ParserInterface
         switch (true) {
             case TokenType::Variable === $tok->type:
                 ++$this->pos;
-                if (TokenType::Colon === $this->type()) {
+                if (TokenType::Colon === $this->tokens[$this->pos]->type) {
                     ++$this->pos;
 
                     return new ObjectEntry(new Variable($tok->text, $tok->line), $this->parseObjectValue());
@@ -944,7 +967,7 @@ final class Parser implements ParserInterface
 
             case TokenType::Ident === $tok->type || $this->isKeyword($tok):
                 ++$this->pos;
-                if (TokenType::Colon === $this->type()) {
+                if (TokenType::Colon === $this->tokens[$this->pos]->type) {
                     ++$this->pos;
 
                     return new ObjectEntry(new Literal($tok->text), $this->parseObjectValue());
@@ -954,7 +977,7 @@ final class Parser implements ParserInterface
 
             case TokenType::StringStart === $tok->type || TokenType::Format === $tok->type:
                 $key = $this->parseKeyString();
-                if (TokenType::Colon === $this->type()) {
+                if (TokenType::Colon === $this->tokens[$this->pos]->type) {
                     ++$this->pos;
 
                     return new ObjectEntry($key, $this->parseObjectValue());
@@ -1034,14 +1057,14 @@ final class Parser implements ParserInterface
      */
     private function parseObjectValue(): Node
     {
-        if (TokenType::Minus === $this->type()) {
+        if (TokenType::Minus === $this->tokens[$this->pos]->type) {
             ++$this->pos;
             $value = new Negate($this->parseObjectValue());
         } else {
-            $value = $this->parsePostfix();
+            $value = $this->parseExpr(self::LEVEL_ALT);
         }
 
-        if (TokenType::Pipe === $this->type()) {
+        if (TokenType::Pipe === $this->tokens[$this->pos]->type) {
             ++$this->pos;
 
             return new Pipe($value, $this->parseObjectValue());
@@ -1098,13 +1121,8 @@ final class Parser implements ParserInterface
             TokenType::KwEnd, TokenType::KwAs, TokenType::KwReduce, TokenType::KwForeach, TokenType::KwTry,
             TokenType::KwCatch, TokenType::KwLabel, TokenType::KwImport, TokenType::KwInclude,
             TokenType::KwModule, TokenType::KwAnd, TokenType::KwOr => true,
-            default => false,
+            default                                                => false,
         };
-    }
-
-    private function type(): TokenType
-    {
-        return $this->tokens[$this->pos]->type;
     }
 
     private function current(): Token

@@ -59,27 +59,27 @@ final class ParserAstDumper
             $node instanceof Index               => '(idx ' . self::dump($node->target) . ' ' . self::dump($node->index) . ')',
             $node instanceof Slice               => '(slice ' . self::dump($node->target) . ' ' . self::opt($node->from) . ' ' . self::opt($node->to) . ')',
             $node instanceof Iterate             => '(iter ' . self::dump($node->target) . ')',
-            $node instanceof TryCatch            => null === $node->handler
-                ? '(try ' . self::dump($node->body) . ')'
-                : '(try ' . self::dump($node->body) . ' ' . self::dump($node->handler) . ')',
-            $node instanceof ArrayConstruct => '[' . self::opt($node->body, '') . ']',
-            $node instanceof ObjectConstruct => self::object($node),
-            $node instanceof Pipe            => '(| ' . self::dump($node->left) . ' ' . self::dump($node->right) . ')',
-            $node instanceof Comma           => '(, ' . self::dump($node->left) . ' ' . self::dump($node->right) . ')',
-            $node instanceof Negate          => '(neg ' . self::dump($node->operand) . ')',
-            $node instanceof Binary          => '(' . $node->op->value . ' ' . self::dump($node->left) . ' ' . self::dump($node->right) . ')',
-            $node instanceof Assign          => '(' . $node->op->value . ' ' . self::dump($node->left) . ' ' . self::dump($node->right) . ')',
-            $node instanceof IfThenElse      => '(if ' . self::dump($node->condition) . ' ' . self::dump($node->then) . ' ' . self::opt($node->else) . ')',
-            $node instanceof Bind            => '(as ' . self::dump($node->source) . ' (' . implode(' ?// ', array_map(self::pattern(...), $node->patterns)) . ') ' . self::dump($node->body) . ')',
-            $node instanceof Reduce          => '(reduce ' . self::dump($node->source) . ' ' . self::pattern($node->pattern) . ' ' . self::dump($node->init) . ' ' . self::dump($node->update) . ')',
-            $node instanceof ForeachLoop     => '(foreach ' . self::dump($node->source) . ' ' . self::pattern($node->pattern) . ' ' . self::dump($node->init) . ' ' . self::dump($node->update) . ' ' . self::opt($node->extract) . ')',
-            $node instanceof Label           => '(label ' . $node->name . ' ' . self::dump($node->body) . ')',
-            $node instanceof BreakOut        => '(break ' . $node->label . ')',
-            $node instanceof FuncDefScope    => '(def ' . self::def($node->def) . ' ' . self::dump($node->rest) . ')',
-            $node instanceof FunctionCall    => [] === $node->args
+            $node instanceof TryCatch            => $node->handler instanceof \LTS\PhpXq\Jq\Ast\Node
+                ? '(try ' . self::dump($node->body) . ' ' . self::dump($node->handler) . ')'
+                : '(try ' . self::dump($node->body) . ')',
+            $node instanceof ArrayConstruct      => '[' . self::opt($node->body, '') . ']',
+            $node instanceof ObjectConstruct     => self::object($node),
+            $node instanceof Pipe                => '(| ' . self::dump($node->left) . ' ' . self::dump($node->right) . ')',
+            $node instanceof Comma               => '(, ' . self::dump($node->left) . ' ' . self::dump($node->right) . ')',
+            $node instanceof Negate              => '(neg ' . self::dump($node->operand) . ')',
+            $node instanceof Binary              => '(' . $node->op->value . ' ' . self::dump($node->left) . ' ' . self::dump($node->right) . ')',
+            $node instanceof Assign              => '(' . $node->op->value . ' ' . self::dump($node->left) . ' ' . self::dump($node->right) . ')',
+            $node instanceof IfThenElse          => '(if ' . self::dump($node->condition) . ' ' . self::dump($node->then) . ' ' . self::opt($node->else) . ')',
+            $node instanceof Bind                => '(as ' . self::dump($node->source) . ' (' . implode(' ?// ', array_map(self::pattern(...), $node->patterns)) . ') ' . self::dump($node->body) . ')',
+            $node instanceof Reduce              => '(reduce ' . self::dump($node->source) . ' ' . self::pattern($node->pattern) . ' ' . self::dump($node->init) . ' ' . self::dump($node->update) . ')',
+            $node instanceof ForeachLoop         => '(foreach ' . self::dump($node->source) . ' ' . self::pattern($node->pattern) . ' ' . self::dump($node->init) . ' ' . self::dump($node->update) . ' ' . self::opt($node->extract) . ')',
+            $node instanceof Label               => '(label ' . $node->name . ' ' . self::dump($node->body) . ')',
+            $node instanceof BreakOut            => '(break ' . $node->label . ')',
+            $node instanceof FuncDefScope        => '(def ' . self::def($node->def) . ' ' . self::dump($node->rest) . ')',
+            $node instanceof FunctionCall        => [] === $node->args
                 ? $node->name
                 : '(' . $node->name . ' ' . implode(' ', array_map(self::dump(...), $node->args)) . ')',
-            default => throw new InvalidArgumentException('unknown node ' . $node::class),
+            default                              => throw new InvalidArgumentException('unknown node ' . $node::class),
         };
     }
 
@@ -88,7 +88,7 @@ final class ParserAstDumper
      */
     public static function program(Program $program): string
     {
-        $text = null === $program->body ? '_' : self::dump($program->body);
+        $text = $program->body instanceof \LTS\PhpXq\Jq\Ast\Node ? self::dump($program->body) : '_';
         foreach (array_reverse($program->defs) as $def) {
             $text = '(def ' . self::def($def) . ' ' . $text . ')';
         }
@@ -127,7 +127,7 @@ final class ParserAstDumper
 
     private static function opt(?Node $node, string $none = '_'): string
     {
-        return null === $node ? $none : self::dump($node);
+        return $node instanceof \LTS\PhpXq\Jq\Ast\Node ? self::dump($node) : $none;
     }
 
     private static function interpolation(StringInterpolation $node): string
