@@ -1,0 +1,20 @@
+<?php
+
+declare(strict_types=1);
+
+namespace LTS\PhpXq\Jq\Ast;
+
+/**
+ * `{...}` as a pattern.
+ *
+ * @api
+ */
+final readonly class ObjectPattern implements Pattern
+{
+    /**
+     * @param non-empty-list<ObjectPatternEntry> $entries
+     */
+    public function __construct(public array $entries)
+    {
+    }
+}

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Cli;
 
+use LTS\PhpXq\Jq\Cli\JqApplication;
+
 /**
  * @api
  */
@@ -18,6 +20,10 @@ final class FrontController implements FrontControllerInterface
             fwrite($stderr, "usage: phpxq jq|yq [arguments...]\n");
 
             return self::EXIT_USAGE;
+        }
+
+        if ('jq' === $tool) {
+            return JqApplication::create()->run(\array_slice($args, 1), $stdin, $stdout, $stderr);
         }
 
         fwrite($stderr, $tool . ": not implemented\n");

@@ -41,6 +41,33 @@ Parent epic: Plan 00001.
 - Design should keep the evaluator and parser separable so Plan 00004 can reuse them if the yq
   target turns out to share jq syntax.
 
+## Technical Decisions
+
+Full reasoning and the file ownership map for parallel workers: [architecture.md](architecture.md).
+
+- **Target version**: jq 1.8.2 (pinned in `tests/Conformance/Jq/fixtures/NOTICE.md`), behaving as a build with
+  decNumber (the `have_decnum` branches of `jq.test` are the expected ones).
+- **Evaluator**: compile the AST to PHP closures in push-style continuation passing (`Filter::run($input, $emit)`), with a second `paths()` method per filter for path expressions; early exit via an internal
+  `BreakException`. Chosen over Generators (per-output allocation) and a bytecode VM (more code, no PHP
+  advantage).
+- **Value model**: null, bool, `int|float|PreciseNumber`, string, PHP list for arrays, `Json\JsonObject` for
+  objects (insertion ordered, keys always strings, numeric-string keys preserved by casting on read).
+- **Number semantics**: arithmetic is IEEE double; results are PHP `int` when integral and `|n| <= 2^53`, else
+  `float`. A literal that does not survive a double round trip (large integers, long decimals, `1E+1000`) is
+  carried as `PreciseNumber(value, literal)` and printed back verbatim while it is unchanged; any arithmetic
+  or builtin math collapses it to double, as jq 1.8 does. Double output uses the shortest round-trip digits in
+  jq 1.8's `jvp_dtoa_fmt` layout (integral values without fraction, signed two-digit exponents, `nan` as
+  `null`, infinities as the largest finite double). Exact switch points are pinned by the encoder tests,
+  derived from the pinned suite, not from the jq 1.6 on developer machines.
+- **Errors**: `JqException` carries a jq value; `JqCompileException` (exit 3); `BreakException` for
+  `label`/`break` and native early stop; `HaltException` for `halt`.
+- **Builtins**: natives registered by name/arity (`ValueBuiltin` for pure functions with cartesian-product
+  arguments, `StreamBuiltin`/`PathStreamBuiltin` for closure parameters and generators), plus a jq-source
+  prelude for definitions that are short in jq; three providers (core, regex, date) so owners never share a file.
+- **Modules**: `ModuleLoaderInterface` with jq's search rules; the compiler compiles each module in its own
+  scope and exposes defs under the import alias.
+- **CLI**: `Jq\Cli\JqApplication::run()` wired from `FrontController`; exit codes in `JqExitCode`.
+
 ## Tasks
 
 ### Phase 1: Design
@@ -87,11 +114,11 @@ Parent epic: Plan 00001.
 
 ## Risks & Mitigations
 
-| Risk | Impact | Probability | Mitigation |
-| ---- | ------ | ----------- | ---------- |
-| Backtracking evaluator is slow in PHP | High | Medium | Design with generators and compile-to-closures in mind; measure via Plan 00005 early |
-| Oniguruma regex differs from PCRE | Medium | High | Document the translation layer and its limits; justified gaps for the remainder |
-| Number formatting mismatches | Medium | High | Decision in Phase 1; dedicated tests |
+| Risk                                  | Impact | Probability | Mitigation                                                                           |
+| ------------------------------------- | ------ | ----------- | ------------------------------------------------------------------------------------ |
+| Backtracking evaluator is slow in PHP | High   | Medium      | Design with generators and compile-to-closures in mind; measure via Plan 00005 early |
+| Oniguruma regex differs from PCRE     | Medium | High        | Document the translation layer and its limits; justified gaps for the remainder      |
+| Number formatting mismatches          | Medium | High        | Decision in Phase 1; dedicated tests                                                 |
 
 ## Delivery & Milestones
 
