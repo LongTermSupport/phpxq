@@ -37,7 +37,7 @@ final readonly class ColorScheme
             "\e[0;32m",
             "\e[1;39m",
             "\e[1;39m",
-            "\e[34;1m",
+            "\e[1;34m",
         );
     }
 }
