@@ -104,7 +104,7 @@ final class ResultPrinter
     {
         $text     = '';
         $document = NodeKindEnum::Document === $node->kind;
-        $header   = $document ? $this->registry->headerFor($node) : '';
+        $header   = $document && !$node->commentsCleared ? $this->registry->headerFor($node) : '';
 
         if ($separator && !$this->emitOptions->noDocSeparator && !str_starts_with($header, HeaderSplitter::SEPARATOR_MARKER)) {
             $text .= "---\n";
@@ -149,6 +149,13 @@ final class ResultPrinter
 
     private function renderOther(Node $node): string
     {
+        if (FormatEnum::Json === $this->format && $this->emitOptions->unwrapScalar) {
+            $root = $node->root();
+            if (NodeKindEnum::Scalar === $root->kind) {
+                return $root->value . "\n";
+            }
+        }
+
         try {
             return $this->formats->encoder($this->format)->encode($node->root(), $this->formatOptions, $this->index);
         } catch (FormatException $formatException) {

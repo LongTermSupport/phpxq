@@ -50,7 +50,11 @@ final class JsonEncoder implements EncoderInterface
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
         $root = NodeTools::unwrap($node);
-        $out  = '';
+        if ($options->unwrapScalar && NodeKindEnum::Scalar === $root->kind) {
+            return $root->value . "\n";
+        }
+
+        $out = '';
         $this->write($out, $root, $options->indent > 0 ? str_repeat(' ', $options->indent) : '', 0, $options->colors);
 
         return $out . "\n";

@@ -332,6 +332,30 @@ final class YamlEmitterTest extends TestCase
         ];
     }
 
+    public function testHeadCommentAfterAFootCommentIsSeparatedByABlankLine(): void
+    {
+        $first               = Node::scalar('a');
+        $first->headComment  = '# a1';
+        $first->footComment  = '# a2';
+
+        $second              = Node::scalar('b');
+        $second->headComment = '# b1';
+
+        $node                = Node::mapping([$first, Node::scalar('1'), $second, Node::scalar('2')]);
+
+        self::assertSame("# a1\na: 1\n# a2\n\n# b1\nb: 2\n", new YamlEmitter()->emit($node));
+    }
+
+    public function testHeadCommentAfterAKeyWithoutFootCommentFollowsDirectly(): void
+    {
+        $second              = Node::scalar('b');
+        $second->headComment = '# b1';
+
+        $node                = Node::mapping([Node::scalar('a'), Node::scalar('1'), $second, Node::scalar('2')]);
+
+        self::assertSame("a: 1\n# b1\nb: 2\n", new YamlEmitter()->emit($node));
+    }
+
     public function testIndentOptionInSequenceUnderMapping(): void
     {
         $node = Node::mapping([Node::scalar('a'), Node::sequence([Node::scalar('1')])]);
@@ -594,6 +618,20 @@ final class YamlEmitterTest extends TestCase
         self::assertSame("# c\na: b\n", new YamlEmitter()->emit(Node::mapping([$key, Node::scalar('b', '!!str', NodeStyleEnum::SingleQuoted)]), new EmitOptions(prettyPrint: true)));
     }
 
+    public function testFootCommentIsFollowedByBlankLineOnlyBeforeTheNextEntryAtItsIndent(): void
+    {
+        $a              = Node::scalar('a');
+        $a->footComment = '# foot';
+
+        $out = new YamlEmitter()->emit(Node::mapping([
+            $a, Node::scalar('1'),
+            Node::scalar('b'), Node::scalar('2'),
+            Node::scalar('c'), Node::scalar('3'),
+        ]), new EmitOptions());
+
+        self::assertSame("a: 1\n# foot\n\nb: 2\nc: 3\n", $out);
+    }
+
     public function testColours(): void
     {
         $key              = Node::scalar('a');
@@ -609,7 +647,7 @@ final class YamlEmitterTest extends TestCase
 
         self::assertSame(
             $esc . '36ma' . $esc . '0m: ' . $esc . '32mstr' . $esc . "0m\n"
-            . $esc . '90m# f' . $esc . "0m\n"
+            . $esc . '90m# f' . $esc . "0m\n\n"
             . $esc . '36mb' . $esc . '0m: ' . $esc . '95m1' . $esc . "0m\n"
             . $esc . '36mc' . $esc . '0m: ' . $esc . '95mtrue' . $esc . "0m\n"
             . $esc . '36md' . $esc . "0m:\n  - " . $esc . '32mx' . $esc . "0m\n",

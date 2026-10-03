@@ -69,6 +69,11 @@ refresh_yq() {
     clone "$YQ_REPO" "$YQ_TAG" "$YQ_COMMIT" "$src"
 
     cp -p "$src"/acceptance_tests/*.sh "$fixtures/acceptance/"
+    if [[ -f "$src/utf8.csv" ]]; then
+        cp -p "$src/utf8.csv" "$fixtures/acceptance/utf8.csv"
+    elif [[ -f "$src/acceptance_tests/utf8.csv" ]]; then
+        cp -p "$src/acceptance_tests/utf8.csv" "$fixtures/acceptance/utf8.csv"
+    fi
     cp -p "$src/scripts/shunit2" "$fixtures/acceptance/scripts/shunit2"
     cp -p "$src/LICENSE" "$fixtures/fixtures/LICENSE"
     php "$root/scripts/refresh-yq-fixtures.php" "$src"

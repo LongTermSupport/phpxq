@@ -106,8 +106,8 @@ final class PrattParser
     {
         if (ExpressionTokenKindEnum::Word === $token->kind) {
             return match ($token->text) {
-                'or'    => [5, false, BinaryOperatorEnum::Or, ''],
-                'and'   => [6, false, BinaryOperatorEnum::And, ''],
+                'or'    => [1, false, BinaryOperatorEnum::Or, ''],
+                'and'   => [2, false, BinaryOperatorEnum::And, ''],
                 default => null,
             };
         }
@@ -119,16 +119,16 @@ final class PrattParser
         $text = $token->text;
 
         return match ($text) {
-            '|'     => [1, false, BinaryOperatorEnum::Pipe, ''],
-            ','     => $this->union ? [2, false, BinaryOperatorEnum::Union, ''] : null,
-            '='     => [3, true, BinaryOperatorEnum::Assign, ''],
-            '=c'    => [3, true, BinaryOperatorEnum::Assign, 'c'],
-            '|='    => [3, true, BinaryOperatorEnum::Update, ''],
-            '+='    => [3, true, BinaryOperatorEnum::AddAssign, ''],
-            '-='    => [3, true, BinaryOperatorEnum::SubtractAssign, ''],
-            '/='    => [3, true, BinaryOperatorEnum::DivideAssign, ''],
-            '%='    => [3, true, BinaryOperatorEnum::ModuloAssign, ''],
-            '//'    => [4, false, BinaryOperatorEnum::Alternative, ''],
+            '|'     => [3, false, BinaryOperatorEnum::Pipe, ''],
+            ','     => $this->union ? [4, false, BinaryOperatorEnum::Union, ''] : null,
+            '='     => [5, true, BinaryOperatorEnum::Assign, ''],
+            '=c'    => [5, true, BinaryOperatorEnum::Assign, 'c'],
+            '|='    => [5, true, BinaryOperatorEnum::Update, ''],
+            '+='    => [5, true, BinaryOperatorEnum::AddAssign, ''],
+            '-='    => [5, true, BinaryOperatorEnum::SubtractAssign, ''],
+            '/='    => [5, true, BinaryOperatorEnum::DivideAssign, ''],
+            '%='    => [5, true, BinaryOperatorEnum::ModuloAssign, ''],
+            '//'    => [6, false, BinaryOperatorEnum::Alternative, ''],
             '=='    => [7, false, BinaryOperatorEnum::Equal, ''],
             '!='    => [7, false, BinaryOperatorEnum::NotEqual, ''],
             '<'     => [7, false, BinaryOperatorEnum::Less, ''],
@@ -153,7 +153,7 @@ final class PrattParser
         }
 
         if (isset($text[1]) && '=' === $text[1]) {
-            return [3, true, BinaryOperatorEnum::MultiplyAssign, substr($text, 2)];
+            return [5, true, BinaryOperatorEnum::MultiplyAssign, substr($text, 2)];
         }
 
         return [9, false, BinaryOperatorEnum::Multiply, substr($text, 1)];

@@ -222,38 +222,6 @@ final class TypeFunctions
         return false === $value ? 'false' : Values::typeName($value);
     }
 
-    /**
-     * Whether every element of $needle is contained in some element of $haystack of the same kind. Plain
-     * loops rather than callbacks keep the recursion to one stack frame per nesting level.
-     *
-     * @param array<array-key, mixed> $haystack
-     * @param array<array-key, mixed> $needle
-     */
-    private static function containsElements(array $haystack, array $needle, int $depth): bool
-    {
-        foreach ($needle as $wanted) {
-            $wantedKind = self::kind($wanted);
-            $found      = false;
-            foreach ($haystack as $candidate) {
-                if (self::kind($candidate) !== $wantedKind) {
-                    continue;
-                }
-
-                if (self::contains($candidate, $wanted, $depth)) {
-                    $found = true;
-
-                    break;
-                }
-            }
-
-            if (!$found) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     private static function contains(mixed $haystack, mixed $needle, int $depth): bool
     {
         if ($depth > self::MAX_DEPTH) {
@@ -270,8 +238,15 @@ final class TypeFunctions
             return true;
         }
 
-        if (\is_array($haystack) && \is_array($needle)) {
-            return self::containsElements($haystack, $needle, $depth + 1);
+        if (\is_array($haystack) && array_is_list($haystack) && \is_array($needle) && array_is_list($needle)) {
+            $wanted = \count($needle);
+            for ($i = 0; $i < $wanted; ++$i) {
+                if (!self::anyContains($haystack, $needle[$i], $depth + 1)) {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         if (\is_string($haystack) && \is_string($needle)) {
@@ -279,6 +254,27 @@ final class TypeFunctions
         }
 
         return Values::equals($haystack, $needle);
+    }
+
+    /**
+     * Whether some element of the array contains $wanted. The loops of this class are indexed rather than
+     * `array_any`/`array_all` with a closure: a closure callback re-enters the engine through native
+     * code, so a depth of 10000 would exhaust the C stack, while plain PHP calls do not.
+     *
+     * @param list<mixed> $haystack
+     */
+    private static function anyContains(array $haystack, mixed $wanted, int $depth): bool
+    {
+        $wantedKind = self::kind($wanted);
+        $count      = \count($haystack);
+        for ($i = 0; $i < $count; ++$i) {
+            $candidate = $haystack[$i];
+            if (self::kind($candidate) === $wantedKind && self::contains($candidate, $wanted, $depth)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

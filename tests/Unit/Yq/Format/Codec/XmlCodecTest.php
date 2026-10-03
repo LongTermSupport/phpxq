@@ -120,6 +120,13 @@ final class XmlCodecTest extends TestCase
         yield 'strict valueless attribute' => ['<a b/>', new FormatOptions(xmlStrictMode: true)];
     }
 
+    public function testSyntaxErrorNamesTheLine(): void
+    {
+        $this->expectException(FormatException::class);
+        $this->expectExceptionMessageIsOrContains('XML syntax error on line 3: invalid character entity &bogus;');
+        $this->decode("<a>\n<b>x</b>\n<c>&bogus;</c></a>", new FormatOptions(xmlStrictMode: true));
+    }
+
     public function testEmptyInputHasNoDocuments(): void
     {
         self::assertSame([], [...new XmlDecoder()->decode("  \n", new FormatOptions())]);
@@ -203,6 +210,29 @@ final class XmlCodecTest extends TestCase
         foreach (new XmlDecoder()->decode($xml, $options) as $document) {
             self::assertSame($xml, new XmlEncoder()->encode($document, $options, 0));
         }
+    }
+
+    public function testStrictModeReportsTheLineOfAnUnknownEntity(): void
+    {
+        $this->assertDecodeFails("<root>\n<a>x</a>\n<item>&writer;</item>\n</root>\n", new FormatOptions(xmlStrictMode: true), 'XML syntax error on line 3: invalid character entity &writer;');
+    }
+
+    public function testSyntaxErrorsNameTheLine(): void
+    {
+        $this->assertDecodeFails("<a>\n<b>\n</a>\n", new FormatOptions(), 'XML syntax error on line 3: element <b> closed by </a>');
+    }
+
+    private function assertDecodeFails(string $xml, FormatOptions $options, string $message): void
+    {
+        try {
+            $this->decode($xml, $options);
+        } catch (FormatException $formatException) {
+            self::assertSame($message, $formatException->getMessage());
+
+            return;
+        }
+
+        self::fail('expected a FormatException');
     }
 
     private function decode(string $xml, FormatOptions $options): Node
