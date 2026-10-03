@@ -84,8 +84,9 @@ language and native YAML handling. kislyuk/yq is a Python wrapper that feeds YAM
 
 1. mikefarah/yq - the common `yq`, own syntax, MIT, has an acceptance test directory
 2. kislyuk/yq - jq syntax over YAML, so largely free once jq works
-   **Decision**: Working assumption is mikefarah/yq; the owner has not confirmed it. Plan 00004
-   holds the question open and must be confirmed before implementation starts.
+   **Decision**: mikefarah/yq, at the tag pinned in `tests/Conformance/Yq/fixtures/NOTICE.md`. The
+   owner delegated the choice; the vendored fixtures are that project's docs and acceptance tests.
+   Recorded in Plan 00004 Decision 1.
 
 ## Success Criteria
 
