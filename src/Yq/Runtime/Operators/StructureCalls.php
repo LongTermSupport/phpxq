@@ -30,6 +30,7 @@ final class StructureCalls implements CallOperatorInterface
 
     public function evaluate(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
+        $call = Args::split($call, 'setpath' === $call->name ? 2 : 1);
         Args::require($call, 'setpath' === $call->name ? 2 : 1);
         $fixed = $context->services->yamlFixMergeAnchorToSpec;
         switch ($call->name) {

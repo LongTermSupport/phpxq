@@ -318,6 +318,7 @@ final class SelectionCalls implements CallOperatorInterface
      */
     private function with(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
+        $call = Args::split($call, 2);
         Args::require($call, 2);
         $write = $context->withDontAutoCreate(false);
         foreach ($evaluator->evaluate($call->arguments[0], $write) as $target) {

@@ -29,6 +29,7 @@ final class RegexCalls implements CallOperatorInterface
 
     public function evaluate(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
+        $call = Args::split($call, 'sub' === $call->name ? 2 : 1);
         Args::require($call, 1);
         $out = [];
         foreach ($context->matches as $match) {

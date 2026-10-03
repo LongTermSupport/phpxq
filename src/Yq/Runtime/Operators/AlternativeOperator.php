@@ -67,7 +67,7 @@ final class AlternativeOperator implements BinaryOperatorInterface
             }
 
             foreach ($evaluator->evaluate($expression->right, $sub) as $candidate) {
-                $out[] = $candidate instanceof Candidate ? $candidate : Cands::derive(NodeOps::null(), $unit[0] ?? null);
+                $out[] = $candidate;
             }
         }
 

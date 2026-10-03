@@ -37,6 +37,7 @@ final class DateCalls implements CallOperatorInterface
     public function evaluate(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
         if ('with_dtf' === $call->name) {
+            $call = Args::split($call, 2);
             Args::require($call, 2);
             $layout = Args::string($call, 0, $context, $evaluator, $context->matches[0] ?? null) ?? GoTime::RFC3339;
 
@@ -90,8 +91,13 @@ final class DateCalls implements CallOperatorInterface
                 Args::require($call, 1);
                 $format = Args::string($call, 0, $context, $evaluator, $match) ?? GoTime::RFC3339;
 
-                return Cands::derive(NodeOps::str(GoTime::format(self::parse($node, $layout), $format)), $match);
+                return Cands::derive(self::textNode(GoTime::format(self::parse($node, $layout), $format)), $match);
         }
+    }
+
+    private static function textNode(string $text): Node
+    {
+        return new Node(NodeKind::Scalar, GoTime::looksLikeTimestamp($text) ? CoreSchema::TAG_TIMESTAMP : CoreSchema::TAG_STR, NodeStyle::Default, $text);
     }
 
     private static function parse(Node $node, ?string $layout): DateTimeImmutable
@@ -110,9 +116,6 @@ final class DateCalls implements CallOperatorInterface
 
     private static function dateNode(DateTimeImmutable $time, ?string $layout): Node
     {
-        $text = GoTime::format($time, $layout ?? GoTime::RFC3339);
-        $tag  = 1 === preg_match('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+(?:Z|[-+][0-9]{2}:[0-9]{2})$/', $text) ? CoreSchema::TAG_TIMESTAMP : CoreSchema::TAG_STR;
-
-        return new Node(NodeKind::Scalar, $tag, NodeStyle::Default, $text);
+        return self::textNode(GoTime::format($time, $layout ?? GoTime::RFC3339));
     }
 }

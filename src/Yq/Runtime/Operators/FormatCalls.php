@@ -64,8 +64,13 @@ final class FormatCalls implements CallOperatorInterface
 
         if (str_starts_with($name, 'to_')) {
             $indent = Args::int($call, 0, $context, $evaluator, $match);
+            $result = $this->encode(substr($name, 3), $node, $match, $context, $indent ?? 2);
+            $text   = $result->node->value;
+            if (\in_array(substr($name, 3), ['yaml', 'json'], true) && 1 === substr_count(rtrim($text, "\n"), "\n") + 1 && str_ends_with($text, "\n")) {
+                return Cands::derive(NodeOps::str(rtrim($text, "\n")), $match);
+            }
 
-            return $this->encode(substr($name, 3), $node, $match, $context, $indent ?? 2);
+            return $result;
         }
 
         $bare = substr($name, 1);

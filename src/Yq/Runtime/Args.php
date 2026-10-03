@@ -6,7 +6,10 @@ namespace LTS\PhpXq\Yq\Runtime;
 
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yq\Expression\Ast\Binary;
+use LTS\PhpXq\Yq\Expression\Ast\BinaryOperator;
 use LTS\PhpXq\Yq\Expression\Ast\Call;
+use LTS\PhpXq\Yq\Expression\ExpressionNode;
 
 /**
  * Evaluation of an operator's arguments against one match.
@@ -81,6 +84,43 @@ final class Args
         }
 
         return $out;
+    }
+
+    /**
+     * The reference's documentation writes some multi-argument calls with commas (`sub("a", "b")`), which
+     * parse as one union argument. A call with fewer than `$minimum` arguments whose only argument is a
+     * union is split at the commas.
+     */
+    public static function split(Call $call, int $minimum): Call
+    {
+        if (1 !== \count($call->arguments) || $minimum <= 1) {
+            return $call;
+        }
+
+        $only = $call->arguments[0];
+        if (!$only instanceof Binary || BinaryOperator::Union !== $only->operator) {
+            return $call;
+        }
+
+        $parts = [];
+        self::unionParts($only, $parts);
+
+        return new Call($call->name, $parts);
+    }
+
+    /**
+     * @param list<ExpressionNode> $parts
+     */
+    private static function unionParts(ExpressionNode $node, array &$parts): void
+    {
+        if ($node instanceof Binary && BinaryOperator::Union === $node->operator) {
+            self::unionParts($node->left, $parts);
+            self::unionParts($node->right, $parts);
+
+            return;
+        }
+
+        $parts[] = $node;
     }
 
     /**

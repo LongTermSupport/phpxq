@@ -73,9 +73,11 @@ final class AssignOperator implements BinaryOperatorInterface
         switch ($expression->operator) {
             case BinaryOperator::Assign:
                 $values = $evaluator->evaluate($expression->right, $read);
-                $source = $values[0]->node ?? NodeOps::null();
+                $first  = $values[0] ?? null;
+                $source = $first instanceof Candidate ? $first->node : NodeOps::null();
+                $adopt  = 1 === \count($targets) && (!$first instanceof Candidate || !$first->parent instanceof Candidate);
                 foreach ($targets as $target) {
-                    self::replace($target, $source, 'c' === $expression->modifiers);
+                    self::replace($target, $source, 'c' === $expression->modifiers, $adopt);
                 }
 
                 break;
@@ -84,7 +86,7 @@ final class AssignOperator implements BinaryOperatorInterface
                 foreach ($targets as $target) {
                     $values = $evaluator->evaluate($expression->right, $read->withMatches([$target]));
                     if ([] !== $values) {
-                        self::replace($target, $values[0]->node, 'c' === $expression->modifiers);
+                        self::replace($target, $values[0]->node, 'c' === $expression->modifiers, !$values[0]->parent instanceof Candidate);
                     }
                 }
 
@@ -92,18 +94,11 @@ final class AssignOperator implements BinaryOperatorInterface
 
             default:
                 $values = $evaluator->evaluate($expression->right, $read);
+                $value  = $values[0] ?? null;
                 foreach ($targets as $target) {
-                    foreach ($values as $value) {
-                        $result = ArithmeticOperator::apply($expression->operator, $target->node, $value->node, $expression->modifiers, $layout);
-                        if ($result instanceof Node) {
-                            self::replace($target, $result, str_contains($expression->modifiers, 'c'));
-                        }
-
-                        break;
-                    }
-
-                    if ([] === $values) {
-                        continue;
+                    $result = ArithmeticOperator::apply($expression->operator, $target->node, $value?->node, $expression->modifiers, $layout);
+                    if ($result instanceof Node) {
+                        self::replace($target, $result, str_contains($expression->modifiers, 'c'), true);
                     }
                 }
 
@@ -113,11 +108,10 @@ final class AssignOperator implements BinaryOperatorInterface
         return $context->matches;
     }
 
-    private static function replace(Candidate $target, Node $source, bool $clobberTags): void
+    private static function replace(Candidate $target, Node $source, bool $clobberTags, bool $adopt): void
     {
         Detached::attach($target);
-        $node = Cands::node($target);
-        NodeOps::updateFrom($node, $source, $clobberTags);
+        NodeOps::updateFrom(Cands::node($target), $source, $clobberTags, $adopt);
     }
 
     /**
@@ -189,11 +183,10 @@ final class AssignOperator implements BinaryOperatorInterface
                 return;
 
             default:
-                Comments::set($node, 'comments' === $property ? 'all' : $property, $value);
-                if ('comments' === $property && Cands::isRoot($target) && $target->parent instanceof Candidate) {
-                    Comments::set($target->parent->node, 'all', $value);
-                } elseif (Cands::isRoot($target) && $target->parent instanceof Candidate && 'comments' !== $property) {
-                    Comments::set($target->parent->node, $property, '' === $value ? '' : $value);
+                $kind = 'comments' === $property ? 'all' : $property;
+                Comments::set($node, $kind, $value);
+                if ('' === $value && Cands::isRoot($target) && $target->parent instanceof Candidate) {
+                    Comments::set($target->parent->node, $kind, '');
                 }
 
                 return;

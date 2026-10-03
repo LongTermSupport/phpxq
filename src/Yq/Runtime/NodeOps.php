@@ -32,9 +32,23 @@ final class NodeOps
         return new Node(NodeKind::Scalar, CoreSchema::TAG_INT, NodeStyle::Default, (string) $value);
     }
 
+    /**
+     * A float result. The tag is the one the text resolves to, so a whole number prints as `2` and
+     * `+Inf` or `NaN` print bare, as the reference prints them.
+     */
     public static function float(float $value): Node
     {
-        return new Node(NodeKind::Scalar, CoreSchema::TAG_FLOAT, NodeStyle::Default, Numbers::formatFloat($value));
+        $text = Numbers::formatFloat($value);
+
+        return new Node(NodeKind::Scalar, CoreSchema::resolve($text), NodeStyle::Default, $text);
+    }
+
+    /**
+     * A null with no text, how the reference pads missing cells (it prints as nothing at all).
+     */
+    public static function emptyNull(): Node
+    {
+        return new Node(NodeKind::Scalar, CoreSchema::TAG_NULL, NodeStyle::Default, '');
     }
 
     public static function bool(bool $value): Node
@@ -182,16 +196,19 @@ final class NodeOps
      * Overwrites `$target` in place with `$source`, the reference's UpdateFrom: kind, value and content come
      * from the source, the target keeps its anchor, position and (when the source has none) comments, a
      * custom tag survives unless `$clobberTags`, and the style is adopted only by an empty target.
+     *
+     * The source is copied unless `$adopt`: a freshly computed source (not a node still in a document)
+     * hands its children over as they are, which keeps nodes selected earlier valid targets of later updates.
      */
-    public static function updateFrom(Node $target, Node $source, bool $clobberTags = false): void
+    public static function updateFrom(Node $target, Node $source, bool $clobberTags = false, bool $adopt = false): void
     {
         if ($target === $source) {
             return;
         }
 
-        $copy = $source->deepCopy();
+        $copy = $adopt ? $source : $source->deepCopy();
 
-        if ((NodeKind::Scalar !== $target->kind && [] === $target->content) || (NodeKind::Scalar === $target->kind && '' === $target->value)) {
+        if ((NodeKind::Scalar !== $target->kind && [] === $target->content) || (NodeKind::Scalar === $target->kind && '' === $target->value) || self::effectiveTag($target) !== self::effectiveTag($copy)) {
             $target->style = $copy->style;
         }
 

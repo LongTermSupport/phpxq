@@ -37,6 +37,15 @@ final class GoTime
 
     private const array STD_LONG_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
+    /**
+     * Layout tokens made of digits get symbolic names: `switch` compares numeric strings numerically, so
+     * `3` and `03` would otherwise be the same case.
+     */
+    private const array SYMBOLS = [
+        '2006' => 'Y4', '06' => 'Y2', '01' => 'M2', '1' => 'M1', '02' => 'D2', '2' => 'D1', '002' => 'YD',
+        '15'   => 'H24', '03' => 'H2', '3' => 'H1', '04' => 'I2', '4' => 'I1', '05' => 'S2', '5' => 'S1',
+    ];
+
     /** @var array<string, list<array{string, string}>> */
     private static array $layouts = [];
 
@@ -71,7 +80,7 @@ final class GoTime
                 $lit      = '';
             }
 
-            $tokens[] = ['std', $std];
+            $tokens[] = ['std', self::SYMBOLS[$std] ?? $std];
             $i += \strlen($std);
         }
 
@@ -190,39 +199,39 @@ final class GoTime
     private static function formatStd(DateTimeImmutable $t, string $std): string
     {
         switch ($std) {
-            case '2006':
+            case 'Y4':
                 return $t->format('Y');
-            case '06':
+            case 'Y2':
                 return $t->format('y');
-            case '01':
+            case 'M2':
                 return $t->format('m');
-            case '1':
+            case 'M1':
                 return $t->format('n');
             case 'Jan':
                 return $t->format('M');
             case 'January':
                 return $t->format('F');
-            case '02':
+            case 'D2':
                 return $t->format('d');
-            case '2':
+            case 'D1':
                 return $t->format('j');
             case '_2':
                 return str_pad($t->format('j'), 2, ' ', \STR_PAD_LEFT);
-            case '002':
+            case 'YD':
                 return str_pad((string) ((int) $t->format('z') + 1), 3, '0', \STR_PAD_LEFT);
-            case '15':
+            case 'H24':
                 return $t->format('H');
-            case '03':
+            case 'H2':
                 return $t->format('h');
-            case '3':
+            case 'H1':
                 return $t->format('g');
-            case '04':
+            case 'I2':
                 return $t->format('i');
-            case '4':
+            case 'I1':
                 return (string) (int) $t->format('i');
-            case '05':
+            case 'S2':
                 return $t->format('s');
-            case '5':
+            case 'S1':
                 return (string) (int) $t->format('s');
             case 'PM':
                 return $t->format('A');
@@ -312,30 +321,30 @@ final class GoTime
             }
 
             switch ($text) {
-                case '2006':
+                case 'Y4':
                     $y = self::digits($value, $p, 4, 4);
                     break;
-                case '06':
+                case 'Y2':
                     $y = self::digits($value, $p, 2, 2);
                     if (null !== $y) {
                         $y += $y >= 69 ? 1900 : 2000;
                     }
 
                     break;
-                case '01':
+                case 'M2':
                     $mo = self::digits($value, $p, 2, 2);
                     break;
-                case '1':
+                case 'M1':
                     $mo = self::digits($value, $p, 1, 2);
                     break;
                 case 'Jan':
                 case 'January':
                     $mo = self::monthName($value, $p, 'Jan' === $text);
                     break;
-                case '02':
+                case 'D2':
                     $d = self::digits($value, $p, 2, 2);
                     break;
-                case '2':
+                case 'D1':
                     $d = self::digits($value, $p, 1, 2);
                     break;
                 case '_2':
@@ -345,7 +354,7 @@ final class GoTime
 
                     $d = self::digits($value, $p, 1, 2);
                     break;
-                case '002':
+                case 'YD':
                     $yday = self::digits($value, $p, 3, 3);
                     if (null === $yday) {
                         return null;
@@ -354,24 +363,24 @@ final class GoTime
                     $mo = 1;
                     $d  = $yday;
                     break;
-                case '15':
+                case 'H24':
                     $h = self::digits($value, $p, 2, 2);
                     break;
-                case '03':
+                case 'H2':
                     $h = self::digits($value, $p, 2, 2);
                     break;
-                case '3':
+                case 'H1':
                     $h = self::digits($value, $p, 1, 2);
                     break;
-                case '04':
+                case 'I2':
                     $mi = self::digits($value, $p, 2, 2);
                     break;
-                case '4':
+                case 'I1':
                     $mi = self::digits($value, $p, 1, 2);
                     break;
-                case '05':
-                case '5':
-                    $s = self::digits($value, $p, '5' === $text ? 1 : 2, 2);
+                case 'S2':
+                case 'S1':
+                    $s = self::digits($value, $p, 'S1' === $text ? 1 : 2, 2);
                     if (null === $s) {
                         return null;
                     }
@@ -524,7 +533,7 @@ final class GoTime
 
         $p += \strlen($m[1]);
         $name = $m[1];
-        if ('UTC' === $name || 'GMT' === $name) {
+        if ('UTC' === $name) {
             return new DateTimeZone('UTC');
         }
 
@@ -564,6 +573,14 @@ final class GoTime
         $sign = $m[1];
 
         return new DateTimeZone(\sprintf('%s%02d:%02d', $sign, intdiv($seconds, 3600), intdiv($seconds % 3600, 60)));
+    }
+
+    /**
+     * True for text the YAML core schema reads as a timestamp (a date, optionally with a time).
+     */
+    public static function looksLikeTimestamp(string $text): bool
+    {
+        return 1 === preg_match('/^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}(?:(?:[Tt]|[ \t]+)[0-9]{1,2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]*)?(?:[ \t]*(?:Z|[-+][0-9]{1,2}(?::[0-9]{2})?))?)?$/D', $text);
     }
 
     /**

@@ -179,7 +179,10 @@ final class StringCalls implements CallOperatorInterface
             throw new EvaluationException($formatException->getMessage(), 0, $formatException);
         }
 
-        return NodeOps::str(rtrim($text, "\n"));
+        $out        = NodeOps::str(rtrim($text, "\n"));
+        $out->style = NodeStyle::DoubleQuoted;
+
+        return $out;
     }
 
     private static function toNumber(Node $node): Node

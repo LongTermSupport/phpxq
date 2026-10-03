@@ -43,17 +43,27 @@ final readonly class Merger
         $right = NodeOps::deref(NodeOps::unwrap($rhs));
         if (NodeKind::Mapping === $lhs->kind && NodeKind::Mapping === $right->kind) {
             $this->mergeMappings($lhs, $right);
+            $this->clobber($lhs, $right);
 
             return;
         }
 
         if (NodeKind::Sequence === $lhs->kind && NodeKind::Sequence === $right->kind) {
             $this->mergeSequences($lhs, $right);
+            $this->clobber($lhs, $right);
 
             return;
         }
 
         NodeOps::updateFrom($lhs, $right, $this->clobberTags);
+    }
+
+    private function clobber(Node $lhs, Node $rhs): void
+    {
+        if ($this->clobberTags) {
+            $lhs->tag         = $rhs->tag;
+            $lhs->tagExplicit = $rhs->tagExplicit;
+        }
     }
 
     private function mergeMappings(Node $lhs, Node $rhs): void

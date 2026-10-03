@@ -276,8 +276,8 @@ final class ArithmeticOperator implements BinaryOperatorInterface
             $ln = Numbers::of($l);
             $rn = Numbers::of($r);
             if (null !== $ln && null !== $rn) {
-                $out        = NodeOps::float(fdiv((float) $ln, (float) $rn));
-                $out->tag   = self::keepCustomTag($l, CoreSchema::TAG_FLOAT);
+                $out      = NodeOps::float(fdiv((float) $ln, (float) $rn));
+                $out->tag = self::keepCustomTag($l, $out->tag);
 
                 return $out;
             }
@@ -313,11 +313,7 @@ final class ArithmeticOperator implements BinaryOperatorInterface
 
     private static function numberNode(Node $like, int|float $value, bool $forceFloat = false): Node
     {
-        $out = $forceFloat || \is_float($value) ? NodeOps::float((float) $value) : NodeOps::int($value);
-        if (\is_float($value) && floor($value) === $value && abs($value) < 1.0e15 && !$forceFloat && CoreSchema::TAG_INT === NodeOps::effectiveTag($like) && \is_int(Numbers::parse($like->value))) {
-            $out->tag = CoreSchema::TAG_FLOAT;
-        }
-
+        $out      = $forceFloat || \is_float($value) ? NodeOps::float((float) $value) : NodeOps::int($value);
         $out->tag = self::keepCustomTag($like, $out->tag);
 
         return $out;

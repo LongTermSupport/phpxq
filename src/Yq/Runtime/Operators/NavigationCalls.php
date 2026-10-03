@@ -34,8 +34,12 @@ final class NavigationCalls implements CallOperatorInterface
     {
         $out = [];
         if ('split_doc' === $call->name || 'splitDoc' === $call->name) {
-            foreach ($context->matches as $index => $match) {
-                $out[] = Cands::withDocument($match, $index);
+            foreach ($context->matches as $match) {
+                if (NodeOps::isNull(Cands::node($match))) {
+                    continue;
+                }
+
+                $out[] = Cands::withDocument($match, \count($out));
             }
 
             return $out;

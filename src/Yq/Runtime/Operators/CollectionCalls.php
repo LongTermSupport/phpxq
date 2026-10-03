@@ -138,7 +138,7 @@ final class CollectionCalls implements CallOperatorInterface
         foreach (Traversal::values($match, false) as $child) {
             $key       = $child->key;
             $keyCopy   = $key instanceof Node ? new Node(NodeKind::Scalar, $key->tag, NodeStyle::Default, $key->value) : NodeOps::null();
-            $entries[] = NodeOps::map([NodeOps::str('key'), $keyCopy, NodeOps::str('value'), $child->node->deepCopy()]);
+            $entries[] = NodeOps::map([NodeOps::str('key'), $keyCopy, NodeOps::str('value'), $child->node]);
         }
 
         if (NodeKind::Mapping !== $node->kind && NodeKind::Sequence !== $node->kind) {
@@ -177,7 +177,7 @@ final class CollectionCalls implements CallOperatorInterface
 
             $key    = NodeOps::deref($key);
             $flat[] = new Node(NodeKind::Scalar, $key->tag, NodeStyle::Default, $key->value);
-            $flat[] = $value instanceof Node ? $value->deepCopy() : NodeOps::null();
+            $flat[] = $value instanceof Node ? $value : NodeOps::null();
         }
 
         return NodeOps::map($flat);
@@ -199,7 +199,7 @@ final class CollectionCalls implements CallOperatorInterface
         $kept       = [];
         foreach (Traversal::values($entriesCan, false) as $entry) {
             foreach ($evaluator->evaluate($call->arguments[0], $read->withMatches([$entry])) as $result) {
-                $kept[] = $result->node->deepCopy();
+                $kept[] = $result->node;
             }
         }
 
@@ -328,7 +328,7 @@ final class CollectionCalls implements CallOperatorInterface
             foreach ($order as $key) {
                 $cells = [];
                 foreach (array_keys($rows) as $index) {
-                    $cells[] = isset($columns[$key->value][$index]) ? $columns[$key->value][$index]->deepCopy() : NodeOps::null();
+                    $cells[] = isset($columns[$key->value][$index]) ? $columns[$key->value][$index]->deepCopy() : NodeOps::emptyNull();
                 }
 
                 $flat[] = $key->deepCopy();
@@ -347,7 +347,7 @@ final class CollectionCalls implements CallOperatorInterface
         for ($c = 0; $c < $width; ++$c) {
             $cells = [];
             foreach ($rows as $row) {
-                $cells[] = isset($row->content[$c]) ? $row->content[$c]->deepCopy() : NodeOps::null();
+                $cells[] = isset($row->content[$c]) ? $row->content[$c]->deepCopy() : NodeOps::emptyNull();
             }
 
             $columns[] = NodeOps::seq($cells);
