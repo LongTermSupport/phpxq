@@ -405,3 +405,11 @@ jobs:
         env:
           CI: 'true'
         run: vendor/bin/qa -t allStatic
+
+      - name: Tests (unit + gap-aware upstream conformance)
+        env:
+          CI: 'true'
+        run: vendor/bin/qa -t phpunit
+
+      - name: Upstream shell conformance (jq shtest, yq acceptance)
+        run: scripts/conformance-shell.bash all
