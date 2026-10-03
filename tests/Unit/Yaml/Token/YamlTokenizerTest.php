@@ -18,7 +18,7 @@ final class YamlTokenizerTest extends TestCase
 {
     public function testStreamIsFramedByStartAndEnd(): void
     {
-        $tokens = self::tokenize('');
+        $tokens = $this->tokenize('');
 
         self::assertSame(TokenType::StreamStart, $tokens[0]->type);
         self::assertSame(TokenType::StreamEnd, $tokens[\count($tokens) - 1]->type);
@@ -58,7 +58,7 @@ final class YamlTokenizerTest extends TestCase
 
     public function testScalarStyles(): void
     {
-        $scalars = array_values(array_filter(self::tokenize("- a\n- 'b'\n- \"c\"\n- |\n  d\n- >\n  e\n"), static fn (Token $t): bool => TokenType::Scalar === $t->type));
+        $scalars = array_values(array_filter($this->tokenize("- a\n- 'b'\n- \"c\"\n- |\n  d\n- >\n  e\n"), static fn (Token $t): bool => TokenType::Scalar === $t->type));
 
         self::assertSame(
             [NodeStyle::Default, NodeStyle::SingleQuoted, NodeStyle::DoubleQuoted, NodeStyle::Literal, NodeStyle::Folded],
@@ -68,7 +68,7 @@ final class YamlTokenizerTest extends TestCase
 
     public function testPositionsAreOneBased(): void
     {
-        $scalar = self::tokenize("x: 1\ny: 22\n")[7];
+        $scalar = $this->tokenize("x: 1\ny: 22\n")[7];
 
         self::assertSame(TokenType::Scalar, $scalar->type);
         self::assertSame('y', $scalar->value);
@@ -85,7 +85,7 @@ final class YamlTokenizerTest extends TestCase
 
     public function testMultiLineCommentBlockIsOneToken(): void
     {
-        $comments = array_values(array_filter(self::tokenize("# a\n# b\n\n# c\nk: v\n"), static fn (Token $t): bool => TokenType::Comment === $t->type));
+        $comments = array_values(array_filter($this->tokenize("# a\n# b\n\n# c\nk: v\n"), static fn (Token $t): bool => TokenType::Comment === $t->type));
 
         self::assertSame(["# a\n# b\n\n# c"], array_map(static fn (Token $t): string => $t->value, $comments));
         self::assertSame([1, 1], [$comments[0]->line, $comments[0]->column]);
@@ -94,13 +94,13 @@ final class YamlTokenizerTest extends TestCase
     public function testSyntaxErrorsPropagate(): void
     {
         $this->expectException(YamlSyntaxException::class);
-        self::tokenize("a: 'x");
+        $this->tokenize("a: 'x");
     }
 
     /**
      * @return list<Token>
      */
-    private static function tokenize(string $yaml): array
+    private function tokenize(string $yaml): array
     {
         return iterator_to_array(new YamlTokenizer()->tokenize($yaml), false);
     }
@@ -110,6 +110,6 @@ final class YamlTokenizerTest extends TestCase
      */
     private function summary(string $yaml): array
     {
-        return array_map(static fn (Token $t): string => $t->type->name . ('' === $t->value ? '' : ':' . $t->value), self::tokenize($yaml));
+        return array_map(static fn (Token $t): string => $t->type->name . ('' === $t->value ? '' : ':' . $t->value), $this->tokenize($yaml));
     }
 }

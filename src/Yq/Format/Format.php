@@ -47,6 +47,7 @@ enum Format: string
     {
         return true;
     }
+
     case Yaml = 'yaml';
 
     case Json = 'json';

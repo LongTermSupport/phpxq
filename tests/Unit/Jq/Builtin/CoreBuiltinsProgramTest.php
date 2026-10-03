@@ -31,7 +31,7 @@ final class CoreBuiltinsProgramTest extends TestCase
     #[DataProvider('programs')]
     public function testProgram(string $program, string $input, array $expected): void
     {
-        self::assertSame($expected, self::evaluate($program, $input));
+        self::assertSame($expected, $this->evaluate($program, $input));
     }
 
     /**
@@ -77,7 +77,7 @@ final class CoreBuiltinsProgramTest extends TestCase
     public function testErrorsKeepTheirJqText(): void
     {
         try {
-            self::evaluate('tonumber', '"x"');
+            $this->evaluate('tonumber', '"x"');
             self::fail('no error raised');
         } catch (JqException $jqException) {
             self::assertIsString($jqException->value);
@@ -90,7 +90,7 @@ final class CoreBuiltinsProgramTest extends TestCase
      *
      * @throws JqException
      */
-    private static function evaluate(string $program, string $input): array
+    private function evaluate(string $program, string $input): array
     {
         $decoder  = new JsonDecoder();
         $encoder  = new JsonEncoder();

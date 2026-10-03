@@ -502,11 +502,11 @@ final class GoTime
             '-07'       => substr($t->format('O'), 0, 3),
             '-070000'   => $t->format('O') . '00',
             '-07:00:00' => $t->format('P') . ':00',
-            'Z0700'     => 0     === $t->getOffset() ? 'Z' : $t->format('O'),
-            'Z07:00'    => 0    === $t->getOffset() ? 'Z' : $t->format('P'),
+            'Z0700'     => 0       === $t->getOffset() ? 'Z' : $t->format('O'),
+            'Z07:00'    => 0       === $t->getOffset() ? 'Z' : $t->format('P'),
             'Z07'       => 0       === $t->getOffset() ? 'Z' : substr($t->format('O'), 0, 3),
-            'Z070000'   => 0   === $t->getOffset() ? 'Z' : $t->format('O') . '00',
-            'Z07:00:00' => 0 === $t->getOffset() ? 'Z' : $t->format('P') . ':00',
+            'Z070000'   => 0       === $t->getOffset() ? 'Z' : $t->format('O') . '00',
+            'Z07:00:00' => 0       === $t->getOffset() ? 'Z' : $t->format('P') . ':00',
             default     => self::formatFraction($t, $std),
         };
     }

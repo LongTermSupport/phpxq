@@ -394,8 +394,8 @@ final class YamlWriter
             $style   = NodeStyle::Default;
         }
 
-        $quoted = NodeStyle::DoubleQuoted                                          === $style || NodeStyle::SingleQuoted === $style
-                                                                                              || NodeStyle::Literal         === $style || NodeStyle::Folded === $style;
+        $quoted = NodeStyle::DoubleQuoted                                                                                   === $style || NodeStyle::SingleQuoted === $style
+                                                                                                                                       || NodeStyle::Literal         === $style || NodeStyle::Folded === $style;
 
         $force = false;
         if ('' !== $tag && !$node->tagExplicit) {

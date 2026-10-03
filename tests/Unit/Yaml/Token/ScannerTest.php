@@ -58,7 +58,7 @@ final class ScannerTest extends TestCase
 
     public function testDocumentMarkersAndDirectives(): void
     {
-        $tokens = self::tokens("%YAML 1.1\n%TAG !e! tag:e.com,2000:\n---\na\n...\n");
+        $tokens = $this->tokens("%YAML 1.1\n%TAG !e! tag:e.com,2000:\n---\na\n...\n");
 
         self::assertSame(ScanToken::VERSION_DIRECTIVE, $tokens[1]->type);
         self::assertSame('1.1', $tokens[1]->value);
@@ -71,7 +71,7 @@ final class ScannerTest extends TestCase
 
     public function testScalarStylesAndValues(): void
     {
-        $tokens = self::tokens("- plain text\n- 'it''s'\n- \"a\\tb\"\n- |\n  lit\n- >-\n  fol\n  ded\n");
+        $tokens = $this->tokens("- plain text\n- 'it''s'\n- \"a\\tb\"\n- |\n  lit\n- >-\n  fol\n  ded\n");
         $scalar = array_values(array_filter($tokens, static fn (ScanToken $t): bool => ScanToken::SCALAR === $t->type));
 
         self::assertSame(['plain text', "it's", "a\tb", "lit\n", 'fol ded'], array_map(static fn (ScanToken $t): string => $t->value, $scalar));
@@ -80,7 +80,7 @@ final class ScannerTest extends TestCase
 
     public function testTagsAndAnchors(): void
     {
-        $tokens = self::tokens("&a !!str x\n");
+        $tokens = $this->tokens("&a !!str x\n");
 
         self::assertSame(ScanToken::ANCHOR, $tokens[1]->type);
         self::assertSame('a', $tokens[1]->value);
@@ -91,7 +91,7 @@ final class ScannerTest extends TestCase
 
     public function testPositionsAreZeroBasedCharacterColumns(): void
     {
-        $tokens = self::tokens("\u{e9}: v\nk: w\n");
+        $tokens = $this->tokens("\u{e9}: v\nk: w\n");
         $values = array_values(array_filter($tokens, static fn (ScanToken $t): bool => ScanToken::VALUE === $t->type));
 
         self::assertSame([0, 1], [$values[0]->startLine, $values[0]->startColumn]);
@@ -189,7 +189,7 @@ final class ScannerTest extends TestCase
     /**
      * @return list<ScanToken>
      */
-    private static function tokens(string $yaml): array
+    private function tokens(string $yaml): array
     {
         $scanner = new Scanner($yaml);
         $tokens  = [];
@@ -208,6 +208,6 @@ final class ScannerTest extends TestCase
      */
     private function types(string $yaml): array
     {
-        return array_map(static fn (ScanToken $t): int => $t->type, self::tokens($yaml));
+        return array_map(static fn (ScanToken $t): int => $t->type, $this->tokens($yaml));
     }
 }

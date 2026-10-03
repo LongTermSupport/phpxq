@@ -105,7 +105,7 @@ final class Compare
                     return false;
                 }
 
-                return array_all($left->content, static fn (\LTS\PhpXq\Yaml\Node $item, $i): bool => self::deepEquals($item, $right->content[$i]));
+                return array_all($left->content, static fn (Node $item, $i): bool => self::deepEquals($item, $right->content[$i]));
 
             case NodeKind::Mapping:
                 if (\count($left->content) !== \count($right->content)) {

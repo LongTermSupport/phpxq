@@ -36,7 +36,7 @@ final class StringLiteralTest extends TestCase
         yield 'bell and others'  => ['\a\b\f\v\0', "\x07\x08\x0c\x0b\x00"];
         yield 'hex'              => ['\x41', 'A'];
         yield 'unicode'         => ['é', "\u{e9}"];
-        yield 'surrogate pair'   => ['\ud83d' . '\ude00', "\u{1F600}"];
+        yield 'surrogate pair'   => ['\ud83d\ude00', "\u{1F600}"];
         yield 'long unicode'     => ['\U0001F600', "\u{1F600}"];
         yield 'unknown escape'   => ['\q', '\q'];
         yield 'trailing slash'   => ['a\\', 'a\\'];

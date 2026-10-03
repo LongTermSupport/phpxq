@@ -59,7 +59,7 @@ final class ParserAstDumper
             $node instanceof Index               => '(idx ' . self::dump($node->target) . ' ' . self::dump($node->index) . ')',
             $node instanceof Slice               => '(slice ' . self::dump($node->target) . ' ' . self::opt($node->from) . ' ' . self::opt($node->to) . ')',
             $node instanceof Iterate             => '(iter ' . self::dump($node->target) . ')',
-            $node instanceof TryCatch            => $node->handler instanceof \LTS\PhpXq\Jq\Ast\Node
+            $node instanceof TryCatch            => $node->handler instanceof Node
                 ? '(try ' . self::dump($node->body) . ' ' . self::dump($node->handler) . ')'
                 : '(try ' . self::dump($node->body) . ')',
             $node instanceof ArrayConstruct      => '[' . self::opt($node->body, '') . ']',
@@ -88,7 +88,7 @@ final class ParserAstDumper
      */
     public static function program(Program $program): string
     {
-        $text = $program->body instanceof \LTS\PhpXq\Jq\Ast\Node ? self::dump($program->body) : '_';
+        $text = $program->body instanceof Node ? self::dump($program->body) : '_';
         foreach (array_reverse($program->defs) as $def) {
             $text = '(def ' . self::def($def) . ' ' . $text . ')';
         }
@@ -127,7 +127,7 @@ final class ParserAstDumper
 
     private static function opt(?Node $node, string $none = '_'): string
     {
-        return $node instanceof \LTS\PhpXq\Jq\Ast\Node ? self::dump($node) : $none;
+        return $node instanceof Node ? self::dump($node) : $none;
     }
 
     private static function interpolation(StringInterpolation $node): string

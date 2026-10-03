@@ -100,7 +100,7 @@ final class YamlParserTest extends TestCase
 
     public function testDocumentHeadAndFootComments(): void
     {
-        $docs = self::parse("# DH1\n\n# DH2\n\n# HA\nka: va\n\n# end\n");
+        $docs = $this->parse("# DH1\n\n# DH2\n\n# HA\nka: va\n\n# end\n");
 
         self::assertCount(1, $docs);
         self::assertSame("# DH1\n\n# DH2", $docs[0]->headComment);
@@ -110,7 +110,7 @@ final class YamlParserTest extends TestCase
 
     public function testCommentAfterExplicitStartBelongsToTheFirstNode(): void
     {
-        $docs = self::parse("# before\n---\na: 1\n");
+        $docs = $this->parse("# before\n---\na: 1\n");
 
         self::assertSame('', $docs[0]->headComment);
         self::assertSame('# before', $docs[0]->content[0]->content[0]->headComment);
@@ -119,7 +119,7 @@ final class YamlParserTest extends TestCase
 
     public function testCommentOnlyStreamYieldsANullDocument(): void
     {
-        $docs = self::parse("# only\n\n");
+        $docs = $this->parse("# only\n\n");
 
         self::assertCount(1, $docs);
         $root = $docs[0]->content[0];
@@ -130,13 +130,13 @@ final class YamlParserTest extends TestCase
 
     public function testEmptyInputYieldsNoDocument(): void
     {
-        self::assertSame([], self::parse(''));
-        self::assertSame([], self::parse("\n  \n"));
+        self::assertSame([], $this->parse(''));
+        self::assertSame([], $this->parse("\n  \n"));
     }
 
     public function testMultipleDocuments(): void
     {
-        $docs = self::parse("a: 1\n---\nb: 2\n...\n---\nc\n");
+        $docs = $this->parse("a: 1\n---\nb: 2\n...\n---\nc\n");
 
         self::assertSame(['{!!str=a: !!int=1}', '{!!str=b: !!int=2}', '!!str=c'], array_map(NodeDump::dump(...), $docs));
         self::assertFalse($docs[0]->explicitStart);
@@ -147,14 +147,14 @@ final class YamlParserTest extends TestCase
 
     public function testDirectivesAreKeptAsText(): void
     {
-        $docs = self::parse("%YAML 1.1\n%TAG !e! tag:example.com,2000:\n---\na\n");
+        $docs = $this->parse("%YAML 1.1\n%TAG !e! tag:example.com,2000:\n---\na\n");
 
         self::assertSame("%YAML 1.1\n%TAG !e! tag:example.com,2000:", $docs[0]->directives);
     }
 
     public function testAnchorsStayVisibleInLaterDocuments(): void
     {
-        $docs = self::parse("a: &x 1\n---\nb: *x\n");
+        $docs = $this->parse("a: &x 1\n---\nb: *x\n");
 
         $alias = $docs[1]->content[0]->content[1];
         self::assertSame(NodeKind::Alias, $alias->kind);
@@ -163,7 +163,7 @@ final class YamlParserTest extends TestCase
 
     public function testAliasTargetIsTheAnchoredNode(): void
     {
-        $doc   = self::parse("a: &x [1]\nb: *x\n")[0];
+        $doc   = $this->parse("a: &x [1]\nb: *x\n")[0];
         $alias = $doc->content[0]->content[3];
 
         self::assertSame($doc->content[0]->content[1], $alias->aliasTarget);
@@ -172,7 +172,7 @@ final class YamlParserTest extends TestCase
 
     public function testPositionsAreOneBased(): void
     {
-        $root = self::parse("a: 1\nb:\n  - x\n")[0]->content[0];
+        $root = $this->parse("a: 1\nb:\n  - x\n")[0]->content[0];
 
         self::assertSame([1, 1], [$root->line, $root->column]);
         self::assertSame([2, 1], [$root->content[2]->line, $root->content[2]->column]);
@@ -182,14 +182,14 @@ final class YamlParserTest extends TestCase
 
     public function testColumnsCountCharactersNotBytes(): void
     {
-        $root = self::parse("\u{e9}\u{e9}: v\n")[0]->content[0];
+        $root = $this->parse("\u{e9}\u{e9}: v\n")[0]->content[0];
 
         self::assertSame(5, $root->content[1]->column);
     }
 
     public function testAnchorPositionStartsTheNode(): void
     {
-        $root = self::parse("&a b: &c d\n")[0]->content[0];
+        $root = $this->parse("&a b: &c d\n")[0]->content[0];
 
         self::assertSame(1, $root->content[0]->column);
         self::assertSame(7, $root->content[1]->column);
@@ -202,7 +202,7 @@ final class YamlParserTest extends TestCase
 
     public function testStylesAreRecorded(): void
     {
-        $root = self::parse("[a, 'b', \"c\"]\n")[0]->content[0];
+        $root = $this->parse("[a, 'b', \"c\"]\n")[0]->content[0];
 
         self::assertSame(NodeStyle::Flow, $root->style);
         self::assertSame(NodeStyle::Default, $root->content[0]->style);
@@ -225,7 +225,7 @@ final class YamlParserTest extends TestCase
     public function testSyntaxErrors(string $yaml, int $line, string $problem): void
     {
         try {
-            self::parse($yaml);
+            $this->parse($yaml);
         } catch (YamlSyntaxException $yamlSyntaxException) {
             self::assertSame($line, $yamlSyntaxException->yamlLine);
             self::assertSame(\sprintf('yaml: line %d: %s', $line, $problem), $yamlSyntaxException->getMessage());
@@ -264,14 +264,14 @@ final class YamlParserTest extends TestCase
     /**
      * @return list<Node>
      */
-    private static function parse(string $yaml): array
+    private function parse(string $yaml): array
     {
         return iterator_to_array(new YamlParser()->parse($yaml), false);
     }
 
     private function dump(string $yaml): string
     {
-        $docs = self::parse($yaml);
+        $docs = $this->parse($yaml);
         self::assertCount(1, $docs);
 
         return NodeDump::dump($docs[0]);

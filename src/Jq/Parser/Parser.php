@@ -289,7 +289,7 @@ final class Parser implements ParserInterface
      */
     private function flattenComma(?Node $node): array
     {
-        if (!$node instanceof \LTS\PhpXq\Jq\Ast\Node) {
+        if (!$node instanceof Node) {
             return [];
         }
 

@@ -51,6 +51,6 @@ final class AstDumper
 
     private static function optional(?ExpressionNode $node): string
     {
-        return $node instanceof \LTS\PhpXq\Yq\Expression\ExpressionNode ? self::dump($node) : '_';
+        return $node instanceof ExpressionNode ? self::dump($node) : '_';
     }
 }
