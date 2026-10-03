@@ -173,6 +173,29 @@ final class YqApplicationTest extends TestCase
         self::assertSame([0, "%YAML 1.1\n---\nthis: should really work\n", ''], $this->cli->run([$file]));
     }
 
+    public function testWithoutHeaderPreprocessingAFirstSeparatorIsLost(): void
+    {
+        $file = $this->cli->file('test.yml', "---\na: 1\n---\nb: 2\n");
+
+        self::assertSame([0, "a: 1\n---\nb: 2\n", ''], $this->cli->run(['--header-preprocess=false', $file]));
+        self::assertSame([0, "---\na: 1\n---\nb: 2\n", ''], $this->cli->run([$file]));
+    }
+
+    public function testEvalAllPrintsTheFirstFilesHeaderOnly(): void
+    {
+        $one = $this->cli->file('one.yml', "# top\n---\na: 1\n");
+        $two = $this->cli->file('two.yml', "b: 2\n");
+
+        self::assertSame([0, "# top\n---\na: 1\n---\nb: 2\n", ''], $this->cli->run(['ea', $one, $two]));
+    }
+
+    public function testStringInterpolationCanBeSwitchedOff(): void
+    {
+        self::assertSame([0, "Mike \\(3 + 4)\n", ''], $this->cli->run(['--string-interpolation=f', '-n', '"Mike \(3 + 4)"']));
+        self::assertSame([0, "a\\(b)\n", ''], $this->cli->run(['--string-interpolation=f', '-n', '"a\\\(b)"']));
+        self::assertSame(1, $this->cli->run(['-n', '"Mike \(3 + 4)"'])[0]);
+    }
+
     public function testACommentOnlyFileIsPrintedAsIs(): void
     {
         $file = $this->cli->file('test.yml', "# comment\n");

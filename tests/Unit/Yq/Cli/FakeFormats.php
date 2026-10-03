@@ -22,8 +22,8 @@ final class FakeFormats implements FormatRegistryInterface
 
     public function decoder(Format $format): DecoderInterface
     {
-        return new class($format, $this) implements DecoderInterface {
-            public function __construct(private readonly Format $format, private readonly FakeFormats $owner)
+        return new readonly class($format, $this) implements DecoderInterface {
+            public function __construct(private Format $format, private FakeFormats $owner)
             {
             }
 
@@ -43,8 +43,8 @@ final class FakeFormats implements FormatRegistryInterface
 
     public function encoder(Format $format): EncoderInterface
     {
-        return new class($format, $this) implements EncoderInterface {
-            public function __construct(private readonly Format $format, private readonly FakeFormats $owner)
+        return new readonly class($format, $this) implements EncoderInterface {
+            public function __construct(private Format $format, private FakeFormats $owner)
             {
             }
 

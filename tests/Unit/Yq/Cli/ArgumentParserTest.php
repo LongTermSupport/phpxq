@@ -24,6 +24,7 @@ final class ArgumentParserTest extends TestCase
 
     /**
      * @param list<string> $args
+     * @param list<string> $positionals
      */
     #[DataProvider('commandProvider')]
     public function testTheFirstNonFlagArgumentMayNameACommand(array $args, string $command, array $positionals): void
@@ -141,10 +142,15 @@ final class ArgumentParserTest extends TestCase
     #[DataProvider('errorProvider')]
     public function testUsageErrors(array $args, string $message): void
     {
-        $this->expectException(UsageException::class);
-        $this->expectExceptionMessage($message);
+        try {
+            new ArgumentParser()->parse($args);
+        } catch (UsageException $usageException) {
+            self::assertStringContainsString($message, $usageException->getMessage());
 
-        new ArgumentParser()->parse($args);
+            return;
+        }
+
+        self::fail('expected a UsageException');
     }
 
     /**

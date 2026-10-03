@@ -9,6 +9,6 @@ use RuntimeException;
 /**
  * A failure the command line reports as `Error: <message>` with exit status 1.
  */
-class CliException extends RuntimeException
+final class CliException extends RuntimeException
 {
 }

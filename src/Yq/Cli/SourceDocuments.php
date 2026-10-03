@@ -25,13 +25,13 @@ use LTS\PhpXq\Yq\Runtime\Candidate;
  * An input that yields no document (an empty file, or one holding only a header) yields one synthesised
  * null document, so an expression such as `.a = 1` still has something to build on.
  */
-final class SourceDocuments
+final readonly class SourceDocuments
 {
     public function __construct(
-        private readonly YamlParserInterface $yamlParser,
-        private readonly FormatRegistryInterface $formats,
-        private readonly DocumentRegistry $registry,
-        private readonly HeaderSplitter $headers = new HeaderSplitter(),
+        private YamlParserInterface $yamlParser,
+        private FormatRegistryInterface $formats,
+        private DocumentRegistry $registry,
+        private HeaderSplitter $headers = new HeaderSplitter(),
     ) {
     }
 
@@ -87,7 +87,7 @@ final class SourceDocuments
     public function contents(string $name, mixed $stdin): string
     {
         if ('-' === $name) {
-            $contents = is_resource($stdin) ? stream_get_contents($stdin) : false;
+            $contents = \is_resource($stdin) ? stream_get_contents($stdin) : false;
 
             return false === $contents ? '' : $contents;
         }

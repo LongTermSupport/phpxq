@@ -26,14 +26,14 @@ use LTS\PhpXq\Yq\Runtime\EvaluatorInterface;
  *
  * Every failure prints `Error: <message>` on standard error and returns 1, as the reference does.
  */
-final class YqApplication implements YqApplicationInterface
+final readonly class YqApplication implements YqApplicationInterface
 {
     /** The pinned reference release this implementation follows (see tests/Conformance/Yq/fixtures/NOTICE.md). */
     public const string REFERENCE_VERSION = 'v4.54.1';
 
-    private readonly ArgumentParser $parser;
+    private ArgumentParser $parser;
 
-    private readonly EvaluateCommand $evaluate;
+    private EvaluateCommand $evaluate;
 
     public function __construct(
         YamlParserInterface $yamlParser = new YamlParser(),
@@ -55,14 +55,14 @@ final class YqApplication implements YqApplicationInterface
 
         try {
             $parsed = $this->parser->parse($args);
-        } catch (UsageException $e) {
-            fwrite($stderr, 'Error: ' . $e->getMessage() . "\n" . HelpText::usage('') . "\n");
+        } catch (UsageException $usageException) {
+            fwrite($stderr, 'Error: ' . $usageException->getMessage() . "\n" . HelpText::usage('') . "\n");
 
             return self::EXIT_ERROR;
         }
 
         try {
-            return $this->dispatch($parsed, $stdin, $stdout, $stderr);
+            return $this->dispatch($parsed, $stdin, $stdout);
         } catch (UsageException $e) {
             fwrite($stderr, 'Error: ' . $e->getMessage() . "\n" . HelpText::usage($parsed->command) . "\n");
         } catch (CliException|EvaluationException|ExpressionSyntaxException|FormatException|YamlSyntaxException|LogicException $e) {
@@ -75,11 +75,16 @@ final class YqApplication implements YqApplicationInterface
     /**
      * @param resource $stdin
      * @param resource $stdout
-     * @param resource $stderr
      *
      * @throws CliException
+     * @throws EvaluationException
+     * @throws ExpressionSyntaxException
+     * @throws FormatException
+     * @throws LogicException            a collaborator that is not implemented
+     * @throws UsageException
+     * @throws YamlSyntaxException
      */
-    private function dispatch(ParsedArguments $parsed, mixed $stdin, mixed $stdout, mixed $stderr): int
+    private function dispatch(ParsedArguments $parsed, mixed $stdin, mixed $stdout): int
     {
         if ($parsed->bool('version')) {
             fwrite($stdout, 'yq (https://github.com/mikefarah/yq/) version ' . self::REFERENCE_VERSION . "\n");
@@ -94,10 +99,10 @@ final class YqApplication implements YqApplicationInterface
         }
 
         return match ($parsed->command) {
-            'help'       => $this->help($parsed, $stdout),
-            'completion' => $this->completion($parsed, $stdout),
+            'help'           => $this->help($parsed, $stdout),
+            'completion'     => $this->completion($parsed, $stdout),
             'eval-all', 'ea' => $this->evaluate->run($parsed, true, $stdin, $stdout),
-            default      => $this->evaluate->run($parsed, false, $stdin, $stdout),
+            default          => $this->evaluate->run($parsed, false, $stdin, $stdout),
         };
     }
 

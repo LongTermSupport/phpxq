@@ -145,7 +145,7 @@ final class ArgumentParser
         }
 
         if (FlagType::Bool === $spec->type) {
-            $values[$spec->name] = null === $inline ? true : self::parseBool($spec, $inline);
+            $values[$spec->name] = null === $inline ? true : $this->parseBool($spec, $inline);
             $given[$spec->name]  = true;
 
             return $index;
@@ -159,7 +159,7 @@ final class ArgumentParser
             $inline = $args[++$index];
         }
 
-        $values[$spec->name] = self::convert($spec, $inline);
+        $values[$spec->name] = $this->convert($spec, $inline);
         $given[$spec->name]  = true;
 
         return $index;
@@ -183,7 +183,7 @@ final class ArgumentParser
             $given[$spec->name] = true;
             if (FlagType::Bool === $spec->type) {
                 if ($j + 1 < $length && '=' === $cluster[$j + 1]) {
-                    $values[$spec->name] = self::parseBool($spec, substr($cluster, $j + 2));
+                    $values[$spec->name] = $this->parseBool($spec, substr($cluster, $j + 2));
 
                     return $index;
                 }
@@ -204,7 +204,7 @@ final class ArgumentParser
                 throw new UsageException(\sprintf("flag needs an argument: '%s' in -%s", $cluster[$j], $cluster[$j]));
             }
 
-            $values[$spec->name] = self::convert($spec, $raw);
+            $values[$spec->name] = $this->convert($spec, $raw);
 
             return $index;
         }
@@ -212,7 +212,7 @@ final class ArgumentParser
         return $index;
     }
 
-    private static function convert(FlagSpec $spec, string $raw): int|string
+    private function convert(FlagSpec $spec, string $raw): int|string
     {
         if (FlagType::Int !== $spec->type) {
             return $raw;
@@ -230,7 +230,7 @@ final class ArgumentParser
         return (int)$raw;
     }
 
-    private static function parseBool(FlagSpec $spec, string $raw): bool
+    private function parseBool(FlagSpec $spec, string $raw): bool
     {
         if (\in_array($raw, ['1', 't', 'T', 'TRUE', 'true', 'True'], true)) {
             return true;

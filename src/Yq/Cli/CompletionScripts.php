@@ -12,17 +12,6 @@ final class CompletionScripts
 {
     public const array SHELLS = ['bash', 'zsh', 'fish', 'powershell'];
 
-    public static function forShell(string $shell): string
-    {
-        return match ($shell) {
-            'bash'       => self::BASH,
-            'zsh'        => self::ZSH,
-            'fish'       => self::FISH,
-            'powershell' => self::POWERSHELL,
-            default      => '',
-        };
-    }
-
     private const string BASH = <<<'SCRIPT'
         # bash completion for yq                                   -*- shell-script -*-
 
@@ -142,4 +131,15 @@ final class CompletionScripts
         }
 
         SCRIPT;
+
+    public static function forShell(string $shell): string
+    {
+        return match ($shell) {
+            'bash'       => self::BASH,
+            'zsh'        => self::ZSH,
+            'fish'       => self::FISH,
+            'powershell' => self::POWERSHELL,
+            default      => '',
+        };
+    }
 }

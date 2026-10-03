@@ -6,16 +6,20 @@ namespace LTS\PhpXq\Yq\Cli;
 
 use LTS\PhpXq\Yaml\Emitter\EmitOptions;
 use LTS\PhpXq\Yaml\Emitter\YamlEmitterInterface;
+use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKind;
 use LTS\PhpXq\Yaml\NodeStyle;
 use LTS\PhpXq\Yaml\Parser\YamlParserInterface;
 use LTS\PhpXq\Yq\Expression\ExpressionParserInterface;
+use LTS\PhpXq\Yq\Expression\ExpressionSyntaxException;
 use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use LTS\PhpXq\Yq\Format\FormatRegistryInterface;
 use LTS\PhpXq\Yq\Runtime\Candidate;
 use LTS\PhpXq\Yq\Runtime\EvaluationContext;
+use LTS\PhpXq\Yq\Runtime\EvaluationException;
 use LTS\PhpXq\Yq\Runtime\EvaluatorInterface;
 use LTS\PhpXq\Yq\Runtime\RuntimeServices;
 use LTS\PhpXq\Yq\Runtime\SecurityOptions;
@@ -29,17 +33,17 @@ use Throwable;
  * `eval` evaluates the expression once per document, printing as it goes; `eval-all` loads every document
  * of every file first and evaluates once over all of them.
  */
-final class EvaluateCommand
+final readonly class EvaluateCommand
 {
     private const string FORMAT_LIST = 'yaml|json|props|csv|tsv|xml|base64|uri|toml|hcl|shell|lua|kyaml';
 
     public function __construct(
-        private readonly YamlParserInterface $yamlParser,
-        private readonly YamlEmitterInterface $emitter,
-        private readonly ExpressionParserInterface $expressions,
-        private readonly EvaluatorInterface $evaluator,
-        private readonly FormatRegistryInterface $formats,
-        private readonly FormatDetector $detector = new FormatDetector(),
+        private YamlParserInterface $yamlParser,
+        private YamlEmitterInterface $emitter,
+        private ExpressionParserInterface $expressions,
+        private EvaluatorInterface $evaluator,
+        private FormatRegistryInterface $formats,
+        private FormatDetector $detector = new FormatDetector(),
     ) {
     }
 
@@ -48,6 +52,10 @@ final class EvaluateCommand
      * @param resource $stdout
      *
      * @throws CliException
+     * @throws EvaluationException
+     * @throws ExpressionSyntaxException
+     * @throws FormatException
+     * @throws YamlSyntaxException
      */
     public function run(ParsedArguments $args, bool $evalAll, mixed $stdin, mixed $stdout): int
     {
@@ -101,7 +109,7 @@ final class EvaluateCommand
         $registry = new DocumentRegistry();
         $source   = new SourceDocuments($this->yamlParser, $this->formats, $registry);
         if (!$args->bool('string-interpolation')) {
-            $expression = self::escapeInterpolation($expression);
+            $expression = $this->escapeInterpolation($expression);
         }
 
         $program = $this->expressions->parse('' === $expression ? '.' : $expression);
@@ -125,14 +133,18 @@ final class EvaluateCommand
             $split,
         );
 
-        $succeeded = false;
         try {
             if ($nullInput) {
                 $empty = new Candidate(Node::document(new Node(NodeKind::Scalar, '!!null', NodeStyle::Default, '')));
                 $printer->print($this->evaluator->evaluate($program, new EvaluationContext([$empty], $services)));
             } else {
-                $mode      = !$args->bool('header-preprocess') ? HeaderMode::None : ($evalAll ? HeaderMode::FirstFile : HeaderMode::PerFile);
-                $documents = $source->read($inputs, $stdin, $inputFormat, $this->formatOptions($args, $inputFormat, false, true), $mode);
+                $documents = $source->read(
+                    $inputs,
+                    $stdin,
+                    $inputFormat,
+                    $this->formatOptions($args, $inputFormat, false, true),
+                    $this->headerMode($args, $evalAll),
+                );
                 if ($evalAll) {
                     $all = iterator_to_array($documents, false);
                     $printer->print($this->evaluator->evaluate($program, new EvaluationContext($all, $services)));
@@ -142,22 +154,29 @@ final class EvaluateCommand
                     }
                 }
             }
-
-            $succeeded = true;
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             $printer->finish('');
 
-            throw $e;
+            throw $throwable;
         }
 
         $printer->finish($appendix);
         $target?->commit();
 
-        if ($succeeded && $args->bool('exit-status') && !$printer->printedAnything()) {
+        if ($args->bool('exit-status') && !$printer->printedAnything()) {
             throw new CliException('no matches found');
         }
 
         return YqApplicationInterface::EXIT_OK;
+    }
+
+    private function headerMode(ParsedArguments $args, bool $evalAll): HeaderMode
+    {
+        if (!$args->bool('header-preprocess')) {
+            return HeaderMode::None;
+        }
+
+        return $evalAll ? HeaderMode::FirstFile : HeaderMode::PerFile;
     }
 
     /**
@@ -199,11 +218,11 @@ final class EvaluateCommand
      * `--string-interpolation=false`: escapes every `\(` so the lexer reads it as a literal backslash and
      * parenthesis. Escaped backslashes (`\\`) are consumed as a pair first, so `\\(` stays as it is.
      */
-    private static function escapeInterpolation(string $expression): string
+    private function escapeInterpolation(string $expression): string
     {
         return (string)preg_replace_callback(
-            '/\\\\(.)/s',
-            static fn (array $match): string => '(' === $match[1] ? '\\\\(' : $match[0],
+            '/\\\(.)/s',
+            static fn (array $match): string => '(' === $match[1] ? '\\\(' : $match[0],
             $expression,
         );
     }

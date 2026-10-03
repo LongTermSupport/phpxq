@@ -46,9 +46,9 @@ final class DocumentRegistry
         $root = $node->root();
 
         return NodeKind::Scalar === $root->kind
-            && '' === $root->value
-            && '!!null' === $root->tag
-            && '' === $node->headComment . $node->lineComment . $node->footComment
-            && '' === $root->headComment . $root->lineComment . $root->footComment;
+            && ''               === $root->value
+            && '!!null'         === $root->tag
+            && ''               === $node->headComment . $node->lineComment . $node->footComment
+            && ''               === $root->headComment . $root->lineComment . $root->footComment;
     }
 }

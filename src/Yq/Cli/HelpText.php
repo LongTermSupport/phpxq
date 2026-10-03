@@ -9,8 +9,6 @@ namespace LTS\PhpXq\Yq\Cli;
  */
 final class HelpText
 {
-    private const string SHORT = 'yq is a portable command-line data file processor';
-
     private const string LONG = "yq is a portable command-line data file processor (https://github.com/mikefarah/yq/) \n"
         . 'See https://mikefarah.gitbook.io/yq/ for detailed documentation and examples.';
 
@@ -47,7 +45,7 @@ final class HelpText
      */
     public static function root(): string
     {
-        return self::LONG . "\n\n" . self::usage('') ;
+        return self::LONG . "\n\n" . self::usage('');
     }
 
     /**
@@ -56,10 +54,10 @@ final class HelpText
     public static function forCommand(string $command): string
     {
         return match ($command) {
-            'eval', 'e'     => self::EVAL_LONG . "\n\n" . self::usage('eval'),
+            'eval', 'e'      => self::EVAL_LONG . "\n\n" . self::usage('eval'),
             'eval-all', 'ea' => self::EVAL_ALL_LONG . "\n\n" . self::usage('eval-all'),
-            'completion'    => self::COMPLETION_LONG . "\n\n" . self::usage('completion'),
-            default         => self::root(),
+            'completion'     => self::COMPLETION_LONG . "\n\n" . self::usage('completion'),
+            default          => self::root(),
         };
     }
 

@@ -95,7 +95,7 @@ final class ResultPrinter
 
         $this->previousKey = $key;
         ++$this->index;
-        if (!self::isNullOrFalse($node)) {
+        if (!$this->isNullOrFalse($node)) {
             $this->printedAnything = true;
         }
     }
@@ -151,8 +151,8 @@ final class ResultPrinter
     {
         try {
             return $this->formats->encoder($this->format)->encode($node->root(), $this->formatOptions, $this->index);
-        } catch (FormatException $e) {
-            throw new CliException($e->getMessage(), 0, $e);
+        } catch (FormatException $formatException) {
+            throw new CliException($formatException->getMessage(), 0, $formatException);
         }
     }
 
@@ -164,7 +164,7 @@ final class ResultPrinter
         }
     }
 
-    private static function isNullOrFalse(Node $node): bool
+    private function isNullOrFalse(Node $node): bool
     {
         $root = $node->root();
 

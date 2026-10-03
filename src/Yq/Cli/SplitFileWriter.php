@@ -43,7 +43,7 @@ final class SplitFileWriter
         $names   = $this->evaluator->evaluate($this->nameExpression, $context);
         $name    = [] === $names ? '' : $names[0]->node->value;
         if (1 !== preg_match('/\.[a-zA-Z0-9]+$/', $name)) {
-            $name .= '.' . self::extension($this->format);
+            $name .= '.' . $this->extension($this->format);
         }
 
         $directory = \dirname($name);
@@ -69,7 +69,7 @@ final class SplitFileWriter
         }
     }
 
-    private static function extension(Format $format): string
+    private function extension(Format $format): string
     {
         return match ($format) {
             Format::Yaml  => 'yml',

@@ -22,13 +22,13 @@ final class CompleteCommand
     ];
 
     /**
-     * @param list<string> $words    everything after `__complete`; the last word is the one being completed
+     * @param list<string> $words  everything after `__complete`; the last word is the one being completed
      * @param resource     $stdout
      * @param resource     $stderr
      */
     public function run(array $words, bool $withDescriptions, mixed $stdout, mixed $stderr): int
     {
-        $toComplete = [] === $words ? '' : (string)end($words);
+        $toComplete = [] === $words ? '' : array_last($words);
         $previous   = \array_slice($words, 0, max(0, \count($words) - 1));
 
         $candidates = $this->candidates($previous, $toComplete);
@@ -39,7 +39,7 @@ final class CompleteCommand
         }
 
         fwrite($stdout, ':' . $directive . "\n");
-        fwrite($stderr, 'Completion ended with directive: ' . self::directiveName($directive) . "\n");
+        fwrite($stderr, 'Completion ended with directive: ' . $this->directiveName($directive) . "\n");
 
         return YqApplicationInterface::EXIT_OK;
     }
@@ -114,7 +114,7 @@ final class CompleteCommand
         return $out;
     }
 
-    private static function directiveName(int $directive): string
+    private function directiveName(int $directive): string
     {
         if (self::DIRECTIVE_DEFAULT === $directive) {
             return 'ShellCompDirectiveDefault';

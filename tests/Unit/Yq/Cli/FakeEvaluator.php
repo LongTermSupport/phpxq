@@ -79,7 +79,8 @@ final class FakeEvaluator implements EvaluatorInterface
     private function lookup(Candidate $parent, string $key): Candidate
     {
         $content = $parent->node->root()->content;
-        for ($i = 0; $i + 1 < \count($content); $i += 2) {
+        $counter = \count($content);
+        for ($i = 0; $i + 1 < $counter; $i += 2) {
             if ($content[$i]->value === $key) {
                 return new Candidate($content[$i + 1], $parent, $content[$i], $parent->documentIndex, $parent->fileIndex, $parent->filename);
             }

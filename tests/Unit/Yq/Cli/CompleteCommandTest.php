@@ -14,25 +14,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class CompleteCommandTest extends TestCase
 {
-    /**
-     * @param list<string> $words
-     *
-     * @return array{string, string}
-     */
-    private function complete(array $words, bool $descriptions = true): array
-    {
-        $out = fopen('php://memory', 'w+b');
-        $err = fopen('php://memory', 'w+b');
-        self::assertIsResource($out);
-        self::assertIsResource($err);
-
-        new CompleteCommand()->run($words, $descriptions, $out, $err);
-        rewind($out);
-        rewind($err);
-
-        return [(string)stream_get_contents($out), (string)stream_get_contents($err)];
-    }
-
     public function testSubCommandsAreOfferedFirst(): void
     {
         [$out, $err] = $this->complete(['']);
@@ -96,5 +77,24 @@ final class CompleteCommandTest extends TestCase
         self::assertStringContainsString('eval-all, ea', HelpText::forCommand('ea'));
         self::assertStringContainsString('yq completion [command]', HelpText::forCommand('completion'));
         self::assertSame(HelpText::root(), HelpText::forCommand('nonsense'));
+    }
+
+    /**
+     * @param list<string> $words
+     *
+     * @return array{string, string}
+     */
+    private function complete(array $words, bool $descriptions = true): array
+    {
+        $out = fopen('php://memory', 'w+b');
+        $err = fopen('php://memory', 'w+b');
+        self::assertIsResource($out);
+        self::assertIsResource($err);
+
+        new CompleteCommand()->run($words, $descriptions, $out, $err);
+        rewind($out);
+        rewind($err);
+
+        return [(string)stream_get_contents($out), (string)stream_get_contents($err)];
     }
 }

@@ -10,13 +10,13 @@ use RuntimeException;
 /**
  * Runs the yq application in memory against a scratch directory, with the fake evaluator and formats.
  */
-final class CliHarness
+final readonly class CliHarness
 {
-    public readonly FakeEvaluator $evaluator;
+    public FakeEvaluator $evaluator;
 
-    public readonly FakeFormats $formats;
+    public FakeFormats $formats;
 
-    public readonly string $directory;
+    public string $directory;
 
     public function __construct()
     {
@@ -98,7 +98,8 @@ final class CliHarness
     private function remove(string $path): void
     {
         if (is_dir($path)) {
-            foreach (scandir($path) ?: [] as $entry) {
+            $entries = scandir($path);
+            foreach (false === $entries ? [] : $entries as $entry) {
                 if ('.' !== $entry && '..' !== $entry) {
                     $this->remove($path . '/' . $entry);
                 }

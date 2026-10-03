@@ -20,17 +20,17 @@ final class FormatDetector
         }
 
         return match (strtolower(substr($filename, $dot + 1))) {
-            'json'               => Format::Json,
+            'json'                => Format::Json,
             'properties', 'props' => Format::Props,
-            'csv'                => Format::Csv,
-            'tsv'                => Format::Tsv,
-            'xml'                => Format::Xml,
-            'toml'               => Format::Toml,
-            'hcl', 'tf'          => Format::Hcl,
-            'lua'                => Format::Lua,
-            'kyaml'              => Format::Kyaml,
-            'b64', 'base64'      => Format::Base64,
-            default              => Format::Yaml,
+            'csv'                 => Format::Csv,
+            'tsv'                 => Format::Tsv,
+            'xml'                 => Format::Xml,
+            'toml'                => Format::Toml,
+            'hcl', 'tf'           => Format::Hcl,
+            'lua'                 => Format::Lua,
+            'kyaml'               => Format::Kyaml,
+            'b64', 'base64'       => Format::Base64,
+            default               => Format::Yaml,
         };
     }
 }

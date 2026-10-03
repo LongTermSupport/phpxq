@@ -9,12 +9,12 @@ namespace LTS\PhpXq\Yq\Cli;
  * text differs from the file, written to a temporary file next to the target which then replaces it, with
  * the target's permissions kept.
  */
-final class InPlaceTarget
+final readonly class InPlaceTarget
 {
     /** @var resource */
     private mixed $buffer;
 
-    private readonly string $path;
+    private string $path;
 
     /**
      * @throws CliException
@@ -25,7 +25,8 @@ final class InPlaceTarget
             throw new CliException(\sprintf('open %s: no such file or directory', $path));
         }
 
-        $this->path = realpath($path) ?: $path;
+        $resolved   = realpath($path);
+        $this->path = false === $resolved ? $path : $resolved;
 
         $buffer = fopen('php://temp', 'w+b');
         if (false === $buffer) {

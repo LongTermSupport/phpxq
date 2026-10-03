@@ -92,7 +92,7 @@ final class FlagCatalog
             new FlagSpec('shell-key-separator', '', FlagType::String, '_', 'separator for shell variable key paths', '', '"_"'),
             new FlagSpec('split-exp', 's', FlagType::String, '', 'print each result (or doc) into a file named (exp). [exp] argument must return a string. You can use $index in the expression as the result counter. The necessary directories will be created.'),
             new FlagSpec('split-exp-file', '', FlagType::String, '', 'Use a file to specify the split-exp expression.'),
-            new FlagSpec('string-interpolation', '', FlagType::Bool, true, 'Toggles strings interpolation of \\(exp)', '', 'true'),
+            new FlagSpec('string-interpolation', '', FlagType::Bool, true, 'Toggles strings interpolation of \(exp)', '', 'true'),
             new FlagSpec('toyaml', 'y', FlagType::Bool, false, 'output as yaml', '', '', true),
             new FlagSpec('tojson', 'j', FlagType::Bool, false, 'output as json', '', '', true),
             new FlagSpec('tsv-auto-parse', '', FlagType::Bool, true, 'parse TSV YAML/JSON values', '', 'true'),
