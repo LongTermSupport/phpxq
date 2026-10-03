@@ -21,6 +21,13 @@ final class JsonEncoder implements EncoderInterface
 {
     private const int MAX_DEPTH = 1000;
 
+    /** ANSI colours of the reference's palette: keys cyan, strings green, numbers and booleans magenta. */
+    private const int COLOR_KEY = 36;
+
+    private const int COLOR_STRING = 32;
+
+    private const int COLOR_NUMBER = 95;
+
     /** @var array<string, string> */
     private const array ESCAPES = [
         '"'        => '\"',
@@ -51,12 +58,12 @@ final class JsonEncoder implements EncoderInterface
         }
 
         $out = '';
-        $this->write($out, $root, $options->indent > 0 ? str_repeat(' ', $options->indent) : '', 0);
+        $this->write($out, $root, $options->indent > 0 ? str_repeat(' ', $options->indent) : '', 0, $options->colors);
 
         return $out . "\n";
     }
 
-    private function write(string &$out, Node $node, string $indent, int $depth): void
+    private function write(string &$out, Node $node, string $indent, int $depth, bool $colors): void
     {
         if ($depth > self::MAX_DEPTH) {
             throw new FormatException('json: exceeded max depth (alias cycle?)');
@@ -67,7 +74,8 @@ final class JsonEncoder implements EncoderInterface
         }
 
         if (NodeKind::Scalar === $node->kind) {
-            $out .= $this->scalar($node);
+            $text = $this->scalar($node);
+            $out .= $colors ? $this->paint($text, $this->valueColor($node->tag)) : $text;
 
             return;
         }
@@ -86,7 +94,7 @@ final class JsonEncoder implements EncoderInterface
             foreach ($node->content as $item) {
                 $out .= $first ? '' : $separator;
                 $first = false;
-                $this->write($out, $item, $indent, $depth + 1);
+                $this->write($out, $item, $indent, $depth + 1, $colors);
             }
 
             $out .= ($pretty ? "\n" . str_repeat($indent, $depth) : '') . ']';
@@ -108,8 +116,9 @@ final class JsonEncoder implements EncoderInterface
         for ($i = 0; $i < $count; $i += 2) {
             $out .= 0 === $i ? '' : $separator;
             $key  = $content[$i];
-            $out .= $this->string(NodeKind::Scalar === $key->kind ? $key->value : NodeTools::keyText($key)) . $colon;
-            $this->write($out, $content[$i + 1], $indent, $depth + 1);
+            $text = $this->string(NodeKind::Scalar === $key->kind ? $key->value : NodeTools::keyText($key));
+            $out .= ($colors ? $this->paint($text, self::COLOR_KEY) : $text) . $colon;
+            $this->write($out, $content[$i + 1], $indent, $depth + 1, $colors);
         }
 
         $out .= ($pretty ? "\n" . str_repeat($indent, $depth) : '') . '}';
@@ -124,6 +133,20 @@ final class JsonEncoder implements EncoderInterface
             CoreSchema::TAG_FLOAT => $this->float($node->value),
             default               => $this->string($node->value),
         };
+    }
+
+    private function valueColor(string $tag): ?int
+    {
+        return match ($tag) {
+            CoreSchema::TAG_NULL                                             => null,
+            CoreSchema::TAG_BOOL, CoreSchema::TAG_INT, CoreSchema::TAG_FLOAT => self::COLOR_NUMBER,
+            default                                                          => self::COLOR_STRING,
+        };
+    }
+
+    private function paint(string $text, ?int $color): string
+    {
+        return null === $color ? $text : "\x1b[" . $color . 'm' . $text . "\x1b[0m";
     }
 
     private function integer(string $text): string

@@ -94,6 +94,13 @@ final class JsonEncoderTest extends TestCase
         yield 'backspace and form feed' => ['"\b\f"', '"\b\f"'];
     }
 
+    public function testColorsPaintKeysStringsAndNumbers(): void
+    {
+        $out = self::encode("a: x\nb: [1, true, null]\n", new FormatOptions(indent: 0, colors: true));
+
+        self::assertSame("{\x1b[36m\"a\"\x1b[0m:\x1b[32m\"x\"\x1b[0m,\x1b[36m\"b\"\x1b[0m:[\x1b[95m1\x1b[0m,\x1b[95mtrue\x1b[0m,null]}\n", $out);
+    }
+
     public function testUnwrapScalarPrintsRawValue(): void
     {
         self::assertSame("cat\n", $this->encode('cat', new FormatOptions(unwrapScalar: true)));
