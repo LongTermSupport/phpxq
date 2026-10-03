@@ -33,12 +33,8 @@ final class BindAltOp implements Op
     public function run(?Env $env, mixed $input, Closure $emit): void
     {
         $this->source->run($env, $input, function (mixed $value) use ($env, $input, $emit): void {
-            $this->alternatives($env, $value, static function (Op $body, ?Env $bound, bool &$downstream) use ($input, $emit): void {
-                $body->run($bound, $input, static function (mixed $output) use (&$downstream, $emit): void {
-                    $downstream = true;
-                    $emit($output);
-                    $downstream = false;
-                });
+            $this->alternatives($env, $value, static function (Op $body, ?Env $bound, Downstream $downstream) use ($input, $emit): void {
+                $body->run($bound, $input, $downstream->guard($emit));
             });
         });
     }
@@ -46,33 +42,29 @@ final class BindAltOp implements Op
     public function paths(?Env $env, ?array $path, mixed $input, Closure $emit): void
     {
         $this->source->run($env, $input, function (mixed $value) use ($env, $path, $input, $emit): void {
-            $this->alternatives($env, $value, static function (Op $body, ?Env $bound, bool &$downstream) use ($path, $input, $emit): void {
-                $body->paths($bound, $path, $input, static function (?array $outputPath, mixed $output) use (&$downstream, $emit): void {
-                    $downstream = true;
-                    $emit($outputPath, $output);
-                    $downstream = false;
-                });
+            $this->alternatives($env, $value, static function (Op $body, ?Env $bound, Downstream $downstream) use ($path, $input, $emit): void {
+                $body->paths($bound, $path, $input, $downstream->guardPaths($emit));
             });
         });
     }
 
     /**
-     * @param Closure(Op, ?Env, bool): void $runBody
+     * @param Closure(Op, ?Env, Downstream): void $runBody
      */
     private function alternatives(?Env $env, mixed $value, Closure $runBody): void
     {
         $last = \count($this->binders) - 1;
         foreach ($this->binders as $index => $binder) {
-            $downstream = false;
+            $downstream = new Downstream();
+            $names      = $this->events[$index];
             try {
-                $names = $this->events[$index];
-                $binder->bind($env, $value, function (?Env $matched) use ($env, $names, $runBody, &$downstream): void {
+                $binder->bind($env, $value, function (?Env $matched) use ($env, $names, $runBody, $downstream): void {
                     $runBody($this->body, $this->canonical($env, $matched, $names), $downstream);
                 });
 
                 return;
             } catch (JqException $exception) {
-                if ($downstream || $index === $last) {
+                if ($downstream->active() || $index === $last) {
                     throw $exception;
                 }
             }

@@ -58,28 +58,31 @@ final class PathOps
     /**
      * Delete every path (sorted and removed from the last to the first so indices stay valid).
      *
-     * @param list<list<mixed>> $paths
+     * @param list<mixed> $paths each element must itself be a path (a list)
      *
      * @throws JqException
      */
     public static function deletePaths(mixed $value, array $paths): mixed
     {
-        if ([] === $paths) {
+        $sorted = [];
+        foreach ($paths as $path) {
+            if (!\is_array($path) || !array_is_list($path)) {
+                throw new JqException('Path must be specified as an array');
+            }
+
+            $sorted[] = $path;
+        }
+
+        if ([] === $sorted) {
             return $value;
         }
 
-        foreach ($paths as $path) {
-            if (!\is_array($path)) {
-                throw new JqException('Path must be specified as an array');
-            }
-        }
-
-        usort($paths, Values::compare(...));
-        if ([] === $paths[0]) {
+        usort($sorted, Values::compare(...));
+        if ([] === $sorted[0]) {
             return null;
         }
 
-        return self::deleteSorted($value, $paths, 0);
+        return self::deleteSorted($value, $sorted, 0);
     }
 
     /**
@@ -183,7 +186,7 @@ final class PathOps
 
         [$start, $end] = Access::bounds(\count($array), $slice->get('start'), $slice->get('end'));
 
-        return [...\array_slice($array, 0, $start), ...$new, ...\array_slice($array, $end)];
+        return array_values([...\array_slice($array, 0, $start), ...$new, ...\array_slice($array, $end)]);
     }
 
     /**
@@ -199,8 +202,8 @@ final class PathOps
         while ($i < $total) {
             $path = $paths[$i];
             $key  = $path[$start];
-            $j   = $i;
-            while ($j < $total && Values::equals($key, $paths[$j][$start])) {
+            $j   = $i + 1;
+            while ($j < $total && self::sameKey($key, $paths[$j][$start])) {
                 ++$j;
             }
 
@@ -293,6 +296,18 @@ final class PathOps
         }
 
         return $kept;
+    }
+
+    /**
+     * Whether two path keys group together: equal values, with nan keys equal to each other.
+     */
+    private static function sameKey(mixed $left, mixed $right): bool
+    {
+        if (is_float($left) && is_nan($left) && is_float($right) && is_nan($right)) {
+            return true;
+        }
+
+        return Values::equals($left, $right);
     }
 
     private static function keyKind(mixed $key): string

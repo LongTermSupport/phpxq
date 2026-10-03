@@ -85,9 +85,15 @@ final readonly class FileModuleLoader implements ModuleLoaderInterface
      */
     private function searchDirectories(mixed $searchMetadata, ?string $importerPath): array
     {
-        $origin    = null === $importerPath ? '.' : \dirname($importerPath);
+        $origin      = null === $importerPath ? '.' : \dirname($importerPath);
         $directories = [];
-        $entries     = \is_string($searchMetadata) ? [$searchMetadata] : (\is_array($searchMetadata) ? $searchMetadata : []);
+        $entries     = [];
+        if (\is_string($searchMetadata)) {
+            $entries = [$searchMetadata];
+        } elseif (\is_array($searchMetadata)) {
+            $entries = $searchMetadata;
+        }
+
         foreach ($entries as $entry) {
             if (!\is_string($entry)) {
                 continue;

@@ -24,20 +24,19 @@ final class AltOp implements Op
     public function run(?Env $env, mixed $input, Closure $emit): void
     {
         $found      = false;
-        $downstream = false;
+        $downstream = new Downstream();
+        $guarded    = $downstream->guard($emit);
         try {
-            $this->left->run($env, $input, static function (mixed $value) use (&$found, &$downstream, $emit): void {
+            $this->left->run($env, $input, static function (mixed $value) use (&$found, $guarded): void {
                 if (null === $value || false === $value) {
                     return;
                 }
 
-                $found      = true;
-                $downstream = true;
-                $emit($value);
-                $downstream = false;
+                $found = true;
+                $guarded($value);
             });
         } catch (JqException $exception) {
-            if ($downstream) {
+            if ($downstream->active()) {
                 throw $exception;
             }
         }
@@ -50,20 +49,19 @@ final class AltOp implements Op
     public function paths(?Env $env, ?array $path, mixed $input, Closure $emit): void
     {
         $found      = false;
-        $downstream = false;
+        $downstream = new Downstream();
+        $guarded    = $downstream->guardPaths($emit);
         try {
-            $this->left->paths($env, $path, $input, static function (?array $valuePath, mixed $value) use (&$found, &$downstream, $emit): void {
+            $this->left->paths($env, $path, $input, static function (?array $valuePath, mixed $value) use (&$found, $guarded): void {
                 if (null === $value || false === $value) {
                     return;
                 }
 
-                $found      = true;
-                $downstream = true;
-                $emit($valuePath, $value);
-                $downstream = false;
+                $found = true;
+                $guarded($valuePath, $value);
             });
         } catch (JqException $exception) {
-            if ($downstream) {
+            if ($downstream->active()) {
                 throw $exception;
             }
         }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Jq\Runtime\Eval;
 
 use Closure;
+use LTS\PhpXq\Jq\Runtime\BreakException;
 use LTS\PhpXq\Jq\Runtime\JqException;
 
 /**
@@ -19,6 +20,7 @@ interface Op
      * @param Closure(mixed): void $emit
      *
      * @throws JqException
+     * @throws BreakException
      */
     public function run(?Env $env, mixed $input, Closure $emit): void;
 
@@ -27,6 +29,7 @@ interface Op
      * @param Closure(?list<mixed>, mixed): void $emit
      *
      * @throws JqException
+     * @throws BreakException
      */
     public function paths(?Env $env, ?array $path, mixed $input, Closure $emit): void;
 }

@@ -11,7 +11,7 @@ use Closure;
  *
  * @internal
  */
-final class SingleBinaryOp extends AbstractSingleOp
+final class SingleOperatorOp extends AbstractSingleOp
 {
     /**
      * @param Closure(mixed, mixed): mixed $operation

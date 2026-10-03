@@ -132,7 +132,7 @@ final class Arithmetic
         if (\is_int($left) && \is_int($right)) {
             $product = $left * $right;
 
-            return \is_int($product) && $product <= self::MAX_SAFE && $product >= -self::MAX_SAFE ? $product : self::normalize((float)$product);
+            return $product <= self::MAX_SAFE && $product >= -self::MAX_SAFE ? $product : (float)$product;
         }
 
         if (self::isNumber($left) && self::isNumber($right)) {

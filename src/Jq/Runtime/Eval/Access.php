@@ -160,10 +160,10 @@ final class Access
             $end += $length;
         }
 
-        $start = max(0.0, min((float)$length, $start));
-        $end   = max($start, min((float)$length, $end));
+        $startIndex = (int)floor(max(0.0, min((float)$length, $start)));
+        $endIndex   = (int)ceil(max(0.0, min((float)$length, $end)));
 
-        return [(int)floor($start), (int)ceil($end)];
+        return [$startIndex, max($startIndex, $endIndex)];
     }
 
     /**

@@ -22,7 +22,7 @@ final class GetPathOp implements Op
     public function run(?Env $env, mixed $input, Closure $emit): void
     {
         $this->argument->run($env, $input, static function (mixed $path) use ($input, $emit): void {
-            if (!\is_array($path)) {
+            if (!\is_array($path) || !array_is_list($path)) {
                 throw new JqException('Path must be specified as an array');
             }
 
@@ -33,12 +33,12 @@ final class GetPathOp implements Op
     public function paths(?Env $env, ?array $path, mixed $input, Closure $emit): void
     {
         $this->argument->run($env, $input, static function (mixed $steps) use ($path, $input, $emit): void {
-            if (!\is_array($steps)) {
+            if (!\is_array($steps) || !array_is_list($steps)) {
                 throw new JqException('Path must be specified as an array');
             }
 
             $value = PathOps::getPath($input, $steps);
-            $emit(null === $path ? null : [...$path, ...$steps], $value);
+            $emit(null === $path ? null : array_merge($path, $steps), $value);
         });
     }
 }

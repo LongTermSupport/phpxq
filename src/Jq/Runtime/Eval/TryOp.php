@@ -23,15 +23,11 @@ final class TryOp implements Op
 
     public function run(?Env $env, mixed $input, Closure $emit): void
     {
-        $downstream = false;
+        $downstream = new Downstream();
         try {
-            $this->body->run($env, $input, static function (mixed $value) use (&$downstream, $emit): void {
-                $downstream = true;
-                $emit($value);
-                $downstream = false;
-            });
+            $this->body->run($env, $input, $downstream->guard($emit));
         } catch (JqException $exception) {
-            if ($downstream) {
+            if ($downstream->active()) {
                 throw $exception;
             }
 
@@ -41,15 +37,11 @@ final class TryOp implements Op
 
     public function paths(?Env $env, ?array $path, mixed $input, Closure $emit): void
     {
-        $downstream = false;
+        $downstream = new Downstream();
         try {
-            $this->body->paths($env, $path, $input, static function (?array $valuePath, mixed $value) use (&$downstream, $emit): void {
-                $downstream = true;
-                $emit($valuePath, $value);
-                $downstream = false;
-            });
+            $this->body->paths($env, $path, $input, $downstream->guardPaths($emit));
         } catch (JqException $exception) {
-            if ($downstream) {
+            if ($downstream->active()) {
                 throw $exception;
             }
 

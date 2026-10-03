@@ -175,8 +175,8 @@ final class NodeCompiler
         $operation = self::operation($node->op);
 
         return $left instanceof SingleOp && $right instanceof SingleOp
-            ? new SingleBinaryOp($left, $right, $operation)
-            : new BinaryOp($left, $right, $operation);
+            ? new SingleOperatorOp($left, $right, $operation)
+            : new OperatorOp($left, $right, $operation);
     }
 
     /**
@@ -351,8 +351,6 @@ final class NodeCompiler
                 return new SingleNativeOp($native, $arguments, $this->core->state);
             }
 
-            \assert([] !== $arguments);
-
             return new NativeValueOp($native, $arguments, $this->core->state);
         }
 
@@ -469,8 +467,6 @@ final class NodeCompiler
             $inner = Scope::variable($inner, $variable);
         }
 
-        \assert([] !== $binders && [] !== $events);
-
         return new BindAltOp($source, $binders, $events, $variables, $this->compile($node->body, $inner));
     }
 
@@ -519,8 +515,6 @@ final class NodeCompiler
                 $names                           = [...$names, ...$elementNames];
             }
 
-            \assert([] !== $elements);
-
             return [new ArrayBinder($elements), $scope, $names];
         }
 
@@ -550,8 +544,6 @@ final class NodeCompiler
 
             $entries[] = [$entry->variable, $keyOp, $binder];
         }
-
-        \assert([] !== $entries);
 
         return [new ObjectBinder($entries), $scope, $names];
     }

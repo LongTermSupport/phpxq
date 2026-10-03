@@ -12,7 +12,7 @@ use Closure;
  *
  * @internal
  */
-final class BinaryOp extends AbstractOp
+final class OperatorOp extends AbstractOp
 {
     private readonly ?SingleOp $leftSingle;
 
