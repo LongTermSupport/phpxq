@@ -71,6 +71,20 @@ Parent epic: Plan 00001.
 - Blocks: Plan 00006, Plan 00007
 - Related: Plan 00005
 
+## Technical Decisions
+
+### Decision 1: Reference yq is mikefarah/yq
+
+**Context**: Task 1.1 asked the owner to confirm which yq is the reference. The owner delegated the
+choice to the orchestrator.
+**Decision**: The reference is [mikefarah/yq](https://github.com/mikefarah/yq) at the tag pinned in
+`tests/Conformance/Yq/fixtures/NOTICE.md`. The vendored conformance fixtures are that project's own
+documentation examples and acceptance tests, so the harness already measures equivalence with it.
+kislyuk/yq is out of scope. The expression language is therefore yq's own, not jq's, and Plan 00003's
+evaluator is not reused.
+**Design**: [architecture.md](architecture.md) records scope, node model, pipeline, interfaces and the
+worker file ownership map.
+
 ## Success Criteria
 
 - [ ] Reference yq confirmed and recorded
@@ -80,11 +94,11 @@ Parent epic: Plan 00001.
 
 ## Risks & Mitigations
 
-| Risk | Impact | Probability | Mitigation |
-| ---- | ------ | ----------- | ---------- |
-| YAML spec is large and subtle | High | High | Use the official YAML test suite as an extra arbiter; record supported subset |
-| Comment and style round-trip | High | High | Node model designed for it up front (Task 1.2) |
-| Pure-PHP parser is slow | Medium | Medium | Benchmark via Plan 00005; optimise in Plan 00007 |
+| Risk                          | Impact | Probability | Mitigation                                                                    |
+| ----------------------------- | ------ | ----------- | ----------------------------------------------------------------------------- |
+| YAML spec is large and subtle | High   | High        | Use the official YAML test suite as an extra arbiter; record supported subset |
+| Comment and style round-trip  | High   | High        | Node model designed for it up front (Task 1.2)                                |
+| Pure-PHP parser is slow       | Medium | Medium      | Benchmark via Plan 00005; optimise in Plan 00007                              |
 
 ## Delivery & Milestones
 
