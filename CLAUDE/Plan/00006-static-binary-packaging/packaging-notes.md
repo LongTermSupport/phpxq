@@ -62,7 +62,10 @@ spc micro:combine dist/phpxq.phar --output=dist/phpxq-<platform> --with-ini-set=
   refuses a tampered download without installing.
 - Release scripts (`release-preflight`, `release-assets`): exercised for the tag-free, tag-present,
   unreachable-remote and missing-asset cases.
-- Static binary: see the status in the owner's summary; the CI matrix is the proof for every platform.
+- Static binary (linux-x86_64, built locally with spc 2.8.5): about 11.5 MB, fully static, passes
+  `scripts/smoke-test.bash --static` with an empty environment, including argv0 dispatch through
+  `jq` and `yq` symlinks, and the shell conformance suites run against it through `PHPXQ_BINARY`.
+  The other platforms are proven by the CI matrix only.
 
 ## Open items
 

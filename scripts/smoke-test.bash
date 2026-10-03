@@ -114,9 +114,12 @@ for tool in jq yq; do
 done
 
 if ((static)) && [[ "$(uname -s)" == Linux ]] && command -v ldd >/dev/null; then
-    if ldd "$artefact" 2>&1 | grep -qE 'not a dynamic executable|statically linked'; then
+    # ldd exits non-zero for a static executable, so its output is captured rather than piped.
+    ldd_rc=0
+    ldd_output="$(ldd "$artefact" 2>&1)" || ldd_rc=$?
+    if [[ "$ldd_output" == *"not a dynamic executable"* || "$ldd_output" == *"statically linked"* ]]; then
         pass "statically linked"
-    else fail "binary is dynamically linked: $(ldd "$artefact" 2>&1)"; fi
+    else fail "binary is dynamically linked (ldd rc=$ldd_rc): $ldd_output"; fi
 fi
 
 if ((failures > 0)); then
