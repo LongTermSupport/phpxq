@@ -28,7 +28,8 @@ final class FormatRegistryTest extends TestCase
     public function testReadableFormatsHaveADecoder(FormatEnum $format): void
     {
         $registry = new FormatRegistry();
-        if (FormatEnum::Shell === $format || FormatEnum::Kyaml === $format) {
+        self::assertSame(FormatEnum::Shell !== $format, $format->canDecode());
+        if (FormatEnum::Shell === $format) {
             $this->expectException(FormatException::class);
         }
 
@@ -45,9 +46,9 @@ final class FormatRegistryTest extends TestCase
         }
     }
 
-    public function testLuaIsReadableEvenThoughTheFormatEnumSaysOtherwise(): void
+    public function testLuaIsReadable(): void
     {
-        self::assertFalse(FormatEnum::Lua->canDecode());
+        self::assertTrue(FormatEnum::Lua->canDecode());
         self::assertSame(FormatEnum::Lua, new FormatRegistry()->decoder(FormatEnum::Lua)->format());
     }
 

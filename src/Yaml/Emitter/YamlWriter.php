@@ -71,6 +71,9 @@ final class YamlWriter
 
     private int $indent = -1;
 
+    /** Indent of the foot comment just written, or -1; the next line at that indent is preceded by a blank line. */
+    private int $footIndent = -1;
+
     private int $flowLevel = 0;
 
     public function __construct(private readonly EmitOptions $options)
@@ -395,7 +398,7 @@ final class YamlWriter
         }
 
         $quoted = NodeStyleEnum::DoubleQuoted                                                                                                                                === $style || NodeStyleEnum::SingleQuoted === $style
-                                                                                                                                           || NodeStyleEnum::Literal         === $style || NodeStyleEnum::Folded === $style;
+                                                                                                                                                                                        || NodeStyleEnum::Literal         === $style || NodeStyleEnum::Folded === $style;
 
         $force = false;
         if ('' !== $tag && !$node->tagExplicit) {
@@ -790,6 +793,7 @@ final class YamlWriter
             if ('' !== $comment) {
                 $this->writeIndent();
                 $this->writeComment($comment);
+                $this->footIndent = max($this->indent, 0);
             }
         }
     }
@@ -844,6 +848,10 @@ final class YamlWriter
             $this->putBreak();
         }
 
+        if ($this->footIndent === $indent) {
+            $this->putBreak();
+        }
+
         if ($this->column < $indent) {
             $this->out .= str_repeat(' ', $indent - $this->column);
             $this->column = $indent;
@@ -851,6 +859,7 @@ final class YamlWriter
 
         $this->whitespace = true;
         $this->indention  = true;
+        $this->footIndent = -1;
     }
 
     private function indicator(string $text, bool $needWhitespace, bool $isWhitespace, bool $isIndention, ?int $color = null): void

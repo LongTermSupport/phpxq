@@ -38,8 +38,8 @@ enum FormatEnum: string
     public function canDecode(): bool
     {
         return match ($this) {
-            self::Shell, self::Lua, self::Kyaml => false,
-            default                             => true,
+            self::Shell => false,
+            default     => true,
         };
     }
 

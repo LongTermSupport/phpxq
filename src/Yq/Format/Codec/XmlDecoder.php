@@ -65,19 +65,12 @@ final class XmlDecoder implements DecoderInterface
             $headConsumed       = true;
         }
 
-        $count       = \count($element->children);
-        $position    = 0;
-        $pendingFoot = '';
+        $position = 0;
         foreach ($element->children as $name => $group) {
             ++$position;
             $key = Node::scalar((string)$name, CoreSchema::TAG_STR);
             if (1 === $position && !$headConsumed) {
                 $key->headComment = $this->comment($element->headComment);
-            }
-
-            if ('' !== $pendingFoot) {
-                $key->headComment = $pendingFoot . "\n" . $key->headComment;
-                $pendingFoot      = '';
             }
 
             $content[] = $key;
@@ -89,11 +82,7 @@ final class XmlDecoder implements DecoderInterface
                 $foot      = $this->comment($group[\count($group) - 1]->footComment);
             }
 
-            if ($position < $count) {
-                $pendingFoot = $foot;
-            } else {
-                $key->footComment = NodeTools::joinComments($key->footComment, $foot);
-            }
+            $key->footComment = NodeTools::joinComments($key->footComment, $foot);
         }
 
         return Node::mapping($content);

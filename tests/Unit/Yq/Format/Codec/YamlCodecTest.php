@@ -68,6 +68,16 @@ final class YamlCodecTest extends TestCase
         self::assertEquals(new EmitOptions(indent: 4, colors: true, unwrapScalar: false, prettyPrint: true, noDocSeparator: false), $emitter->seen);
     }
 
+    public function testKyamlIsReadAsYaml(): void
+    {
+        $decoder = new YamlDecoder(format: FormatEnum::Kyaml);
+        $docs    = [...$decoder->decode("{\n  a: 1, # one\n  b: [\"x\"],\n}\n", new FormatOptions())];
+
+        self::assertSame(FormatEnum::Kyaml, $decoder->format());
+        self::assertCount(1, $docs);
+        self::assertSame('a', $docs[0]->root()->content[0]->value);
+    }
+
     public function testDecoderDelegatesToTheGivenParser(): void
     {
         $parser = new class implements YamlParserInterface {

@@ -101,9 +101,14 @@ final class JsonEncoderTest extends TestCase
         self::assertSame("{\x1b[36m\"a\"\x1b[0m:\x1b[32m\"x\"\x1b[0m,\x1b[36m\"b\"\x1b[0m:[\x1b[95m1\x1b[0m,\x1b[95mtrue\x1b[0m,null]}\n", $out);
     }
 
-    public function testTopLevelStringStaysQuotedEvenWhenUnwrapping(): void
+    public function testTopLevelStringIsBareWhenUnwrapping(): void
     {
-        self::assertSame("\"cat\"\n", $this->encode('cat', new FormatOptions(unwrapScalar: true)));
+        self::assertSame("cat\n", $this->encode('cat', new FormatOptions(unwrapScalar: true)));
+    }
+
+    public function testTopLevelStringIsQuotedWhenNotUnwrapping(): void
+    {
+        self::assertSame("\"cat\"\n", $this->encode('cat', new FormatOptions(unwrapScalar: false)));
     }
 
     public function testInfinityIsRejected(): void

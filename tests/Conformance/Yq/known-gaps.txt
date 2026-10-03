@@ -12,3 +12,9 @@
 #
 # As yq is built, the blanket entry below is replaced by specific, justified entries (one per
 # genuinely unsupported feature) and finally removed once the suite is fully green.
+
+# yq-yaml
+usage/base64.md: Encode base64: string	Vendored fixture is damaged: the extractor swallowed the next markdown section into the expected output (case 461)
+usage/base64url.md: Encode base64url: string	Vendored fixture is damaged: the extractor swallowed the next markdown section into the expected output (case 466)
+operators/comment-operators.md: Get head comment	upstream reads the root head comment from go-yaml document comments (with the blank line after the leading comment kept in the text); phpxq slurps that leading header ahead of the node tree (header preprocessing), so head_comment cannot see it
+operators/comment-operators.md: Head comment with document split	upstream joins the comment before --- with the one after it into the root head comment; phpxq slurps the leading header ahead of the node tree, so head_comment sees only the comment after the separator
