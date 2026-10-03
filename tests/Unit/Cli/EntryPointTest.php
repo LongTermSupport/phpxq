@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Cli;
 
 use LTS\PhpXq\Cli\EntryPoint;
+use LTS\PhpXq\Cli\FrontController;
 use LTS\PhpXq\Cli\FrontControllerInterface;
+use LTS\PhpXq\Tests\Support\RecordingFrontController;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -14,6 +16,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class EntryPointTest extends TestCase
 {
+    private const string VERSION_FIXTURE = __DIR__ . '/../../Support/Fixtures/VERSION';
+
     /**
      * @param list<string> $args
      * @param list<string> $expected
@@ -21,19 +25,11 @@ final class EntryPointTest extends TestCase
     #[DataProvider('provideInvocations')]
     public function testToolIsResolvedFromProgramNameOrFirstArgument(string $argv0, array $args, array $expected): void
     {
-        $controller = new class implements FrontControllerInterface {
-            /** @var list<string> */
-            public array $received = [];
+        $controller = new RecordingFrontController(7);
 
-            public function run(array $args, mixed $stdin, mixed $stdout, mixed $stderr): int
-            {
-                $this->received = $args;
-
-                return 7;
-            }
-        };
-
-        $exit = $this->entryPoint($controller)->run($argv0, $args, $this->stream(), $this->stream(), $this->stream());
+        $exit = new EntryPoint($controller, self::VERSION_FIXTURE)
+            ->run($argv0, $args, $this->stream(), $this->stream(), $this->stream())
+        ;
 
         self::assertSame(7, $exit);
         self::assertSame($expected, $controller->received);
@@ -47,48 +43,32 @@ final class EntryPointTest extends TestCase
         yield 'phpxq passes args through' => ['/usr/bin/phpxq', ['jq', '.a'], ['jq', '.a']];
         yield 'jq name prepends tool' => ['/usr/local/bin/jq', ['.a'], ['jq', '.a']];
         yield 'yq name prepends tool' => ['yq', ['.a', 'f.yaml'], ['yq', '.a', 'f.yaml']];
-        yield 'windows exe suffix' => ['C:\\bin\\jq.exe', ['.'], ['jq', '.']];
+        yield 'windows exe suffix' => ['C:\bin\jq.exe', ['.'], ['jq', '.']];
         yield 'phar name is not a tool' => ['phpxq.phar', ['yq', '.'], ['yq', '.']];
         yield 'jq name with no args' => ['jq', [], ['jq']];
     }
 
     public function testVersionFlagPrintsVersionWithoutDispatching(): void
     {
-        $controller = new class implements FrontControllerInterface {
-            public bool $called = false;
+        $controller = new RecordingFrontController();
+        $stdout     = $this->stream();
 
-            public function run(array $args, mixed $stdin, mixed $stdout, mixed $stderr): int
-            {
-                $this->called = true;
+        $exit = new EntryPoint($controller, self::VERSION_FIXTURE)
+            ->run('phpxq', ['--version'], $this->stream(), $stdout, $this->stream())
+        ;
 
-                return 1;
-            }
-        };
-        $stdout = $this->stream();
-
-        $exit = $this->entryPoint($controller)->run('phpxq', ['--version'], $this->stream(), $stdout, $this->stream());
-
-        rewind($stdout);
         self::assertSame(FrontControllerInterface::EXIT_OK, $exit);
-        self::assertSame("phpxq 1.2.3\n", stream_get_contents($stdout));
-        self::assertFalse($controller->called);
+        self::assertSame("phpxq 1.2.3\n", $this->contents($stdout));
+        self::assertNull($controller->received);
     }
 
     public function testVersionFlagIsLeftToTheToolWhenInvokedAsTool(): void
     {
-        $controller = new class implements FrontControllerInterface {
-            /** @var list<string> */
-            public array $received = [];
+        $controller = new RecordingFrontController();
 
-            public function run(array $args, mixed $stdin, mixed $stdout, mixed $stderr): int
-            {
-                $this->received = $args;
-
-                return 0;
-            }
-        };
-
-        $this->entryPoint($controller)->run('jq', ['--version'], $this->stream(), $this->stream(), $this->stream());
+        new EntryPoint($controller, self::VERSION_FIXTURE)
+            ->run('jq', ['--version'], $this->stream(), $this->stream(), $this->stream())
+        ;
 
         self::assertSame(['jq', '--version'], $controller->received);
     }
@@ -97,16 +77,11 @@ final class EntryPointTest extends TestCase
     {
         $stdout = $this->stream();
 
-        new EntryPoint(new \LTS\PhpXq\Cli\FrontController(), '/nonexistent/VERSION')
-            ->run('phpxq', ['--version'], $this->stream(), $stdout, $this->stream());
+        new EntryPoint(new FrontController(), '/nonexistent/VERSION')
+            ->run('phpxq', ['--version'], $this->stream(), $stdout, $this->stream())
+        ;
 
-        rewind($stdout);
-        self::assertSame("phpxq unknown\n", stream_get_contents($stdout));
-    }
-
-    private function entryPoint(FrontControllerInterface $controller): EntryPoint
-    {
-        return new EntryPoint($controller, __DIR__ . '/../../Support/Fixtures/VERSION');
+        self::assertSame("phpxq unknown\n", $this->contents($stdout));
     }
 
     /**
@@ -118,5 +93,15 @@ final class EntryPointTest extends TestCase
         self::assertNotFalse($stream);
 
         return $stream;
+    }
+
+    /**
+     * @param resource $stream
+     */
+    private function contents(mixed $stream): string
+    {
+        rewind($stream);
+
+        return (string)stream_get_contents($stream);
     }
 }
