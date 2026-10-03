@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Jq\Runtime;
 
-use LogicException;
+use LTS\PhpXq\Jq\Runtime\Eval\Access;
+use LTS\PhpXq\Jq\Runtime\Eval\ErrorText;
+use LTS\PhpXq\Json\JsonObject;
+use LTS\PhpXq\Json\PreciseNumber;
+use LTS\PhpXq\Json\Values;
 
 /**
  * getpath / setpath / delpaths on the value model: the single implementation used by the evaluator
  * (assignment operators, `del`, `to_entries`-style builtins) and by the natives of the same names.
- * OWNER: evaluator-core worker. Skeleton only: keep these signatures when implementing.
  *
  * A path element is a string (object key), an int (array index, negative counts from the end), a slice
  * object {"start": n|null, "end": n|null}, or null (only valid as a getpath step through null).
@@ -18,38 +21,303 @@ use LogicException;
  */
 final class PathOps
 {
+    private const int MAX_INDEX = 536870911;
+
     private function __construct()
     {
     }
 
     /**
      * @param list<mixed> $path
+     *
+     * @throws JqException
      */
     public static function getPath(mixed $value, array $path): mixed
     {
-        throw self::notImplemented('getPath', $value, $path);
+        foreach ($path as $key) {
+            if (null === $value) {
+                return null;
+            }
+
+            $value = Access::index($value, $key);
+        }
+
+        return $value;
     }
 
     /**
      * @param list<mixed> $path
+     *
+     * @throws JqException
      */
     public static function setPath(mixed $value, array $path, mixed $new): mixed
     {
-        throw self::notImplemented('setPath', $value, $path, $new);
+        return self::setFrom($value, $path, 0, \count($path), $new);
     }
 
     /**
      * Delete every path (sorted and removed from the last to the first so indices stay valid).
      *
-     * @param list<list<mixed>> $paths
+     * @param list<mixed> $paths each element must itself be a path (a list)
+     *
+     * @throws JqException
      */
     public static function deletePaths(mixed $value, array $paths): mixed
     {
-        throw self::notImplemented('deletePaths', $value, $paths);
+        $sorted = [];
+        foreach ($paths as $path) {
+            if (!\is_array($path) || !array_is_list($path)) {
+                throw new JqException('Path must be specified as an array');
+            }
+
+            $sorted[] = $path;
+        }
+
+        if ([] === $sorted) {
+            return $value;
+        }
+
+        usort($sorted, Values::compare(...));
+        if ([] === $sorted[0]) {
+            return null;
+        }
+
+        return self::deleteSorted($value, $sorted, 0);
     }
 
-    private static function notImplemented(string $operation, mixed ...$arguments): LogicException
+    /**
+     * `.[$key] = $new` on one level: the shared building block of setPath.
+     *
+     * @throws JqException
+     */
+    public static function setKey(mixed $target, mixed $key, mixed $new): mixed
     {
-        return new LogicException(\sprintf('PathOps::%s is not implemented (%d arguments)', $operation, \count($arguments)));
+        if (\is_string($key)) {
+            if ($target instanceof JsonObject) {
+                return $target->with($key, $new);
+            }
+
+            if (null === $target) {
+                return new JsonObject([$key => $new]);
+            }
+        } elseif (\is_int($key) || \is_float($key) || $key instanceof PreciseNumber) {
+            if (null === $target || \is_array($target)) {
+                return self::setIndex($target ?? [], $key, $new);
+            }
+        } elseif ($key instanceof JsonObject) {
+            if (null === $target || \is_array($target)) {
+                return self::setSlice($target ?? [], $key, $new);
+            }
+
+            if (\is_string($target)) {
+                throw new JqException('Cannot update string slices');
+            }
+        } elseif (\is_array($key) && \is_array($target)) {
+            throw new JqException('Cannot update field at array index of array');
+        }
+
+        throw ErrorText::indexError($target, $key);
+    }
+
+    /**
+     * @param list<mixed> $path
+     *
+     * @throws JqException
+     */
+    private static function setFrom(mixed $value, array $path, int $position, int $count, mixed $new): mixed
+    {
+        if ($position === $count) {
+            return $new;
+        }
+
+        $key = $path[$position];
+        $sub = Access::index($value, $key);
+
+        return self::setKey($value, $key, self::setFrom($sub, $path, $position + 1, $count, $new));
+    }
+
+    /**
+     * @param array<array-key, mixed> $array
+     *
+     * @return list<mixed>
+     *
+     * @throws JqException
+     */
+    private static function setIndex(array $array, int|float|PreciseNumber $key, mixed $new): array
+    {
+        $index = \is_int($key) ? $key : Access::position($key);
+        if (null === $index) {
+            throw new JqException('Cannot set array element at NaN index');
+        }
+
+        $count = \count($array);
+        if ($index < 0) {
+            $index += $count;
+            if ($index < 0) {
+                throw new JqException('Out of bounds negative array index');
+            }
+        }
+
+        if ($index > self::MAX_INDEX) {
+            throw new JqException('Array index too large');
+        }
+
+        for ($i = $count; $i < $index; ++$i) {
+            $array[] = null;
+        }
+
+        $array[$index] = $new;
+
+        return array_values($array);
+    }
+
+    /**
+     * @param array<array-key, mixed> $array
+     *
+     * @return list<mixed>
+     *
+     * @throws JqException
+     */
+    private static function setSlice(array $array, JsonObject $slice, mixed $new): array
+    {
+        if (!\is_array($new)) {
+            throw new JqException('A slice of an array can only be assigned another array');
+        }
+
+        [$start, $end] = Access::bounds(\count($array), $slice->get('start'), $slice->get('end'));
+
+        return array_values([...\array_slice($array, 0, $start), ...$new, ...\array_slice($array, $end)]);
+    }
+
+    /**
+     * @param list<list<mixed>> $paths sorted
+     *
+     * @throws JqException
+     */
+    private static function deleteSorted(mixed $value, array $paths, int $start): mixed
+    {
+        $keys  = [];
+        $total = \count($paths);
+        $i     = 0;
+        while ($i < $total) {
+            $path = $paths[$i];
+            $key  = $path[$start];
+            $j    = $i + 1;
+            while ($j < $total && self::sameKey($key, $paths[$j][$start])) {
+                ++$j;
+            }
+
+            if (\count($path) === $start + 1) {
+                $keys[] = $key;
+            } else {
+                $sub = Access::index($value, $key);
+                if (null !== $sub) {
+                    $value = self::setKey($value, $key, self::deleteSorted($sub, \array_slice($paths, $i, $j - $i), $start + 1));
+                }
+            }
+
+            $i = $j;
+        }
+
+        return self::deleteKeys($value, $keys);
+    }
+
+    /**
+     * @param list<mixed> $keys
+     *
+     * @throws JqException
+     */
+    private static function deleteKeys(mixed $value, array $keys): mixed
+    {
+        if ([] === $keys || null === $value) {
+            return $value;
+        }
+
+        if ($value instanceof JsonObject) {
+            foreach ($keys as $key) {
+                if (!\is_string($key)) {
+                    throw new JqException(\sprintf('Cannot delete field at %s index of object', self::keyKind($key)));
+                }
+
+                $value = $value->without($key);
+            }
+
+            return $value;
+        }
+
+        if (\is_array($value)) {
+            return self::deleteIndices($value, $keys);
+        }
+
+        throw new JqException(\sprintf('Cannot delete fields from %s', Values::typeName($value)));
+    }
+
+    /**
+     * @param array<array-key, mixed> $array
+     * @param list<mixed>             $keys
+     *
+     * @return list<mixed>
+     *
+     * @throws JqException
+     */
+    private static function deleteIndices(array $array, array $keys): array
+    {
+        $count   = \count($array);
+        $deleted = [];
+        foreach ($keys as $key) {
+            if (\is_int($key) || \is_float($key) || $key instanceof PreciseNumber) {
+                $index = \is_int($key) ? $key : Access::position($key);
+                if (null === $index) {
+                    continue;
+                }
+
+                if ($index < 0) {
+                    $index += $count;
+                }
+
+                if ($index >= 0 && $index < $count) {
+                    $deleted[$index] = true;
+                }
+            } elseif ($key instanceof JsonObject) {
+                [$start, $end] = Access::bounds($count, $key->get('start'), $key->get('end'));
+                for ($i = $start; $i < $end; ++$i) {
+                    $deleted[$i] = true;
+                }
+            } else {
+                throw new JqException(\sprintf('Cannot delete field at %s index of array', self::keyKind($key)));
+            }
+        }
+
+        $kept = [];
+        foreach ($array as $index => $element) {
+            if (!isset($deleted[$index])) {
+                $kept[] = $element;
+            }
+        }
+
+        return $kept;
+    }
+
+    /**
+     * Whether two path keys group together: equal values, with nan keys equal to each other.
+     */
+    private static function sameKey(mixed $left, mixed $right): bool
+    {
+        if (\is_float($left) && is_nan($left) && \is_float($right) && is_nan($right)) {
+            return true;
+        }
+
+        return Values::equals($left, $right);
+    }
+
+    private static function keyKind(mixed $key): string
+    {
+        $kind = Values::typeName($key);
+
+        return match ($kind) {
+            'string' => 'object',
+            'number' => 'array',
+            default  => $kind,
+        };
     }
 }
