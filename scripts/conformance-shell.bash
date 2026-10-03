@@ -16,6 +16,16 @@ gaps_dir="${GAPS_DIR:-$root/tests/Conformance}"
 case_timeout="${CASE_TIMEOUT:-300}"
 log_dir="$root/var/conformance"
 phpxq="$root/bin/phpxq"
+# PHPXQ_BINARY=/path/to/artefact runs the suites against a packaged build (a static binary, or the
+# PHAR via `php`) instead of bin/phpxq. The artefact takes the tool name as its first argument.
+phpxq_command="php $(printf '%q' "$phpxq")"
+if [[ -n "${PHPXQ_BINARY:-}" ]]; then
+    [[ -x "$PHPXQ_BINARY" ]] || {
+        echo "PHPXQ_BINARY is not an executable file: $PHPXQ_BINARY" >&2
+        exit 2
+    }
+    phpxq_command="$(printf '%q' "$PHPXQ_BINARY")"
+fi
 
 if [[ "$suite" != jq && "$suite" != yq && "$suite" != all ]]; then
     echo "usage: ${0##*/} [jq|yq|all]" >&2
@@ -89,7 +99,7 @@ run_yq_case() {
     mkdir -p "$work/scripts"
     cp "$root/tests/Conformance/Yq/acceptance/$script" "$work/$script"
     cp "$root/tests/Conformance/Yq/acceptance/scripts/shunit2" "$work/scripts/shunit2"
-    printf '#!/bin/sh\nexec php %q yq "$@"\n' "$phpxq" >"$work/yq"
+    printf '#!/bin/sh\nexec %s yq "$@"\n' "$phpxq_command" >"$work/yq"
     chmod 755 "$work/yq" "$work/$script" "$work/scripts/shunit2"
     (cd "$work" && timeout "$case_timeout" "./$script") >"$log" 2>&1 || rc=$?
     record_case Yq "shell:$script" "$log" "$rc"
@@ -100,7 +110,7 @@ run_jq_case() {
     log="$log_dir/jq-shell-shtest.log"
     work="$tmp_root/jq-shtest"
     mkdir -p "$work/bin"
-    printf '#!/bin/sh\nexec php %q jq "$@"\n' "$phpxq" >"$work/bin/jq"
+    printf '#!/bin/sh\nexec %s jq "$@"\n' "$phpxq_command" >"$work/bin/jq"
     chmod 755 "$work/bin/jq"
     (
         cd "$work"

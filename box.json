@@ -1,0 +1,18 @@
+{
+    "main": "bin/phpxq",
+    "output": "dist/phpxq.phar",
+    "alias": "phpxq.phar",
+    "finder": [
+        {
+            "in": "src",
+            "name": "*.php"
+        }
+    ],
+    "files": ["VERSION", "composer.json"],
+    "force-autodiscovery": false,
+    "exclude-composer-files": false,
+    "compression": "NONE",
+    "check-requirements": false,
+    "dump-autoload": true,
+    "banner": false
+}
