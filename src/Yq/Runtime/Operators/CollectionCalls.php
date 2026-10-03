@@ -83,7 +83,7 @@ final class CollectionCalls implements CallOperatorInterface
                 $new        = NodeOps::seq($flat);
                 $new->style = $node->style;
 
-                return [Cands::derive($new, $match)];
+                return [Cands::deriveInDocument($new, $match)];
 
             case 'add':
                 return $this->add($call, $match, $node, $context, $evaluator);

@@ -17,9 +17,29 @@ final class Cands
     }
 
     /**
-     * A match with no location (a computed value) that keeps the document and file of `$from`.
+     * A match with no location (a computed value). The reference takes the document of a computed value
+     * from the parent of its source, so a value computed from a document root belongs to no document
+     * (index 0 of file 0) and prints without a separator, while a value computed from a nested match
+     * keeps the document and file of `$from`.
      */
     public static function derive(Node $node, ?Candidate $from): Candidate
+    {
+        if (!$from instanceof Candidate) {
+            return new Candidate($node);
+        }
+
+        if (!$from->parent instanceof Candidate) {
+            return new Candidate($node, null, null, 0, 0, $from->filename);
+        }
+
+        return new Candidate($node, null, null, $from->documentIndex, $from->fileIndex, $from->filename);
+    }
+
+    /**
+     * A computed value that always belongs to the document and file of `$from` (object construction
+     * `{...}` does, whereas {@see derive} drops them for a value computed from a document root).
+     */
+    public static function deriveInDocument(Node $node, ?Candidate $from): Candidate
     {
         if (!$from instanceof Candidate) {
             return new Candidate($node);

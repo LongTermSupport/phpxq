@@ -71,13 +71,20 @@ final class YamlWriter
 
     private int $indent = -1;
 
+    /** True while the next block collection or scalar opens directly inside a "- " sequence item. */
+    private bool $inSequenceItem = false;
+
     /** Indent of the foot comment just written, or -1; the next line at that indent is preceded by a blank line. */
     private int $footIndent = -1;
 
     private int $flowLevel = 0;
 
+    /** Spaces per level; libyaml falls back to 2 for anything outside 2..9. */
+    private readonly int $step;
+
     public function __construct(private readonly EmitOptions $options)
     {
+        $this->step = $options->indent < 2 || $options->indent > 9 ? 2 : $options->indent;
     }
 
     /**
@@ -276,7 +283,10 @@ final class YamlWriter
             $this->indicator('-', true, false, true);
 
             $itemBlock = $this->isBlockCollection($item);
+
+            $this->inSequenceItem = true;
             $this->emitNode($item, false, null, null, $itemBlock ? $item->lineComment : '');
+            $this->inSequenceItem = false;
             if (!$itemBlock && '' !== $item->lineComment) {
                 $this->writeLineComment($item->lineComment);
             }
@@ -525,7 +535,7 @@ final class YamlWriter
             case NodeStyleEnum::Literal:
             case NodeStyleEnum::Folded:
                 if ($saved < 0) {
-                    $this->indent = $this->options->indent;
+                    $this->indent = $this->step;
                 }
 
                 if (NodeStyleEnum::Literal === $style) {
@@ -640,7 +650,7 @@ final class YamlWriter
     private function writeBlockScalarHints(string $value): void
     {
         if ('' !== $value && (' ' === $value[0] || "\n" === $value[0])) {
-            $this->indicator((string)$this->options->indent, false, false, false);
+            $this->indicator((string)$this->step, false, false, false);
         }
 
         $length = \strlen($value);
@@ -693,21 +703,19 @@ final class YamlWriter
         $this->indention  = true;
         $this->whitespace = true;
 
+        // go-yaml measures the "next character is blank" test from the START of the value, not from the
+        // newline being written, so every newline between non-blank text gets an extra blank line unless
+        // the value itself begins with a blank.
+        $lead       = ltrim($value, "\n\r");
+        $extraBreak = '' !== $lead && !\in_array($lead[0], [' ', "\t"], true);
+
         $parts          = explode("\n", $value);
         $breaks         = true;
         $leadingSpaces  = true;
-        $partCount      = \count($parts);
         foreach ($parts as $j => $part) {
             if ($j > 0) {
-                if (!$breaks && !$leadingSpaces) {
-                    $k = $j;
-                    while ($k < $partCount && '' === $parts[$k]) {
-                        ++$k;
-                    }
-
-                    if ($k < $partCount && ' ' !== $parts[$k][0] && "\t" !== $parts[$k][0]) {
-                        $this->putBreak();
-                    }
+                if (!$breaks && !$leadingSpaces && $extraBreak) {
+                    $this->putBreak();
                 }
 
                 $this->putBreak();
@@ -838,7 +846,18 @@ final class YamlWriter
 
     private function increaseIndent(): void
     {
-        $this->indent = $this->indent < 0 ? 0 : $this->indent + $this->options->indent;
+        $inSequenceItem        = $this->inSequenceItem;
+        $this->inSequenceItem = false;
+
+        if ($this->indent < 0) {
+            $this->indent = 0;
+
+            return;
+        }
+
+        $this->indent = $inSequenceItem
+            ? $this->indent + 2
+            : $this->step * intdiv($this->indent + $this->step, $this->step);
     }
 
     private function writeIndent(): void

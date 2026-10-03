@@ -247,7 +247,12 @@ final class YamlEmitterTest extends TestCase
 
         yield 'folded style is preserved' => [
             Node::mapping([Node::scalar('a'), Node::scalar("x\ny\n", '!!str', NodeStyleEnum::Folded)]),
-            "a: >\n  x\n\n  y\n",
+            "a: >\n  x\n\n  y\n\n",
+        ];
+
+        yield 'folded scalar whose value starts with a space gets no extra break' => [
+            Node::mapping([Node::scalar('a'), Node::scalar(" x\n", '!!str', NodeStyleEnum::Folded)]),
+            "a: >2\n   x\n",
         ];
 
         yield 'multi-line key becomes a complex key' => [
@@ -367,7 +372,22 @@ final class YamlEmitterTest extends TestCase
     {
         $node = Node::sequence([self::map(['a', '1'], ['b', '2'])]);
 
-        self::assertSame("-   a: 1\n    b: 2\n", new YamlEmitter()->emit($node, new EmitOptions(indent: 4)));
+        self::assertSame("- a: 1\n  b: 2\n", new YamlEmitter()->emit($node, new EmitOptions(indent: 4)));
+    }
+
+    public function testIndentRoundsNestedLevelsUpToAMultipleOfTheStep(): void
+    {
+        $inner = Node::mapping([Node::scalar('m'), Node::scalar('1'), Node::scalar('n'), Node::sequence([Node::scalar('o')])]);
+        $node  = Node::sequence([Node::mapping([Node::scalar('k'), Node::sequence([$inner])])]);
+
+        self::assertSame("- k:\n   - m: 1\n     n:\n      - o\n", new YamlEmitter()->emit($node, new EmitOptions(indent: 3)));
+    }
+
+    public function testIndentOutsideTwoToNineFallsBackToTwo(): void
+    {
+        $node = Node::mapping([Node::scalar('a'), Node::mapping([Node::scalar('b'), Node::scalar('1')])]);
+
+        self::assertSame("a:\n  b: 1\n", new YamlEmitter()->emit($node, new EmitOptions(indent: 0)));
     }
 
     public function testIndentOptionNestedMappings(): void
