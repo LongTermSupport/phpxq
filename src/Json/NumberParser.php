@@ -49,6 +49,29 @@ final class NumberParser
     }
 
     /**
+     * Unary minus on a preserved literal: jq negates the decimal, so the digits survive ("-1.000" becomes
+     * "1.000", "1E+1000" becomes "-1E+1000").
+     */
+    public static function negate(PreciseNumber $number): PreciseNumber
+    {
+        $literal = str_starts_with($number->literal, '-') ? substr($number->literal, 1) : '-' . $number->literal;
+
+        return new PreciseNumber(-$number->value, $literal);
+    }
+
+    /**
+     * The absolute value of a preserved literal, keeping its digits.
+     */
+    public static function abs(PreciseNumber $number): PreciseNumber
+    {
+        if (!str_starts_with($number->literal, '-')) {
+            return $number;
+        }
+
+        return new PreciseNumber(abs($number->value), substr($number->literal, 1));
+    }
+
+    /**
      * Like {@see self::parse} but returns null for text that is not a number. Besides decimal literals it
      * accepts nan and infinity in any case with an optional sign (jq's decNumber based parser does).
      */
