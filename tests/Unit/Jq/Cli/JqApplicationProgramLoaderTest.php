@@ -43,8 +43,7 @@ final class JqApplicationProgramLoaderTest extends TestCase
 
     public function testDefinitionsOnlyIsRejected(): void
     {
-        $this->expectException(JqCompileException::class);
-        $this->expectExceptionMessage('Top-level program not given (try ".")');
+        $this->expectExceptionObject(new JqCompileException('Top-level program not given (try ".")'));
         new ProgramLoader(new JqApplicationFakeParser(), null)->load('DEFS');
     }
 
@@ -54,7 +53,7 @@ final class JqApplicationProgramLoaderTest extends TestCase
         $parser  = new JqApplicationFakeParser();
         $program = new ProgramLoader($parser, $this->home)->load('.');
 
-        self::assertSame(['home'], array_map(static fn ($def): string => $def->name, $program->defs));
+        self::assertSame(['home'], array_map(static fn (\LTS\PhpXq\Jq\Ast\FuncDef $def): string => $def->name, $program->defs));
         self::assertNotNull($program->body);
         self::assertSame(['.', 'def home: 1;'], $parser->sources);
     }

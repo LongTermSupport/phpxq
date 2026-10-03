@@ -13,6 +13,16 @@ use PHPUnit\Framework\TestCase;
  */
 final class JqApplicationValueScannerTest extends TestCase
 {
+    #[DataProvider('provideValues')]
+    public function testFindsTheExtentOfTheNextValue(string $text, int $start, string $slice): void
+    {
+        $scanner = new ValueScanner();
+
+        self::assertSame(ValueScanner::FOUND, $scanner->find($text, 0));
+        self::assertSame($start, $scanner->start);
+        self::assertSame($slice, substr($text, $scanner->start, $scanner->end - $scanner->start));
+    }
+
     /**
      * @return iterable<string, array{string, int, string}>
      */
@@ -26,7 +36,7 @@ final class JqApplicationValueScannerTest extends TestCase
 
         yield 'string with escaped quote' => ['"a\"b" x', 0, '"a\"b"'];
 
-        yield 'string ending in escaped backslash' => ['"a\\\\" x', 0, '"a\\\\"'];
+        yield 'string ending in escaped backslash' => ['"a\\\" x', 0, '"a\\\"'];
 
         yield 'array' => ["\n[1, [2, \"]\"]] 3", 1, '[1, [2, "]"]]'];
 
@@ -37,16 +47,6 @@ final class JqApplicationValueScannerTest extends TestCase
         yield 'scalar stops at a quote' => ['1"a"', 0, '1'];
 
         yield 'nan' => ['nan ', 0, 'nan'];
-    }
-
-    #[DataProvider('provideValues')]
-    public function testFindsTheExtentOfTheNextValue(string $text, int $start, string $slice): void
-    {
-        $scanner = new ValueScanner();
-
-        self::assertSame(ValueScanner::FOUND, $scanner->find($text, 0));
-        self::assertSame($start, $scanner->start);
-        self::assertSame($slice, substr($text, $scanner->start, $scanner->end - $scanner->start));
     }
 
     public function testWalksThroughSeveralValues(): void
@@ -72,6 +72,15 @@ final class JqApplicationValueScannerTest extends TestCase
         self::assertSame(ValueScanner::NONE, $scanner->find(" \t\r\n", 0));
     }
 
+    #[DataProvider('provideIncomplete')]
+    public function testReportsATextThatEndsBeforeTheValueDoes(string $text): void
+    {
+        $scanner = new ValueScanner();
+
+        self::assertSame(ValueScanner::INCOMPLETE, $scanner->find($text, 0));
+        self::assertSame(0, $scanner->start);
+    }
+
     /**
      * @return iterable<string, array{string}>
      */
@@ -90,13 +99,12 @@ final class JqApplicationValueScannerTest extends TestCase
         yield 'nested' => ['[[1]'];
     }
 
-    #[DataProvider('provideIncomplete')]
-    public function testReportsATextThatEndsBeforeTheValueDoes(string $text): void
+    #[DataProvider('provideInvalid')]
+    public function testReportsACharacterThatCannotStartAValue(string $text): void
     {
         $scanner = new ValueScanner();
 
-        self::assertSame(ValueScanner::INCOMPLETE, $scanner->find($text, 0));
-        self::assertSame(0, $scanner->start);
+        self::assertSame(ValueScanner::INVALID, $scanner->find($text, 0));
     }
 
     /**
@@ -111,14 +119,6 @@ final class JqApplicationValueScannerTest extends TestCase
         yield 'comma' => [',1'];
 
         yield 'colon' => [':'];
-    }
-
-    #[DataProvider('provideInvalid')]
-    public function testReportsACharacterThatCannotStartAValue(string $text): void
-    {
-        $scanner = new ValueScanner();
-
-        self::assertSame(ValueScanner::INVALID, $scanner->find($text, 0));
     }
 
     public function testNulIsPartOfAScalarToken(): void

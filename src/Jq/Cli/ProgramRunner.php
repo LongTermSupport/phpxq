@@ -40,6 +40,8 @@ final class ProgramRunner
 
     private int $status = self::NO_OUTPUT;
 
+    private ?string $abortMessage = null;
+
     /** @var Closure(mixed): void */
     private readonly Closure $emit;
 
@@ -59,27 +61,42 @@ final class ProgramRunner
     {
         $this->status = self::NO_OUTPUT;
 
+        $this->abortMessage = null;
+
         try {
             $this->program->run($this->context, $value, $this->emit);
         } catch (JqException $jqException) {
             $this->reportError($jqException->value);
             $this->status = self::ERROR;
         } catch (HaltException $haltException) {
-            if (null !== $haltException->stderrText) {
-                $this->console->err($haltException->stderrText);
-            }
-
-            $this->halted = true;
-            $this->status = $haltException->exitCode;
-        } catch (OutputAbortException $outputAbortException) {
-            if ('' !== $outputAbortException->getMessage()) {
-                $this->reportError($outputAbortException->getMessage());
-            }
-
-            $this->status = self::ERROR;
+            $this->finish($haltException);
         }
 
         return $this->status;
+    }
+
+    /**
+     * A {@see HaltException} is either the program's own `halt` / `halt_error`, or the output step ending
+     * this input (it is the one exception no jq construct can catch).
+     */
+    private function finish(HaltException $haltException): void
+    {
+        if (null !== $this->abortMessage) {
+            if ('' !== $this->abortMessage) {
+                $this->reportError($this->abortMessage);
+            }
+
+            $this->status = self::ERROR;
+
+            return;
+        }
+
+        if (null !== $haltException->stderrText) {
+            $this->console->err($haltException->stderrText);
+        }
+
+        $this->halted = true;
+        $this->status = $haltException->exitCode;
     }
 
     /**
@@ -113,12 +130,18 @@ final class ProgramRunner
         $rawNul   = $options->rawOutput0;
         $seq      = $options->seq;
         $flush    = $options->unbuffered;
-        $suffix   = $options->rawOutput0 ? "\0" : ($options->joinOutput ? '' : "\n");
+        $suffix   = match (true) {
+            $options->rawOutput0  => "\0",
+            $options->joinOutput  => '',
+            default               => "\n",
+        };
 
         return function (mixed $result) use ($encoder, $encode, $console, $flat, $raw, $ascii, $rawNul, $seq, $flush, $suffix): void {
             if (\is_string($result) && $raw && !$ascii) {
                 if ($rawNul && str_contains($result, "\0")) {
-                    throw new OutputAbortException(self::NUL_MESSAGE);
+                    $this->abortMessage = self::NUL_MESSAGE;
+
+                    throw new HaltException(self::ERROR);
                 }
 
                 $text = $result;
@@ -137,7 +160,9 @@ final class ProgramRunner
             }
 
             if ($console->stdoutFailed()) {
-                throw new OutputAbortException('');
+                $this->abortMessage = '';
+
+                throw new HaltException(self::ERROR);
             }
         };
     }

@@ -20,10 +20,10 @@ final class JqApplicationOutputWriterTest extends TestCase
         $writer = new OutputWriter($stream, 8);
 
         $writer->write('abc');
-        self::assertSame('', self::contents($stream));
+        self::assertSame('', $this->contents($stream));
 
         $writer->write('defgh');
-        self::assertSame('abcdefgh', self::contents($stream));
+        self::assertSame('abcdefgh', $this->contents($stream));
     }
 
     public function testFlushWritesWhatIsBuffered(): void
@@ -36,7 +36,7 @@ final class JqApplicationOutputWriterTest extends TestCase
         $writer->flush();
         $writer->flush();
 
-        self::assertSame('x', self::contents($stream));
+        self::assertSame('x', $this->contents($stream));
         self::assertFalse($writer->hasFailed());
     }
 
@@ -48,7 +48,7 @@ final class JqApplicationOutputWriterTest extends TestCase
 
         $writer->write('now');
 
-        self::assertSame('now', self::contents($stream));
+        self::assertSame('now', $this->contents($stream));
     }
 
     public function testAClosedPipeMarksTheWriterFailedWithoutNoise(): void
@@ -76,12 +76,12 @@ final class JqApplicationOutputWriterTest extends TestCase
         $console = new Console($out, $err);
 
         $console->out('one');
-        self::assertSame('', self::contents($out));
+        self::assertSame('', $this->contents($out));
 
         $console->err('two');
 
-        self::assertSame('one', self::contents($out));
-        self::assertSame('two', self::contents($err));
+        self::assertSame('one', $this->contents($out));
+        self::assertSame('two', $this->contents($err));
         self::assertFalse($console->stdoutFailed());
     }
 
@@ -105,7 +105,7 @@ final class JqApplicationOutputWriterTest extends TestCase
     /**
      * @param resource $stream
      */
-    private static function contents(mixed $stream): string
+    private function contents(mixed $stream): string
     {
         rewind($stream);
 

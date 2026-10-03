@@ -23,9 +23,23 @@ abstract class JqApplicationTestCase extends TestCase
 
     protected JqApplicationFakeEncoder $encoder;
 
+    /** @var list<string> */
+    private array $tempFiles = [];
+
+    protected function tearDown(): void
+    {
+        foreach ($this->tempFiles as $path) {
+            if (is_file($path)) {
+                unlink($path);
+            }
+        }
+
+        parent::tearDown();
+    }
+
     /**
-     * @param list<string>                                                                       $args
-     * @param ?Closure(RuntimeContext, mixed, Closure(mixed): void): void                         $behaviour defaults to the identity filter
+     * @param list<string>                                                $args
+     * @param ?Closure(RuntimeContext, mixed, Closure(mixed): void): void $behaviour defaults to the identity filter
      *
      * @return array{int, string, string} exit status, stdout, stderr
      */
@@ -87,19 +101,5 @@ abstract class JqApplicationTestCase extends TestCase
         $this->tempFiles[] = $path;
 
         return $path;
-    }
-
-    /** @var list<string> */
-    private array $tempFiles = [];
-
-    protected function tearDown(): void
-    {
-        foreach ($this->tempFiles as $path) {
-            if (is_file($path)) {
-                unlink($path);
-            }
-        }
-
-        parent::tearDown();
     }
 }

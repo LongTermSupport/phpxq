@@ -94,8 +94,7 @@ final class JqApplicationInputSourceTest extends TestCase
     {
         $source = $this->source('');
 
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('No more inputs');
+        $this->expectExceptionObject(JqException::fromMessage('No more inputs'));
         $source->next();
     }
 
@@ -121,7 +120,7 @@ final class JqApplicationInputSourceTest extends TestCase
         $source = $this->source('', [$first, $second]);
 
         $items = [];
-        while (null !== ($item = $source->fetch())) {
+        while (($item = $source->fetch()) instanceof InputItem) {
             $items[] = [$item->value, $item->filename === $first ? 'first' : 'second', $item->line, $source->filename() === $item->filename];
         }
 
@@ -195,8 +194,7 @@ final class JqApplicationInputSourceTest extends TestCase
         $source = $this->source('1 foo');
         self::assertSame(1, $source->next());
 
-        $this->expectException(JqException::class);
-        $this->expectExceptionMessage('Invalid literal');
+        $this->expectExceptionObject(JqException::fromMessage('Invalid literal at line 1, column 6'));
         $source->next();
     }
 
@@ -406,7 +404,7 @@ final class JqApplicationInputSourceTest extends TestCase
     private function items(InputSource $source): array
     {
         $items = [];
-        while (null !== ($item = $source->fetch())) {
+        while (($item = $source->fetch()) instanceof InputItem) {
             $items[] = $item;
         }
 
@@ -427,6 +425,9 @@ final class JqApplicationInputSourceTest extends TestCase
         return $pairs;
     }
 
+    /**
+     * @return non-empty-string
+     */
     private function tempFile(string $contents): string
     {
         $path = tempnam(sys_get_temp_dir(), 'jqin');

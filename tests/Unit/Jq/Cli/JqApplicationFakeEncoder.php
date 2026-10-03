@@ -29,11 +29,11 @@ final class JqApplicationFakeEncoder implements JsonEncoderInterface
     private function node(mixed $value, EncodeOptions $options, int $level): string
     {
         if (\is_array($value)) {
-            return $this->container('[', ']', array_map(fn (mixed $item): string => $this->node($item, $options, $level + 1), $value), $options, $level);
+            return $this->container('[', ']', array_values(array_map(fn (mixed $item): string => $this->node($item, $options, $level + 1), $value)), $options, $level);
         }
 
         if ($value instanceof JsonObject) {
-            $keys = $options->sortKeys ? $value->sortedKeys() : $value->keys();
+            $keys  = $options->sortKeys ? $value->sortedKeys() : $value->keys();
             $items = [];
             foreach ($keys as $key) {
                 $items[] = json_encode($key, \JSON_UNESCAPED_UNICODE | \JSON_UNESCAPED_SLASHES) . ($options->indent > 0 || $options->useTab ? ': ' : ':') . $this->node($value->get($key), $options, $level + 1);

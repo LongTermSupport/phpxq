@@ -29,12 +29,12 @@ final readonly class ProgramLoader
     public function load(string $source): Program
     {
         $program = $this->parser->parse($source);
-        if (null === $program->body && ([] !== $program->defs || [] !== $program->imports)) {
+        if (!$program->body instanceof \LTS\PhpXq\Jq\Ast\Node && ([] !== $program->defs || [] !== $program->imports)) {
             throw new JqCompileException('Top-level program not given (try ".")');
         }
 
         $home = $this->homeProgram();
-        if (null === $home) {
+        if (!$home instanceof Program) {
             return $program;
         }
 

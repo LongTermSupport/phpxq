@@ -26,7 +26,7 @@ final class JqApplicationFakeParser implements ParserInterface
         $this->sources[] = $source;
 
         if (str_contains($source, 'SYNTAX')) {
-            throw new JqCompileException("syntax error, unexpected INVALID_CHARACTER (Unix shell quoting issues?) at <top-level>, line 1, column 1:");
+            throw new JqCompileException('syntax error, unexpected INVALID_CHARACTER (Unix shell quoting issues?) at <top-level>, line 1, column 1:');
         }
 
         if (str_contains($source, 'catch ]')) {

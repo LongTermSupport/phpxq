@@ -28,15 +28,13 @@ final class JqApplicationFileReaderTest extends TestCase
 
     public function testMissingFile(): void
     {
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Could not open /nonexistent/file: No such file or directory');
+        $this->expectExceptionObject(new RuntimeException('Could not open /nonexistent/file: No such file or directory'));
         FileReader::read('/nonexistent/file');
     }
 
     public function testDirectory(): void
     {
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Could not open ' . sys_get_temp_dir() . ': Is a directory');
+        $this->expectExceptionObject(new RuntimeException('Could not open ' . sys_get_temp_dir() . ': Is a directory'));
         FileReader::read(sys_get_temp_dir());
     }
 
@@ -51,8 +49,7 @@ final class JqApplicationFileReaderTest extends TestCase
         chmod($path, 0o000);
 
         try {
-            $this->expectException(RuntimeException::class);
-            $this->expectExceptionMessage('Permission denied');
+            $this->expectExceptionObject(new RuntimeException('Could not open ' . $path . ': Permission denied'));
             FileReader::read($path);
         } finally {
             unlink($path);

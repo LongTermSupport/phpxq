@@ -27,7 +27,7 @@ final class CliOptionsTest extends TestCase
 
     public function testEncodeOptionsForPrettyOutput(): void
     {
-        $encode = new CliOptions(indent: 4, sortKeys: true, ascii: true)->encodeOptions(null);
+        $encode = new CliOptions(ascii: true, sortKeys: true, indent: 4)->encodeOptions(null);
 
         self::assertSame(4, $encode->indent);
         self::assertFalse($encode->useTab);

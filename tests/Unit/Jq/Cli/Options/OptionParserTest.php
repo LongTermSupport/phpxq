@@ -118,6 +118,19 @@ final class OptionParserTest extends TestCase
     }
 
     /**
+     * @param list<string> $args
+     */
+    #[DataProvider('provideLayouts')]
+    public function testLayoutFlagsActInOrder(array $args, bool $pretty, bool $tab, int $indent): void
+    {
+        $options = self::parse($args);
+
+        self::assertSame($pretty, $options->pretty);
+        self::assertSame($tab, $options->tab);
+        self::assertSame($indent, $options->indent);
+    }
+
+    /**
      * @return iterable<string, array{list<string>, bool, bool, int}>
      */
     public static function provideLayouts(): iterable
@@ -143,25 +156,12 @@ final class OptionParserTest extends TestCase
         yield 'compact-output long' => [['--compact-output', '.'], false, false, 0];
     }
 
-    /**
-     * @param list<string> $args
-     */
-    #[DataProvider('provideLayouts')]
-    public function testLayoutFlagsActInOrder(array $args, bool $pretty, bool $tab, int $indent): void
-    {
-        $options = self::parse($args);
-
-        self::assertSame($pretty, $options->pretty);
-        self::assertSame($tab, $options->tab);
-        self::assertSame($indent, $options->indent);
-    }
-
     public function testIndentLimits(): void
     {
         self::assertSame(7, self::parse(['--indent', '7', '.'])->indent);
-        self::assertRefused(['--indent', '8', '.'], 'jq: Cannot indent more than 7 characters');
-        self::assertRefused(['--indent', '-2', '.'], 'jq: Cannot indent less than -1 characters');
-        self::assertRefused(['--indent'], 'jq: --indent takes one parameter');
+        $this->assertRefused(['--indent', '8', '.'], 'jq: Cannot indent more than 7 characters');
+        $this->assertRefused(['--indent', '-2', '.'], 'jq: Cannot indent less than -1 characters');
+        $this->assertRefused(['--indent'], 'jq: --indent takes one parameter');
     }
 
     public function testArgsAndJsonargsSwitchTheMeaningOfPositionals(): void
@@ -211,8 +211,8 @@ final class OptionParserTest extends TestCase
 
     public function testInvalidJsonargIsRefused(): void
     {
-        self::assertRefused(['-n', '--jsonargs', 'null', 'invalid'], 'jq: Invalid JSON text passed to --jsonargs');
-        self::assertRefused(['-n', '--jsonargs', 'null', '--', 'invalid'], 'jq: Invalid JSON text passed to --jsonargs');
+        $this->assertRefused(['-n', '--jsonargs', 'null', 'invalid'], 'jq: Invalid JSON text passed to --jsonargs');
+        $this->assertRefused(['-n', '--jsonargs', 'null', '--', 'invalid'], 'jq: Invalid JSON text passed to --jsonargs');
     }
 
     public function testNamedArguments(): void
@@ -227,11 +227,11 @@ final class OptionParserTest extends TestCase
 
     public function testNamedArgumentErrors(): void
     {
-        self::assertRefused(['--arg', 'a'], 'jq: --arg takes two parameters (e.g. --arg varname value)');
-        self::assertRefused(['--argjson', 'a', '1x'], 'jq: Invalid JSON text passed to --argjson');
-        self::assertRefused(['--argjson', 'a'], 'jq: --argjson takes two parameters (e.g. --argjson varname text)');
-        self::assertRefused(['--slurpfile', 'a'], 'jq: --slurpfile takes two parameters (e.g. --slurpfile varname filename)');
-        self::assertRefused(['--rawfile', 'a'], 'jq: --rawfile takes two parameters (e.g. --rawfile varname filename)');
+        $this->assertRefused(['--arg', 'a'], 'jq: --arg takes two parameters (e.g. --arg varname value)');
+        $this->assertRefused(['--argjson', 'a', '1x'], 'jq: Invalid JSON text passed to --argjson');
+        $this->assertRefused(['--argjson', 'a'], 'jq: --argjson takes two parameters (e.g. --argjson varname text)');
+        $this->assertRefused(['--slurpfile', 'a'], 'jq: --slurpfile takes two parameters (e.g. --slurpfile varname filename)');
+        $this->assertRefused(['--rawfile', 'a'], 'jq: --rawfile takes two parameters (e.g. --rawfile varname filename)');
     }
 
     public function testSlurpfileAndRawfile(): void
@@ -246,23 +246,23 @@ final class OptionParserTest extends TestCase
 
     public function testUnreadableFileForSlurpfile(): void
     {
-        self::assertRefused(
-            ['--slurpfile', 'a', '/nonexistent/x.json', '.'],
-            'jq: Bad JSON in --slurpfile a /nonexistent/x.json: Could not open /nonexistent/x.json: No such file or directory',
-        );
-        self::assertRefused(
-            ['--rawfile', 'a', '/nonexistent/x.txt', '.'],
-            'jq: Bad JSON in --rawfile a /nonexistent/x.txt: Could not open /nonexistent/x.txt: No such file or directory',
-        );
+        $this->assertRefused(['--slurpfile', 'a', '/nonexistent/x.json', '.'], 'jq: Bad JSON in --slurpfile a /nonexistent/x.json: Could not open /nonexistent/x.json: No such file or directory');
+        $this->assertRefused(['--rawfile', 'a', '/nonexistent/x.txt', '.'], 'jq: Bad JSON in --rawfile a /nonexistent/x.txt: Could not open /nonexistent/x.txt: No such file or directory');
     }
 
     public function testBadJsonInSlurpfile(): void
     {
         $file = $this->tempFile('{"a":1} nope');
 
-        $this->expectException(UsageException::class);
-        $this->expectExceptionMessage('jq: Bad JSON in --slurpfile a ' . $file . ': ');
-        self::parse(['--slurpfile', 'a', $file, '.']);
+        try {
+            self::parse(['--slurpfile', 'a', $file, '.']);
+        } catch (UsageException $usageException) {
+            self::assertStringStartsWith('jq: Bad JSON in --slurpfile a ' . $file . ': ', $usageException->getMessage());
+
+            return;
+        }
+
+        self::fail('Expected a UsageException');
     }
 
     public function testLibraryPathForms(): void
@@ -270,7 +270,7 @@ final class OptionParserTest extends TestCase
         self::assertSame(['a', 'b', 'c', 'd'], self::parse(['-L', 'a', '-Lb', '-nLc', '-n', '-L', 'd', '.'])->libraryPaths);
         self::assertSame(['.'], self::parse(['-nL.', '42'])->libraryPaths);
         self::assertSame(['.'], self::parse(['-nL', '.', '42'])->libraryPaths);
-        self::assertRefused(['-L'], 'jq: -L takes a parameter: (e.g. -L /search/path or -L/search/path)');
+        $this->assertRefused(['-L'], 'jq: -L takes a parameter: (e.g. -L /search/path or -L/search/path)');
     }
 
     public function testHelpAndVersionEndParsingImmediately(): void
@@ -289,15 +289,14 @@ final class OptionParserTest extends TestCase
 
     public function testUnknownOptionsAreRefused(): void
     {
-        self::assertRefused(['--bogus'], 'jq: Unknown option: --bogus');
-        self::assertRefused(['-nz', '.'], 'jq: Unknown option: -nz');
-        self::assertRefused(['--null', '.'], 'jq: Unknown option: --null');
+        $this->assertRefused(['--bogus'], 'jq: Unknown option: --bogus');
+        $this->assertRefused(['-nz', '.'], 'jq: Unknown option: -nz');
+        $this->assertRefused(['--null', '.'], 'jq: Unknown option: --null');
     }
 
     public function testRefusalIsReachedAtItsPosition(): void
     {
-        $this->expectException(UsageException::class);
-        $this->expectExceptionMessage('jq: Unknown option: --bogus');
+        $this->expectExceptionObject(new UsageException('jq: Unknown option: --bogus'));
         self::parse(['-n', '--bogus', '-h']);
     }
 
@@ -317,7 +316,7 @@ final class OptionParserTest extends TestCase
     /**
      * @param list<string> $args
      */
-    private static function assertRefused(array $args, string $message): void
+    private function assertRefused(array $args, string $message): void
     {
         try {
             self::parse($args);

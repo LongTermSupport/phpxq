@@ -19,11 +19,11 @@ use LTS\PhpXq\Json\EncodeOptions;
 final readonly class CliOptions
 {
     /**
-     * @param list<string>             $files        input files (`-` is stdin)
-     * @param list<string>             $libraryPaths `-L` directories
-     * @param array<string, mixed>     $named        `--arg`, `--argjson`, `--slurpfile`, `--rawfile` in order
-     * @param list<mixed>              $positional   `--args` / `--jsonargs` values
-     * @param ?bool                    $color        true for -C, false for -M, null for "decide from the terminal"
+     * @param list<string>         $files        input files (`-` is stdin)
+     * @param list<string>         $libraryPaths `-L` directories
+     * @param array<string, mixed> $named        `--arg`, `--argjson`, `--slurpfile`, `--rawfile` in order
+     * @param list<mixed>          $positional   `--args` / `--jsonargs` values
+     * @param ?bool                $color        true for -C, false for -M, null for "decide from the terminal"
      */
     public function __construct(
         public CliAction $action = CliAction::Run,

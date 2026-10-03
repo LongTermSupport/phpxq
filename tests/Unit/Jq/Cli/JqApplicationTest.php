@@ -53,7 +53,7 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testNullInputRunsOnceWithNullAndReadsNothing(): void
     {
-        $seen = [];
+        $seen           = [];
         [$status, $out] = $this->jq(['-n', '.'], '1 2 3', static function (RuntimeContext $context, mixed $input, Closure $emit) use (&$seen): void {
             $seen[] = $input;
             $emit(42);
@@ -193,9 +193,9 @@ final class JqApplicationTest extends JqApplicationTestCase
     public function testExitStatusFollowsTheLastOutput(): void
     {
         [$truthy] = $this->jq(['-e', '.'], '1');
-        [$falsy] = $this->jq(['-e', '.'], 'false');
-        [$null] = $this->jq(['-e', '.'], '1 null');
-        [$none] = $this->jq(['-e', '.'], '', static function (): void {
+        [$falsy]  = $this->jq(['-e', '.'], 'false');
+        [$null]   = $this->jq(['-e', '.'], '1 null');
+        [$none]   = $this->jq(['-e', '.'], '', static function (): void {
         });
         [$plain] = $this->jq(['.'], 'null');
 
@@ -219,7 +219,7 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testRuntimeErrorIsReportedWithThePositionAndExits5(): void
     {
-        [$status, $out, $err] = $this->jq(['.'], "1\n", static function (RuntimeContext $context, mixed $input, Closure $emit): void {
+        [$status, $out, $err] = $this->jq(['.'], "1\n", static function (RuntimeContext $context, mixed $input, Closure $emit): never {
             $emit('before');
 
             throw JqException::fromMessage('boom');
@@ -232,7 +232,7 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testRuntimeErrorWithoutATrailingNewlineIsAtLineZero(): void
     {
-        [, , $err] = $this->jq(['.'], '1', static function (): void {
+        [, , $err] = $this->jq(['.'], '1', static function (): never {
             throw JqException::fromMessage('boom');
         });
 
@@ -241,7 +241,7 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testNonStringErrorValueIsPrintedAsJson(): void
     {
-        [, , $err] = $this->jq(['.'], '1', static function (): void {
+        [, , $err] = $this->jq(['.'], '1', static function (): never {
             throw new JqException(JsonObject::fromPairs(['a' => 1]));
         });
 
@@ -250,7 +250,7 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testErrorInNullInputModeIsAtUnknownPosition(): void
     {
-        [$status, , $err] = $this->jq(['-n', '.'], '', static function (): void {
+        [$status, , $err] = $this->jq(['-n', '.'], '', static function (): never {
             throw JqException::fromMessage('boom');
         });
 
@@ -275,8 +275,8 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testHaltStopsTheRunWithItsExitCode(): void
     {
-        $seen = [];
-        [$status, $out, $err] = $this->jq(['.'], '1 2 3', static function (RuntimeContext $context, mixed $input, Closure $emit) use (&$seen): void {
+        $seen                 = [];
+        [$status, $out, $err] = $this->jq(['.'], '1 2 3', static function (RuntimeContext $context, mixed $input, Closure $emit) use (&$seen): never {
             $seen[] = $input;
             $emit($input);
 
@@ -291,7 +291,7 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testPlainHaltExitsZeroAndWritesNothing(): void
     {
-        [$status, , $err] = $this->jq(['-n', '.'], '', static function (): void {
+        [$status, , $err] = $this->jq(['-n', '.'], '', static function (): never {
             throw new HaltException(0);
         });
 
@@ -358,7 +358,7 @@ final class JqApplicationTest extends JqApplicationTestCase
 
         self::assertSame(0, $status);
         self::assertNotNull($this->compiler->program);
-        self::assertSame(['home'], array_map(static fn ($def): string => $def->name, $this->compiler->program->defs));
+        self::assertSame(['home'], array_map(static fn (\LTS\PhpXq\Jq\Ast\FuncDef $def): string => $def->name, $this->compiler->program->defs));
     }
 
     public function testLibraryPathsReachTheCompilerAndTheContext(): void
@@ -393,9 +393,9 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testFilesAreReadInOrderAndInputFilenameFollows(): void
     {
-        $first  = $this->tempFile("1\n");
-        $second = $this->tempFile('2');
-        $names  = [];
+        $first   = $this->tempFile("1\n");
+        $second  = $this->tempFile('2');
+        $names   = [];
         [, $out] = $this->jq(['-c', '.', $first, $second], '', static function (RuntimeContext $context, mixed $input, Closure $emit) use (&$names): void {
             $names[] = $context->inputFilename();
             $emit($input);
@@ -417,7 +417,7 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testAnUnreadableFileIsReportedAndSkippedWithStatus2(): void
     {
-        $good = $this->tempFile('7');
+        $good                 = $this->tempFile('7');
         [$status, $out, $err] = $this->jq(['-c', '.', '/nonexistent/phpxq.json', $good]);
 
         self::assertSame(2, $status);
@@ -490,6 +490,18 @@ final class JqApplicationTest extends JqApplicationTestCase
     }
 
     /**
+     * @param list<string> $args
+     */
+    #[DataProvider('provideLayouts')]
+    public function testOutputLayout(array $args, string $expected): void
+    {
+        [$status, $out] = $this->jq($args, '[1,{"a":2}]');
+
+        self::assertSame(0, $status);
+        self::assertSame($expected, $out);
+    }
+
+    /**
      * @return iterable<string, array{list<string>, string}>
      */
     public static function provideLayouts(): iterable
@@ -515,18 +527,6 @@ final class JqApplicationTest extends JqApplicationTestCase
         yield 'compact then tab is a tab layout' => [['-c', '--tab', '.'], "[\n\t1,\n\t{\n\t\t\"a\": 2\n\t}\n]\n"];
 
         yield 'tab then compact is compact' => [['--tab', '-c', '.'], "[1,{\"a\":2}]\n"];
-    }
-
-    /**
-     * @param list<string> $args
-     */
-    #[DataProvider('provideLayouts')]
-    public function testOutputLayout(array $args, string $expected): void
-    {
-        [$status, $out] = $this->jq($args, '[1,{"a":2}]');
-
-        self::assertSame(0, $status);
-        self::assertSame($expected, $out);
     }
 
     public function testSortKeysIsPassedToTheEncoder(): void
@@ -606,7 +606,7 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testProgramFromFile(): void
     {
-        $file = $this->tempFile('SOURCE-FROM-FILE');
+        $file     = $this->tempFile('SOURCE-FROM-FILE');
         [$status] = $this->jq(['-n', '-f', $file]);
 
         self::assertSame(0, $status);
@@ -640,7 +640,7 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testProgramFileWithNulByteIsACompileError(): void
     {
-        $file = $this->tempFile(".\0invalid");
+        $file             = $this->tempFile(".\0invalid");
         [$status, , $err] = $this->jq(['-n', '-f', $file]);
 
         self::assertSame(3, $status);

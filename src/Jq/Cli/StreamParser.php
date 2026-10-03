@@ -23,13 +23,20 @@ use LTS\PhpXq\Json\JsonSyntaxException;
 final readonly class StreamParser
 {
     // Where the parser is inside the innermost container.
-    private const int ARRAY_FIRST  = 0; // after `[`: a value or `]`
-    private const int ARRAY_NEXT   = 1; // after `,`: a value
-    private const int ARRAY_AFTER  = 2; // after a value: `,` or `]`
-    private const int OBJECT_FIRST = 3; // after `{`: a key or `}`
-    private const int OBJECT_NEXT  = 4; // after `,`: a key
-    private const int OBJECT_COLON = 5; // after a key: `:`
-    private const int OBJECT_VALUE = 6; // after `:`: a value
+    private const int ARRAY_FIRST  = 0;
+    // after `[`: a value or `]`
+    private const int ARRAY_NEXT   = 1;
+    // after `,`: a value
+    private const int ARRAY_AFTER  = 2;
+    // after a value: `,` or `]`
+    private const int OBJECT_FIRST = 3;
+    // after `{`: a key or `}`
+    private const int OBJECT_NEXT  = 4;
+    // after `,`: a key
+    private const int OBJECT_COLON = 5;
+    // after a key: `:`
+    private const int OBJECT_VALUE = 6;
+    // after `:`: a value
     private const int OBJECT_AFTER = 7; // after a value: `,` or `}`
 
     public function __construct(
@@ -47,11 +54,11 @@ final readonly class StreamParser
     {
         $length = \strlen($text);
         $index  = 0;
-        /** @var list<int|string|null> $path */
+        /** @var array<int, int|string|null> $path */
         $path = [];
-        /** @var list<bool> $isArray */
+        /** @var array<int, bool> $isArray */
         $isArray = [];
-        /** @var list<int> $modes */
+        /** @var array<int, int> $modes */
         $modes = [];
 
         while (true) {
@@ -71,7 +78,9 @@ final readonly class StreamParser
                         $path,
                         false,
                     );
-                    $path = $isArray = $modes = [];
+                    $path    = [];
+                    $isArray = [];
+                    $modes   = [];
                 }
 
                 ++$index;
@@ -82,7 +91,7 @@ final readonly class StreamParser
             switch ($char) {
                 case '[':
                 case '{':
-                    $error = $depth > 0 ? self::valueRefusal($modes[$depth - 1], $char) : null;
+                    $error = $depth > 0 ? $this->valueRefusal($modes[$depth - 1], $char) : null;
                     if (null === $error) {
                         $isArray[] = '[' === $char;
                         $modes[]   = '[' === $char ? self::ARRAY_FIRST : self::OBJECT_FIRST;
@@ -112,7 +121,7 @@ final readonly class StreamParser
                     break;
 
                 case ',':
-                    $error = self::comma($depth > 0 ? $modes[$depth - 1] : -1);
+                    $error = $this->comma($depth > 0 ? $modes[$depth - 1] : -1);
                     if (null === $error) {
                         $top = $depth - 1;
                         if ($isArray[$top]) {
@@ -129,7 +138,7 @@ final readonly class StreamParser
                     break;
 
                 case ':':
-                    $error = self::colon($depth > 0 ? $modes[$depth - 1] : -1);
+                    $error = $this->colon($depth > 0 ? $modes[$depth - 1] : -1);
                     if (null === $error) {
                         $modes[$depth - 1] = self::OBJECT_VALUE;
                         ++$index;
@@ -140,7 +149,7 @@ final readonly class StreamParser
                 default:
                     $start = $index;
                     if ('"' === $char) {
-                        $end = self::stringEnd($text, $index + 1, $length);
+                        $end = $this->stringEnd($text, $index + 1, $length);
                         if ($end < 0) {
                             yield $length => new StreamError(
                                 'Unfinished string at EOF at ' . ParseDiagnostics::position($text, $length),
@@ -151,9 +160,10 @@ final readonly class StreamParser
                             if (!$seq) {
                                 return;
                             }
-
-                            $path = $isArray = $modes = [];
-                            $index = $length;
+                            $path    = [];
+                            $isArray = [];
+                            $modes   = [];
+                            $index   = $length;
 
                             break;
                         }
@@ -169,8 +179,9 @@ final readonly class StreamParser
                         if (!$seq) {
                             return;
                         }
-
-                        $path    = $isArray = $modes = [];
+                        $path    = [];
+                        $isArray = [];
+                        $modes   = [];
                         $nextRs  = strpos($text, "\x1e", $start);
                         $index   = false === $nextRs ? $length : $nextRs;
 
@@ -193,7 +204,7 @@ final readonly class StreamParser
                         break;
                     }
 
-                    $error = $depth > 0 ? self::valueRefusal($modes[$top], '') : null;
+                    $error = $depth > 0 ? $this->valueRefusal($modes[$top], '') : null;
                     $index = $end;
                     if (null === $error) {
                         yield $end => [$path, $value];
@@ -214,8 +225,9 @@ final readonly class StreamParser
                 if (!$seq) {
                     return;
                 }
-
-                $path    = $isArray = $modes = [];
+                $path    = [];
+                $isArray = [];
+                $modes   = [];
                 $nextRs  = strpos($text, "\x1e", $index);
                 $index   = false === $nextRs ? $length : $nextRs;
             }
@@ -233,7 +245,7 @@ final readonly class StreamParser
     /**
      * Why a value that starts with $what (`[`, `{` or empty for a scalar) cannot appear in $mode, or null.
      */
-    private static function valueRefusal(int $mode, string $what): ?string
+    private function valueRefusal(int $mode, string $what): ?string
     {
         return match ($mode) {
             self::ARRAY_FIRST, self::ARRAY_NEXT, self::OBJECT_VALUE => null,
@@ -243,7 +255,7 @@ final readonly class StreamParser
         };
     }
 
-    private static function comma(int $mode): ?string
+    private function comma(int $mode): ?string
     {
         return match ($mode) {
             -1                                                                         => "',' not as part of an object or array",
@@ -253,13 +265,13 @@ final readonly class StreamParser
         };
     }
 
-    private static function colon(int $mode): ?string
+    private function colon(int $mode): ?string
     {
         return match ($mode) {
-            self::OBJECT_COLON                  => null,
-            self::OBJECT_FIRST, self::OBJECT_NEXT => 'Expected string key before \':\'',
-            self::OBJECT_VALUE                  => "':' should follow a key",
-            default                             => "':' not as part of an object",
+            self::OBJECT_COLON                    => null,
+            self::OBJECT_FIRST, self::OBJECT_NEXT => "Expected string key before ':'",
+            self::OBJECT_VALUE                    => "':' should follow a key",
+            default                               => "':' not as part of an object",
         };
     }
 
@@ -267,16 +279,16 @@ final readonly class StreamParser
      * Validates `]` / `}` against the state. Sets $leaf to `[emptyValue]` when the container was empty
      * (and pops it), leaves it null when the container had members.
      *
-     * @param list<bool>            $isArray
-     * @param list<int>             $modes
-     * @param list<int|string|null> $path
-     * @param ?array{mixed}         $leaf
+     * @param array<int, bool>            $isArray
+     * @param array<int, int>             $modes
+     * @param array<int, int|string|null> $path
+     * @param ?array{mixed}               $leaf
      */
     private function close(string $char, int $depth, array &$isArray, array &$modes, array &$path, ?array &$leaf): ?string
     {
         $leaf = null;
         if (0 === $depth) {
-            return 'Unmatched \'' . $char . '\' at the top-level';
+            return "Unmatched '" . $char . "' at the top-level";
         }
 
         $top = $depth - 1;
@@ -320,8 +332,8 @@ final readonly class StreamParser
     /**
      * A value just ended inside the innermost container: it now expects `,` or the closing bracket.
      *
-     * @param list<int>  $modes
-     * @param list<bool> $isArray
+     * @param array<int, int>  $modes
+     * @param array<int, bool> $isArray
      */
     private function markValueDone(array &$modes, array $isArray): void
     {
@@ -331,7 +343,7 @@ final readonly class StreamParser
         }
     }
 
-    private static function stringEnd(string $text, int $index, int $length): int
+    private function stringEnd(string $text, int $index, int $length): int
     {
         while (true) {
             $index += strcspn($text, '"\\', $index);

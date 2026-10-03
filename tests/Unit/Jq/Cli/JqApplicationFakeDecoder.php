@@ -55,7 +55,7 @@ final class JqApplicationFakeDecoder implements JsonDecoderInterface
         while ($start <= $length) {
             $separator = strpos($text, "\x1e", $start);
             $end       = false === $separator ? $length : $separator;
-            yield from $this->decodeSegment($text, $start, $end, $text, false === $separator ? false : true);
+            yield from $this->decodeSegment($text, $start, $end, $text, false !== $separator);
             if (false === $separator) {
                 return;
             }

@@ -84,6 +84,12 @@ final class JqApplicationColorSchemeParserTest extends TestCase
         self::assertNotNull(ColorSchemeParser::parse('1:1:1:1:1:1:1:1:bogus'));
     }
 
+    #[DataProvider('provideInvalid')]
+    public function testOneBadFieldRejectsTheWholeSpec(string $spec): void
+    {
+        self::assertNull(ColorSchemeParser::parse($spec));
+    }
+
     /**
      * @return iterable<string, array{string}>
      */
@@ -100,11 +106,5 @@ final class JqApplicationColorSchemeParserTest extends TestCase
         yield 'star' => ['30:*:31'];
 
         yield 'word' => ['invalid'];
-    }
-
-    #[DataProvider('provideInvalid')]
-    public function testOneBadFieldRejectsTheWholeSpec(string $spec): void
-    {
-        self::assertNull(ColorSchemeParser::parse($spec));
     }
 }

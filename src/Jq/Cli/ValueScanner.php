@@ -45,7 +45,7 @@ final class ValueScanner
         $first       = $text[$offset];
 
         if ('"' === $first) {
-            $end = self::stringEnd($text, $offset + 1, $length);
+            $end = $this->stringEnd($text, $offset + 1, $length);
             if ($end < 0) {
                 return self::INCOMPLETE;
             }
@@ -68,6 +68,9 @@ final class ValueScanner
         return self::FOUND;
     }
 
+    /**
+     * @return self::FOUND|self::INCOMPLETE
+     */
     private function container(string $text, int $offset, int $length): int
     {
         $depth = 1;
@@ -80,7 +83,7 @@ final class ValueScanner
 
             $char = $text[$index];
             if ('"' === $char) {
-                $index = self::stringEnd($text, $index + 1, $length);
+                $index = $this->stringEnd($text, $index + 1, $length);
                 if ($index < 0) {
                     return self::INCOMPLETE;
                 }
@@ -108,7 +111,7 @@ final class ValueScanner
      * Offset just past the quote that closes the string whose body starts at $index, or -1 when the
      * text ends first.
      */
-    private static function stringEnd(string $text, int $index, int $length): int
+    private function stringEnd(string $text, int $index, int $length): int
     {
         while (true) {
             $index += strcspn($text, '"\\', $index);

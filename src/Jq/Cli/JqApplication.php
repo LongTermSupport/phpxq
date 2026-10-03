@@ -170,7 +170,7 @@ final readonly class JqApplication
         foreach ($entries as $entry) {
             $console->err('jq: error: ' . $entry);
             if (1 === preg_match('/ at <top-level>, line (\d+), column (\d+):$/', $entry, $matches)) {
-                $console->err("\n" . self::snippet($lines[(int)$matches[1] - 1] ?? '', (int)$matches[2]));
+                $console->err("\n" . $this->snippet($lines[(int)$matches[1] - 1] ?? '', (int)$matches[2]));
             }
 
             $console->err("\n");
@@ -183,7 +183,7 @@ final readonly class JqApplication
     /**
      * The offending source line, indented, with carets under the token that starts at $column.
      */
-    private static function snippet(string $line, int $column): string
+    private function snippet(string $line, int $column): string
     {
         $line  = rtrim($line, "\r");
         $width = 1;
@@ -222,7 +222,7 @@ final readonly class JqApplication
                 $last = ProgramRunner::NULL_KIND !== $status ? 1 : 0;
             }
         } else {
-            while (!$runner->halted && null !== ($item = $source->fetch())) {
+            while (!$runner->halted && ($item = $source->fetch()) instanceof InputItem) {
                 if ($item->isError()) {
                     if (!$item->fatal) {
                         $console->err('jq: ignoring parse error: ' . $item->error . "\n");
@@ -288,7 +288,7 @@ final readonly class JqApplication
         }
 
         $scheme = ColorSchemeParser::parse($spec);
-        if (null === $scheme) {
+        if (!$scheme instanceof ColorScheme) {
             $console->err("Failed to set \$JQ_COLORS\n");
 
             return ColorSchemeParser::defaults();

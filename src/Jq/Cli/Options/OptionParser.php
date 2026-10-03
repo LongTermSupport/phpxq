@@ -6,7 +6,6 @@ namespace LTS\PhpXq\Jq\Cli\Options;
 
 use LTS\PhpXq\Jq\Cli\FileReader;
 use LTS\PhpXq\Json\JsonDecoderInterface;
-use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Json\JsonSyntaxException;
 use RuntimeException;
 
@@ -67,7 +66,7 @@ final readonly class OptionParser
         for ($i = 0; $i < $count; ++$i) {
             $text = $args[$i];
 
-            if ($argsDone || !self::looksLikeOption($text)) {
+            if ($argsDone || !$this->looksLikeOption($text)) {
                 if (null === $program) {
                     $program = $text;
                 } elseif ($furtherFileArgs) {
@@ -119,7 +118,7 @@ final readonly class OptionParser
                             break;
 
                         case 'j':
-                            $flags['rawOutput'] = true;
+                            $flags['rawOutput']  = true;
                             $flags['joinOutput'] = true;
 
                             break;
@@ -398,7 +397,7 @@ final readonly class OptionParser
         );
     }
 
-    private static function looksLikeOption(string $text): bool
+    private function looksLikeOption(string $text): bool
     {
         return '' !== $text && '-' === $text[0] && \strlen($text) > 1;
     }

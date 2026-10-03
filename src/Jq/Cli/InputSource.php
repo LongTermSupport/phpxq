@@ -28,6 +28,7 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
 {
     private const string BOM = "\xEF\xBB\xBF";
 
+    /** @var ?Generator<int, InputItem> */
     private ?Generator $generator = null;
 
     private bool $primed = false;
@@ -70,9 +71,9 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
      */
     public function fetch(): ?InputItem
     {
-        $item = $this->lookahead ?? $this->pull();
+        $item            = $this->lookahead ?? $this->pull();
         $this->lookahead = null;
-        if (null === $item) {
+        if (!$item instanceof InputItem) {
             return null;
         }
 
@@ -87,13 +88,13 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
     {
         $this->lookahead ??= $this->pull();
 
-        return null !== $this->lookahead;
+        return $this->lookahead instanceof InputItem;
     }
 
     public function next(): mixed
     {
         $item = $this->fetch();
-        if (null === $item) {
+        if (!$item instanceof InputItem) {
             throw JqException::fromMessage('No more inputs');
         }
 
@@ -165,7 +166,7 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
                 $name = $source;
             }
 
-            yield InputItem::value(self::scrub($all), $name, substr_count($all, "\n"));
+            yield InputItem::value($this->scrub($all), $name, substr_count($all, "\n"));
 
             return;
         }
@@ -283,7 +284,7 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
                 ++$lines;
             }
 
-            yield InputItem::value(self::scrub($line), $name, $lines);
+            yield InputItem::value($this->scrub($line), $name, $lines);
         }
     }
 
@@ -366,7 +367,7 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
                 return;
             } catch (JsonSyntaxException $jsonSyntaxException) {
                 $message = $jsonSyntaxException->getMessage();
-                $offset  = self::offsetOfPosition($text, $message);
+                $offset  = $this->offsetOfPosition($text, $message);
                 yield InputItem::error($message, false, $name, substr_count($text, "\n", 0, $offset ?? $length));
 
                 if (null === $offset) {
@@ -384,7 +385,7 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
                 }
 
                 $resumed = $separator;
-                $current = (string)preg_replace('/[^\n]/', ' ', substr($text, 0, $separator)) . substr($text, $separator);
+                $current = preg_replace('/[^\n]/', ' ', substr($text, 0, $separator)) . substr($text, $separator);
             }
         }
     }
@@ -427,7 +428,7 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
     /**
      * The byte offset a "... at line L, column C" message refers to, or null when it carries no position.
      */
-    private static function offsetOfPosition(string $text, string $message): ?int
+    private function offsetOfPosition(string $text, string $message): ?int
     {
         if (1 !== preg_match('/at line (\d+), column (\d+)$/', $message, $matches)) {
             return null;
@@ -449,7 +450,7 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
     /**
      * Invalid UTF-8 becomes U+FFFD, as jq does for raw input.
      */
-    private static function scrub(string $text): string
+    private function scrub(string $text): string
     {
         if (mb_check_encoding($text, 'UTF-8')) {
             return $text;

@@ -16,6 +16,18 @@ use PHPUnit\Framework\TestCase;
  */
 final class JqApplicationStreamParserTest extends TestCase
 {
+    #[DataProvider('provideEvents')]
+    public function testEvents(string $text, string $expected): void
+    {
+        $events = [];
+        foreach ($this->parser()->events($text, false) as $event) {
+            self::assertIsArray($event);
+            $events[] = json_encode($event, \JSON_THROW_ON_ERROR);
+        }
+
+        self::assertSame($expected, implode(' ', $events));
+    }
+
     /**
      * @return iterable<string, array{string, string}>
      */
@@ -48,22 +60,10 @@ final class JqApplicationStreamParserTest extends TestCase
         yield 'array after array' => ['[1][2]', '[[0],1] [[0]] [[0],2] [[0]]'];
     }
 
-    #[DataProvider('provideEvents')]
-    public function testEvents(string $text, string $expected): void
-    {
-        $events = [];
-        foreach (self::parser()->events($text, false) as $event) {
-            self::assertIsArray($event);
-            $events[] = json_encode($event, \JSON_THROW_ON_ERROR);
-        }
-
-        self::assertSame($expected, implode(' ', $events));
-    }
-
     public function testKeysAreTheOffsetsJustAfterEachItem(): void
     {
         $offsets = [];
-        foreach (self::parser()->events("[1,\n2]\n", false) as $offset => $event) {
+        foreach ($this->parser()->events("[1,\n2]\n", false) as $offset => $event) {
             $offsets[] = $offset;
         }
 
@@ -72,10 +72,26 @@ final class JqApplicationStreamParserTest extends TestCase
 
     public function testEmptyObjectLeafIsAJsonObject(): void
     {
-        foreach (self::parser()->events('{}', false) as $event) {
+        foreach ($this->parser()->events('{}', false) as $event) {
             self::assertIsArray($event);
             self::assertInstanceOf(JsonObject::class, $event[1]);
         }
+    }
+
+    #[DataProvider('provideErrors')]
+    public function testErrorsCarryJqsWordingAndThePath(string $text, string $message, string $path): void
+    {
+        $error = null;
+        foreach ($this->parser()->events($text, false) as $event) {
+            if ($event instanceof StreamError) {
+                $error = $event;
+            }
+        }
+
+        self::assertNotNull($error);
+        self::assertSame($message, $error->message);
+        self::assertSame($path, json_encode($error->path, \JSON_THROW_ON_ERROR));
+        self::assertTrue($error->fatal);
     }
 
     /**
@@ -132,25 +148,9 @@ final class JqApplicationStreamParserTest extends TestCase
         yield 'value where a colon is due' => ['{"a" 1}', 'Expected separator between values at line 1, column 7', '["a"]'];
     }
 
-    #[DataProvider('provideErrors')]
-    public function testErrorsCarryJqsWordingAndThePath(string $text, string $message, string $path): void
-    {
-        $error = null;
-        foreach (self::parser()->events($text, false) as $event) {
-            if ($event instanceof StreamError) {
-                $error = $event;
-            }
-        }
-
-        self::assertNotNull($error);
-        self::assertSame($message, $error->message);
-        self::assertSame($path, json_encode($error->path, \JSON_THROW_ON_ERROR));
-        self::assertTrue($error->fatal);
-    }
-
     public function testParsingStopsAfterAnError(): void
     {
-        $events = iterator_to_array(self::parser()->events('[1,]  [2]', false), false);
+        $events = iterator_to_array($this->parser()->events('[1,]  [2]', false), false);
 
         self::assertCount(2, $events);
         self::assertInstanceOf(StreamError::class, $events[1]);
@@ -158,7 +158,7 @@ final class JqApplicationStreamParserTest extends TestCase
 
     public function testEventsBeforeAnErrorAreStillProduced(): void
     {
-        $events = iterator_to_array(self::parser()->events('[1,2', false), false);
+        $events = iterator_to_array($this->parser()->events('[1,2', false), false);
 
         self::assertSame([[[0], 1], [[1], 2]], \array_slice($events, 0, 2));
         self::assertInstanceOf(StreamError::class, $events[2]);
@@ -167,7 +167,7 @@ final class JqApplicationStreamParserTest extends TestCase
     public function testInvalidTokenUsesTheDecodersMessageWithWholeTextPositions(): void
     {
         $error = null;
-        foreach (self::parser()->events("[1,\n foo]", false) as $event) {
+        foreach ($this->parser()->events("[1,\n foo]", false) as $event) {
             if ($event instanceof StreamError) {
                 $error = $event;
             }
@@ -179,7 +179,7 @@ final class JqApplicationStreamParserTest extends TestCase
 
     public function testSeqSeparatorAbandonsTheValueInProgress(): void
     {
-        $events = iterator_to_array(self::parser()->events("[1,\x1e2 \x1e[3]", true), false);
+        $events = iterator_to_array($this->parser()->events("[1,\x1e2 \x1e[3]", true), false);
 
         self::assertSame([[0], 1], $events[0]);
         self::assertInstanceOf(StreamError::class, $events[1]);
@@ -192,9 +192,9 @@ final class JqApplicationStreamParserTest extends TestCase
 
     public function testSeqModeResumesAfterAnErrorAtTheNextSeparator(): void
     {
-        $events = iterator_to_array(self::parser()->events("[1 2]\x1e[3]", true), false);
+        $events = iterator_to_array($this->parser()->events("[1 2]\x1e[3]", true), false);
 
-        self::assertSame([0], $events[0][0] ?? null);
+        self::assertSame([[0], 1], $events[0]);
         self::assertInstanceOf(StreamError::class, $events[1]);
         self::assertFalse($events[1]->fatal);
         self::assertSame([[0], 3], $events[2]);
@@ -202,7 +202,7 @@ final class JqApplicationStreamParserTest extends TestCase
 
     public function testSeqModeReportsAnUnfinishedTailAsAbandonedText(): void
     {
-        $events = iterator_to_array(self::parser()->events('[1', true), false);
+        $events = iterator_to_array($this->parser()->events('[1', true), false);
 
         self::assertInstanceOf(StreamError::class, $events[1]);
         self::assertSame('Unfinished abandoned text at EOF at line 1, column 2', $events[1]->message);
@@ -211,12 +211,12 @@ final class JqApplicationStreamParserTest extends TestCase
 
     public function testSeparatorWithoutSeqIsPartOfTheToken(): void
     {
-        $events = iterator_to_array(self::parser()->events("1\x1e", false), false);
+        $events = iterator_to_array($this->parser()->events("1\x1e", false), false);
 
         self::assertInstanceOf(StreamError::class, $events[0]);
     }
 
-    private static function parser(): StreamParser
+    private function parser(): StreamParser
     {
         $decoder = new JqApplicationFakeDecoder();
 
