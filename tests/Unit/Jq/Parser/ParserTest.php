@@ -385,7 +385,7 @@ final class ParserTest extends TestCase
     public function testEndOfInputSitsOnTheFinalLineBreak(): void
     {
         $this->expectException(JqCompileException::class);
-        $this->expectExceptionMessage('unexpected end of file at <top-level>, line 1, column 3:');
+        $this->expectExceptionMessageMatches('/unexpected end of file at <top-level>, line 1, column 3:$/');
 
         $this->parser()->parse("if\n");
     }
@@ -394,7 +394,7 @@ final class ParserTest extends TestCase
     {
         $params = implode(';', array_map(static fn (int $i): string => 'a' . $i, range(1, 4096)));
         $this->expectException(JqCompileException::class);
-        $this->expectExceptionMessage('too many function parameters or local function definitions (max 4095)');
+        $this->expectExceptionMessageMatches('/^too many function parameters or local function definitions \(max 4095\)$/');
 
         $this->parser()->parse(\sprintf('def f(%s): .; .', $params));
     }

@@ -69,6 +69,11 @@ final class IoFunctionsTest extends TestCase
         self::assertSame(0, Harness::call('input_line_number', null));
     }
 
+    public function testInputLineNumberReportsThePositionOfTheInputs(): void
+    {
+        self::assertSame(7, Harness::call('input_line_number', null, [], new FakeContext(line: 7)));
+    }
+
     public function testHaltStopsWithStatusZero(): void
     {
         try {

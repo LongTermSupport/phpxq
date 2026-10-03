@@ -222,6 +222,38 @@ final class TypeFunctions
         return false === $value ? 'false' : Values::typeName($value);
     }
 
+    /**
+     * Whether every element of $needle is contained in some element of $haystack of the same kind. Plain
+     * loops rather than callbacks keep the recursion to one stack frame per nesting level.
+     *
+     * @param array<array-key, mixed> $haystack
+     * @param array<array-key, mixed> $needle
+     */
+    private static function containsElements(array $haystack, array $needle, int $depth): bool
+    {
+        foreach ($needle as $wanted) {
+            $wantedKind = self::kind($wanted);
+            $found      = false;
+            foreach ($haystack as $candidate) {
+                if (self::kind($candidate) !== $wantedKind) {
+                    continue;
+                }
+
+                if (self::contains($candidate, $wanted, $depth)) {
+                    $found = true;
+
+                    break;
+                }
+            }
+
+            if (!$found) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private static function contains(mixed $haystack, mixed $needle, int $depth): bool
     {
         if ($depth > self::MAX_DEPTH) {
@@ -239,14 +271,7 @@ final class TypeFunctions
         }
 
         if (\is_array($haystack) && \is_array($needle)) {
-            foreach ($needle as $wanted) {
-                $found = array_any($haystack, static fn ($candidate): bool => self::kind($candidate) === self::kind($wanted) && self::contains($candidate, $wanted, $depth + 1));
-                if (!$found) {
-                    return false;
-                }
-            }
-
-            return true;
+            return self::containsElements($haystack, $needle, $depth + 1);
         }
 
         if (\is_string($haystack) && \is_string($needle)) {

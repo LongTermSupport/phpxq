@@ -156,8 +156,8 @@ final class Parser implements ParserInterface
 
     public function parse(string $source): Program
     {
-        $this->tokens = $this->lexer->tokenize($source);
-        $this->pos    = 0;
+        $this->tokens       = $this->lexer->tokenize($source);
+        $this->pos          = 0;
         $this->unterminated = false;
 
         try {
@@ -783,7 +783,7 @@ final class Parser implements ParserInterface
 
             $this->unterminated = true;
 
-            throw new JqCompileException($jqCompileException->getMessage() . $this->unterminatedNote('if', $opener));
+            throw new JqCompileException($jqCompileException->getMessage() . $this->unterminatedNote('if', $opener), $jqCompileException->getCode(), $jqCompileException);
         }
     }
 

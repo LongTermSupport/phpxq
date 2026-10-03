@@ -8,6 +8,7 @@ use Closure;
 use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
 use LTS\PhpXq\Jq\Runtime\FilterInterface;
 use LTS\PhpXq\Jq\Runtime\HaltException;
+use LTS\PhpXq\Jq\Runtime\InputPositionInterface;
 use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Json\JsonObject;
@@ -48,7 +49,11 @@ final class IoFunctions
             $emit($input);
         }));
         $registry->register(new ValueFunction('input_filename', 0, static fn (RuntimeContextInterface $c): mixed => $c->inputFilename()));
-        $registry->register(new ValueFunction('input_line_number', 0, static fn (): mixed => 0));
+        $registry->register(new ValueFunction('input_line_number', 0, static function (RuntimeContextInterface $c): mixed {
+            $inputs = $c->inputs();
+
+            return $inputs instanceof InputPositionInterface ? $inputs->lineNumber() : 0;
+        }));
         $registry->register(new ValueFunction('halt', 0, static function (): never {
             throw new HaltException(0);
         }));
