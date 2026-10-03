@@ -27,6 +27,15 @@ final class YamlParser implements YamlParserInterface
      */
     public function parse(string $yaml): Generator
     {
+        // Plain block YAML (the shape of most data files) takes the single-pass parser; everything else, and
+        // every error report, goes through the token pipeline (benchmark yq:identity-medium).
+        $fast = FastBlockParser::parse($yaml);
+        if ($fast instanceof Node) {
+            yield $fast;
+
+            return;
+        }
+
         yield from new StreamParser($yaml)->documents();
     }
 }

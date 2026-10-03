@@ -32,7 +32,11 @@ final class YamlWriter
 
     private const string TIMESTAMP = '/\A[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}(?:(?:[Tt]|[ \t]+)[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}(?:\.[0-9]*)?(?:[ \t]*(?:Z|[-+][0-9]{1,2}(?::[0-9]{2})?))?)?\z/';
 
-    private const string PLAIN_WORD = '/\A[A-Za-z_][A-Za-z0-9_ -]*+(?<! )\z/';
+    private const string PLAIN_INT = '/\A(?:0|[1-9][0-9]{0,17})\z/';
+
+    private const array BOOL_WORDS = ['true' => true, 'True' => true, 'TRUE' => true, 'false' => true, 'False' => true, 'FALSE' => true];
+
+    private const string PLAIN_WORD ='/\A[A-Za-z_][A-Za-z0-9_ -]*+(?<! )\z/';
 
     private const string DOUBLE_QUOTE_SPECIALS = '/["\\\\\x00-\x1F\x7F]|\xC2[\x80-\x9F]|\xE2\x80[\xA8\xA9]|\xEF\xBB\xBF|\xEF\xBF[\xBE\xBF]|[\xF0-\xF7][\x80-\xBF]{3}/';
 
@@ -229,6 +233,24 @@ final class YamlWriter
             $key   = $mapping->content[$i];
             $value = $mapping->content[$i + 1] ?? new Node(NodeKindEnum::Scalar, '!!null');
 
+            // Fast path (benchmark yq:identity-medium): `key: value` where both are scalars that print plain.
+            if ('' === $head && !$this->options->colors) {
+                $keyText = $this->plainScalarText($key);
+                if (null !== $keyText && \strlen($keyText) <= 128) {
+                    $valueText = $this->plainScalarText($value);
+                    if (null !== $valueText) {
+                        $this->writeIndent();
+                        $line          = $keyText . ': ' . $valueText;
+                        $this->out    .= $line;
+                        $this->column += \strlen($line);
+                        $this->whitespace = false;
+                        $this->indention  = false;
+
+                        continue;
+                    }
+                }
+            }
+
             $valueBlock = $this->isBlockCollection($value);
             $heads      = [$head, $key->headComment];
             if (!$valueBlock) {
@@ -269,6 +291,21 @@ final class YamlWriter
 
         $head = $sequence->headComment;
         foreach ($sequence->content as $item) {
+            // Fast path (benchmark yq:identity-medium): `- scalar` where the scalar prints plain.
+            if ('' === $head && !$this->options->colors) {
+                $text = $this->plainScalarText($item);
+                if (null !== $text) {
+                    $this->writeIndent();
+                    $line          = '- ' . $text;
+                    $this->out    .= $line;
+                    $this->column += \strlen($line);
+                    $this->whitespace = false;
+                    $this->indention  = false;
+
+                    continue;
+                }
+            }
+
             $this->writeHeadComments([$head, $item->headComment]);
             $head = '';
 
@@ -372,6 +409,30 @@ final class YamlWriter
 
     // ----------------------------------------------------------------------------------------------
     // scalars
+
+    /**
+     * The text of a scalar that certainly prints as a plain scalar with no tag, anchor or comment, or null
+     * when the full planning in {@see self::planScalar()} is needed. Covers plain-looking strings, small
+     * decimal integers and the booleans; every case is one planScalar() would also print plain.
+     */
+    private function plainScalarText(Node $node): ?string
+    {
+        if (
+            NodeKindEnum::Scalar !== $node->kind || NodeStyleEnum::Default !== $node->style || $node->tagExplicit
+            || '' !== $node->anchor || '' !== $node->headComment || '' !== $node->lineComment || '' !== $node->footComment
+        ) {
+            return null;
+        }
+
+        $value = $node->value;
+
+        return match ($node->tag) {
+            '!!str'  => 1 === preg_match(self::PLAIN_WORD, $value) && !isset(self::RESERVED_WORDS[$value]) ? $value : null,
+            '!!int'  => 1 === preg_match(self::PLAIN_INT, $value) ? $value : null,
+            '!!bool' => isset(self::BOOL_WORDS[$value]) ? $value : null,
+            default  => null,
+        };
+    }
 
     /**
      * Decides the tag to print (empty when implicit), the requested style and the text to write.
