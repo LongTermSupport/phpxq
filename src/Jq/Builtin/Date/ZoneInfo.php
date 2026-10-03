@@ -42,11 +42,11 @@ final readonly class ZoneInfo
      */
     public function at(int $epoch): array
     {
-        if (null === $this->zone) {
+        if (!$this->zone instanceof DateTimeZone) {
             return [$this->fixedOffset, false, $this->fixedAbbreviation];
         }
 
-        $moment = (new DateTimeImmutable('@' . $epoch))->setTimezone($this->zone);
+        $moment = new DateTimeImmutable('@' . $epoch)->setTimezone($this->zone);
 
         return [$moment->getOffset(), '1' === $moment->format('I'), $moment->format('T')];
     }
@@ -57,7 +57,7 @@ final readonly class ZoneInfo
      */
     public function epochOfWallClock(int $wallSeconds): int
     {
-        if (null === $this->zone) {
+        if (!$this->zone instanceof DateTimeZone) {
             return $wallSeconds - $this->fixedOffset;
         }
 

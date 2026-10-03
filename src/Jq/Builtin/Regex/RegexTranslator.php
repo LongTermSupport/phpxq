@@ -278,15 +278,15 @@ final class RegexTranslator
         $after = $source[$i + 3] ?? '';
 
         if ('<' === $kind && '=' !== $after && '!' !== $after) {
-            return self::readName($source, $i, $i + 3, '>', '(?<', '>');
+            return self::readName($source, $i + 3, '>', '(?<', '>');
         }
 
         if ("'" === $kind) {
-            return self::readName($source, $i, $i + 3, "'", "(?'", "'");
+            return self::readName($source, $i + 3, "'", "(?'", "'");
         }
 
         if ('P' === $kind && '<' === $after) {
-            return self::readName($source, $i, $i + 4, '>', '(?P<', '>');
+            return self::readName($source, $i + 4, '>', '(?P<', '>');
         }
 
         return null;
@@ -295,7 +295,7 @@ final class RegexTranslator
     /**
      * @return array{string, string, int}
      */
-    private static function readName(string $source, int $groupStart, int $nameStart, string $terminator, string $open, string $close): array
+    private static function readName(string $source, int $nameStart, string $terminator, string $open, string $close): array
     {
         $end = strpos($source, $terminator, $nameStart);
         if (false === $end || $end === $nameStart) {

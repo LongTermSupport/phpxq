@@ -50,9 +50,9 @@ final class Civil
     {
         $year -= $month <= 2 ? 1 : 0;
         $era   = self::floorDiv($year, 400);
-        $yoe   = $year - $era * 400;
-        $doy   = intdiv(153 * ($month + ($month > 2 ? -3 : 9)) + 2, 5) + $day - 1;
-        $doe   = $yoe * 365 + intdiv($yoe, 4) - intdiv($yoe, 100) + $doy;
+        $yoe   = $year                                                                   - $era * 400;
+        $doy   = intdiv(153 * ($month + ($month > 2 ? -3 : 9)) + 2, 5) + $day            - 1;
+        $doe   = $yoe * 365                                            + intdiv($yoe, 4) - intdiv($yoe, 100) + $doy;
 
         return $era * 146097 + $doe - 719468;
     }
@@ -70,8 +70,8 @@ final class Civil
         $yoe   = intdiv($doe - intdiv($doe, 1460) + intdiv($doe, 36524) - intdiv($doe, 146096), 365);
         $doy   = $doe - (365 * $yoe + intdiv($yoe, 4) - intdiv($yoe, 100));
         $mp    = intdiv(5 * $doy + 2, 153);
-        $day   = $doy - intdiv(153 * $mp + 2, 5) + 1;
-        $month = $mp < 10 ? $mp + 3 : $mp - 9;
+        $day   = $doy                                      - intdiv(153 * $mp + 2, 5) + 1;
+        $month = $mp < 10 ? $mp                  + 3 : $mp - 9;
 
         return [$yoe + $era * 400 + ($month <= 2 ? 1 : 0), $month, $day];
     }

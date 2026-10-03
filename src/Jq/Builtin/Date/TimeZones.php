@@ -47,7 +47,7 @@ final class TimeZones
         }
 
         $named = self::named($spec);
-        if (null !== $named) {
+        if ($named instanceof ZoneInfo) {
             return $named;
         }
 
@@ -83,11 +83,11 @@ final class TimeZones
             $candidates[] = trim($file);
         }
 
-        $candidates[] = (string)ini_get('date.timezone');
+        $candidates[] = \ini_get('date.timezone');
 
         foreach ($candidates as $candidate) {
             $zone = '' === $candidate ? null : self::named($candidate);
-            if (null !== $zone) {
+            if ($zone instanceof ZoneInfo) {
                 return $zone;
             }
         }

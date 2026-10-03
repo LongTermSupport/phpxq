@@ -40,7 +40,7 @@ final class RegexBuiltinsTest extends TestCase
 
     public function testMatchReportsOffsetsAndCapturesInCodepoints(): void
     {
-        $matches = self::match("ā bar with a combining codepoint U+0304", 'bar');
+        $matches = self::match('ā bar with a combining codepoint U+0304', 'bar');
         self::assertSame([['offset' => 2, 'length' => 3, 'string' => 'bar', 'captures' => []]], $matches);
 
         $combining = self::match("a\u{0304} bar", 'bar');
@@ -93,27 +93,29 @@ final class RegexBuiltinsTest extends TestCase
 
     public function testExtendedFlagIgnoresWhitespaceAndComments(): void
     {
-        self::assertTrue(self::test('xabcd', 'a b c # spaces are ignored', 'ix'));
-        self::assertTrue(self::test('ABC', 'a b c # spaces are ignored', 'ix'));
+        self::assertTrue($this->test('xabcd', 'a b c # spaces are ignored', 'ix'));
+        self::assertTrue($this->test('ABC', 'a b c # spaces are ignored', 'ix'));
     }
 
     public function testDotAllFlagMakesDotMatchNewline(): void
     {
-        self::assertFalse(self::test("a\nb", 'a.b'));
-        self::assertTrue(self::test("a\nb", 'a.b', 'p'));
+        self::assertFalse($this->test("a\nb", 'a.b'));
+        self::assertTrue($this->test("a\nb", 'a.b', 'p'));
     }
 
     public function testNamedAndNumberedGroupsBothCapture(): void
     {
         $matches = self::match('ab', '(?<first>a)(b)');
 
-        self::assertSame(['first', null], array_column($matches[0]['captures'], 'name'));
+        $captures = $matches[0]['captures'];
+        self::assertIsArray($captures);
+        self::assertSame(['first', null], array_column($captures, 'name'));
     }
 
     public function testHexDigitEscapeFollowsOniguruma(): void
     {
-        self::assertTrue(self::test('ff', '^\h+$'));
-        self::assertFalse(self::test('fg', '^\h+$'));
+        self::assertTrue($this->test('ff', '^\h+$'));
+        self::assertFalse($this->test('fg', '^\h+$'));
     }
 
     public function testTestWithPatternAndFlagsArray(): void
@@ -127,23 +129,23 @@ final class RegexBuiltinsTest extends TestCase
 
     public function testTestWithEmptyArrayIsAnError(): void
     {
-        self::assertSame('array not a string or array', self::errorOf(static fn (): mixed => self::value('test', 1)->call(self::context(), 'a', [[]])));
-        self::assertSame('number not a string or array', self::errorOf(static fn (): mixed => self::value('test', 1)->call(self::context(), 'a', [1])));
+        self::assertSame('array not a string or array', $this->errorOf(static fn (): mixed => self::value('test', 1)->call(self::context(), 'a', [[]])));
+        self::assertSame('number not a string or array', $this->errorOf(static fn (): mixed => self::value('test', 1)->call(self::context(), 'a', [1])));
     }
 
     public function testErrorsForBadArguments(): void
     {
-        self::assertSame('number (1) cannot be matched, as it is not a string', self::errorOf(static fn (): mixed => self::match(1, 'a')));
-        self::assertSame('number (1) is not a string', self::errorOf(static fn (): mixed => self::match('a', 1)));
-        self::assertSame('number (2) is not a string', self::errorOf(static fn (): mixed => self::match('a', 'a', 2)));
-        self::assertSame('gq is not a valid modifier string', self::errorOf(static fn (): mixed => self::match('a', 'a', 'gq')));
+        self::assertSame('number (1) cannot be matched, as it is not a string', $this->errorOf(static fn (): mixed => self::match(1, 'a')));
+        self::assertSame('number (1) is not a string', $this->errorOf(static fn (): mixed => self::match('a', 1)));
+        self::assertSame('number (2) is not a string', $this->errorOf(static fn (): mixed => self::match('a', 'a', 2)));
+        self::assertSame('gq is not a valid modifier string', $this->errorOf(static fn (): mixed => self::match('a', 'a', 'gq')));
     }
 
     public function testInvalidRegexMessagesMirrorOniguruma(): void
     {
-        self::assertSame('( (at offset 0) is not a valid regex: end pattern with unmatched parenthesis', self::errorOf(static fn (): mixed => self::match('a', '(')));
-        self::assertSame('*a (at offset 0) is not a valid regex: target of repeat operator is not specified', self::errorOf(static fn (): mixed => self::match('a', '*a')));
-        self::assertSame('[a (at offset 0) is not a valid regex: premature end of char-class', self::errorOf(static fn (): mixed => self::match('a', '[a')));
+        self::assertSame('( (at offset 0) is not a valid regex: end pattern with unmatched parenthesis', $this->errorOf(static fn (): mixed => self::match('a', '(')));
+        self::assertSame('*a (at offset 0) is not a valid regex: target of repeat operator is not specified', $this->errorOf(static fn (): mixed => self::match('a', '*a')));
+        self::assertSame('[a (at offset 0) is not a valid regex: premature end of char-class', $this->errorOf(static fn (): mixed => self::match('a', '[a')));
     }
 
     public function testMatchImplTestModeReturnsBool(): void
@@ -167,7 +169,7 @@ final class RegexBuiltinsTest extends TestCase
     {
         self::assertSame(
             'string ("g") and number (1) cannot be added',
-            self::errorOf(static fn (): mixed => self::stream('split', 'a', [FakeFilter::yielding('a'), FakeFilter::yielding(1)])),
+            $this->errorOf(static fn (): mixed => self::stream('split', 'a', [FakeFilter::yielding('a'), FakeFilter::yielding(1)])),
         );
     }
 
@@ -193,7 +195,7 @@ final class RegexBuiltinsTest extends TestCase
 
     public function testSubReplacementSeesNamedCaptures(): void
     {
-        $replacement = FakeFilter::from(static fn (JsonObject $captures): array => ['Head=' . $captures->get('head') . ' Tail=']);
+        $replacement = FakeFilter::onCaptures(static fn (JsonObject $captures): array => ['Head=' . self::text($captures, 'head') . ' Tail=']);
 
         self::assertSame(['Head=a Tail=bcdef'], self::stream('sub', 'abcdef', [FakeFilter::yielding('^(?<head>.)'), $replacement]));
     }
@@ -223,15 +225,15 @@ final class RegexBuiltinsTest extends TestCase
 
     public function testGsubWithNamedCapturesAndUnicode(): void
     {
-        $upper = FakeFilter::from(static fn (JsonObject $captures): array => ['+' . $captures->get('x') . '-']);
+        $upper = FakeFilter::onCaptures(static fn (JsonObject $captures): array => ['+' . self::text($captures, 'x') . '-']);
 
         self::assertSame(['+A-+a-'], self::stream('gsub', 'Abcabc', [FakeFilter::yielding('(?<x>.)[^a]*'), $upper]));
-        self::assertSame(["’!"], self::stream('sub', '’', [FakeFilter::yielding('(?<x>.)'), FakeFilter::from(static fn (JsonObject $captures): array => [$captures->get('x') . '!'])]));
+        self::assertSame(['’!'], self::stream('sub', '’', [FakeFilter::yielding('(?<x>.)'), FakeFilter::onCaptures(static fn (JsonObject $captures): array => [self::text($captures, 'x') . '!'])]));
     }
 
     public function testGenerativeReplacementsAreAppliedInLockstep(): void
     {
-        $replacement = FakeFilter::from(static fn (JsonObject $captures): array => [strtoupper((string)$captures->get('a')), strtolower((string)$captures->get('a')), 'c']);
+        $replacement = FakeFilter::onCaptures(static fn (JsonObject $captures): array => [strtoupper(self::text($captures, 'a')), strtolower(self::text($captures, 'a')), 'c']);
 
         self::assertSame(['AB', 'aB', 'cB'], self::stream('sub', 'aB', [FakeFilter::yielding('(?<a>.)'), $replacement]));
         self::assertSame(['AB', 'ab', 'cc'], self::stream('gsub', 'aB', [FakeFilter::yielding('(?<a>.)'), $replacement]));
@@ -248,7 +250,7 @@ final class RegexBuiltinsTest extends TestCase
     {
         self::assertSame(
             'string ("a") and number (1) cannot be added',
-            self::errorOf(static fn (): mixed => self::stream('sub', 'ab', [FakeFilter::yielding('b'), FakeFilter::yielding(1)])),
+            $this->errorOf(static fn (): mixed => self::stream('sub', 'ab', [FakeFilter::yielding('b'), FakeFilter::yielding(1)])),
         );
     }
 
@@ -266,6 +268,12 @@ final class RegexBuiltinsTest extends TestCase
         self::assertSame(['XB', 'XB', 'aB', 'aX'], $outputs);
     }
 
+    #[DataProvider('nonAsciiOffsets')]
+    public function testOffsetsAreCodepoints(string $subject, string $pattern, ?string $flags, int $expected): void
+    {
+        self::assertSame($expected, self::match($subject, $pattern, $flags)[0]['offset']);
+    }
+
     /**
      * @return iterable<string, array{string, string, ?string, int}>
      */
@@ -277,16 +285,10 @@ final class RegexBuiltinsTest extends TestCase
         yield 'ascii' => ['xxa', 'a', null, 2];
     }
 
-    #[DataProvider('nonAsciiOffsets')]
-    public function testOffsetsAreCodepoints(string $subject, string $pattern, ?string $flags, int $expected): void
-    {
-        self::assertSame($expected, self::match($subject, $pattern, $flags)[0]['offset']);
-    }
-
     private static function registry(): BuiltinRegistry
     {
         $registry = new DefaultBuiltinRegistry();
-        (new RegexBuiltins())->registerInto($registry);
+        new RegexBuiltins()->registerInto($registry);
 
         return $registry;
     }
@@ -318,7 +320,7 @@ final class RegexBuiltinsTest extends TestCase
     }
 
     /**
-     * @return list<array<string, mixed>>
+     * @return list<array<mixed>>
      */
     private static function match(mixed $input, mixed $pattern, mixed $flags = null): array
     {
@@ -328,10 +330,24 @@ final class RegexBuiltinsTest extends TestCase
         $plain = self::plain($result);
         self::assertIsArray($plain);
 
-        return $plain;
+        $matches = [];
+        foreach ($plain as $match) {
+            self::assertIsArray($match);
+            $matches[] = $match;
+        }
+
+        return $matches;
     }
 
-    private static function test(mixed $input, mixed $pattern, mixed $flags = null): bool
+    private static function text(JsonObject $captures, string $name): string
+    {
+        $value = $captures->get($name);
+        self::assertIsString($value);
+
+        return $value;
+    }
+
+    private function test(mixed $input, mixed $pattern, mixed $flags = null): bool
     {
         return true === self::value('test', 2)->call(self::context(), $input, [$pattern, $flags]);
     }
@@ -352,12 +368,12 @@ final class RegexBuiltinsTest extends TestCase
     /**
      * @param Closure(): mixed $action
      */
-    private static function errorOf(Closure $action): string
+    private function errorOf(Closure $action): string
     {
         try {
             $action();
-        } catch (JqException $exception) {
-            return $exception->getMessage();
+        } catch (JqException $jqException) {
+            return $jqException->getMessage();
         }
 
         self::fail('Expected a JqException');

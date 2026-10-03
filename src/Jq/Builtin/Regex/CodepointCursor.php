@@ -53,7 +53,7 @@ final class CodepointCursor
      */
     public static function characterWidth(string $subject, int $byteOffset): int
     {
-        $lead = \ord($subject[$byteOffset] ?? "\0");
+        $lead = \ord(($subject[$byteOffset] ?? "\0")[0]);
 
         return match (true) {
             $lead >= 0xF0 => 4,

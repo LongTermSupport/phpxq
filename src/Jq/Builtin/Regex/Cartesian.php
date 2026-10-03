@@ -20,7 +20,7 @@ final class Cartesian
     }
 
     /**
-     * @param list<Filter>              $filters
+     * @param list<Filter>               $filters
      * @param Closure(list<mixed>): void $body
      */
     public static function each(array $filters, mixed $input, Closure $body): void
@@ -29,8 +29,8 @@ final class Cartesian
     }
 
     /**
-     * @param list<Filter>              $filters
-     * @param list<mixed>               $values
+     * @param list<Filter>               $filters
+     * @param list<mixed>                $values
      * @param Closure(list<mixed>): void $body
      */
     private static function step(array $filters, int $index, array $values, mixed $input, Closure $body): void

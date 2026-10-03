@@ -22,7 +22,7 @@ final class MatchObjects
     }
 
     /**
-     * @param array<array{0: ?string, 1: int}> $groups   one PCRE match as returned by {@see RegexEngine::find()}
+     * @param array<array{0: ?string, 1: int}> $groups one PCRE match as returned by {@see RegexEngine::find()}
      * @param list<?string>                    $names
      */
     public static function match(array $groups, array $names, CodepointCursor $cursor): JsonObject

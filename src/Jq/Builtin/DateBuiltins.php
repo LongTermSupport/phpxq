@@ -68,12 +68,18 @@ final class DateBuiltins implements BuiltinProvider
 
         $seconds  = Values::toFloat($input);
         $time     = self::fromSeconds($seconds, $zone);
-        $fields   = $time->toList();
         $fraction = $seconds - floor($seconds);
 
-        $fields[5] = Arithmetic::normalize($fields[5] + $fraction);
-
-        return $fields;
+        return [
+            $time->year,
+            $time->month,
+            $time->day,
+            $time->hour,
+            $time->minute,
+            Arithmetic::normalize($time->second + $fraction),
+            $time->weekday,
+            $time->yearDay,
+        ];
     }
 
     /**
@@ -98,7 +104,7 @@ final class DateBuiltins implements BuiltinProvider
         }
 
         $time = BrokenDownTime::fromJq($input);
-        if (null === $time) {
+        if (!$time instanceof BrokenDownTime) {
             throw new JqException('mktime requires parsed datetime inputs');
         }
 
@@ -115,9 +121,9 @@ final class DateBuiltins implements BuiltinProvider
      */
     private static function strftime(mixed $input, mixed $format): string
     {
-        $time = self::timeForFormatting('strftime/1', $input, $format, ZoneInfo::utc(), false);
+        [$time, $text] = self::timeForFormatting('strftime/1', $input, $format, ZoneInfo::utc(), false);
 
-        return Strftime::format((string)$format, $time);
+        return Strftime::format($text, $time);
     }
 
     /**
@@ -125,10 +131,9 @@ final class DateBuiltins implements BuiltinProvider
      */
     private static function strflocaltime(mixed $input, mixed $format): string
     {
-        $zone = TimeZones::local();
-        $time = self::timeForFormatting('strflocaltime/1', $input, $format, $zone, true);
+        [$time, $text] = self::timeForFormatting('strflocaltime/1', $input, $format, TimeZones::local(), true);
 
-        return Strftime::format((string)$format, $time);
+        return Strftime::format($text, $time);
     }
 
     /**
@@ -136,9 +141,11 @@ final class DateBuiltins implements BuiltinProvider
      * in the formatting zone, an array is read as given (its wall clock is then placed in the zone to find
      * the offset and abbreviation), and the checks run in jq's order.
      *
+     * @return array{BrokenDownTime, string} the time and the validated format
+     *
      * @throws JqException
      */
-    private static function timeForFormatting(string $name, mixed $input, mixed $format, ZoneInfo $zone, bool $local): BrokenDownTime
+    private static function timeForFormatting(string $name, mixed $input, mixed $format, ZoneInfo $zone, bool $local): array
     {
         $fromNumber = null;
         if (\is_int($input) || \is_float($input) || $input instanceof PreciseNumber) {
@@ -151,34 +158,37 @@ final class DateBuiltins implements BuiltinProvider
             throw new JqException($name . ' requires a string format');
         }
 
-        if (null !== $fromNumber) {
-            return $fromNumber;
+        if ($fromNumber instanceof BrokenDownTime) {
+            return [$fromNumber, $format];
         }
 
         $time = BrokenDownTime::fromJq($input);
-        if (null === $time) {
+        if (!$time instanceof BrokenDownTime) {
             throw new JqException($name . ' requires parsed datetime inputs');
         }
 
         if (!$local) {
-            return $time;
+            return [$time, $format];
         }
 
         [$offset, $dst, $abbreviation] = $zone->at($zone->epochOfWallClock($time->wallSeconds()));
 
-        return new BrokenDownTime(
-            $time->year,
-            $time->month,
-            $time->day,
-            $time->hour,
-            $time->minute,
-            $time->second,
-            $time->weekday,
-            $time->yearDay,
-            $offset,
-            $abbreviation,
-            $dst,
-        );
+        return [
+            new BrokenDownTime(
+                $time->year,
+                $time->month,
+                $time->day,
+                $time->hour,
+                $time->minute,
+                $time->second,
+                $time->weekday,
+                $time->yearDay,
+                $offset,
+                $abbreviation,
+                $dst,
+            ),
+            $format,
+        ];
     }
 
     /**

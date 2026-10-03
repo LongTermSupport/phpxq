@@ -78,47 +78,47 @@ final class Strftime
         $hour12 = 0 === $time->hour % 12 ? 12 : $time->hour % 12;
 
         return match ($conversion) {
-            'a'     => self::text(substr(self::DAYS[self::index($time->weekday, 7)], 0, 3), $conversion, $flag, $width),
-            'A'     => self::text(self::DAYS[self::index($time->weekday, 7)], $conversion, $flag, $width),
+            'a'      => self::text(substr(self::DAYS[self::index($time->weekday, 7)], 0, 3), $conversion, $flag, $width),
+            'A'      => self::text(self::DAYS[self::index($time->weekday, 7)], $conversion, $flag, $width),
             'b', 'h' => self::text(substr(self::MONTHS[self::index($time->month, 12)], 0, 3), $conversion, $flag, $width),
-            'B'     => self::text(self::MONTHS[self::index($time->month, 12)], $conversion, $flag, $width),
-            'c'     => self::text(self::format('%a %b %e %H:%M:%S %Y', $time), $conversion, $flag, $width),
-            'C'     => self::number(Civil::floorDiv($time->year, 100), 2, '0', $flag, $width),
-            'd'     => self::number($time->day, 2, '0', $flag, $width),
-            'D'     => self::text(self::format('%m/%d/%y', $time), $conversion, $flag, $width),
-            'e'     => self::number($time->day, 2, ' ', $flag, $width),
-            'F'     => self::text(self::format('%Y-%m-%d', $time), $conversion, $flag, $width),
-            'g'     => self::number(Civil::floorMod(self::isoWeek($time)[0], 100), 2, '0', $flag, $width),
-            'G'     => self::number(self::isoWeek($time)[0], 1, '0', $flag, $width),
-            'H'     => self::number($time->hour, 2, '0', $flag, $width),
-            'I'     => self::number($hour12, 2, '0', $flag, $width),
-            'j'     => self::number($time->yearDay + 1, 3, '0', $flag, $width),
-            'k'     => self::number($time->hour, 2, ' ', $flag, $width),
-            'l'     => self::number($hour12, 2, ' ', $flag, $width),
-            'm'     => self::number($time->month + 1, 2, '0', $flag, $width),
-            'M'     => self::number($time->minute, 2, '0', $flag, $width),
-            'n'     => self::text("\n", $conversion, $flag, $width),
-            'p'     => self::text($time->hour >= 12 ? 'PM' : 'AM', $conversion, $flag, $width),
-            'P'     => self::text($time->hour >= 12 ? 'pm' : 'am', $conversion, $flag, $width),
-            'r'     => self::text(self::format('%I:%M:%S %p', $time), $conversion, $flag, $width),
-            'R'     => self::text(self::format('%H:%M', $time), $conversion, $flag, $width),
-            's'     => self::number($time->wallSeconds() - $time->gmtOffset, 1, '0', $flag, $width),
-            'S'     => self::number($time->second, 2, '0', $flag, $width),
-            't'     => self::text("\t", $conversion, $flag, $width),
-            'T'     => self::text(self::format('%H:%M:%S', $time), $conversion, $flag, $width),
-            'u'     => self::number(0 === $time->weekday ? 7 : $time->weekday, 1, '0', $flag, $width),
-            'U'     => self::number(intdiv($time->yearDay + 7 - $time->weekday, 7), 2, '0', $flag, $width),
-            'V'     => self::number(self::isoWeek($time)[1], 2, '0', $flag, $width),
-            'w'     => self::number($time->weekday, 1, '0', $flag, $width),
-            'W'     => self::number(intdiv($time->yearDay + 7 - ($time->weekday + 6) % 7, 7), 2, '0', $flag, $width),
-            'x'     => self::text(self::format('%m/%d/%y', $time), $conversion, $flag, $width),
-            'X'     => self::text(self::format('%H:%M:%S', $time), $conversion, $flag, $width),
-            'y'     => self::number(Civil::floorMod($time->year, 100), 2, '0', $flag, $width),
-            'Y'     => self::number($time->year, 1, '0', $flag, $width),
-            'z'     => self::text(self::offset($time->gmtOffset, $colons), $conversion, $flag, $width),
-            'Z'     => self::text($time->zone, $conversion, $flag, $width),
-            '%'     => '%',
-            default => null,
+            'B'      => self::text(self::MONTHS[self::index($time->month, 12)], $conversion, $flag, $width),
+            'c'      => self::text(self::format('%a %b %e %H:%M:%S %Y', $time), $conversion, $flag, $width),
+            'C'      => self::number(Civil::floorDiv($time->year, 100), 2, '0', $flag, $width),
+            'd'      => self::number($time->day, 2, '0', $flag, $width),
+            'D'      => self::text(self::format('%m/%d/%y', $time), $conversion, $flag, $width),
+            'e'      => self::number($time->day, 2, ' ', $flag, $width),
+            'F'      => self::text(self::format('%Y-%m-%d', $time), $conversion, $flag, $width),
+            'g'      => self::number(Civil::floorMod(self::isoWeek($time)[0], 100), 2, '0', $flag, $width),
+            'G'      => self::number(self::isoWeek($time)[0], 1, '0', $flag, $width),
+            'H'      => self::number($time->hour, 2, '0', $flag, $width),
+            'I'      => self::number($hour12, 2, '0', $flag, $width),
+            'j'      => self::number($time->yearDay + 1, 3, '0', $flag, $width),
+            'k'      => self::number($time->hour, 2, ' ', $flag, $width),
+            'l'      => self::number($hour12, 2, ' ', $flag, $width),
+            'm'      => self::number($time->month + 1, 2, '0', $flag, $width),
+            'M'      => self::number($time->minute, 2, '0', $flag, $width),
+            'n'      => self::text("\n", $conversion, $flag, $width),
+            'p'      => self::text($time->hour >= 12 ? 'PM' : 'AM', $conversion, $flag, $width),
+            'P'      => self::text($time->hour >= 12 ? 'pm' : 'am', $conversion, $flag, $width),
+            'r'      => self::text(self::format('%I:%M:%S %p', $time), $conversion, $flag, $width),
+            'R'      => self::text(self::format('%H:%M', $time), $conversion, $flag, $width),
+            's'      => self::number($time->wallSeconds() - $time->gmtOffset, 1, '0', $flag, $width),
+            'S'      => self::number($time->second, 2, '0', $flag, $width),
+            't'      => self::text("\t", $conversion, $flag, $width),
+            'T'      => self::text(self::format('%H:%M:%S', $time), $conversion, $flag, $width),
+            'u'      => self::number(0 === $time->weekday ? 7 : $time->weekday, 1, '0', $flag, $width),
+            'U'      => self::number(intdiv($time->yearDay + 7 - $time->weekday, 7), 2, '0', $flag, $width),
+            'V'      => self::number(self::isoWeek($time)[1], 2, '0', $flag, $width),
+            'w'      => self::number($time->weekday, 1, '0', $flag, $width),
+            'W'      => self::number(intdiv($time->yearDay + 7 - ($time->weekday + 6) % 7, 7), 2, '0', $flag, $width),
+            'x'      => self::text(self::format('%m/%d/%y', $time), $conversion, $flag, $width),
+            'X'      => self::text(self::format('%H:%M:%S', $time), $conversion, $flag, $width),
+            'y'      => self::number(Civil::floorMod($time->year, 100), 2, '0', $flag, $width),
+            'Y'      => self::number($time->year, 1, '0', $flag, $width),
+            'z'      => self::text(self::offset($time->gmtOffset, $colons), $conversion, $flag, $width),
+            'Z'      => self::text($time->zone, $conversion, $flag, $width),
+            '%'      => '%',
+            default  => null,
         };
     }
 
@@ -178,11 +178,25 @@ final class Strftime
         return match (true) {
             1 === $colons => \sprintf('%s%02d:%02d', $sign, $hours, $minutes),
             2 === $colons => \sprintf('%s%02d:%02d:%02d', $sign, $hours, $minutes, $rest),
-            3 === $colons => 0 !== $rest
-                ? \sprintf('%s%02d:%02d:%02d', $sign, $hours, $minutes, $rest)
-                : (0 !== $minutes ? \sprintf('%s%02d:%02d', $sign, $hours, $minutes) : \sprintf('%s%02d', $sign, $hours)),
-            default => \sprintf('%s%02d%02d', $sign, $hours, $minutes),
+            3 === $colons => self::shortestOffset($sign, $hours, $minutes, $rest),
+            default       => \sprintf('%s%02d%02d', $sign, $hours, $minutes),
         };
+    }
+
+    /**
+     * `%:::z`: only as many parts as are non-zero, down to the hours.
+     */
+    private static function shortestOffset(string $sign, int $hours, int $minutes, int $seconds): string
+    {
+        if (0 !== $seconds) {
+            return \sprintf('%s%02d:%02d:%02d', $sign, $hours, $minutes, $seconds);
+        }
+
+        if (0 !== $minutes) {
+            return \sprintf('%s%02d:%02d', $sign, $hours, $minutes);
+        }
+
+        return \sprintf('%s%02d', $sign, $hours);
     }
 
     /**

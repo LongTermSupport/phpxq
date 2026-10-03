@@ -25,12 +25,12 @@ final readonly class BrokenDownTime
     private const int INT_MIN = -2147483648;
 
     /**
-     * @param int    $year      the full year (`tm_year + 1900`)
-     * @param int    $month     0 to 11
-     * @param int    $day       day of the month, 1 to 31
-     * @param int    $weekday   0 for Sunday
-     * @param int    $yearDay   0 based
-     * @param int    $gmtOffset seconds east of UTC
+     * @param int $year      the full year (`tm_year + 1900`)
+     * @param int $month     0 to 11
+     * @param int $day       day of the month, 1 to 31
+     * @param int $weekday   0 for Sunday
+     * @param int $yearDay   0 based
+     * @param int $gmtOffset seconds east of UTC
      */
     public function __construct(
         public int $year,

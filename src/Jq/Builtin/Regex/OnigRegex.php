@@ -135,13 +135,16 @@ final class OnigRegex
             return $this->nativePcre;
         }
 
-        if (null === $this->unicodeWordPcre) {
-            $translated            = RegexTranslator::translate($this->source, $this->extended, true);
-            $this->unicodeWordPcre = '/' . $translated->pcre . '/' . $this->modifiers;
-            $this->verify($this->unicodeWordPcre);
-        }
+        return $this->unicodeWordPcre ??= $this->translateForUnicodeWords();
+    }
 
-        return $this->unicodeWordPcre;
+    private function translateForUnicodeWords(): string
+    {
+        $translated = RegexTranslator::translate($this->source, $this->extended, true);
+        $delimited  = '/' . $translated->pcre . '/' . $this->modifiers;
+        $this->verify($delimited);
+
+        return $delimited;
     }
 
     private function verify(string $delimited): void
@@ -160,11 +163,11 @@ final class OnigRegex
         }
 
         if (false === $result) {
-            throw RegexTranslator::invalid($this->source, self::describe($message));
+            throw RegexTranslator::invalid($this->source, $this->describe($message));
         }
     }
 
-    private static function describe(?string $message): string
+    private function describe(?string $message): string
     {
         if (null === $message || 1 !== preg_match('/Compilation failed: (.*) at offset \d+/', $message, $parts)) {
             return $message ?? 'invalid pattern';

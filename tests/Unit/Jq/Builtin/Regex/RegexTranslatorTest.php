@@ -56,7 +56,7 @@ final class RegexTranslatorTest extends TestCase
     {
         self::assertSame(
             '[\H] (at offset 0) is not a valid regex: \H inside a character class is not supported',
-            self::errorOf('[\H]'),
+            $this->errorOf('[\H]'),
         );
     }
 
@@ -126,20 +126,20 @@ final class RegexTranslatorTest extends TestCase
 
     public function testTrailingBackslashIsAnError(): void
     {
-        self::assertSame('a\ (at offset 0) is not a valid regex: end pattern at escape', self::errorOf('a\\'));
+        self::assertSame('a\ (at offset 0) is not a valid regex: end pattern at escape', $this->errorOf('a\\'));
     }
 
     public function testEmptyGroupNameIsAnError(): void
     {
-        self::assertSame('(?<>a) (at offset 0) is not a valid regex: group name is empty', self::errorOf('(?<>a)'));
+        self::assertSame('(?<>a) (at offset 0) is not a valid regex: group name is empty', $this->errorOf('(?<>a)'));
     }
 
-    private static function errorOf(string $pattern): string
+    private function errorOf(string $pattern): string
     {
         try {
             RegexTranslator::translate($pattern, false, false);
-        } catch (JqException $exception) {
-            return $exception->getMessage();
+        } catch (JqException $jqException) {
+            return $jqException->getMessage();
         }
 
         self::fail('Expected a JqException');

@@ -6,6 +6,7 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Builtin\Regex;
 
 use Closure;
 use LTS\PhpXq\Jq\Runtime\Filter;
+use LTS\PhpXq\Json\JsonObject;
 
 /**
  * A closure-backed {@see Filter} for builtin tests: the closure maps an input to the list of outputs.
@@ -35,6 +36,20 @@ final readonly class FakeFilter implements Filter
     public static function from(Closure $outputs): self
     {
         return new self($outputs);
+    }
+
+    /**
+     * A filter for a `sub` replacement: it runs on the object of named captures and yields strings built from it.
+     *
+     * @param Closure(JsonObject): list<mixed> $outputs
+     */
+    public static function onCaptures(Closure $outputs): self
+    {
+        return new self(static function (mixed $input) use ($outputs): array {
+            \assert($input instanceof JsonObject);
+
+            return $outputs($input);
+        });
     }
 
     public function run(mixed $input, Closure $emit): void

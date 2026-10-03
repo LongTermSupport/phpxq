@@ -161,13 +161,11 @@ final class Strptime
             case 'b':
             case 'B':
             case 'h':
-                $matched = $this->matchName(self::MONTHS, static function (self $self, int $index): void {
+                return $this->matchName(self::MONTHS, static function (self $self, int $index): void {
                     $self->month         = $index;
                     $self->haveMonth     = true;
                     $self->wantExtraDays = true;
                 });
-
-                return $matched;
 
             case 'c':
                 $this->wantExtraDays = true;
@@ -406,7 +404,7 @@ final class Strptime
         }
 
         $time = BrokenDownTime::fromEpoch((int)substr($this->input, $start, $this->position - $start), $this->zone);
-        if (null === $time) {
+        if (!$time instanceof BrokenDownTime) {
             return false;
         }
 
@@ -476,7 +474,7 @@ final class Strptime
 
         $fullYear = $this->year + 1900;
         if ($this->wantExtraDays && !$this->haveWeekday) {
-            if (!($this->haveMonth && $this->haveDay) && $this->haveYearDay) {
+            if ((!$this->haveMonth || !$this->haveDay) && $this->haveYearDay) {
                 [$month, $day] = Civil::monthAndDay($fullYear, $this->yearDay);
                 if (!$this->haveMonth) {
                     $this->month = $month;
@@ -514,8 +512,8 @@ final class Strptime
 
     private function applyWeekNumber(int $fullYear): void
     {
-        $weekday     = $this->weekday;
-        $weekOffset  = $this->haveSundayWeek ? 0 : 1;
+        $weekday      = $this->weekday;
+        $weekOffset   = $this->haveSundayWeek ? 0 : 1;
         $firstWeekday = Civil::dayOfWeek($fullYear, 0, 1);
         if (!$this->haveYearDay) {
             $this->yearDay = Civil::floorMod(7 - ($firstWeekday - $weekOffset), 7)
