@@ -35,6 +35,11 @@ final class JsonDecoder implements JsonDecoderInterface
      */
     private const string DANGER = '/"(?:[^"\\\]++|\\\.)*+"(*SKIP)(*FAIL)|\d[\d.]{15}|\d[eE]|\.\d*0(?!\d)|\.0000|-0(?![\d.])/s';
 
+    /**
+     * The same shapes as DANGER, as whole tokens (strings skipped), plus nan and Infinity.
+     */
+    private const string NUMBER_TOKEN = '/"(?:[^"\\\]++|\\\.)*+"(*SKIP)(*FAIL)|(?<![\w.+-])(?:(?=-?(?:\d+(?:\.\d+)?[eE]|\d+\.\d*0(?![\d.eE+-])|\d+\.0000|\d[\d.]{15})|-0(?![\d.eE]))-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|-?(?:nan|NaN|Infinity)(?!\w))/s';
+
     private const string DELIMITERS = " \t\r\n[]{},:\"";
 
     private const string DELIMITERS_SEQ = " \t\r\n[]{},:\"\x1e";
@@ -48,6 +53,11 @@ final class JsonDecoder implements JsonDecoderInterface
     private const string PAIR_MESSAGE = 'Invalid \uXXXX\uXXXX surrogate pair escape';
 
     private const string RS = "\x1e";
+
+    /**
+     * A string of printable ASCII without escapes, starting at the offset: group 1 is its content.
+     */
+    private const string SIMPLE_STRING = '/\G"([\x20\x21\x23-\x5b\x5d-\x7e]*+)"/';
 
     private const int MAX_DEPTH = 10000;
 
@@ -151,31 +161,70 @@ final class JsonDecoder implements JsonDecoderInterface
      */
     private function fast(string $text, bool &$ok): mixed
     {
-        $ok = false;
+        $ok      = false;
+        $numbers = [];
+        $source  = $text;
         if (0 !== preg_match(self::DANGER, $text)) {
-            return null;
+            // Numbers the native decoder would flatten (1.0, 1e5, 20 digit ids, nan ...) are swapped for
+            // placeholder strings, decoded here with the shared number rules, and put back afterwards.
+            // The placeholder starts with a NUL, which a string can only carry through a \u0000 escape.
+            if (str_contains($text, '\u0000')) {
+                return null;
+            }
+
+            $source = preg_replace_callback(
+                self::NUMBER_TOKEN,
+                static function (array $match) use (&$numbers): string {
+                    $number = NumberParser::tryParse($match[0]);
+                    if (null === $number) {
+                        return $match[0];
+                    }
+
+                    $numbers[] = $number;
+
+                    return '"\u0000' . (\count($numbers) - 1) . '"';
+                },
+                $text,
+                -1,
+                $count,
+            );
+            if (!\is_string($source) || 0 === $count) {
+                return null;
+            }
         }
 
         try {
-            $value = json_decode($text, false, self::FAST_DEPTH, \JSON_THROW_ON_ERROR);
+            $value = json_decode($source, false, self::FAST_DEPTH, \JSON_THROW_ON_ERROR);
         } catch (JsonException) {
             return null;
         }
 
         $ok = true;
-        if ((\is_array($value) || $value instanceof stdClass) && str_contains($text, '{')) {
-            return self::convert($value);
+        if ((\is_array($value) || $value instanceof stdClass) && (str_contains($source, '{') || [] !== $numbers)) {
+            return self::convert($value, $numbers);
+        }
+
+        if ([] !== $numbers && \is_string($value) && '' !== $value && "\0" === $value[0]) {
+            return $numbers[(int)substr($value, 1)];
         }
 
         return $value;
     }
 
-    private static function convert(mixed $value): mixed
+    /**
+     * Native decoder output to the value model: objects become JsonObject and number placeholders are
+     * replaced by their parsed numbers.
+     *
+     * @param list<int|float|PreciseNumber> $numbers
+     */
+    private static function convert(mixed $value, array $numbers): mixed
     {
         if (\is_array($value)) {
             foreach ($value as $key => $member) {
                 if (\is_array($member) || $member instanceof stdClass) {
-                    $value[$key] = self::convert($member);
+                    $value[$key] = self::convert($member, $numbers);
+                } elseif ([] !== $numbers && \is_string($member) && '' !== $member && "\0" === $member[0]) {
+                    $value[$key] = $numbers[(int)substr($member, 1)];
                 }
             }
 
@@ -186,7 +235,9 @@ final class JsonDecoder implements JsonDecoderInterface
             $members = (array)$value;
             foreach ($members as $key => $member) {
                 if (\is_array($member) || $member instanceof stdClass) {
-                    $members[$key] = self::convert($member);
+                    $members[$key] = self::convert($member, $numbers);
+                } elseif ([] !== $numbers && \is_string($member) && '' !== $member && "\0" === $member[0]) {
+                    $members[$key] = $numbers[(int)substr($member, 1)];
                 }
             }
 
@@ -294,7 +345,9 @@ final class JsonDecoder implements JsonDecoderInterface
                     }
 
                     if (null !== $pending) {
-                        $value = $this->literal($pending, $i + 1, false, false);
+                        $value = \strlen($pending) <= 15 && ctype_digit($pending)
+                            ? (int)$pending
+                            : $this->literal($pending, $i + 1, false, false);
                         if ($hasNext) {
                             throw new ParseFailure('Expected separator between values', $i + 1);
                         }
@@ -332,50 +385,61 @@ final class JsonDecoder implements JsonDecoderInterface
                             yield $emit;
                         }
 
-                        $start = $i     + 1;
-                        $end   = $start + strcspn($text, '"\\', $start);
-                        while ($end < $n && '\\' === $text[$end]) {
-                            $end += 2;
-                            if ($end >= $n) {
-                                break;
+                        if (1 === preg_match(self::SIMPLE_STRING, $text, $match, 0, $i)) {
+                            // printable ASCII without escapes: no unescaping or UTF-8 repair needed
+                            if ($hasNext) {
+                                throw new ParseFailure('Expected separator between values', $i + \strlen($match[1]) + 2);
                             }
 
-                            $end += strcspn($text, '"\\', $end);
-                        }
-
-                        $closed = $end < $n;
-                        $end    = min($end, $n);
-                        $raw    = substr($text, $start, $end - $start);
-                        if ($seq) {
-                            $rsAt = strpos($raw, self::RS);
-                            if (false !== $rsAt) {
-                                if ($sp > 0 || $rsAt > 0) {
-                                    throw new ParseFailure('Truncated value', $start + $rsAt + 1, false, true);
+                            $next    = $match[1];
+                            $hasNext = true;
+                            $i      += \strlen($match[1]) + 2;
+                        } else {
+                            $start = $i     + 1;
+                            $end   = $start + strcspn($text, '"\\', $start);
+                            while ($end < $n && '\\' === $text[$end]) {
+                                $end += 2;
+                                if ($end >= $n) {
+                                    break;
                                 }
 
-                                $kinds   = [];
-                                $conts   = [];
-                                $sp      = 0;
-                                $hasNext = false;
-                                $next    = null;
-                                $i       = $start + $rsAt + 1;
-
-                                continue;
+                                $end += strcspn($text, '"\\', $end);
                             }
-                        }
 
-                        if (!$closed) {
-                            throw new ParseFailure('Unfinished string', $n, true);
-                        }
+                            $closed = $end < $n;
+                            $end    = min($end, $n);
+                            $raw    = substr($text, $start, $end - $start);
+                            if ($seq) {
+                                $rsAt = strpos($raw, self::RS);
+                                if (false !== $rsAt) {
+                                    if ($sp > 0 || $rsAt > 0) {
+                                        throw new ParseFailure('Truncated value', $start + $rsAt + 1, false, true);
+                                    }
 
-                        $string = $this->string($raw, $end + 1);
-                        if ($hasNext) {
-                            throw new ParseFailure('Expected separator between values', $end + 1);
-                        }
+                                    $kinds   = [];
+                                    $conts   = [];
+                                    $sp      = 0;
+                                    $hasNext = false;
+                                    $next    = null;
+                                    $i       = $start + $rsAt + 1;
 
-                        $next    = $string;
-                        $hasNext = true;
-                        $i       = $end + 1;
+                                    continue;
+                                }
+                            }
+
+                            if (!$closed) {
+                                throw new ParseFailure('Unfinished string', $n, true);
+                            }
+
+                            $string = $this->string($raw, $end + 1);
+                            if ($hasNext) {
+                                throw new ParseFailure('Expected separator between values', $end + 1);
+                            }
+
+                            $next    = $string;
+                            $hasNext = true;
+                            $i       = $end + 1;
+                        }
                     } elseif (':' === $c) {
                         if (!$hasNext) {
                             throw new ParseFailure("Expected string key before ':'", $i + 1);
