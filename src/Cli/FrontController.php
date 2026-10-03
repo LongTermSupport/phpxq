@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Cli;
 
+use LTS\PhpXq\Jq\Cli\JqApplication;
 use LTS\PhpXq\Yq\Cli\YqApplication;
 
 /**
@@ -22,12 +23,10 @@ final class FrontController implements FrontControllerInterface
             return self::EXIT_USAGE;
         }
 
-        if ('yq' === $tool) {
-            return new YqApplication()->run(\array_slice($args, 1), $stdin, $stdout, $stderr);
+        if ('jq' === $tool) {
+            return JqApplication::create()->run(\array_slice($args, 1), $stdin, $stdout, $stderr);
         }
 
-        fwrite($stderr, $tool . ": not implemented\n");
-
-        return self::EXIT_NOT_IMPLEMENTED;
+        return new YqApplication()->run(\array_slice($args, 1), $stdin, $stdout, $stderr);
     }
 }
