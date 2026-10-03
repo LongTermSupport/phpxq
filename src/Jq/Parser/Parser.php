@@ -62,6 +62,8 @@ final class Parser implements ParserInterface
 {
     private const string TOP_LEVEL_FILE = '<top-level>';
 
+    private const int MAX_CLOSURES = 4095;
+
     /** @var array<string, int> operator token value => binary level */
     private const array LEVEL = [
         'pipe'           => 1,
@@ -145,14 +147,18 @@ final class Parser implements ParserInterface
 
     private bool $bindingAllowed = true;
 
+    /** Set once a syntax error has been annotated with "Possibly unterminated 'if' statement". */
+    private bool $unterminated = false;
+
     public function __construct(private readonly LexerInterface $lexer)
     {
     }
 
     public function parse(string $source): Program
     {
-        $this->tokens = $this->lexer->tokenize($source);
-        $this->pos    = 0;
+        $this->tokens       = $this->lexer->tokenize($source);
+        $this->pos          = 0;
+        $this->unterminated = false;
 
         try {
             return $this->parseProgram();
@@ -181,6 +187,8 @@ final class Parser implements ParserInterface
         while (TokenTypeEnum::KwDef === $this->tokens[$this->pos]->type) {
             $defs[] = $this->parseDef();
         }
+
+        $this->limitClosures(\count($defs));
 
         $body = null;
         if (TokenTypeEnum::Eof !== $this->tokens[$this->pos]->type) {
@@ -300,6 +308,16 @@ final class Parser implements ParserInterface
         return [$node];
     }
 
+    /**
+     * jq's bytecode addresses a function's own closures (parameters and local definitions) with a 12-bit index.
+     */
+    private function limitClosures(int $count): void
+    {
+        if ($count > self::MAX_CLOSURES) {
+            throw new JqCompileException(\sprintf('too many function parameters or local function definitions (max %d)', self::MAX_CLOSURES));
+        }
+    }
+
     private function parseDef(): FuncDef
     {
         $def  = $this->advance();
@@ -335,6 +353,7 @@ final class Parser implements ParserInterface
             }
         }
 
+        $this->limitClosures(\count($params));
         $this->expect(TokenTypeEnum::Colon);
         $body = $this->parsePipe();
         $this->expect(TokenTypeEnum::Semicolon);
@@ -669,7 +688,12 @@ final class Parser implements ParserInterface
 
             case TokenTypeEnum::KwTry:
                 ++$this->pos;
-                $body    = $this->parseTryOperand();
+                try {
+                    $body = $this->parseTryOperand();
+                } catch (JqCompileException $jqCompileException) {
+                    throw $this->annotateTry($jqCompileException, $tok);
+                }
+
                 $handler = null;
                 if (TokenTypeEnum::KwCatch === $this->tokens[$this->pos]->type) {
                     ++$this->pos;
@@ -745,8 +769,26 @@ final class Parser implements ParserInterface
      */
     private function parseIfRest(): NodeInterface
     {
+        $opener    = $this->tokens[$this->pos - 1];
         $condition = $this->parsePipe();
         $this->expect(TokenTypeEnum::KwThen);
+
+        try {
+            return $this->parseIfBranches($condition);
+        } catch (JqCompileException $jqCompileException) {
+            // like jq's `"if" Exp "then" error` recovery: the innermost construct past its `then` is reported
+            if ($this->unterminated) {
+                throw $jqCompileException;
+            }
+
+            $this->unterminated = true;
+
+            throw new JqCompileException($jqCompileException->getMessage() . $this->unterminatedNote('if', $opener), $jqCompileException->getCode(), $jqCompileException);
+        }
+    }
+
+    private function parseIfBranches(NodeInterface $condition): NodeInterface
+    {
         $then = $this->parsePipe();
         $else = null;
         $tok  = $this->current();
@@ -759,11 +801,48 @@ final class Parser implements ParserInterface
         if (TokenTypeEnum::KwElse === $tok->type) {
             ++$this->pos;
             $else = $this->parsePipe();
+            if (TokenTypeEnum::KwEnd !== $this->current()->type) {
+                throw $this->unexpected($this->current(), "end or '|' or ','");
+            }
         }
 
         $this->expect(TokenTypeEnum::KwEnd);
 
         return new IfThenElse($condition, $then, $else);
+    }
+
+    /**
+     * jq recovers from an unterminated `if` as an expression, so a `catch` that follows it is shifted and,
+     * when what comes after it cannot continue the handler, reports the `try` as unterminated as well.
+     */
+    private function annotateTry(JqCompileException $error, Token $try): JqCompileException
+    {
+        $current = $this->tokens[$this->pos];
+        $after   = $this->tokens[$this->pos + 1] ?? null;
+        if (!$this->unterminated || TokenTypeEnum::KwCatch !== $current->type || null === $after) {
+            return $error;
+        }
+
+        $terminators = [
+            TokenTypeEnum::Eof, TokenTypeEnum::RBracket, TokenTypeEnum::RParen, TokenTypeEnum::RBrace,
+            TokenTypeEnum::Pipe, TokenTypeEnum::Comma, TokenTypeEnum::Semicolon,
+        ];
+        if (!\in_array($after->type, $terminators, true)) {
+            return $error;
+        }
+
+        return new JqCompileException($error->getMessage() . $this->unterminatedNote('try', $try));
+    }
+
+    private function unterminatedNote(string $construct, Token $opener): string
+    {
+        return \sprintf(
+            "\njq: error: Possibly unterminated '%s' statement at %s, line %d, column %d:",
+            $construct,
+            self::TOP_LEVEL_FILE,
+            $opener->line,
+            $opener->column,
+        );
     }
 
     private function parseReduce(): NodeInterface

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Jq\Builtin\Core\Support;
 
 use LTS\PhpXq\Jq\Runtime\InputProviderInterface;
-use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 
 /**
@@ -25,39 +24,20 @@ final class FakeContext implements RuntimeContextInterface
      * @param list<mixed>          $inputs
      * @param array<string, mixed> $globals
      * @param list<string>         $libraryPaths
+     * @param ?int                 $line         the line `input_line_number` reports; null for 0
      */
     public function __construct(
         private readonly array $inputs = [],
         private readonly array $globals = [],
         private readonly ?string $filename = null,
         private readonly array $libraryPaths = [],
+        private readonly ?int $line = null,
     ) {
     }
 
     public function inputs(): InputProviderInterface
     {
-        return new class($this->inputs) implements InputProviderInterface {
-            /**
-             * @param list<mixed> $queue
-             */
-            public function __construct(private array $queue)
-            {
-            }
-
-            public function hasNext(): bool
-            {
-                return [] !== $this->queue;
-            }
-
-            public function next(): mixed
-            {
-                if ([] === $this->queue) {
-                    throw new JqException('No more inputs');
-                }
-
-                return array_shift($this->queue);
-            }
-        };
+        return new FakeInputs($this->inputs, $this->line ?? 0);
     }
 
     public function globals(): array

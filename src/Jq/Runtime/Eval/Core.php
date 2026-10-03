@@ -189,7 +189,7 @@ final class Core
         }
 
         if (\in_array($loaded->path, $this->loading, true)) {
-            throw new JqCompileException(\sprintf('module %s imports itself through a cycle (%s)', $import->path, $loaded->path));
+            throw new JqCompileException(\sprintf('circular import of module %s (%s)', $import->path, $loaded->path));
         }
 
         $this->loading[] = $loaded->path;

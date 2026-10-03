@@ -65,7 +65,22 @@ final readonly class JqConformanceSuite implements ConformanceSuiteInterface
         }
     }
 
+    /**
+     * Upstream runs its .test files with PAGER=less in the environment (man.test reads `$ENV.PAGER`).
+     */
     private function evaluate(JqTestCase $case, CliRunner $runner): ?string
+    {
+        $previous = getenv('PAGER');
+        putenv('PAGER=less');
+
+        try {
+            return $this->evaluateCase($case, $runner);
+        } finally {
+            putenv(false === $previous ? 'PAGER' : 'PAGER=' . $previous);
+        }
+    }
+
+    private function evaluateCase(JqTestCase $case, CliRunner $runner): ?string
     {
         $modules = $this->directory . '/modules';
 

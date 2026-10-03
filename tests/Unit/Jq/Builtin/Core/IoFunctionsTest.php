@@ -69,6 +69,11 @@ final class IoFunctionsTest extends TestCase
         self::assertSame(0, Harness::call('input_line_number', null));
     }
 
+    public function testInputLineNumberReportsThePositionOfTheInputs(): void
+    {
+        self::assertSame(7, Harness::call('input_line_number', null, [], new FakeContext(line: 7)));
+    }
+
     public function testHaltStopsWithStatusZero(): void
     {
         try {
@@ -99,6 +104,17 @@ final class IoFunctionsTest extends TestCase
         } catch (HaltException $haltException) {
             self::assertSame(1, $haltException->exitCode);
             self::assertSame("{\"a\":\"xyz\"}\n", $haltException->stderrText);
+        }
+    }
+
+    public function testHaltErrorWritesNothingForNull(): void
+    {
+        try {
+            Harness::call('halt_error', null, [1]);
+            self::fail('halt_error did not halt');
+        } catch (HaltException $haltException) {
+            self::assertSame(1, $haltException->exitCode);
+            self::assertNull($haltException->stderrText);
         }
     }
 

@@ -312,6 +312,13 @@ final class Lexer implements LexerInterface
             $this->unexpectedEnd();
         }
 
+        // like jq, the end of input sits on the final line break rather than after it
+        if ($len > 0 && "\n" === $src[$len - 1]) {
+            $previous = $len >= 2 ? strrpos($src, "\n", -2) : false;
+
+            return new Token(TokenTypeEnum::Eof, '', $this->line - 1, $len - (false === $previous ? 0 : $previous + 1));
+        }
+
         return new Token(TokenTypeEnum::Eof, '', $this->line, $len - $this->lineStart + 1);
     }
 
@@ -351,7 +358,7 @@ final class Lexer implements LexerInterface
         $len = $this->len;
         ++$pos;
         while (true) {
-            $pos += strcspn($src, "\n\r\\", $pos);
+            $pos += strcspn($src, "\n\\", $pos);
             if ($pos >= $len || '\\' !== $src[$pos]) {
                 return $pos;
             }

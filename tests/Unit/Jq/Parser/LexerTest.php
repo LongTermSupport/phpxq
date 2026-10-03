@@ -93,7 +93,8 @@ final class LexerTest extends TestCase
         yield 'comment continuation crlf' => ["1 # hi \\\r\nstill\r\n2", ['number:1', 'number:2', 'eof']];
         yield 'comment even backslashes ends' => ["1 # hi \\\\\n2", ['number:1', 'number:2', 'eof']];
         yield 'comment triple backslashes continues' => ["1 # hi \\\\\\\nstill\n2", ['number:1', 'number:2', 'eof']];
-        yield 'comment cr ends' => ["1 # hi\r2", ['number:1', 'number:2', 'eof']];
+        yield 'comment cr does not end' => ["1 # hi\r2", ['number:1', 'eof']];
+        yield 'comment crlf ends' => ["1 # hi\r\n2", ['number:1', 'number:2', 'eof']];
         yield 'comment in string is text' => ['"# no"', ['string-start', 'string-fragment:# no', 'string-end', 'eof']];
     }
 
