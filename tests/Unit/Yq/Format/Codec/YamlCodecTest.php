@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Emitter\EmitOptions;
+use LTS\PhpXq\Yaml\Emitter\YamlEmitter;
 use LTS\PhpXq\Yaml\Emitter\YamlEmitterInterface;
 use LTS\PhpXq\Yaml\Node;
+use LTS\PhpXq\Yaml\Parser\YamlParser;
 use LTS\PhpXq\Yaml\Parser\YamlParserInterface;
 use LTS\PhpXq\Yq\Format\Codec\YamlDecoder;
 use LTS\PhpXq\Yq\Format\Codec\YamlEncoder;
@@ -26,6 +28,16 @@ final class YamlCodecTest extends TestCase
 
         self::assertCount(2, $docs);
         self::assertSame(FormatEnum::Yaml, new YamlDecoder()->format());
+    }
+
+    public function testKyamlIsReadByTheYamlParser(): void
+    {
+        $decoder = new YamlDecoder(new YamlParser(), FormatEnum::Kyaml);
+        $docs    = [...$decoder->decode("# leading\n{\n  a: 1, # a line\n  b: [\"x\"],\n}\n", new FormatOptions())];
+
+        self::assertSame(FormatEnum::Kyaml, $decoder->format());
+        self::assertCount(1, $docs);
+        self::assertSame("# leading\n{a: 1, b: [\"x\"]}\n", new YamlEmitter()->emit($docs[0]));
     }
 
     public function testDecoderReportsSyntaxErrorsAsFormatErrors(): void

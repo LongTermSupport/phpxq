@@ -99,6 +99,9 @@ run_yq_case() {
     mkdir -p "$work/scripts"
     cp "$root/tests/Conformance/Yq/acceptance/$script" "$work/$script"
     cp "$root/tests/Conformance/Yq/acceptance/scripts/shunit2" "$work/scripts/shunit2"
+    # Data files the scripts reference (upstream keeps them next to the scripts / in its repo root).
+    cp -R "$root/tests/Conformance/Yq/acceptance/examples" "$work/examples"
+    cp "$root/tests/Conformance/Yq/acceptance/utf8.csv" "$work/utf8.csv"
     printf '#!/bin/sh\nexec %s yq "$@"\n' "$phpxq_command" >"$work/yq"
     chmod 755 "$work/yq" "$work/$script" "$work/scripts/shunit2"
     (cd "$work" && timeout "$case_timeout" "./$script") >"$log" 2>&1 || rc=$?

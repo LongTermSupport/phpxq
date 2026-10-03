@@ -28,7 +28,7 @@ final class FormatRegistryTest extends TestCase
     public function testReadableFormatsHaveADecoder(FormatEnum $format): void
     {
         $registry = new FormatRegistry();
-        if (FormatEnum::Shell === $format || FormatEnum::Kyaml === $format) {
+        if (FormatEnum::Shell === $format) {
             $this->expectException(FormatException::class);
         }
 

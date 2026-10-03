@@ -277,20 +277,17 @@ final readonly class Evaluator implements EvaluatorInterface
             return [new Candidate(NodeOps::seq())];
         }
 
-        $read = $context->withDontAutoCreate(true);
-        $out  = [];
-        foreach ($context->matches as $match) {
-            $items = [];
-            if ($collect->inner instanceof ExpressionNodeInterface) {
+        $read  = $context->withDontAutoCreate(true);
+        $items = [];
+        if ($collect->inner instanceof ExpressionNodeInterface) {
+            foreach ($context->matches as $match) {
                 foreach ($this->evaluate($collect->inner, $read->withMatches([$match])) as $found) {
                     $items[] = $found->node->deepCopy();
                 }
             }
-
-            $out[] = Cands::derive(NodeOps::seq($items), $match);
         }
 
-        return $out;
+        return [Cands::derive(NodeOps::seq($items), $context->matches[0])];
     }
 
     /**

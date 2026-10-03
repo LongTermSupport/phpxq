@@ -73,6 +73,9 @@ final class YamlWriter
 
     private int $flowLevel = 0;
 
+    /** Indent of the foot comment just written, or -1: a head comment at the same indent follows a blank line. */
+    private int $footIndent = -1;
+
     public function __construct(private readonly EmitOptions $options)
     {
     }
@@ -395,7 +398,7 @@ final class YamlWriter
         }
 
         $quoted = NodeStyleEnum::DoubleQuoted                                                                                                                                === $style || NodeStyleEnum::SingleQuoted === $style
-                                                                                                                                           || NodeStyleEnum::Literal         === $style || NodeStyleEnum::Folded === $style;
+                                                                                                                                                                                        || NodeStyleEnum::Literal         === $style || NodeStyleEnum::Folded === $style;
 
         $force = false;
         if ('' !== $tag && !$node->tagExplicit) {
@@ -774,9 +777,15 @@ final class YamlWriter
      */
     private function writeHeadComments(array $comments): void
     {
-        $text = implode("\n", array_filter($comments, static fn (string $c): bool => '' !== $c));
+        $text             = implode("\n", array_filter($comments, static fn (string $c): bool => '' !== $c));
+        $blank            = $this->footIndent === $this->indent;
+        $this->footIndent = -1;
         if ('' !== $text) {
             $this->writeIndent();
+            if ($blank) {
+                $this->putBreak();
+            }
+
             $this->writeComment($text);
         }
     }
@@ -790,6 +799,7 @@ final class YamlWriter
             if ('' !== $comment) {
                 $this->writeIndent();
                 $this->writeComment($comment);
+                $this->footIndent = $this->indent;
             }
         }
     }

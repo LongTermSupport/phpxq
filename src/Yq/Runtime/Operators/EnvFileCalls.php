@@ -6,6 +6,7 @@ namespace LTS\PhpXq\Yq\Runtime\Operators;
 
 use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
 use LTS\PhpXq\Yaml\Node;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yq\Expression\Ast\Binary;
 use LTS\PhpXq\Yq\Expression\Ast\BinaryOperatorEnum;
 use LTS\PhpXq\Yq\Expression\Ast\Call;
@@ -97,9 +98,14 @@ final class EnvFileCalls implements CallOperatorInterface
             case 'load_str':
             case 'strload':
                 Args::require($call, 1);
-                $file = Args::string($call, 0, $context, $evaluator, $match) ?? '';
+                $nameNode = Args::node($call, 0, $context, $evaluator, $match);
+                if (!$nameNode instanceof Node || '!!null' === $nameNode->tag) {
+                    throw new EvaluationException('filename expression returned nil');
+                }
+
+                $file = NodeKindEnum::Scalar === $nameNode->kind ? $nameNode->value : '';
                 if (!is_file($file) || !is_readable($file)) {
-                    throw new EvaluationException(\sprintf('Failed to load %s: no such file or directory', $file));
+                    throw new EvaluationException(\sprintf('failed to load %s: open %s: no such file or directory', $file, $file));
                 }
 
                 $content = (string)file_get_contents($file);

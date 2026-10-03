@@ -192,6 +192,9 @@ final class AssignOperator implements BinaryOperatorInterface
                 Comments::set($node, $kind, $value);
                 if ('' === $value && Cands::isRoot($target) && $target->parent instanceof Candidate) {
                     Comments::set($target->parent->node, $kind, '');
+                    if ('head' === $kind || 'all' === $kind) {
+                        $target->parent->node->commentsCleared = true;
+                    }
                 }
 
                 return;
