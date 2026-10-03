@@ -13,9 +13,6 @@
 # As yq is built, the blanket entry below is replaced by specific, justified entries (one per
 # genuinely unsupported feature) and finally removed once the suite is fully green.
 
-# yq-yaml
-operators/comment-operators.md: Get head comment	upstream decodes without header preprocessing, so the root head comment keeps the blank line after the leading comment ("welcome!" plus a newline); the CLI slurps the leading header ahead of the node tree by default and head_comment cannot see it
-
 # yq-eval
 operators/datetime.md: Now	upstream asserts a frozen clock (2021-05-19T01:02:03Z); now is the real time here
 operators/datetime.md: To Unix	upstream asserts a frozen clock (2021-05-19T01:02:03Z); now is the real time here
