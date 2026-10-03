@@ -19,6 +19,8 @@ interface FrontControllerInterface
 
     public const int EXIT_USAGE           = 2;
 
+    public const int EXIT_INTERNAL        = 5;
+
     public const int EXIT_NOT_IMPLEMENTED = 70;
 
     /**

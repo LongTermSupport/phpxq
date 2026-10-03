@@ -45,6 +45,24 @@ final class FrontControllerTest extends TestCase
         self::assertSame('', $stderr);
     }
 
+    public function testUncaughtErrorsBecomeAnInternalErrorExit(): void
+    {
+        $stdin  = fopen('php://memory', 'rb');
+        $stdout = fopen('php://memory', 'w+b');
+        $stderr = fopen('php://memory', 'w+b');
+        self::assertIsResource($stdin);
+        self::assertIsResource($stdout);
+        self::assertIsResource($stderr);
+        fclose($stdout);
+
+        $exit = new FrontController()->run(['jq', '-n', '1'], $stdin, $stdout, $stderr);
+
+        rewind($stderr);
+
+        self::assertSame(FrontControllerInterface::EXIT_INTERNAL, $exit);
+        self::assertStringStartsWith('jq: error (at <unknown>): internal error: ', (string)stream_get_contents($stderr));
+    }
+
     /**
      * @param list<string> $args
      *

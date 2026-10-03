@@ -12,3 +12,6 @@
 #
 # As jq is built, the blanket entry below is replaced by specific, justified entries (one per
 # genuinely unsupported feature) and finally removed once the suite is fully green.
+
+# jq-core
+jq.test:2337	Upstream test runner has no input callback, so `input` raises "break"; the CLI reads stdin and raises "No more inputs"

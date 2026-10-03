@@ -55,7 +55,7 @@ use LTS\PhpXq\Json\Values;
  */
 final readonly class NodeCompiler
 {
-    private const array FORMATS = ['text', 'json', 'html', 'uri', 'csv', 'tsv', 'sh', 'base64', 'base64d', 'base32', 'base32d'];
+    private const array FORMATS = ['text', 'json', 'html', 'uri', 'urid', 'csv', 'tsv', 'sh', 'base64', 'base64d', 'base32', 'base32d'];
 
     public function __construct(
         private Core $core,

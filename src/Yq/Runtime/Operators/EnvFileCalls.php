@@ -98,14 +98,14 @@ final class EnvFileCalls implements CallOperatorInterface
             case 'load_str':
             case 'strload':
                 Args::require($call, 1);
-                $nameNode = Args::node($call, 0, $context, $evaluator, $match);
-                if (!$nameNode instanceof Node || '!!null' === $nameNode->tag) {
+                $name = Args::node($call, 0, $context, $evaluator, $match);
+                if (!$name instanceof Node || NodeOps::isNull($name)) {
                     throw new EvaluationException('filename expression returned nil');
                 }
 
-                $file = NodeKindEnum::Scalar === $nameNode->kind ? $nameNode->value : '';
+                $file = Args::string($call, 0, $context, $evaluator, $match) ?? '';
                 if (!is_file($file) || !is_readable($file)) {
-                    throw new EvaluationException(\sprintf('failed to load %s: open %s: no such file or directory', $file, $file));
+                    throw new EvaluationException(\sprintf('failed to load %1$s: open %1$s: no such file or directory', $file));
                 }
 
                 $content = (string)file_get_contents($file);

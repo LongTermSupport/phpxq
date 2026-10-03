@@ -277,17 +277,23 @@ final readonly class Evaluator implements EvaluatorInterface
             return [new Candidate(NodeOps::seq())];
         }
 
-        $read  = $context->withDontAutoCreate(true);
-        $items = [];
-        if ($collect->inner instanceof ExpressionNodeInterface) {
-            foreach ($context->matches as $match) {
-                foreach ($this->evaluate($collect->inner, $read->withMatches([$match])) as $found) {
-                    $items[] = $found->node->deepCopy();
+        $read = $context->withDontAutoCreate(true);
+        $out  = [];
+        // Under eval-all the roots of several documents collect into one array.
+        foreach (Cross::units($context) as $unit) {
+            $items = [];
+            if ($collect->inner instanceof ExpressionNodeInterface) {
+                foreach ($unit as $match) {
+                    foreach ($this->evaluate($collect->inner, $read->withMatches([$match])) as $found) {
+                        $items[] = $found->node->deepCopy();
+                    }
                 }
             }
+
+            $out[] = Cands::derive(NodeOps::seq($items), $unit[0]);
         }
 
-        return [Cands::derive(NodeOps::seq($items), $context->matches[0])];
+        return $out;
     }
 
     /**

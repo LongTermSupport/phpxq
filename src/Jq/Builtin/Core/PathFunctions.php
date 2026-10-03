@@ -20,8 +20,6 @@ use LTS\PhpXq\Json\JsonObject;
  */
 final class PathFunctions
 {
-    private const int MAX_PATH_DEPTH = 10000;
-
     private function __construct()
     {
     }
@@ -44,10 +42,6 @@ final class PathFunctions
     {
         if (!\is_array($path) || !array_is_list($path)) {
             throw new JqException('Path must be specified as an array');
-        }
-
-        if (\count($path) > self::MAX_PATH_DEPTH) {
-            throw new JqException('Path too deep');
         }
 
         return $path;
