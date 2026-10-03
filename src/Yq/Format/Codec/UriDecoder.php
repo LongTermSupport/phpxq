@@ -1,0 +1,30 @@
+<?php
+
+declare(strict_types=1);
+
+namespace LTS\PhpXq\Yq\Format\Codec;
+
+use LTS\PhpXq\Yaml\Node;
+use LTS\PhpXq\Yaml\Schema\CoreSchema;
+use LTS\PhpXq\Yq\Format\DecoderInterface;
+use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatOptions;
+
+/**
+ * URI-escaped input: the unescaped text becomes one string scalar (a trailing newline is dropped).
+ */
+final class UriDecoder implements DecoderInterface
+{
+    public function format(): Format
+    {
+        return Format::Uri;
+    }
+
+    /**
+     * @return iterable<Node>
+     */
+    public function decode(string $input, FormatOptions $options): iterable
+    {
+        yield Node::document(Node::scalar(StringFormats::uriDecode(rtrim($input, "\r\n")), CoreSchema::TAG_STR));
+    }
+}

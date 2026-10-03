@@ -1,0 +1,188 @@
+<?php
+
+declare(strict_types=1);
+
+namespace LTS\PhpXq\Tests\Unit\Yq\Format\Codec;
+
+use LTS\PhpXq\Yaml\Emitter\YamlEmitter;
+use LTS\PhpXq\Yaml\Node;
+use LTS\PhpXq\Yaml\Parser\YamlParser;
+use LTS\PhpXq\Yq\Format\Codec\CsvDecoder;
+use LTS\PhpXq\Yq\Format\Codec\CsvEncoder;
+use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatException;
+use LTS\PhpXq\Yq\Format\FormatOptions;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * @internal
+ */
+final class CsvCodecTest extends TestCase
+{
+    public function testDecodesRowsIntoObjectsWithAutoParsing(): void
+    {
+        $csv = "name,numberOfCats,likesApples,height,facts\nGary,1,true,168.8,cool: true\nSamantha's Rabbit,2,false,-188.8,tall: indeed\n\n";
+
+        $expected = <<<'YAML'
+            - name: Gary
+              numberOfCats: 1
+              likesApples: true
+              height: 168.8
+              facts:
+                cool: true
+            - name: Samantha's Rabbit
+              numberOfCats: 2
+              likesApples: false
+              height: -188.8
+              facts:
+                tall: indeed
+
+            YAML;
+
+        self::assertSame($expected, self::decodeToYaml($csv, Format::Csv));
+    }
+
+    public function testDecodesWithoutAutoParsing(): void
+    {
+        $out = self::decodeToYaml("a,b\n1,cool: true\n", Format::Csv, new FormatOptions(csvAutoParse: false));
+
+        self::assertSame("- a: 1\n  b: 'cool: true'\n", $out);
+    }
+
+    public function testDecodesTsv(): void
+    {
+        $out = self::decodeToYaml("name\tn\nGary\t1\nSam\t2\n", Format::Tsv);
+
+        self::assertSame("- name: Gary\n  n: 1\n- name: Sam\n  n: 2\n", $out);
+    }
+
+    public function testQuotedFields(): void
+    {
+        $csv = "a,b\n\"x,y\",\"say \"\"hi\"\"\"\n\"multi\nline\",plain\n";
+        $rows = self::decodeDoc($csv, Format::Csv, new FormatOptions(csvAutoParse: false))->root()->content;
+
+        self::assertSame('x,y', $rows[0]->content[1]->value);
+        self::assertSame('say "hi"', $rows[0]->content[3]->value);
+        self::assertSame("multi\nline", $rows[1]->content[1]->value);
+    }
+
+    public function testCustomSeparatorAndCrlf(): void
+    {
+        $rows = self::decodeDoc("a;b\r\n1;2\r\n", Format::Csv, new FormatOptions(csvSeparator: ';'))->root()->content;
+
+        self::assertSame('1', $rows[0]->content[1]->value);
+        self::assertSame('2', $rows[0]->content[3]->value);
+    }
+
+    public function testShortRowsArePaddedAndEmptyFieldsAreNull(): void
+    {
+        $row = self::decodeDoc("a,b,c\n1\n", Format::Csv)->root()->content[0];
+
+        self::assertSame('1', $row->content[1]->value);
+        self::assertSame('!!null', $row->content[3]->tag);
+        self::assertSame('!!null', $row->content[5]->tag);
+    }
+
+    public function testHeaderOnlyIsAnEmptyArray(): void
+    {
+        self::assertSame([], self::decodeDoc("a,b\n", Format::Csv)->root()->content);
+    }
+
+    public function testEmptyInputHasNoDocuments(): void
+    {
+        self::assertSame([], [...new CsvDecoder(Format::Csv)->decode('', new FormatOptions())]);
+    }
+
+    public function testBomIsSkipped(): void
+    {
+        $row = self::decodeDoc("\u{FEFF}a\n1\n", Format::Csv)->root()->content[0];
+
+        self::assertSame('a', $row->content[0]->value);
+    }
+
+    public function testUnterminatedQuoteIsAnError(): void
+    {
+        $this->expectException(FormatException::class);
+        self::decodeDoc("a\n\"oops\n", Format::Csv);
+    }
+
+    #[DataProvider('encodeCases')]
+    public function testEncode(string $yaml, string $expected, Format $format = Format::Csv, int $index = 0): void
+    {
+        self::assertSame($expected, self::encode($yaml, $format, new FormatOptions(), $index));
+    }
+
+    /**
+     * @return iterable<string, array{string, string, 2?: Format, 3?: int}>
+     */
+    public static function encodeCases(): iterable
+    {
+        yield 'rows' => ["- [i, like, csv]\n- [because, excel, is, cool]\n", "i,like,csv\nbecause,excel,is,cool\n"];
+
+        yield 'tsv rows' => ["- [i, like, csv]\n- [because, excel, is, cool]\n", "i\tlike\tcsv\nbecause\texcel\tis\tcool\n", Format::Tsv];
+
+        yield 'objects get a header' => ["- name: Gary\n  n: 1\n  likes: true\n  h: 168.8\n- name: Samantha's Rabbit\n  n: 2\n  likes: false\n  h: -188.8\n", "name,n,likes,h\nGary,1,true,168.8\nSamantha's Rabbit,2,false,-188.8\n"];
+
+        yield 'missing and extra fields' => ["- name: Gary\n  n: 1\n  h: 168.8\n- name: Sam\n  h: -188.8\n  likes: false\n", "name,n,h\nGary,1,168.8\nSam,,-188.8\n"];
+
+        yield 'later results have no header' => ["- a: 1\n- a: 2\n", "1\n2\n", Format::Csv, 1];
+
+        yield 'single row of scalars' => ["[cat, 'thing1,thing2', true, 3.40]\n", "cat,\"thing1,thing2\",true,3.40\n"];
+
+        yield 'quotes and newlines' => ["- ['say \"hi\"', \"a\\nb\", ' lead', '']\n", "\"say \"\"hi\"\"\",\"a\nb\",\" lead\",\n"];
+
+        yield 'tsv quotes tabs' => ["- ['a\tb', c]\n", "\"a\tb\"\tc\n", Format::Tsv];
+
+        yield 'scalar root' => ["hello\n", "hello\n"];
+
+        yield 'empty array' => ["[]\n", ''];
+    }
+
+    public function testCustomSeparatorOnEncode(): void
+    {
+        self::assertSame("a;b\n", self::encode("- [a, b]\n", Format::Csv, new FormatOptions(csvSeparator: ';')));
+        self::assertSame("a|b\n", self::encode("- [a, b]\n", Format::Tsv, new FormatOptions(tsvSeparator: '|')));
+    }
+
+    public function testNestedCellsAreRejected(): void
+    {
+        $this->expectException(FormatException::class);
+        self::encode("- [[1], 2]\n", Format::Csv, new FormatOptions());
+    }
+
+    public function testMappingRootIsRejected(): void
+    {
+        $this->expectException(FormatException::class);
+        self::encode("a: 1\n", Format::Csv, new FormatOptions());
+    }
+
+    public function testFormats(): void
+    {
+        self::assertSame(Format::Tsv, new CsvDecoder(Format::Tsv)->format());
+        self::assertSame(Format::Csv, new CsvEncoder(Format::Csv)->format());
+    }
+
+    private static function decodeDoc(string $text, Format $format, ?FormatOptions $options = null): Node
+    {
+        foreach (new CsvDecoder($format)->decode($text, $options ?? new FormatOptions()) as $document) {
+            return $document;
+        }
+
+        self::fail('no document');
+    }
+
+    private static function decodeToYaml(string $text, Format $format, ?FormatOptions $options = null): string
+    {
+        return new YamlEmitter()->emit(self::decodeDoc($text, $format, $options));
+    }
+
+    private static function encode(string $yaml, Format $format, FormatOptions $options, int $index = 0): string
+    {
+        foreach (new YamlParser()->parse($yaml) as $document) {
+            return new CsvEncoder($format)->encode($document, $options, $index);
+        }
+
+        self::fail('no document');
+    }
+}
