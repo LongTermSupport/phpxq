@@ -27,12 +27,6 @@ final class FrontController implements FrontControllerInterface
             return JqApplication::create()->run(\array_slice($args, 1), $stdin, $stdout, $stderr);
         }
 
-        if ('yq' === $tool) {
-            return new YqApplication()->run(\array_slice($args, 1), $stdin, $stdout, $stderr);
-        }
-
-        fwrite($stderr, $tool . ": not implemented\n");
-
-        return self::EXIT_NOT_IMPLEMENTED;
+        return new YqApplication()->run(\array_slice($args, 1), $stdin, $stdout, $stderr);
     }
 }
