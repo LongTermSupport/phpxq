@@ -23,6 +23,8 @@ final class PathOps
 {
     private const int MAX_INDEX = 536870911;
 
+    private const int MAX_PATH_DEPTH = 10000;
+
     private function __construct()
     {
     }
@@ -34,6 +36,8 @@ final class PathOps
      */
     public static function getPath(mixed $value, array $path): mixed
     {
+        self::assertShallow($path);
+
         foreach ($path as $key) {
             if (null === $value) {
                 return null;
@@ -52,6 +56,8 @@ final class PathOps
      */
     public static function setPath(mixed $value, array $path, mixed $new): mixed
     {
+        self::assertShallow($path);
+
         return self::setFrom($value, $path, 0, \count($path), $new);
     }
 
@@ -70,6 +76,7 @@ final class PathOps
                 throw new JqException('Path must be specified as an array');
             }
 
+            self::assertShallow($path);
             $sorted[] = $path;
         }
 
@@ -117,6 +124,18 @@ final class PathOps
         }
 
         throw ErrorText::indexError($target, $key);
+    }
+
+    /**
+     * @param list<mixed> $path
+     *
+     * @throws JqException when the path has more than 10000 steps
+     */
+    private static function assertShallow(array $path): void
+    {
+        if (\count($path) > self::MAX_PATH_DEPTH) {
+            throw new JqException('Path too deep');
+        }
     }
 
     /**

@@ -240,7 +240,9 @@ final class TypeFunctions
 
         if (\is_array($haystack) && \is_array($needle)) {
             foreach ($needle as $wanted) {
-                $found = array_any($haystack, static fn ($candidate): bool => self::kind($candidate) === self::kind($wanted) && self::contains($candidate, $wanted, $depth + 1));
+                $wantedKind = self::kind($wanted);
+                $found      = array_any($haystack, static fn ($candidate): bool => self::kind($candidate) === $wantedKind && self::contains($candidate, $wanted, $depth + 1));
+
                 if (!$found) {
                     return false;
                 }
