@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Json;
 
 use InvalidArgumentException;
+use LTS\PhpXq\Json\Codec\DecimalLiteral;
 
 /**
  * Type tests and jq's total ordering over the value model.
@@ -74,6 +75,10 @@ final class Values
 
         if (\is_array($left) && \is_array($right)) {
             return self::compareLists($left, $right);
+        }
+
+        if ($left instanceof PreciseNumber && $right instanceof PreciseNumber) {
+            return DecimalLiteral::compare($left->literal, $right->literal);
         }
 
         if (self::isNumber($left) && self::isNumber($right)) {

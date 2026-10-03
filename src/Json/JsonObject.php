@@ -38,6 +38,17 @@ final readonly class JsonObject implements Countable
         return new self($members);
     }
 
+    /**
+     * The members in insertion order as PHP's storage array. Numeric looking names appear as int keys, so a
+     * caller that needs string keys casts them. Read only use: the array is a copy-on-write snapshot.
+     *
+     * @return array<array-key, mixed>
+     */
+    public function toArray(): array
+    {
+        return $this->members;
+    }
+
     public function count(): int
     {
         return \count($this->members);
