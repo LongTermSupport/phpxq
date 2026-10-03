@@ -367,6 +367,38 @@ final class ParserTest extends TestCase
         $this->parser()->parse("1 |\n  a b");
     }
 
+    public function testUnterminatedIfAndTryAreAnnotated(): void
+    {
+        try {
+            $this->parser()->parse("[\n  try if .\n         then 1\n         else 2\n  catch ]");
+            self::fail('expected a compile error');
+        } catch (JqCompileException $jqCompileException) {
+            self::assertSame(
+                "syntax error, unexpected catch, expecting end or '|' or ',' at <top-level>, line 5, column 3:"
+                . "\njq: error: Possibly unterminated 'if' statement at <top-level>, line 2, column 7:"
+                . "\njq: error: Possibly unterminated 'try' statement at <top-level>, line 2, column 3:",
+                $jqCompileException->getMessage(),
+            );
+        }
+    }
+
+    public function testEndOfInputSitsOnTheFinalLineBreak(): void
+    {
+        $this->expectException(JqCompileException::class);
+        $this->expectExceptionMessage('unexpected end of file at <top-level>, line 1, column 3:');
+
+        $this->parser()->parse("if\n");
+    }
+
+    public function testTooManyParametersAreRejected(): void
+    {
+        $params = implode(';', array_map(static fn (int $i): string => 'a' . $i, range(1, 4096)));
+        $this->expectException(JqCompileException::class);
+        $this->expectExceptionMessage('too many function parameters or local function definitions (max 4095)');
+
+        $this->parser()->parse(\sprintf('def f(%s): .; .', $params));
+    }
+
     public function testLexerErrorsPropagate(): void
     {
         $this->expectException(JqCompileException::class);

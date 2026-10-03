@@ -57,7 +57,12 @@ final class IoFunctions
                 throw new JqException('halt_error/1: number required');
             }
 
-            throw new HaltException(Num::toInt(Num::toFloat($args[0])), \is_string($input) ? $input : Problems::json($input) . "\n");
+            $status = Num::toInt(Num::toFloat($args[0]));
+            if (null === $input) {
+                throw new HaltException($status);
+            }
+
+            throw new HaltException($status, \is_string($input) ? $input : Problems::json($input) . "\n");
         }));
         $registry->register(new ValueFunction('env', 0, static function (RuntimeContextInterface $c): mixed {
             $globals = $c->globals();

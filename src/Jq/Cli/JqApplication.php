@@ -175,7 +175,11 @@ final readonly class JqApplication
         foreach ($entries as $entry) {
             $console->err('jq: error: ' . $entry);
             if (1 === preg_match('/ at <top-level>, line (\d+), column (\d+):$/', $entry, $matches)) {
-                $console->err("\n" . $this->snippet($lines[(int)$matches[1] - 1] ?? '', (int)$matches[2]));
+                $console->err("\n" . $this->snippet(
+                    $lines[(int)$matches[1] - 1] ?? '',
+                    (int)$matches[2],
+                    str_starts_with($entry, 'Possibly unterminated'),
+                ));
             }
 
             $console->err("\n");
@@ -186,13 +190,16 @@ final readonly class JqApplication
     }
 
     /**
-     * The offending source line, indented, with carets under the token that starts at $column.
+     * The offending source line, indented, with carets under the token that starts at $column, or
+     * under the rest of the line when $toEndOfLine (a construct that spans several tokens).
      */
-    private function snippet(string $line, int $column): string
+    private function snippet(string $line, int $column, bool $toEndOfLine = false): string
     {
         $line  = rtrim($line, "\r");
         $width = 1;
-        if ($column >= 1 && $column <= \strlen($line) && 1 === preg_match('/^[A-Za-z0-9_$@]+/', substr($line, $column - 1), $word)) {
+        if ($toEndOfLine && $column >= 1 && $column <= \strlen($line)) {
+            $width = \strlen(rtrim(substr($line, $column - 1)));
+        } elseif ($column >= 1 && $column <= \strlen($line) && 1 === preg_match('/^[A-Za-z0-9_$@]+/', substr($line, $column - 1), $word)) {
             $width = \strlen($word[0]);
         }
 

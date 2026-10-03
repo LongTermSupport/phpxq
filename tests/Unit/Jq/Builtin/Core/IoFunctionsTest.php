@@ -102,6 +102,17 @@ final class IoFunctionsTest extends TestCase
         }
     }
 
+    public function testHaltErrorWritesNothingForNull(): void
+    {
+        try {
+            Harness::call('halt_error', null, [1]);
+            self::fail('halt_error did not halt');
+        } catch (HaltException $haltException) {
+            self::assertSame(1, $haltException->exitCode);
+            self::assertNull($haltException->stderrText);
+        }
+    }
+
     public function testHaltErrorNeedsANumericStatus(): void
     {
         self::assertSame('halt_error/1: number required', Harness::error('halt_error', 'x', ['a']));
