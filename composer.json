@@ -4,9 +4,13 @@
     "license": "MIT",
     "type": "project",
     "require": {
-        "php": "^8.5"
+        "php": "^8.5",
+        "ext-ctype": "*",
+        "ext-json": "*",
+        "ext-mbstring": "*"
     },
     "require-dev": {
+        "ext-posix": "*",
         "lts/php-qa-ci": "^85.0",
         "phpunit/phpunit": "^13.4",
         "sebastian/comparator": "^8.4"

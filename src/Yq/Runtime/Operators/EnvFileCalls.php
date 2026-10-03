@@ -19,7 +19,6 @@ use LTS\PhpXq\Yq\Runtime\EvaluationContext;
 use LTS\PhpXq\Yq\Runtime\EvaluationException;
 use LTS\PhpXq\Yq\Runtime\EvaluatorInterface;
 use LTS\PhpXq\Yq\Runtime\NodeOps;
-use Symfony\Component\Process\Process;
 
 /**
  * Environment, file and process operators: `env`, `strenv`, `envsubst`, `load`, `load_str`, `system`. They
@@ -119,7 +118,7 @@ final class EnvFileCalls implements CallOperatorInterface
                 return Cands::derive(NodeOps::null(), $match);
 
             default:
-                return $this->system($call, $match, $context, $evaluator);
+                throw new EvaluationException('The system operator is not supported by phpxq (spawning processes is out of scope)');
         }
     }
 
@@ -147,25 +146,5 @@ final class EnvFileCalls implements CallOperatorInterface
             self::collectFlags($node->left, $flags);
             self::collectFlags($node->right, $flags);
         }
-    }
-
-    private function system(Call $call, Candidate $match, EvaluationContext $context, EvaluatorInterface $evaluator): Candidate
-    {
-        Args::require($call, 1);
-        $command = [Args::string($call, 0, $context, $evaluator, $match) ?? ''];
-        $count   = \count($call->arguments);
-        for ($i = 1; $i < $count; ++$i) {
-            foreach (Args::strings($call, $i, $context, $evaluator, $match) as $argument) {
-                $command[] = $argument;
-            }
-        }
-
-        $process = new Process($command);
-        $process->run();
-        if (!$process->isSuccessful()) {
-            throw new EvaluationException(\sprintf('system command %s failed: %s', $command[0], trim($process->getErrorOutput())));
-        }
-
-        return Cands::derive(NodeOps::str(rtrim($process->getOutput(), "\n")), $match);
     }
 }

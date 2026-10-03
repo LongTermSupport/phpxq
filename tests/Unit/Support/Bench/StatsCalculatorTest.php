@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LTS\PhpXq\Tests\Unit\Bench;
+namespace LTS\PhpXq\Tests\Unit\Support\Bench;
 
 use InvalidArgumentException;
 use LTS\PhpXq\Tests\Support\Bench\StatsCalculator;
