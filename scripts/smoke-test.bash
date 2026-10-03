@@ -7,9 +7,8 @@
 #   --expect-version X.Y.Z   the version it must report (default: the VERSION file)
 #
 # Checks: `--version` reports the release; no arguments is a usage error; the busybox-style names `jq`
-# and `yq` dispatch to their tool; no PHP error ever reaches the user. While a tool is still the stub
-# (exit 70, "not implemented") its functional check is reported as skipped; once implemented it must
-# produce real output.
+# and `yq` dispatch to their tool; stdin is read, results and exit codes match jq/yq; no PHP error ever
+# reaches the user.
 set -euo pipefail
 
 # shellcheck source-path=SCRIPTDIR
@@ -79,39 +78,38 @@ no_php_error() {
 echo "Smoke-testing $artefact (expecting version $expect_version)"
 
 run_case "$artefact" "" --version
-if ((rc == 0)) && [[ "$out" == "phpxq $expect_version" ]]; then pass "--version prints 'phpxq $expect_version'"; else fail "--version: rc=$rc out='$out' err='$err'"; fi
+if ((rc == 0)) && [[ "${out%%$'\n'*}" == "phpxq $expect_version" ]]; then pass "--version starts with 'phpxq $expect_version'"; else fail "--version: rc=$rc out='$out' err='$err'"; fi
 
 run_case "$artefact" ""
 if ((rc == 2)) && [[ "$err" == *usage* ]]; then pass "no arguments is a usage error (exit 2)"; else fail "no arguments: rc=$rc err='$err'"; fi
 
-run_case "$artefact" '{"a":1}' jq .a
-if no_php_error "phpxq jq"; then
-    if ((rc == 70)); then
-        pass "phpxq jq reaches the jq tool (stub: functional check skipped)"
-    elif ((rc == 0)) && [[ "$out" == "1" ]]; then
-        pass "phpxq jq .a evaluates"
-    else fail "phpxq jq .a: rc=$rc out='$out' err='$err'"; fi
-fi
+# expect_case <label> <expected-rc> <expected-stdout> <program> <stdin> <args...>
+expect_case() {
+    local label="$1" want_rc="$2" want_out="$3"
+    shift 3
+    run_case "$@"
+    if no_php_error "$label"; then
+        if ((rc == want_rc)) && [[ "$out" == "$want_out" ]]; then
+            pass "$label"
+        else fail "$label: rc=$rc (want $want_rc) out='$out' (want '$want_out') err='$err'"; fi
+    fi
+}
 
-run_case "$artefact" 'a: 1' yq .a
-if no_php_error "phpxq yq"; then
-    if ((rc == 70)); then
-        pass "phpxq yq reaches the yq tool (stub: functional check skipped)"
-    elif ((rc == 0)) && [[ "$out" == "1" ]]; then
-        pass "phpxq yq .a evaluates"
-    else fail "phpxq yq .a: rc=$rc out='$out' err='$err'"; fi
-fi
+expect_case "phpxq jq .a reads stdin" 0 "1" "$artefact" '{"a":1}' jq .a
+expect_case "phpxq yq .a reads stdin" 0 "1" "$artefact" 'a: 1' yq .a
+expect_case "phpxq jq -c over a pipeline" 0 '[2,4]' "$artefact" '[1,2]' jq -c 'map(. * 2)'
+expect_case "phpxq yq converts YAML to JSON" 0 '{"a":[1,2]}' "$artefact" $'a:\n  - 1\n  - 2' yq -o=json -I=0 .
+expect_case "jq -e exits 1 on a null result" 1 "null" "$artefact" 'null' jq -e .
+expect_case "jq exits 3 on a program that does not compile" 3 "" "$artefact" '{}' jq '.['
 
 for tool in jq yq; do
-    run_case "$work/$tool" '{"a":1}' .a
-    if no_php_error "argv0 $tool"; then
-        if ((rc == 70)) && [[ "$err" == "$tool:"* ]]; then
-            pass "a program named '$tool' dispatches to $tool (busybox style)"
-        elif ((rc == 0)); then
-            pass "a program named '$tool' dispatches to $tool and succeeds"
-        else fail "argv0 $tool: rc=$rc out='$out' err='$err'"; fi
-    fi
+    expect_case "a program named '$tool' dispatches to $tool (busybox style)" 0 "1" "$work/$tool" '{"a":1}' .a
 done
+
+run_case "$work/jq" "" --version
+if ((rc == 0)) && [[ "$out" == jq-* ]]; then pass "jq --version prints the jq-compatible version"; else fail "jq --version: rc=$rc out='$out'"; fi
+run_case "$work/yq" "" --version
+if ((rc == 0)) && [[ "$out" == yq\ * ]]; then pass "yq --version prints the yq-compatible version"; else fail "yq --version: rc=$rc out='$out'"; fi
 
 if ((static)) && [[ "$(uname -s)" == Linux ]] && command -v ldd >/dev/null; then
     # ldd exits non-zero for a static executable, so its output is captured rather than piped.
