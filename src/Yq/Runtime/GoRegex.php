@@ -92,6 +92,22 @@ final class GoRegex
     }
 
     /**
+     * Replaces every match (or the first when not `$global`) expanding Go's `$1`, `${1}`, `$name` and `$$`.
+     */
+    public static function replace(string $regex, string $replacement, string $subject, bool $global = true): string
+    {
+        $limit  = $global ? -1 : 1;
+        $result = preg_replace_callback(
+            $regex,
+            static fn (array $m): string => self::expand($replacement, $m),
+            $subject,
+            $limit,
+        );
+
+        return $result ?? $subject;
+    }
+
+    /**
      * @param array<int|string, mixed> $match
      *
      * @return array{string: string, offset: int, length: int, captures: list<array{string: ?string, offset: int, length: int, name: string}>}
@@ -123,7 +139,7 @@ final class GoRegex
 
             $value = $group[0];
             $at    = $group[1];
-            if (!\is_int($at) || !(\is_string($value) || null === $value)) {
+            if (!\is_int($at) || !\is_string($value) && null !== $value) {
                 $name = '';
 
                 continue;
@@ -147,27 +163,7 @@ final class GoRegex
             return 0;
         }
 
-        $length = mb_strlen($text, 'UTF-8');
-
-        return $length;
-    }
-
-    /**
-     * Replaces every match (or the first when not `$global`) expanding Go's `$1`, `${1}`, `$name` and `$$`.
-     */
-    public static function replace(string $regex, string $replacement, string $subject, bool $global = true): string
-    {
-        $limit  = $global ? -1 : 1;
-        $result = preg_replace_callback(
-            $regex,
-            static function (array $m) use ($replacement): string {
-                return self::expand($replacement, $m);
-            },
-            $subject,
-            $limit,
-        );
-
-        return $result ?? $subject;
+        return mb_strlen($text, 'UTF-8');
     }
 
     /**
@@ -235,7 +231,7 @@ final class GoRegex
     private static function group(array $groups, string $name): string
     {
         if (ctype_digit($name)) {
-            return $groups[(int) $name] ?? '';
+            return $groups[(int)$name] ?? '';
         }
 
         return $groups[$name] ?? '';

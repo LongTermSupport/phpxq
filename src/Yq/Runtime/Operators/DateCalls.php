@@ -47,21 +47,18 @@ final class DateCalls implements CallOperatorInterface
         $out    = [];
         $layout = Cands::dateLayout($context);
         foreach ($context->matches as $match) {
-            $result = $this->one($call, $match, $layout, $context, $evaluator);
-            if ($result instanceof Candidate) {
-                $out[] = $result;
-            }
+            $out[] = $this->one($call, $match, $layout, $context, $evaluator);
         }
 
         return $out;
     }
 
-    private function one(Call $call, Candidate $match, ?string $layout, EvaluationContext $context, EvaluatorInterface $evaluator): ?Candidate
+    private function one(Call $call, Candidate $match, ?string $layout, EvaluationContext $context, EvaluatorInterface $evaluator): Candidate
     {
         $node = NodeOps::deref(Cands::node($match));
         switch ($call->name) {
             case 'now':
-                return Cands::derive(self::dateNode(new DateTimeImmutable('now'), $layout), $match);
+                return Cands::derive($this->dateNode(new DateTimeImmutable('now'), $layout), $match);
 
             case 'from_unix':
                 $seconds = Numbers::of($node);
@@ -69,12 +66,12 @@ final class DateCalls implements CallOperatorInterface
                     throw new EvaluationException(\sprintf('cannot convert %s to a unix time', $node->value));
                 }
 
-                $time = new DateTimeImmutable('@' . (int) $seconds)->setTimezone(new DateTimeZone(date_default_timezone_get()));
+                $time = new DateTimeImmutable('@' . (int)$seconds)->setTimezone(new DateTimeZone(date_default_timezone_get()));
 
-                return Cands::derive(self::dateNode($time, $layout), $match);
+                return Cands::derive($this->dateNode($time, $layout), $match);
 
             case 'to_unix':
-                return Cands::derive(NodeOps::int(self::parse($node, $layout)->getTimestamp()), $match);
+                return Cands::derive(NodeOps::int($this->parse($node, $layout)->getTimestamp()), $match);
 
             case 'tz':
                 Args::require($call, 1);
@@ -85,22 +82,22 @@ final class DateCalls implements CallOperatorInterface
                     throw new EvaluationException(\sprintf('unknown time zone %s', $zone));
                 }
 
-                return Cands::derive(self::dateNode(self::parse($node, $layout)->setTimezone($target), $layout), $match);
+                return Cands::derive($this->dateNode($this->parse($node, $layout)->setTimezone($target), $layout), $match);
 
             default:
                 Args::require($call, 1);
                 $format = Args::string($call, 0, $context, $evaluator, $match) ?? GoTime::RFC3339;
 
-                return Cands::derive(self::textNode(GoTime::format(self::parse($node, $layout), $format)), $match);
+                return Cands::derive($this->textNode(GoTime::format($this->parse($node, $layout), $format)), $match);
         }
     }
 
-    private static function textNode(string $text): Node
+    private function textNode(string $text): Node
     {
         return new Node(NodeKind::Scalar, GoTime::looksLikeTimestamp($text) ? CoreSchema::TAG_TIMESTAMP : CoreSchema::TAG_STR, NodeStyle::Default, $text);
     }
 
-    private static function parse(Node $node, ?string $layout): DateTimeImmutable
+    private function parse(Node $node, ?string $layout): DateTimeImmutable
     {
         if (NodeKind::Scalar !== $node->kind) {
             throw new EvaluationException('Cannot parse a collection as a datetime');
@@ -114,8 +111,8 @@ final class DateCalls implements CallOperatorInterface
         return $time;
     }
 
-    private static function dateNode(DateTimeImmutable $time, ?string $layout): Node
+    private function dateNode(DateTimeImmutable $time, ?string $layout): Node
     {
-        return self::textNode(GoTime::format($time, $layout ?? GoTime::RFC3339));
+        return $this->textNode(GoTime::format($time, $layout ?? GoTime::RFC3339));
     }
 }

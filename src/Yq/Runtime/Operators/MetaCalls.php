@@ -22,7 +22,7 @@ use LTS\PhpXq\Yq\Runtime\NodeOps;
 /**
  * Operators about the nodes themselves: `tag`, `type`, `kind`, `style`, `anchor`, `alias`, the comment
  * readers, `explode` and `sort_keys`. (Setting them is done with `X style = "..."` by the assignment
- * operators.)
+ * operators.).
  */
 final class MetaCalls implements CallOperatorInterface
 {
@@ -59,7 +59,7 @@ final class MetaCalls implements CallOperatorInterface
                 return NodeOps::kindName($node);
 
             case 'style':
-                return self::styleName($node);
+                return $this->styleName($node);
 
             case 'anchor':
                 return $node->anchor;
@@ -97,7 +97,7 @@ final class MetaCalls implements CallOperatorInterface
         return $text;
     }
 
-    private static function styleName(Node $node): string
+    private function styleName(Node $node): string
     {
         if ($node->tagExplicit && NodeStyle::Default === $node->style) {
             return 'tagged';
@@ -134,14 +134,14 @@ final class MetaCalls implements CallOperatorInterface
 
             $node = NodeOps::deref($node);
             if (NodeKind::Mapping === $node->kind) {
-                self::sortPairs($node);
+                $this->sortPairs($node);
             }
         }
 
         return $context->matches;
     }
 
-    private static function sortPairs(Node $map): void
+    private function sortPairs(Node $map): void
     {
         $pairs = [];
         for ($i = 0, $n = \count($map->content); $i < $n; $i += 2) {

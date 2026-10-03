@@ -123,7 +123,7 @@ final class Anchors
         }
 
         foreach (Traversal::entries($map, false, true) as [$key, $value]) {
-            $own = isset($local[$key->value]) && self::owns($map, $key);
+            $own    = isset($local[$key->value]) && self::owns($map, $key);
             $flat[] = $own ? $key : $key->deepCopy();
             $flat[] = $own ? $value : $value->deepCopy();
         }

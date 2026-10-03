@@ -62,13 +62,13 @@ final class NavigationCalls implements CallOperatorInterface
         switch ($call->name) {
             case 'parent':
                 $count  = [] === $call->arguments ? 1 : (Args::int($call, 0, $context, $evaluator, $match) ?? 1);
-                $parent = self::ancestor(self::ancestors($match), $count);
+                $parent = $this->ancestor($this->ancestors($match), $count);
 
                 return $parent instanceof Candidate ? [$parent] : [];
 
             case 'parents':
                 $items = [];
-                foreach (self::ancestors($match) as $ancestor) {
+                foreach ($this->ancestors($match) as $ancestor) {
                     $items[] = $ancestor->node->deepCopy();
                 }
 
@@ -123,7 +123,7 @@ final class NavigationCalls implements CallOperatorInterface
     /**
      * @return list<Candidate> nearest first
      */
-    private static function ancestors(Candidate $match): array
+    private function ancestors(Candidate $match): array
     {
         $chain = [];
         for ($parent = $match->parent; $parent instanceof Candidate && NodeKind::Document !== $parent->node->kind; $parent = $parent->parent) {
@@ -136,7 +136,7 @@ final class NavigationCalls implements CallOperatorInterface
     /**
      * @param list<Candidate> $chain
      */
-    private static function ancestor(array $chain, int $count): ?Candidate
+    private function ancestor(array $chain, int $count): ?Candidate
     {
         if (0 === $count) {
             return null;

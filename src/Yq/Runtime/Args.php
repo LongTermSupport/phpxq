@@ -65,7 +65,7 @@ final class Args
 
         $number = Numbers::of($node);
 
-        return null === $number ? null : (int) $number;
+        return null === $number ? null : (int)$number;
     }
 
     /**
@@ -109,6 +109,18 @@ final class Args
     }
 
     /**
+     * Requires an argument; reports the operator when it is missing.
+     *
+     * @throws EvaluationException
+     */
+    public static function require(Call $call, int $count): void
+    {
+        if (\count($call->arguments) < $count) {
+            throw new EvaluationException(\sprintf('%s requires %d argument%s', $call->name, $count, 1 === $count ? '' : 's'));
+        }
+    }
+
+    /**
      * @param list<ExpressionNode> $parts
      */
     private static function unionParts(ExpressionNode $node, array &$parts): void
@@ -121,17 +133,5 @@ final class Args
         }
 
         $parts[] = $node;
-    }
-
-    /**
-     * Requires an argument; reports the operator when it is missing.
-     *
-     * @throws EvaluationException
-     */
-    public static function require(Call $call, int $count): void
-    {
-        if (\count($call->arguments) < $count) {
-            throw new EvaluationException(\sprintf('%s requires %d argument%s', $call->name, $count, 1 === $count ? '' : 's'));
-        }
     }
 }

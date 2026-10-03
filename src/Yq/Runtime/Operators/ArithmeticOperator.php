@@ -116,7 +116,7 @@ final class ArithmeticOperator implements BinaryOperatorInterface
                     $merged->content[] = $r->content[$i]->deepCopy();
                     $merged->content[] = $r->content[$i + 1]->deepCopy();
                 } else {
-                    $merged->content[$found + 1] = $r->content[$i + 1]->deepCopy();
+                    array_splice($merged->content, $found + 1, 1, [$r->content[$i + 1]->deepCopy()]);
                 }
             }
 
@@ -186,15 +186,7 @@ final class ArithmeticOperator implements BinaryOperatorInterface
             $remove = NodeKind::Sequence === $r->kind ? $r->content : [$r];
             $items  = [];
             foreach ($l->content as $item) {
-                $drop = false;
-                foreach ($remove as $candidate) {
-                    if (Compare::deepEquals($item, $candidate)) {
-                        $drop = true;
-
-                        break;
-                    }
-                }
-
+                $drop = array_any($remove, static fn (Node $candidate): bool => Compare::deepEquals($item, $candidate));
                 if (!$drop) {
                     $items[] = $item->deepCopy();
                 }
@@ -259,7 +251,7 @@ final class ArithmeticOperator implements BinaryOperatorInterface
 
     private static function repeat(Node $text, int|float $times): Node
     {
-        $out        = NodeOps::str(str_repeat($text->value, max(0, (int) $times)));
+        $out        = NodeOps::str(str_repeat($text->value, max(0, (int)$times)));
         $out->tag   = $text->tag;
         $out->style = NodeStyle::Default;
 
@@ -276,7 +268,7 @@ final class ArithmeticOperator implements BinaryOperatorInterface
             $ln = Numbers::of($l);
             $rn = Numbers::of($r);
             if (null !== $ln && null !== $rn) {
-                $out      = NodeOps::float(fdiv((float) $ln, (float) $rn));
+                $out      = NodeOps::float(fdiv((float)$ln, (float)$rn));
                 $out->tag = self::keepCustomTag($l, $out->tag);
 
                 return $out;
@@ -308,12 +300,12 @@ final class ArithmeticOperator implements BinaryOperatorInterface
             return self::numberNode($l, $ln % $rn);
         }
 
-        return self::numberNode($l, fmod((float) $ln, (float) $rn), true);
+        return self::numberNode($l, fmod((float)$ln, (float)$rn), true);
     }
 
     private static function numberNode(Node $like, int|float $value, bool $forceFloat = false): Node
     {
-        $out      = $forceFloat || \is_float($value) ? NodeOps::float((float) $value) : NodeOps::int($value);
+        $out      = $forceFloat || \is_float($value) ? NodeOps::float((float)$value) : NodeOps::int($value);
         $out->tag = self::keepCustomTag($like, $out->tag);
 
         return $out;
@@ -345,8 +337,8 @@ final class ArithmeticOperator implements BinaryOperatorInterface
             return null;
         }
 
-        $moved = GoTime::addNanos($time, $sign * $nanos);
-        $out   = $l->deepCopy();
+        $moved      = GoTime::addNanos($time, $sign * $nanos);
+        $out        = $l->deepCopy();
         $out->value = GoTime::format($moved, $layout ?? GoTime::RFC3339);
 
         return $out;

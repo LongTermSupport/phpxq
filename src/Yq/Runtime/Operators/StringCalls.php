@@ -54,14 +54,14 @@ final class StringCalls implements CallOperatorInterface
         switch ($call->name) {
             case 'to_string':
             case 'tostring':
-                return [Cands::derive(self::toString($node, $context), $match)];
+                return [Cands::derive($this->toString($node, $context), $match)];
 
             case 'to_number':
             case 'tonumber':
-                return [Cands::derive(self::toNumber($node), $match)];
+                return [Cands::derive($this->toNumber($node), $match)];
 
             case 'to_bool':
-                return [Cands::derive(self::toBool($node), $match)];
+                return [Cands::derive($this->toBool($node), $match)];
 
             case 'join':
                 return [Cands::derive($this->join($call, $match, $node, $context, $evaluator), $match)];
@@ -73,7 +73,7 @@ final class StringCalls implements CallOperatorInterface
                     return [];
                 }
 
-                $parts = '' === $separator ? mb_str_split(self::text($node, $call)) : explode($separator, self::text($node, $call));
+                $parts = '' === $separator ? mb_str_split($this->text($node, $call)) : explode($separator, $this->text($node, $call));
 
                 return [Cands::derive(NodeOps::seq(array_map(NodeOps::str(...), $parts)), $match)];
 
@@ -82,7 +82,7 @@ final class StringCalls implements CallOperatorInterface
         }
     }
 
-    private static function text(Node $node, Call $call): string
+    private function text(Node $node, Call $call): string
     {
         if (NodeKind::Scalar !== $node->kind) {
             throw new EvaluationException(\sprintf('Cannot apply %s to %s', $call->name, '' === $node->tag ? NodeOps::kindName($node) : $node->tag));
@@ -100,7 +100,7 @@ final class StringCalls implements CallOperatorInterface
             return [$match];
         }
 
-        $text = self::text($node, $call);
+        $text = $this->text($node, $call);
         switch ($call->name) {
             case 'upcase':
             case 'ascii_upcase':
@@ -136,8 +136,8 @@ final class StringCalls implements CallOperatorInterface
                 return [Cands::derive(NodeOps::bool($found), $match)];
         }
 
-        $out        = $node->deepCopy();
-        $out->value = $value;
+        $out         = $node->deepCopy();
+        $out->value  = $value;
         $out->anchor = '';
 
         return [Cands::derive($out, $match)];
@@ -164,7 +164,7 @@ final class StringCalls implements CallOperatorInterface
         return NodeOps::str(implode($separator, $parts));
     }
 
-    private static function toString(Node $node, EvaluationContext $context): Node
+    private function toString(Node $node, EvaluationContext $context): Node
     {
         if (NodeKind::Scalar === $node->kind) {
             $out        = NodeOps::str($node->value);
@@ -185,7 +185,7 @@ final class StringCalls implements CallOperatorInterface
         return $out;
     }
 
-    private static function toNumber(Node $node): Node
+    private function toNumber(Node $node): Node
     {
         if (NodeKind::Scalar !== $node->kind) {
             throw new EvaluationException(\sprintf('Cannot convert %s to a number', NodeOps::kindName($node)));
@@ -204,7 +204,7 @@ final class StringCalls implements CallOperatorInterface
         return new Node(NodeKind::Scalar, Numbers::tagOf($number), NodeStyle::Default, $node->value);
     }
 
-    private static function toBool(Node $node): Node
+    private function toBool(Node $node): Node
     {
         if (NodeKind::Scalar !== $node->kind) {
             throw new EvaluationException(\sprintf('Cannot convert %s to a boolean', NodeOps::kindName($node)));

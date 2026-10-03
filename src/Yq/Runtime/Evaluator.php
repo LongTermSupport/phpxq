@@ -202,13 +202,13 @@ final readonly class Evaluator implements EvaluatorInterface
     {
         $bases = $this->evaluate($slice->base, $context);
         $read  = $context->withDontAutoCreate(true);
-        $from  = null === $slice->from ? null : $this->firstInt($slice->from, $read);
-        $to    = null === $slice->to ? null : $this->firstInt($slice->to, $read);
+        $from  = $slice->from instanceof ExpressionNode ? $this->firstInt($slice->from, $read) : null;
+        $to    = $slice->to instanceof ExpressionNode ? $this->firstInt($slice->to, $read) : null;
         $out   = [];
         foreach ($bases as $base) {
             $node = NodeOps::deref(Cands::node($base));
             if (NodeKind::Sequence === $node->kind) {
-                [$start, $end] = self::bounds($from, $to, \count($node->content));
+                [$start, $end] = $this->bounds($from, $to, \count($node->content));
                 $items         = [];
                 for ($i = $start; $i < $end; ++$i) {
                     $items[] = $node->content[$i];
@@ -221,7 +221,7 @@ final readonly class Evaluator implements EvaluatorInterface
 
             if (NodeKind::Scalar === $node->kind && !NodeOps::isNull($node)) {
                 $chars         = mb_str_split($node->value);
-                [$start, $end] = self::bounds($from, $to, \count($chars));
+                [$start, $end] = $this->bounds($from, $to, \count($chars));
                 $out[]         = Cands::derive(NodeOps::str(implode('', \array_slice($chars, $start, max(0, $end - $start)))), $base);
 
                 continue;
@@ -238,7 +238,7 @@ final readonly class Evaluator implements EvaluatorInterface
     /**
      * @return array{int, int}
      */
-    private static function bounds(?int $from, ?int $to, int $count): array
+    private function bounds(?int $from, ?int $to, int $count): array
     {
         $start = $from ?? 0;
         $end   = $to   ?? $count;
@@ -261,7 +261,7 @@ final readonly class Evaluator implements EvaluatorInterface
         foreach ($this->evaluate($expression, $context) as $match) {
             $number = Numbers::of(Cands::node($match));
             if (null !== $number) {
-                return (int) $number;
+                return (int)$number;
             }
         }
 
@@ -337,7 +337,7 @@ final readonly class Evaluator implements EvaluatorInterface
         if ('ENV' === $reference->name) {
             $flat = [];
             foreach (getenv() as $name => $value) {
-                $flat[] = NodeOps::str((string) $name);
+                $flat[] = NodeOps::str($name);
                 $flat[] = NodeOps::str($value);
             }
 
@@ -427,7 +427,7 @@ final readonly class Evaluator implements EvaluatorInterface
                     continue;
                 }
 
-                $text .= self::render($results[0]->node, $context);
+                $text .= $this->render($results[0]->node, $context);
             }
 
             $out[] = Cands::derive(NodeOps::str($text), $match);
@@ -436,7 +436,7 @@ final readonly class Evaluator implements EvaluatorInterface
         return $out;
     }
 
-    private static function render(Node $node, EvaluationContext $context): string
+    private function render(Node $node, EvaluationContext $context): string
     {
         $node = NodeOps::deref(NodeOps::unwrap($node));
         if (NodeKind::Scalar === $node->kind) {

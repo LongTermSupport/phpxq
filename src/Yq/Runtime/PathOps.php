@@ -77,7 +77,7 @@ final class PathOps
     {
         $path = NodeOps::deref(NodeOps::unwrap($path));
         if (NodeKind::Sequence === $path->kind) {
-            return array_values($path->content);
+            return $path->content;
         }
 
         return [];
@@ -104,15 +104,15 @@ final class PathOps
 
             if (!isset($groups[$container])) {
                 /** @var SplObjectStorage<Node, true> $set */
-                $set               = new SplObjectStorage();
+                $set                = new SplObjectStorage();
                 $groups[$container] = $set;
             }
 
-            $set        = $groups[$container];
+            $set                   = $groups[$container];
             $set[$candidate->node] = true;
         }
 
-        foreach ($groups as $index => $container) {
+        foreach ($groups as $container) {
             $set = $groups[$container];
             if (NodeKind::Sequence === $container->kind) {
                 $kept = [];

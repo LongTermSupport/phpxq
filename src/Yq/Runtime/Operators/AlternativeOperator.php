@@ -7,7 +7,6 @@ namespace LTS\PhpXq\Yq\Runtime\Operators;
 use LTS\PhpXq\Yq\Expression\Ast\Binary;
 use LTS\PhpXq\Yq\Expression\Ast\BinaryOperator;
 use LTS\PhpXq\Yq\Runtime\BinaryOperatorInterface;
-use LTS\PhpXq\Yq\Runtime\Candidate;
 use LTS\PhpXq\Yq\Runtime\Cands;
 use LTS\PhpXq\Yq\Runtime\Cross;
 use LTS\PhpXq\Yq\Runtime\EvaluationContext;

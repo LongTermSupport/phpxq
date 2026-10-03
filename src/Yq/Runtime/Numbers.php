@@ -35,12 +35,12 @@ final class Numbers
         }
 
         if (1 === preg_match('/^[-+]?[0-9]+$/D', $text)) {
-            $int = (int) $text;
-            if ((string) $int === ltrim($text, '+') || (string) $int === self::normalise($text)) {
+            $int = (int)$text;
+            if ((string)$int === ltrim($text, '+') || (string)$int === self::normalise($text)) {
                 return $int;
             }
 
-            return (float) $text;
+            return (float)$text;
         }
 
         if (1 === preg_match('/^([-+]?)0x([0-9a-fA-F]+)$/D', $text, $m)) {
@@ -62,12 +62,12 @@ final class Numbers
         }
 
         if (1 === preg_match('/^[-+]?(?:\.[0-9]+|[0-9]+(?:\.[0-9]*)?)(?:[eE][-+]?[0-9]+)?$/D', $text)) {
-            return (float) $text;
+            return (float)$text;
         }
 
         return match ($text) {
             '.inf', '.Inf', '.INF', '+.inf', '+.Inf', '+.INF', '+Inf', 'Inf' => \INF,
-            '-.inf', '-.Inf', '-.INF', '-Inf'                               => -\INF,
+            '-.inf', '-.Inf', '-.INF', '-Inf'                                => -\INF,
             '.nan', '.NaN', '.NAN', 'NaN'                                    => \NAN,
             default                                                          => null,
         };
@@ -117,7 +117,7 @@ final class Numbers
 
     public static function format(int|float $value): string
     {
-        return \is_int($value) ? (string) $value : self::formatFloat($value);
+        return \is_int($value) ? (string)$value : self::formatFloat($value);
     }
 
     public static function tagOf(int|float $value): string
@@ -140,7 +140,7 @@ final class Numbers
     private static function expandExponent(string $text): string
     {
         [$mantissa, $exponent] = explode('E', strtoupper($text));
-        $exponent              = (int) $exponent;
+        $exponent              = (int)$exponent;
         $negative              = str_starts_with($mantissa, '-');
         $mantissa              = ltrim($mantissa, '-');
         $dot                   = strpos($mantissa, '.');

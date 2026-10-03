@@ -63,12 +63,12 @@ final class SortingCalls implements CallOperatorInterface
         $items  = Traversal::values($match, false);
         switch ($call->name) {
             case 'sort':
-                return [Cands::derive(self::rebuild($node, self::sorted($items, [], $layout, $context, $evaluator)), $match)];
+                return [Cands::derive($this->rebuild($node, $this->sorted($items, [], $layout, $context, $evaluator)), $match)];
 
             case 'sort_by':
                 Args::require($call, 1);
 
-                return [Cands::derive(self::rebuild($node, self::sorted($items, $call->arguments, $layout, $context, $evaluator)), $match)];
+                return [Cands::derive($this->rebuild($node, $this->sorted($items, $call->arguments, $layout, $context, $evaluator)), $match)];
 
             case 'group_by':
                 Args::require($call, 1);
@@ -129,12 +129,12 @@ final class SortingCalls implements CallOperatorInterface
     }
 
     /**
-     * @param list<Candidate>       $items
+     * @param list<Candidate>                               $items
      * @param list<\LTS\PhpXq\Yq\Expression\ExpressionNode> $keyExpressions
      *
      * @return list<Candidate>
      */
-    private static function sorted(array $items, array $keyExpressions, ?string $layout, EvaluationContext $context, EvaluatorInterface $evaluator): array
+    private function sorted(array $items, array $keyExpressions, ?string $layout, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
         $read   = $context->withDontAutoCreate(true);
         $keyed  = [];
@@ -173,7 +173,7 @@ final class SortingCalls implements CallOperatorInterface
     /**
      * @param list<Candidate> $ordered
      */
-    private static function rebuild(Node $node, array $ordered): Node
+    private function rebuild(Node $node, array $ordered): Node
     {
         if (NodeKind::Mapping === $node->kind) {
             $flat = [];
@@ -234,7 +234,7 @@ final class SortingCalls implements CallOperatorInterface
             $groups[$index][] = $item->node->deepCopy();
         }
 
-        return NodeOps::seq(array_map(static fn (array $group): Node => NodeOps::seq($group), $groups));
+        return NodeOps::seq(array_map(NodeOps::seq(...), $groups));
     }
 
     /**

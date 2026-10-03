@@ -19,6 +19,7 @@ use LTS\PhpXq\Yq\Runtime\EvaluationContext;
 use LTS\PhpXq\Yq\Runtime\EvaluationException;
 use LTS\PhpXq\Yq\Runtime\EvaluatorInterface;
 use LTS\PhpXq\Yq\Runtime\NodeOps;
+use Symfony\Component\Process\Process;
 
 /**
  * Environment, file and process operators: `env`, `strenv`, `envsubst`, `load`, `load_str`, `system`. They
@@ -48,16 +49,13 @@ final class EnvFileCalls implements CallOperatorInterface
 
         $out = [];
         foreach ($context->matches as $match) {
-            $result = $this->one($call, $match, $context, $evaluator);
-            if ($result instanceof Candidate) {
-                $out[] = $result;
-            }
+            $out[] = $this->one($call, $match, $context, $evaluator);
         }
 
         return $out;
     }
 
-    private function one(Call $call, Candidate $match, EvaluationContext $context, EvaluatorInterface $evaluator): ?Candidate
+    private function one(Call $call, Candidate $match, EvaluationContext $context, EvaluatorInterface $evaluator): Candidate
     {
         switch ($call->name) {
             case 'env':
@@ -105,7 +103,7 @@ final class EnvFileCalls implements CallOperatorInterface
                     throw new EvaluationException(\sprintf('Failed to load %s: no such file or directory', $file));
                 }
 
-                $content = (string) file_get_contents($file);
+                $content = (string)file_get_contents($file);
                 if ('load' !== $call->name) {
                     return Cands::derive(NodeOps::str($content), $match);
                 }
@@ -162,20 +160,12 @@ final class EnvFileCalls implements CallOperatorInterface
             }
         }
 
-        $process = proc_open($command, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
-        if (!\is_resource($process)) {
-            throw new EvaluationException(\sprintf('Failed to run %s', $command[0]));
+        $process = new Process($command);
+        $process->run();
+        if (!$process->isSuccessful()) {
+            throw new EvaluationException(\sprintf('system command %s failed: %s', $command[0], trim($process->getErrorOutput())));
         }
 
-        $output = stream_get_contents($pipes[1]);
-        $error  = stream_get_contents($pipes[2]);
-        fclose($pipes[1]);
-        fclose($pipes[2]);
-        $status = proc_close($process);
-        if (0 !== $status) {
-            throw new EvaluationException(\sprintf('system command %s failed: %s', $command[0], trim((string) $error)));
-        }
-
-        return Cands::derive(NodeOps::str(rtrim((string) $output, "\n")), $match);
+        return Cands::derive(NodeOps::str(rtrim($process->getOutput(), "\n")), $match);
     }
 }

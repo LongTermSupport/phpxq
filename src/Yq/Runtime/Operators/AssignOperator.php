@@ -183,7 +183,12 @@ final class AssignOperator implements BinaryOperatorInterface
                 return;
 
             default:
-                $kind = 'comments' === $property ? 'all' : $property;
+                $kind = match ($property) {
+                    'head'  => 'head',
+                    'foot'  => 'foot',
+                    'line'  => 'line',
+                    default => 'all',
+                };
                 Comments::set($node, $kind, $value);
                 if ('' === $value && Cands::isRoot($target) && $target->parent instanceof Candidate) {
                     Comments::set($target->parent->node, $kind, '');
@@ -195,7 +200,7 @@ final class AssignOperator implements BinaryOperatorInterface
 
     private static function setStyle(Node $node, string $style): void
     {
-        $node->tagExplicit = 'tagged' === $style;
+        $node->tagExplicit = 'tagged'          === $style;
         $collection        = NodeKind::Mapping === $node->kind || NodeKind::Sequence === $node->kind;
         $new               = match ($style) {
             'double'  => NodeStyle::DoubleQuoted,

@@ -40,7 +40,7 @@ final class Traversal
             case NodeKind::Sequence:
                 $name = $key->value;
                 if (1 === preg_match('/^-?[0-9]+$/D', $name)) {
-                    return self::index($base, $node, (int) $name, $autoCreate);
+                    return self::index($base, $node, (int)$name, $autoCreate);
                 }
 
                 if ($optional) {
@@ -52,7 +52,6 @@ final class Traversal
                 }
 
                 throw new EvaluationException(\sprintf("Cannot index array with '%s'", $name));
-
             case NodeKind::Scalar:
                 if (CoreSchema::TAG_NULL === $node->tag && $autoCreate && !str_contains($key->value, '*')) {
                     return [self::placeholder($base, $key)];
@@ -63,39 +62,6 @@ final class Traversal
             default:
                 return [];
         }
-    }
-
-    /**
-     * @return list<Candidate>
-     */
-    private static function mappingField(Candidate $base, Node $map, Node $key, bool $fixedMerge, bool $autoCreate): array
-    {
-        $name   = $key->value;
-        $glob   = str_contains($name, '*');
-        $found  = self::lookup($map, $name, $glob, $fixedMerge);
-        $result = [];
-        foreach ($found as [$keyNode, $valueNode]) {
-            $result[] = Cands::child($valueNode, $base, $keyNode);
-        }
-
-        if ([] !== $result || !$autoCreate || $glob) {
-            return $result;
-        }
-
-        return [self::placeholder($base, $key)];
-    }
-
-    /**
-     * A detached null for a key that is not there; the first mutation attaches it.
-     */
-    private static function placeholder(Candidate $base, Node $key): Candidate
-    {
-        $value = NodeOps::null();
-        Detached::mark($value);
-
-        $keyNode = CoreSchema::TAG_INT === $key->tag ? NodeOps::int((int) $key->value) : NodeOps::str($key->value);
-
-        return Cands::child($value, $base, $keyNode);
     }
 
     /**
@@ -185,53 +151,6 @@ final class Traversal
         self::collect($map, $fixedMerge, $reverseTargets, $out, 0);
 
         return $out;
-    }
-
-    /**
-     * @param array<int|string, array{Node, Node}> $out
-     */
-    private static function collect(Node $map, bool $fixedMerge, bool $reverseTargets, array &$out, int $depth): void
-    {
-        if ($depth > self::MAX_MERGE_DEPTH) {
-            return;
-        }
-
-        $content = $map->content;
-        $count   = \count($content);
-        if ($fixedMerge) {
-            for ($i = 0; $i < $count; $i += 2) {
-                if (NodeOps::isMergeKey($content[$i])) {
-                    foreach (array_reverse(self::mergeTargets($content[$i + 1])) as $target) {
-                        self::collect($target, $fixedMerge, $reverseTargets, $out, $depth + 1);
-                    }
-                }
-            }
-
-            for ($i = 0; $i < $count; $i += 2) {
-                if (!NodeOps::isMergeKey($content[$i])) {
-                    $out[$content[$i]->value] = [$content[$i], $content[$i + 1]];
-                }
-            }
-
-            return;
-        }
-
-        for ($i = 0; $i < $count; $i += 2) {
-            if (NodeOps::isMergeKey($content[$i])) {
-                $targets = self::mergeTargets($content[$i + 1]);
-                if ($reverseTargets) {
-                    $targets = array_reverse($targets);
-                }
-
-                foreach ($targets as $target) {
-                    self::collect($target, $fixedMerge, $reverseTargets, $out, $depth + 1);
-                }
-
-                continue;
-            }
-
-            $out[$content[$i]->value] = [$content[$i], $content[$i + 1]];
-        }
     }
 
     /**
@@ -335,6 +254,86 @@ final class Traversal
             foreach ($node->content as $index => $item) {
                 self::descend(Cands::child($item, $candidate, NodeOps::int($index)), $includeKeys, $out);
             }
+        }
+    }
+
+    /**
+     * @return list<Candidate>
+     */
+    private static function mappingField(Candidate $base, Node $map, Node $key, bool $fixedMerge, bool $autoCreate): array
+    {
+        $name   = $key->value;
+        $glob   = str_contains($name, '*');
+        $found  = self::lookup($map, $name, $glob, $fixedMerge);
+        $result = [];
+        foreach ($found as [$keyNode, $valueNode]) {
+            $result[] = Cands::child($valueNode, $base, $keyNode);
+        }
+
+        if ([] !== $result || !$autoCreate || $glob) {
+            return $result;
+        }
+
+        return [self::placeholder($base, $key)];
+    }
+
+    /**
+     * A detached null for a key that is not there; the first mutation attaches it.
+     */
+    private static function placeholder(Candidate $base, Node $key): Candidate
+    {
+        $value = NodeOps::null();
+        Detached::mark($value);
+
+        $keyNode = CoreSchema::TAG_INT === $key->tag ? NodeOps::int((int)$key->value) : NodeOps::str($key->value);
+
+        return Cands::child($value, $base, $keyNode);
+    }
+
+    /**
+     * @param array<int|string, array{Node, Node}> $out
+     */
+    private static function collect(Node $map, bool $fixedMerge, bool $reverseTargets, array &$out, int $depth): void
+    {
+        if ($depth > self::MAX_MERGE_DEPTH) {
+            return;
+        }
+
+        $content = $map->content;
+        $count   = \count($content);
+        if ($fixedMerge) {
+            for ($i = 0; $i < $count; $i += 2) {
+                if (NodeOps::isMergeKey($content[$i])) {
+                    foreach (array_reverse(self::mergeTargets($content[$i + 1])) as $target) {
+                        self::collect($target, $fixedMerge, $reverseTargets, $out, $depth + 1);
+                    }
+                }
+            }
+
+            for ($i = 0; $i < $count; $i += 2) {
+                if (!NodeOps::isMergeKey($content[$i])) {
+                    $out[$content[$i]->value] = [$content[$i], $content[$i + 1]];
+                }
+            }
+
+            return;
+        }
+
+        for ($i = 0; $i < $count; $i += 2) {
+            if (NodeOps::isMergeKey($content[$i])) {
+                $targets = self::mergeTargets($content[$i + 1]);
+                if ($reverseTargets) {
+                    $targets = array_reverse($targets);
+                }
+
+                foreach ($targets as $target) {
+                    self::collect($target, $fixedMerge, $reverseTargets, $out, $depth + 1);
+                }
+
+                continue;
+            }
+
+            $out[$content[$i]->value] = [$content[$i], $content[$i + 1]];
         }
     }
 }

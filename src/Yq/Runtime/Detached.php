@@ -25,20 +25,6 @@ final class Detached
     {
     }
 
-    /**
-     * @return WeakMap<Node, true>
-     */
-    private static function registry(): WeakMap
-    {
-        if (!self::$pending instanceof WeakMap) {
-            /** @var WeakMap<Node, true> $created */
-            $created       = new WeakMap();
-            self::$pending = $created;
-        }
-
-        return self::$pending;
-    }
-
     public static function mark(Node $node): void
     {
         self::registry()[$node] = true;
@@ -78,7 +64,7 @@ final class Detached
         }
 
         if (NodeKind::Sequence === $parent->kind) {
-            $index = (int) $key->value;
+            $index = (int)$key->value;
             while (\count($parent->content) < $index) {
                 $parent->content[] = NodeOps::null();
             }
@@ -90,5 +76,19 @@ final class Detached
         }
 
         unset(self::registry()[$candidate->node]);
+    }
+
+    /**
+     * @return WeakMap<Node, true>
+     */
+    private static function registry(): WeakMap
+    {
+        if (!self::$pending instanceof WeakMap) {
+            /** @var WeakMap<Node, true> $created */
+            $created       = new WeakMap();
+            self::$pending = $created;
+        }
+
+        return self::$pending;
     }
 }

@@ -55,16 +55,16 @@ final class CollectionCalls implements CallOperatorInterface
         $node = NodeOps::deref(Cands::node($match));
         switch ($call->name) {
             case 'length':
-                return [Cands::derive(NodeOps::int(self::length($node)), $match)];
+                return [Cands::derive(NodeOps::int($this->length($node)), $match)];
 
             case 'keys':
-                return [Cands::derive(self::keys($node), $match)];
+                return [Cands::derive($this->keys($node), $match)];
 
             case 'to_entries':
-                return NodeOps::isNull($node) ? [] : [Cands::derive(self::toEntries($node, $match), $match)];
+                return NodeOps::isNull($node) ? [] : [Cands::derive($this->toEntries($node, $match), $match)];
 
             case 'from_entries':
-                return [Cands::derive(self::fromEntries($node), $match)];
+                return [Cands::derive($this->fromEntries($node), $match)];
 
             case 'with_entries':
                 return $this->withEntries($call, $match, $node, $context, $evaluator);
@@ -89,17 +89,17 @@ final class CollectionCalls implements CallOperatorInterface
                 return $this->add($call, $match, $node, $context, $evaluator);
 
             case 'pivot':
-                return [Cands::derive(self::pivot($node), $match)];
+                return [Cands::derive($this->pivot($node), $match)];
 
             case 'array_to_map':
-                return [Cands::derive(self::arrayToMap($node), $match)];
+                return [Cands::derive($this->arrayToMap($node), $match)];
 
             default:
                 return $this->range($call, $match, $context, $evaluator);
         }
     }
 
-    private static function length(Node $node): int
+    private function length(Node $node): int
     {
         return match ($node->kind) {
             NodeKind::Mapping  => intdiv(\count($node->content), 2),
@@ -108,7 +108,7 @@ final class CollectionCalls implements CallOperatorInterface
         };
     }
 
-    private static function keys(Node $node): Node
+    private function keys(Node $node): Node
     {
         if (NodeKind::Mapping === $node->kind) {
             $keys = [];
@@ -132,7 +132,7 @@ final class CollectionCalls implements CallOperatorInterface
         throw new EvaluationException('Cannot get keys of ' . ('' === $node->tag ? NodeOps::kindName($node) : $node->tag) . ', keys only works on maps and arrays');
     }
 
-    private static function toEntries(Node $node, Candidate $match): Node
+    private function toEntries(Node $node, Candidate $match): Node
     {
         $entries = [];
         foreach (Traversal::values($match, false) as $child) {
@@ -148,7 +148,7 @@ final class CollectionCalls implements CallOperatorInterface
         return NodeOps::seq($entries);
     }
 
-    private static function fromEntries(Node $node): Node
+    private function fromEntries(Node $node): Node
     {
         if (NodeKind::Sequence !== $node->kind) {
             throw new EvaluationException('Cannot convert ' . $node->tag . ' from entries');
@@ -193,7 +193,7 @@ final class CollectionCalls implements CallOperatorInterface
             return [];
         }
 
-        $entries    = self::toEntries($node, $match);
+        $entries    = $this->toEntries($node, $match);
         $entriesCan = Cands::derive($entries, $match);
         $read       = $context->withDontAutoCreate(true);
         $kept       = [];
@@ -203,7 +203,7 @@ final class CollectionCalls implements CallOperatorInterface
             }
         }
 
-        return [Cands::derive(self::fromEntries(NodeOps::seq($kept)), $match)];
+        return [Cands::derive($this->fromEntries(NodeOps::seq($kept)), $match)];
     }
 
     /**
@@ -298,7 +298,7 @@ final class CollectionCalls implements CallOperatorInterface
         return $total instanceof Node ? [Cands::derive($total, $match)] : [];
     }
 
-    private static function pivot(Node $node): Node
+    private function pivot(Node $node): Node
     {
         if (NodeKind::Sequence !== $node->kind) {
             throw new EvaluationException('Cannot pivot ' . $node->tag);
@@ -312,15 +312,15 @@ final class CollectionCalls implements CallOperatorInterface
         if ([] !== $rows && NodeKind::Mapping === $rows[0]->kind) {
             $columns = [];
             $order   = [];
-            foreach ($rows as $index => $row) {
-                for ($i = 0, $n = \count($row->content); $i < $n; $i += 2) {
-                    $name = $row->content[$i]->value;
+            foreach ($rows as $index => $mappingRow) {
+                for ($i = 0, $n = \count($mappingRow->content); $i < $n; $i += 2) {
+                    $name = $mappingRow->content[$i]->value;
                     if (!isset($columns[$name])) {
                         $columns[$name] = [];
-                        $order[]        = $row->content[$i];
+                        $order[]        = $mappingRow->content[$i];
                     }
 
-                    $columns[$name][$index] = $row->content[$i + 1];
+                    $columns[$name][$index] = $mappingRow->content[$i + 1];
                 }
             }
 
@@ -356,7 +356,7 @@ final class CollectionCalls implements CallOperatorInterface
         return NodeOps::seq($columns);
     }
 
-    private static function arrayToMap(Node $node): Node
+    private function arrayToMap(Node $node): Node
     {
         if (NodeKind::Sequence !== $node->kind) {
             throw new EvaluationException('Cannot convert ' . $node->tag . ' to a map');

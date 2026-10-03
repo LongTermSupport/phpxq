@@ -45,16 +45,13 @@ final class FormatCalls implements CallOperatorInterface
     {
         $out = [];
         foreach ($context->matches as $match) {
-            $result = $this->one($call, $match, $context, $evaluator);
-            if ($result instanceof Candidate) {
-                $out[] = $result;
-            }
+            $out[] = $this->one($call, $match, $context, $evaluator);
         }
 
         return $out;
     }
 
-    private function one(Call $call, Candidate $match, EvaluationContext $context, EvaluatorInterface $evaluator): ?Candidate
+    private function one(Call $call, Candidate $match, EvaluationContext $context, EvaluatorInterface $evaluator): Candidate
     {
         $name = $call->name;
         $node = NodeOps::deref(Cands::node($match));
@@ -66,7 +63,7 @@ final class FormatCalls implements CallOperatorInterface
             $indent = Args::int($call, 0, $context, $evaluator, $match);
             $result = $this->encode(substr($name, 3), $node, $match, $context, $indent ?? 2);
             $text   = $result->node->value;
-            if (\in_array(substr($name, 3), ['yaml', 'json'], true) && 1 === substr_count(rtrim($text, "\n"), "\n") + 1 && str_ends_with($text, "\n")) {
+            if (\in_array(substr($name, 3), ['yaml', 'json'], true) && !str_contains(rtrim($text, "\n"), "\n") && str_ends_with($text, "\n")) {
                 return Cands::derive(NodeOps::str(rtrim($text, "\n")), $match);
             }
 
@@ -76,21 +73,21 @@ final class FormatCalls implements CallOperatorInterface
         $bare = substr($name, 1);
         switch ($bare) {
             case 'sh':
-                return Cands::derive(NodeOps::str(self::shell(self::text($node, $context))), $match);
+                return Cands::derive(NodeOps::str($this->shell($this->text($node, $context))), $match);
             case 'uri':
-                return Cands::derive(NodeOps::str(str_replace('%7E', '~', urlencode(self::text($node, $context)))), $match);
+                return Cands::derive(NodeOps::str(str_replace('%7E', '~', urlencode($this->text($node, $context)))), $match);
             case 'urid':
-                return Cands::derive(NodeOps::str(urldecode(self::text($node, $context))), $match);
+                return Cands::derive(NodeOps::str(urldecode($this->text($node, $context))), $match);
             case 'html':
-                return Cands::derive(NodeOps::str(str_replace(["'", '"'], ['&#39;', '&#34;'], htmlspecialchars(self::text($node, $context), \ENT_NOQUOTES))), $match);
+                return Cands::derive(NodeOps::str(str_replace(["'", '"'], ['&#39;', '&#34;'], htmlspecialchars($this->text($node, $context), \ENT_NOQUOTES))), $match);
             case 'base64':
-                return Cands::derive(NodeOps::str(base64_encode(self::text($node, $context))), $match);
+                return Cands::derive(NodeOps::str(base64_encode($this->text($node, $context))), $match);
             case 'base64d':
-                return Cands::derive(NodeOps::str(self::base64Decode(self::text($node, $context))), $match);
+                return Cands::derive(NodeOps::str($this->base64Decode($this->text($node, $context))), $match);
             case 'base64url':
-                return Cands::derive(NodeOps::str(strtr(base64_encode(self::text($node, $context)), '+/', '-_')), $match);
+                return Cands::derive(NodeOps::str(strtr(base64_encode($this->text($node, $context)), '+/', '-_')), $match);
             case 'base64urld':
-                return Cands::derive(NodeOps::str(self::base64Decode(strtr(self::text($node, $context), '-_', '+/'))), $match);
+                return Cands::derive(NodeOps::str($this->base64Decode(strtr($this->text($node, $context), '-_', '+/'))), $match);
             default:
                 break;
         }
@@ -105,7 +102,7 @@ final class FormatCalls implements CallOperatorInterface
     private function encode(string $formatName, Node $node, Candidate $match, EvaluationContext $context, int $indent): Candidate
     {
         if ('csv' === $formatName || 'tsv' === $formatName) {
-            return Cands::derive(NodeOps::str(self::delimited($node, 'csv' === $formatName ? ',' : "\t", 'tsv' === $formatName)), $match);
+            return Cands::derive(NodeOps::str($this->delimited($node, 'csv' === $formatName ? ',' : "\t", 'tsv' === $formatName)), $match);
         }
 
         $format = Format::fromName($formatName);
@@ -148,7 +145,7 @@ final class FormatCalls implements CallOperatorInterface
         return Cands::derive(NodeOps::null(), $match);
     }
 
-    private static function text(Node $node, EvaluationContext $context): string
+    private function text(Node $node, EvaluationContext $context): string
     {
         if (NodeKind::Scalar === $node->kind) {
             return NodeOps::isNull($node) && 'null' === $node->value ? '' : $node->value;
@@ -161,10 +158,10 @@ final class FormatCalls implements CallOperatorInterface
         }
     }
 
-    private static function base64Decode(string $text): string
+    private function base64Decode(string $text): string
     {
         $text    = rtrim($text, '=');
-        $decoded = base64_decode($text, false);
+        $decoded = base64_decode($text, true);
         if (false === $decoded) {
             throw new EvaluationException('illegal base64 data');
         }
@@ -175,7 +172,7 @@ final class FormatCalls implements CallOperatorInterface
     /**
      * Quotes runs of unsafe characters with single quotes and escapes embedded single quotes.
      */
-    private static function shell(string $text): string
+    private function shell(string $text): string
     {
         $pieces = explode("'", $text);
         $out    = [];
@@ -188,8 +185,8 @@ final class FormatCalls implements CallOperatorInterface
 
             preg_match('/^[A-Za-z0-9_@%+=:,.\/-]*/', $piece, $head);
             preg_match('/[A-Za-z0-9_@%+=:,.\/-]*$/', $piece, $tail);
-            $prefix = $head[0];
-            $suffix = $tail[0];
+            $prefix = $head[0] ?? '';
+            $suffix = $tail[0] ?? '';
             $core   = substr($piece, \strlen($prefix), \strlen($piece) - \strlen($prefix) - \strlen($suffix));
             $out[]  = $prefix . "'" . $core . "'" . $suffix;
         }
@@ -197,13 +194,13 @@ final class FormatCalls implements CallOperatorInterface
         return implode("\\'", $out);
     }
 
-    private static function delimited(Node $node, string $separator, bool $tabs): string
+    private function delimited(Node $node, string $separator, bool $tabs): string
     {
         if (NodeKind::Sequence !== $node->kind) {
             throw new EvaluationException(\sprintf('Cannot encode %s as csv, it must be an array', NodeOps::kindName($node)));
         }
 
-        $rows = [];
+        $rows   = [];
         $nested = false;
         foreach ($node->content as $item) {
             if (NodeKind::Sequence === NodeOps::deref($item)->kind) {
@@ -222,7 +219,7 @@ final class FormatCalls implements CallOperatorInterface
                 }
 
                 $text    = NodeOps::isNull($cell) ? '' : $cell->value;
-                $cells[] = $tabs ? self::tsvCell($text) : self::csvCell($text, $separator);
+                $cells[] = $tabs ? $this->tsvCell($text) : $this->csvCell($text, $separator);
             }
 
             $rows[] = implode($separator, $cells);
@@ -231,7 +228,7 @@ final class FormatCalls implements CallOperatorInterface
         return implode("\n", $rows);
     }
 
-    private static function csvCell(string $text, string $separator): string
+    private function csvCell(string $text, string $separator): string
     {
         if ('' === $text) {
             return '';
@@ -244,7 +241,7 @@ final class FormatCalls implements CallOperatorInterface
         return $text;
     }
 
-    private static function tsvCell(string $text): string
+    private function tsvCell(string $text): string
     {
         return str_replace(['\\', "\t", "\n", "\r"], ['\\\\', '\t', '\n', '\r'], $text);
     }

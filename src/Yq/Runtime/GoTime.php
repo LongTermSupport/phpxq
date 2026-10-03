@@ -53,6 +53,292 @@ final class GoTime
     {
     }
 
+    public static function format(DateTimeImmutable $time, string $layout): string
+    {
+        $out = '';
+        foreach (self::tokens($layout) as [$kind, $text]) {
+            $out .= 'lit' === $kind ? $text : self::formatStd($time, $text);
+        }
+
+        return $out;
+    }
+
+    /**
+     * Parses `$value` with a Go layout; null when it does not match.
+     */
+    public static function parse(string $layout, string $value): ?DateTimeImmutable
+    {
+        $p      = 0;
+        $n      = \strlen($value);
+        $y      = 0;
+        $mo     = 1;
+        $d      = 1;
+        $h      = 0;
+        $mi     = 0;
+        $s      = 0;
+        $ns     = 0;
+        $pm     = null;
+        $tz     = null;
+        $tokens = self::tokens($layout);
+        $count  = \count($tokens);
+        foreach ($tokens as $index => [$kind, $text]) {
+            if ('lit' === $kind) {
+                if (substr($value, $p, \strlen($text)) !== $text) {
+                    return null;
+                }
+
+                $p += \strlen($text);
+
+                continue;
+            }
+
+            switch ($text) {
+                case 'Y4':
+                    $y = self::digits($value, $p, 4, 4);
+                    break;
+                case 'Y2':
+                    $y = self::digits($value, $p, 2, 2);
+                    if (null !== $y) {
+                        $y += $y >= 69 ? 1900 : 2000;
+                    }
+
+                    break;
+                case 'M2':
+                    $mo = self::digits($value, $p, 2, 2);
+                    break;
+                case 'M1':
+                    $mo = self::digits($value, $p, 1, 2);
+                    break;
+                case 'Jan':
+                case 'January':
+                    $mo = self::monthName($value, $p, 'Jan' === $text);
+                    break;
+                case 'D2':
+                    $d = self::digits($value, $p, 2, 2);
+                    break;
+                case 'D1':
+                    $d = self::digits($value, $p, 1, 2);
+                    break;
+                case '_2':
+                    if (' ' === ($value[$p] ?? '')) {
+                        ++$p;
+                    }
+
+                    $d = self::digits($value, $p, 1, 2);
+                    break;
+                case 'YD':
+                    $yday = self::digits($value, $p, 3, 3);
+                    if (null === $yday) {
+                        return null;
+                    }
+
+                    $mo = 1;
+                    $d  = $yday;
+                    break;
+                case 'H24':
+                case 'H2':
+                    $h = self::digits($value, $p, 2, 2);
+                    break;
+                case 'H1':
+                    $h = self::digits($value, $p, 1, 2);
+                    break;
+                case 'I2':
+                    $mi = self::digits($value, $p, 2, 2);
+                    break;
+                case 'I1':
+                    $mi = self::digits($value, $p, 1, 2);
+                    break;
+                case 'S2':
+                case 'S1':
+                    $s = self::digits($value, $p, 'S1' === $text ? 1 : 2, 2);
+                    if (null === $s) {
+                        return null;
+                    }
+
+                    $nextIsFraction = isset($tokens[$index + 1]) && 'std' === $tokens[$index + 1][0] && \in_array($tokens[$index + 1][1][0], ['.', ','], true);
+                    if (!$nextIsFraction && '.' === ($value[$p] ?? '') && $p + 1 < $n && ctype_digit($value[$p + 1])) {
+                        $ns = self::fraction($value, $p);
+                    }
+
+                    break;
+                case 'PM':
+                case 'pm':
+                    $word = strtoupper(substr($value, $p, 2));
+                    if ('PM' !== $word && 'AM' !== $word) {
+                        return null;
+                    }
+
+                    $pm = 'PM' === $word;
+                    $p += 2;
+                    break;
+                case 'Mon':
+                case 'Monday':
+                    $len = 0;
+                    while ($p + $len < $n && ctype_alpha($value[$p + $len])) {
+                        ++$len;
+                    }
+
+                    if ($len < 3) {
+                        return null;
+                    }
+
+                    $p += $len;
+                    break;
+                case 'MST':
+                    $tz = self::parseZoneName($value, $p);
+                    if (!$tz instanceof DateTimeZone) {
+                        return null;
+                    }
+
+                    break;
+                case '-0700':
+                case '-07:00':
+                case '-07':
+                case '-070000':
+                case '-07:00:00':
+                case 'Z0700':
+                case 'Z07:00':
+                case 'Z07':
+                case 'Z070000':
+                case 'Z07:00:00':
+                    $tz = self::parseOffset($value, $p, $text);
+                    if (!$tz instanceof DateTimeZone) {
+                        return null;
+                    }
+
+                    break;
+                default:
+                    if ('.' !== $text[0] && ',' !== $text[0]) {
+                        return null;
+                    }
+
+                    if (($value[$p] ?? '') !== $text[0] && ('.' !== ($value[$p] ?? '') || ',' !== $text[0])) {
+                        return null;
+                    }
+
+                    $ns = self::fraction($value, $p);
+                    break;
+            }
+
+            if (\in_array(null, [$y, $mo, $d, $h, $mi], true)) {
+                return null;
+            }
+        }
+
+        if ($p !== $n || $count < 1) {
+            return null;
+        }
+
+        if (true === $pm && $h < 12) {
+            $h += 12;
+        } elseif (false === $pm && 12 === $h) {
+            $h = 0;
+        }
+
+        if ($mo < 1 || $mo > 12 || $h > 23 || $mi > 59 || $s > 59) {
+            return null;
+        }
+
+        $zone = $tz ?? new DateTimeZone('UTC');
+        if ($d < 1 || $d > 31 || ($y > 0 && !checkdate($mo, $d, $y))) {
+            return null;
+        }
+
+        try {
+            return new DateTimeImmutable('now', $zone)->setDate($y, $mo, $d)->setTime($h, $mi, $s, intdiv($ns, 1000));
+        } catch (Exception) {
+            return null;
+        }
+    }
+
+    /**
+     * True for text the YAML core schema reads as a timestamp (a date, optionally with a time).
+     */
+    public static function looksLikeTimestamp(string $text): bool
+    {
+        return 1 === preg_match('/^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}(?:(?:[Tt]|[ \t]+)[0-9]{1,2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]*)?(?:[ \t]*(?:Z|[-+][0-9]{1,2}(?::[0-9]{2})?))?)?$/D', $text);
+    }
+
+    /**
+     * Parses with the given layout, or with the common layouts when none is set; null when nothing fits.
+     */
+    public static function tryParse(string $value, ?string $layout = null): ?DateTimeImmutable
+    {
+        if (null !== $layout) {
+            return self::parse($layout, $value);
+        }
+
+        if (1 !== preg_match('/^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}/', $value)) {
+            return null;
+        }
+
+        foreach (self::FALLBACK_LAYOUTS as $fallback) {
+            $time = self::parse($fallback, $value);
+            if ($time instanceof DateTimeImmutable) {
+                return $time;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * `time.ParseDuration`, as nanoseconds; null when the text is not a duration.
+     */
+    public static function parseDuration(string $text): ?int
+    {
+        if ('' === $text) {
+            return null;
+        }
+
+        $sign = 1;
+        $rest = $text;
+        if ('-' === $rest[0] || '+' === $rest[0]) {
+            $sign = '-' === $rest[0] ? -1 : 1;
+            $rest = substr($rest, 1);
+        }
+
+        if ('0' === $rest) {
+            return 0;
+        }
+
+        if ('' === $rest) {
+            return null;
+        }
+
+        $total = 0.0;
+        while ('' !== $rest) {
+            if (1 !== preg_match('/^([0-9]*\.?[0-9]*)(ns|us|µs|μs|ms|s|m|h)/u', $rest, $m) || '' === $m[1] || '.' === $m[1]) {
+                return null;
+            }
+
+            $total += (float)$m[1] * self::UNITS_NS[$m[2]];
+            $rest = substr($rest, \strlen($m[0]));
+        }
+
+        return $sign * (int)round($total);
+    }
+
+    /**
+     * Adds nanoseconds (negative to subtract) to a time.
+     */
+    public static function addNanos(DateTimeImmutable $time, int $nanos): DateTimeImmutable
+    {
+        $micro = (int)$time->format('u') + intdiv($nanos % 1000000000, 1000);
+        $secs  = intdiv($nanos, 1000000000);
+        if ($micro >= 1000000) {
+            $micro -= 1000000;
+            ++$secs;
+        } elseif ($micro < 0) {
+            $micro += 1000000;
+            --$secs;
+        }
+
+        $moved = $time->setTimestamp($time->getTimestamp() + $secs);
+
+        return $moved->setTime((int)$moved->format('H'), (int)$moved->format('i'), (int)$moved->format('s'), $micro);
+    }
+
     /**
      * @return list<array{string, string}> tokens of kind `lit` or `std`
      */
@@ -186,86 +472,43 @@ final class GoTime
         }
     }
 
-    public static function format(DateTimeImmutable $time, string $layout): string
-    {
-        $out = '';
-        foreach (self::tokens($layout) as [$kind, $text]) {
-            $out .= 'lit' === $kind ? $text : self::formatStd($time, $text);
-        }
-
-        return $out;
-    }
-
     private static function formatStd(DateTimeImmutable $t, string $std): string
     {
-        switch ($std) {
-            case 'Y4':
-                return $t->format('Y');
-            case 'Y2':
-                return $t->format('y');
-            case 'M2':
-                return $t->format('m');
-            case 'M1':
-                return $t->format('n');
-            case 'Jan':
-                return $t->format('M');
-            case 'January':
-                return $t->format('F');
-            case 'D2':
-                return $t->format('d');
-            case 'D1':
-                return $t->format('j');
-            case '_2':
-                return str_pad($t->format('j'), 2, ' ', \STR_PAD_LEFT);
-            case 'YD':
-                return str_pad((string) ((int) $t->format('z') + 1), 3, '0', \STR_PAD_LEFT);
-            case 'H24':
-                return $t->format('H');
-            case 'H2':
-                return $t->format('h');
-            case 'H1':
-                return $t->format('g');
-            case 'I2':
-                return $t->format('i');
-            case 'I1':
-                return (string) (int) $t->format('i');
-            case 'S2':
-                return $t->format('s');
-            case 'S1':
-                return (string) (int) $t->format('s');
-            case 'PM':
-                return $t->format('A');
-            case 'pm':
-                return $t->format('a');
-            case 'Mon':
-                return $t->format('D');
-            case 'Monday':
-                return $t->format('l');
-            case 'MST':
-                return self::zoneName($t);
-            case '-0700':
-                return $t->format('O');
-            case '-07:00':
-                return $t->format('P');
-            case '-07':
-                return substr($t->format('O'), 0, 3);
-            case '-070000':
-                return $t->format('O') . '00';
-            case '-07:00:00':
-                return $t->format('P') . ':00';
-            case 'Z0700':
-                return 0 === $t->getOffset() ? 'Z' : $t->format('O');
-            case 'Z07:00':
-                return 0 === $t->getOffset() ? 'Z' : $t->format('P');
-            case 'Z07':
-                return 0 === $t->getOffset() ? 'Z' : substr($t->format('O'), 0, 3);
-            case 'Z070000':
-                return 0 === $t->getOffset() ? 'Z' : $t->format('O') . '00';
-            case 'Z07:00:00':
-                return 0 === $t->getOffset() ? 'Z' : $t->format('P') . ':00';
-            default:
-                return self::formatFraction($t, $std);
-        }
+        return match ($std) {
+            'Y4'        => $t->format('Y'),
+            'Y2'        => $t->format('y'),
+            'M2'        => $t->format('m'),
+            'M1'        => $t->format('n'),
+            'Jan'       => $t->format('M'),
+            'January'   => $t->format('F'),
+            'D2'        => $t->format('d'),
+            'D1'        => $t->format('j'),
+            '_2'        => str_pad($t->format('j'), 2, ' ', \STR_PAD_LEFT),
+            'YD'        => str_pad((string)((int)$t->format('z') + 1), 3, '0', \STR_PAD_LEFT),
+            'H24'       => $t->format('H'),
+            'H2'        => $t->format('h'),
+            'H1'        => $t->format('g'),
+            'I2'        => $t->format('i'),
+            'I1'        => (string)(int)$t->format('i'),
+            'S2'        => $t->format('s'),
+            'S1'        => (string)(int)$t->format('s'),
+            'PM'        => $t->format('A'),
+            'pm'        => $t->format('a'),
+            'Mon'       => $t->format('D'),
+            'Monday'    => $t->format('l'),
+            'MST'       => self::zoneName($t),
+            '-0700'     => $t->format('O'),
+            '-07:00'    => $t->format('P'),
+            '-07'       => substr($t->format('O'), 0, 3),
+            '-070000'   => $t->format('O') . '00',
+            '-07:00:00' => $t->format('P') . ':00',
+            'Z0700'     => 0     === $t->getOffset() ? 'Z' : $t->format('O'),
+            'Z07:00'    => 0    === $t->getOffset() ? 'Z' : $t->format('P'),
+            'Z07'       => 0       === $t->getOffset() ? 'Z' : substr($t->format('O'), 0, 3),
+            'Z070000'   => 0   === $t->getOffset() ? 'Z' : $t->format('O') . '00',
+            'Z07:00:00' => 0 === $t->getOffset() ? 'Z' : $t->format('P') . ':00',
+            default     => self::formatFraction($t, $std),
+        };
     }
 
     private static function formatFraction(DateTimeImmutable $t, string $std): string
@@ -284,201 +527,11 @@ final class GoTime
     private static function zoneName(DateTimeImmutable $t): string
     {
         $name = $t->format('T');
-        if ('' !== $name && ('+' === $name[0] || '-' === $name[0])) {
+        if ('+' === $name[0] || '-' === $name[0]) {
             return 0 === $t->getOffset() ? 'UTC' : substr($t->format('O'), 0, 3);
         }
 
         return 'Z' === $name ? 'UTC' : $name;
-    }
-
-    /**
-     * Parses `$value` with a Go layout; null when it does not match.
-     */
-    public static function parse(string $layout, string $value): ?DateTimeImmutable
-    {
-        $p  = 0;
-        $n  = \strlen($value);
-        $y  = 0;
-        $mo = 1;
-        $d  = 1;
-        $h  = 0;
-        $mi = 0;
-        $s  = 0;
-        $ns = 0;
-        $pm = null;
-        $tz = null;
-        $tokens = self::tokens($layout);
-        $count  = \count($tokens);
-        foreach ($tokens as $index => [$kind, $text]) {
-            if ('lit' === $kind) {
-                if (substr($value, $p, \strlen($text)) !== $text) {
-                    return null;
-                }
-
-                $p += \strlen($text);
-
-                continue;
-            }
-
-            switch ($text) {
-                case 'Y4':
-                    $y = self::digits($value, $p, 4, 4);
-                    break;
-                case 'Y2':
-                    $y = self::digits($value, $p, 2, 2);
-                    if (null !== $y) {
-                        $y += $y >= 69 ? 1900 : 2000;
-                    }
-
-                    break;
-                case 'M2':
-                    $mo = self::digits($value, $p, 2, 2);
-                    break;
-                case 'M1':
-                    $mo = self::digits($value, $p, 1, 2);
-                    break;
-                case 'Jan':
-                case 'January':
-                    $mo = self::monthName($value, $p, 'Jan' === $text);
-                    break;
-                case 'D2':
-                    $d = self::digits($value, $p, 2, 2);
-                    break;
-                case 'D1':
-                    $d = self::digits($value, $p, 1, 2);
-                    break;
-                case '_2':
-                    if (' ' === ($value[$p] ?? '')) {
-                        ++$p;
-                    }
-
-                    $d = self::digits($value, $p, 1, 2);
-                    break;
-                case 'YD':
-                    $yday = self::digits($value, $p, 3, 3);
-                    if (null === $yday) {
-                        return null;
-                    }
-
-                    $mo = 1;
-                    $d  = $yday;
-                    break;
-                case 'H24':
-                    $h = self::digits($value, $p, 2, 2);
-                    break;
-                case 'H2':
-                    $h = self::digits($value, $p, 2, 2);
-                    break;
-                case 'H1':
-                    $h = self::digits($value, $p, 1, 2);
-                    break;
-                case 'I2':
-                    $mi = self::digits($value, $p, 2, 2);
-                    break;
-                case 'I1':
-                    $mi = self::digits($value, $p, 1, 2);
-                    break;
-                case 'S2':
-                case 'S1':
-                    $s = self::digits($value, $p, 'S1' === $text ? 1 : 2, 2);
-                    if (null === $s) {
-                        return null;
-                    }
-
-                    $nextIsFraction = isset($tokens[$index + 1]) && 'std' === $tokens[$index + 1][0] && \in_array($tokens[$index + 1][1][0], ['.', ','], true);
-                    if (!$nextIsFraction && '.' === ($value[$p] ?? '') && $p + 1 < $n && ctype_digit($value[$p + 1])) {
-                        $ns = self::fraction($value, $p);
-                    }
-
-                    break;
-                case 'PM':
-                case 'pm':
-                    $word = strtoupper(substr($value, $p, 2));
-                    if ('PM' !== $word && 'AM' !== $word) {
-                        return null;
-                    }
-
-                    $pm = 'PM' === $word;
-                    $p += 2;
-                    break;
-                case 'Mon':
-                case 'Monday':
-                    $len = 0;
-                    while ($p + $len < $n && ctype_alpha($value[$p + $len])) {
-                        ++$len;
-                    }
-
-                    if ($len < 3) {
-                        return null;
-                    }
-
-                    $p += $len;
-                    break;
-                case 'MST':
-                    $tz = self::parseZoneName($value, $p);
-                    if (null === $tz) {
-                        return null;
-                    }
-
-                    break;
-                case '-0700':
-                case '-07:00':
-                case '-07':
-                case '-070000':
-                case '-07:00:00':
-                case 'Z0700':
-                case 'Z07:00':
-                case 'Z07':
-                case 'Z070000':
-                case 'Z07:00:00':
-                    $tz = self::parseOffset($value, $p, $text);
-                    if (null === $tz) {
-                        return null;
-                    }
-
-                    break;
-                default:
-                    if ('.' !== $text[0] && ',' !== $text[0]) {
-                        return null;
-                    }
-
-                    if (($value[$p] ?? '') !== $text[0] && !('.' === ($value[$p] ?? '') && ',' === $text[0])) {
-                        return null;
-                    }
-
-                    $ns = self::fraction($value, $p);
-                    break;
-            }
-
-            if (null === $y || null === $mo || null === $d || null === $h || null === $mi || null === $s) {
-                return null;
-            }
-        }
-
-        if ($p !== $n || $count < 1) {
-            return null;
-        }
-
-        if (true === $pm && $h < 12) {
-            $h += 12;
-        } elseif (false === $pm && 12 === $h) {
-            $h = 0;
-        }
-
-        if ($mo < 1 || $mo > 12 || $h > 23 || $mi > 59 || $s > 59) {
-            return null;
-        }
-
-        $zone = $tz ?? new DateTimeZone('UTC');
-        if ($d < 1 || $d > 31 || ($y > 0 && !checkdate($mo, $d, $y))) {
-            return null;
-        }
-
-        try {
-            return new DateTimeImmutable('now', $zone)->setDate($y, $mo, $d)->setTime($h, $mi, $s, intdiv($ns, 1000));
-        } catch (Exception) {
-            return null;
-        }
     }
 
     private static function digits(string $value, int &$p, int $min, int $max): ?int
@@ -493,7 +546,7 @@ final class GoTime
             return null;
         }
 
-        $number = (int) substr($value, $p, $len);
+        $number = (int)substr($value, $p, $len);
         $p += $len;
 
         return $number;
@@ -522,7 +575,7 @@ final class GoTime
             ++$p;
         }
 
-        return (int) str_pad(substr($value, $start, 9), 9, '0', \STR_PAD_RIGHT);
+        return (int)str_pad(substr($value, $start, 9), 9, '0', \STR_PAD_RIGHT);
     }
 
     private static function parseZoneName(string $value, int &$p): ?DateTimeZone
@@ -565,7 +618,7 @@ final class GoTime
         }
 
         $p += \strlen($m[0]);
-        $seconds = ((int) $m[2]) * 3600 + ((int) $m[3]) * 60 + (int) $m[4];
+        $seconds = ((int)$m[2]) * 3600 + ((int)$m[3]) * 60 + (int)$m[4];
         if (0 === $seconds) {
             return new DateTimeZone('UTC');
         }
@@ -573,93 +626,5 @@ final class GoTime
         $sign = $m[1];
 
         return new DateTimeZone(\sprintf('%s%02d:%02d', $sign, intdiv($seconds, 3600), intdiv($seconds % 3600, 60)));
-    }
-
-    /**
-     * True for text the YAML core schema reads as a timestamp (a date, optionally with a time).
-     */
-    public static function looksLikeTimestamp(string $text): bool
-    {
-        return 1 === preg_match('/^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}(?:(?:[Tt]|[ \t]+)[0-9]{1,2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]*)?(?:[ \t]*(?:Z|[-+][0-9]{1,2}(?::[0-9]{2})?))?)?$/D', $text);
-    }
-
-    /**
-     * Parses with the given layout, or with the common layouts when none is set; null when nothing fits.
-     */
-    public static function tryParse(string $value, ?string $layout = null): ?DateTimeImmutable
-    {
-        if (null !== $layout) {
-            return self::parse($layout, $value);
-        }
-
-        if (1 !== preg_match('/^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}/', $value)) {
-            return null;
-        }
-
-        foreach (self::FALLBACK_LAYOUTS as $fallback) {
-            $time = self::parse($fallback, $value);
-            if ($time instanceof DateTimeImmutable) {
-                return $time;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * `time.ParseDuration`, as nanoseconds; null when the text is not a duration.
-     */
-    public static function parseDuration(string $text): ?int
-    {
-        if ('' === $text) {
-            return null;
-        }
-
-        $sign = 1;
-        $rest = $text;
-        if ('-' === $rest[0] || '+' === $rest[0]) {
-            $sign = '-' === $rest[0] ? -1 : 1;
-            $rest = substr($rest, 1);
-        }
-
-        if ('0' === $rest) {
-            return 0;
-        }
-
-        if ('' === $rest) {
-            return null;
-        }
-
-        $total = 0.0;
-        while ('' !== $rest) {
-            if (1 !== preg_match('/^([0-9]*\.?[0-9]*)(ns|us|µs|μs|ms|s|m|h)/u', $rest, $m) || '' === $m[1] || '.' === $m[1]) {
-                return null;
-            }
-
-            $total += (float) $m[1] * self::UNITS_NS[$m[2]];
-            $rest = substr($rest, \strlen($m[0]));
-        }
-
-        return $sign * (int) round($total);
-    }
-
-    /**
-     * Adds nanoseconds (negative to subtract) to a time.
-     */
-    public static function addNanos(DateTimeImmutable $time, int $nanos): DateTimeImmutable
-    {
-        $micro = (int) $time->format('u') + intdiv($nanos % 1000000000, 1000);
-        $secs  = intdiv($nanos, 1000000000);
-        if ($micro >= 1000000) {
-            $micro -= 1000000;
-            ++$secs;
-        } elseif ($micro < 0) {
-            $micro += 1000000;
-            --$secs;
-        }
-
-        $moved = $time->setTimestamp($time->getTimestamp() + $secs);
-
-        return $moved->setTime((int) $moved->format('H'), (int) $moved->format('i'), (int) $moved->format('s'), $micro);
     }
 }

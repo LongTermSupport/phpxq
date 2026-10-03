@@ -33,15 +33,15 @@ final class SelectionCalls implements CallOperatorInterface
     public function evaluate(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
         return match ($call->name) {
-            'select'  => $this->select($call, $context, $evaluator),
-            'not'     => $this->not($context),
-            'has'     => $this->has($call, $context, $evaluator),
-            'contains' => $this->contains($call, $context, $evaluator),
+            'select'                       => $this->select($call, $context, $evaluator),
+            'not'                          => $this->not($context),
+            'has'                          => $this->has($call, $context, $evaluator),
+            'contains'                     => $this->contains($call, $context, $evaluator),
             'any', 'all', 'any_c', 'all_c' => $this->anyAll($call, $context, $evaluator),
-            'first', 'last' => $this->firstLast($call, $context, $evaluator),
-            'filter'  => $this->filter($call, $context, $evaluator),
-            'with'    => $this->with($call, $context, $evaluator),
-            default   => [],
+            'first', 'last'                => $this->firstLast($call, $context, $evaluator),
+            'filter'                       => $this->filter($call, $context, $evaluator),
+            'with'                         => $this->with($call, $context, $evaluator),
+            default                        => [],
         };
     }
 
@@ -90,14 +90,14 @@ final class SelectionCalls implements CallOperatorInterface
             $node = NodeOps::deref(Cands::node($match));
             foreach (Args::results($call, 0, $context, $evaluator, $match) as $key) {
                 $wanted = NodeOps::deref(Cands::node($key));
-                $out[]  = Cands::derive(NodeOps::bool(self::hasKey($node, $wanted)), $match);
+                $out[]  = Cands::derive(NodeOps::bool($this->hasKey($node, $wanted)), $match);
             }
         }
 
         return $out;
     }
 
-    private static function hasKey(Node $node, Node $key): bool
+    private function hasKey(Node $node, Node $key): bool
     {
         if (NodeKind::Mapping === $node->kind) {
             for ($i = 0, $n = \count($node->content); $i < $n; $i += 2) {
@@ -157,15 +157,7 @@ final class SelectionCalls implements CallOperatorInterface
 
             case NodeKind::Sequence:
                 foreach ($right->content as $wanted) {
-                    $found = false;
-                    foreach ($left->content as $item) {
-                        if (self::containsNode($item, $wanted)) {
-                            $found = true;
-
-                            break;
-                        }
-                    }
-
+                    $found = array_any($left->content, static fn (Node $item): bool => self::containsNode($item, $wanted));
                     if (!$found) {
                         return false;
                     }

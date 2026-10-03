@@ -29,7 +29,7 @@ final class NodeOps
 
     public static function int(int $value): Node
     {
-        return new Node(NodeKind::Scalar, CoreSchema::TAG_INT, NodeStyle::Default, (string) $value);
+        return new Node(NodeKind::Scalar, CoreSchema::TAG_INT, NodeStyle::Default, (string)$value);
     }
 
     /**

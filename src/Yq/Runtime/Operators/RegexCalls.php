@@ -63,7 +63,7 @@ final class RegexCalls implements CallOperatorInterface
             case 'match':
                 $out = [];
                 foreach (GoRegex::matches($regex, $node->value, $global) as $record) {
-                    $out[] = Cands::derive(self::record($record), $match);
+                    $out[] = Cands::derive($this->record($record), $match);
                 }
 
                 return $out;
@@ -97,7 +97,7 @@ final class RegexCalls implements CallOperatorInterface
     /**
      * @param array{string: string, offset: int, length: int, captures: list<array{string: ?string, offset: int, length: int, name: string}>} $record
      */
-    private static function record(array $record): Node
+    private function record(array $record): Node
     {
         $captures = [];
         foreach ($record['captures'] as $capture) {

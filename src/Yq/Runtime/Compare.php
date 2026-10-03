@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Runtime;
 
+use DateTimeImmutable;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKind;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
@@ -65,7 +66,7 @@ final class Compare
             $leftNumber  = Numbers::of($left);
             $rightNumber = Numbers::of($right);
             if (null !== $leftNumber && null !== $rightNumber) {
-                return $leftNumber == $rightNumber;
+                return 0 === ($leftNumber <=> $rightNumber);
             }
 
             return self::glob($left->value, $right->value);
@@ -94,7 +95,7 @@ final class Compare
                 $leftNumber  = Numbers::of($left);
                 $rightNumber = Numbers::of($right);
                 if (null !== $leftNumber && null !== $rightNumber) {
-                    return $leftNumber == $rightNumber;
+                    return 0 === ($leftNumber <=> $rightNumber);
                 }
 
                 return $left->value === $right->value;
@@ -104,13 +105,7 @@ final class Compare
                     return false;
                 }
 
-                foreach ($left->content as $i => $item) {
-                    if (!self::deepEquals($item, $right->content[$i])) {
-                        return false;
-                    }
-                }
-
-                return true;
+                return array_all($left->content, static fn (\LTS\PhpXq\Yaml\Node $item, $i): bool => self::deepEquals($item, $right->content[$i]));
 
             case NodeKind::Mapping:
                 if (\count($left->content) !== \count($right->content)) {
@@ -181,16 +176,17 @@ final class Compare
 
         switch ($rankL) {
             case 0:
+            default:
                 return 0;
 
             case 1:
-                return (int) NodeOps::isTrue($left) <=> (int) NodeOps::isTrue($right);
+                return (int)NodeOps::isTrue($left) <=> (int)NodeOps::isTrue($right);
 
             case 2:
-                $a = Numbers::of($left) ?? 0;
+                $a = Numbers::of($left)  ?? 0;
                 $b = Numbers::of($right) ?? 0;
-                if (is_nan((float) $a) || is_nan((float) $b)) {
-                    return is_nan((float) $a) <=> is_nan((float) $b);
+                if (is_nan((float)$a) || is_nan((float)$b)) {
+                    return is_nan((float)$a) <=> is_nan((float)$b);
                 }
 
                 return $a <=> $b;
@@ -202,9 +198,6 @@ final class Compare
                 }
 
                 return strcmp($left->value, $right->value) <=> 0;
-
-            default:
-                return 0;
         }
     }
 
@@ -226,7 +219,7 @@ final class Compare
     {
         $a = GoTime::tryParse($left, $layout);
         $b = GoTime::tryParse($right, $layout);
-        if (null === $a || null === $b) {
+        if (!$a instanceof DateTimeImmutable || !$b instanceof DateTimeImmutable) {
             return null;
         }
 
