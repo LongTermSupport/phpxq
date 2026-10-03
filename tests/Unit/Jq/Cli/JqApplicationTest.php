@@ -710,6 +710,76 @@ final class JqApplicationTest extends JqApplicationTestCase
         self::assertSame(JqExitCode::NO_OUTPUT, $status);
     }
 
+    public function testDebugDumpDisasmPrintsTheBoundDefinitionsFirst(): void
+    {
+        [$status, $out] = $this->jq(['-n', '--debug-dump-disasm', '.'], '', static function (RuntimeContext $context, mixed $input, Closure $emit): void {
+            $emit(1);
+        });
+
+        self::assertSame(0, $status);
+        self::assertSame("TOP\n1\n", $out);
+    }
+
+    public function testExitStatusAfterHaltUsesTheHaltCode(): void
+    {
+        [$status] = $this->jq(['-e', '-n', '.'], '', static function (): never {
+            throw new HaltException(3);
+        });
+
+        self::assertSame(3, $status);
+    }
+
+    public function testStreamErrorsWithSeqKeepsGoing(): void
+    {
+        [$status, $out, $err] = $this->jq(['--seq', '--stream-errors', '-c', '.'], "\x1e[1\x1e[2]");
+
+        self::assertSame(0, $status);
+        self::assertSame('', $err);
+        self::assertStringContainsString("\x1e[[0],2]\n", $out);
+        self::assertStringContainsString('Truncated value', $out);
+    }
+
+    public function testSlurpWithFilesUsesTheLastFilesName(): void
+    {
+        $first   = $this->tempFile('1');
+        $second  = $this->tempFile('2');
+        $name    = null;
+        [, $out] = $this->jq(['-s', '-c', '.', $first, $second], '', static function (RuntimeContext $context, mixed $input, Closure $emit) use (&$name): void {
+            $name = $context->inputFilename();
+            $emit($input);
+        });
+
+        self::assertSame("[1,2]\n", $out);
+        self::assertSame($second, $name);
+    }
+
+    public function testRawInputKeepsGoingAcrossFiles(): void
+    {
+        $first   = $this->tempFile("a\nb\n");
+        $second  = $this->tempFile('c');
+        [, $out] = $this->jq(['-R', '-r', '.', $first, $second]);
+
+        self::assertSame("a\nb\nc\n", $out);
+    }
+
+    public function testNullInputDoesNotOpenInputFiles(): void
+    {
+        [$status, , $err] = $this->jq(['-n', '.', '/nonexistent/never-opened.json']);
+
+        self::assertSame(0, $status);
+        self::assertSame('', $err);
+    }
+
+    public function testNullInputWithAnUnreadableFileReadViaInputsExits2(): void
+    {
+        [$status, , $err] = $this->jq(['-n', '.', '/nonexistent/x.json'], '', static function (RuntimeContext $context): void {
+            $context->inputs()->hasNext();
+        });
+
+        self::assertSame(2, $status);
+        self::assertStringContainsString('Could not open /nonexistent/x.json', $err);
+    }
+
     /**
      * @param array<string, string|false> $variables false unsets
      */
