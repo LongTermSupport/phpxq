@@ -155,7 +155,7 @@ handlers:
       enabled: true
       priority: 39
     plan_number_helper:
-      enabled: false
+      enabled: true
       priority: 33
     plan_journal_guard:
       enabled: true
@@ -196,16 +196,16 @@ handlers:
       enabled: false
       priority: 43
     plan_qa_edit:
-      enabled: false
+      enabled: true
       priority: 44
     plan_qa_commit_gate:
-      enabled: false
+      enabled: true
       priority: 44
     plan_time_estimates:
       enabled: true
       priority: 45
     plan_workflow:
-      enabled: false
+      enabled: true
       priority: 44
     docs_qa_edit:
       enabled: false
@@ -570,3 +570,12 @@ pseudo_events:
         enabled: true
       hedging_language:
         enabled: true
+plan_workflow:
+  enabled: true
+  directory: CLAUDE/Plan
+  close_requires_human_approval: false
+  qa:
+    enabled: true
+    edit_mode: block
+    commit_gate_mode: block
+    sweep_mode: advise

@@ -315,5 +315,6 @@
       }
     ]
   },
-  "enableArtifact": false
+  "enableArtifact": false,
+  "plansDirectory": "./CLAUDE/Plan"
 }
