@@ -28,7 +28,7 @@ final class YamlTokenizerTest extends TestCase
     {
         self::assertSame(
             ['StreamStart', 'BlockMappingStart', 'Key', 'Scalar:a', 'Value', 'Scalar:1', 'BlockEnd', 'StreamEnd'],
-            self::summary("a: 1\n"),
+            $this->summary("a: 1\n"),
         );
     }
 
@@ -36,7 +36,7 @@ final class YamlTokenizerTest extends TestCase
     {
         self::assertSame(
             ['StreamStart', 'FlowSequenceStart', 'Scalar:a', 'FlowEntry', 'FlowMappingStart', 'Key', 'Scalar:b', 'Value', 'Scalar:c', 'FlowMappingEnd', 'FlowSequenceEnd', 'StreamEnd'],
-            self::summary('[a, {b: c}]'),
+            $this->summary('[a, {b: c}]'),
         );
     }
 
@@ -44,7 +44,7 @@ final class YamlTokenizerTest extends TestCase
     {
         self::assertSame(
             ['StreamStart', 'BlockSequenceStart', 'BlockEntry', 'Anchor:x', 'Tag:!!str', 'Scalar:v', 'BlockEntry', 'Alias:x', 'BlockEntry', 'Tag:!', 'Scalar:a', 'BlockEntry', 'Tag:!<tag:e.com,2000:t>', 'Scalar:b', 'BlockEnd', 'StreamEnd'],
-            self::summary("- &x !!str v\n- *x\n- ! a\n- !<tag:e.com,2000:t> b\n"),
+            $this->summary("- &x !!str v\n- *x\n- ! a\n- !<tag:e.com,2000:t> b\n"),
         );
     }
 
@@ -52,7 +52,7 @@ final class YamlTokenizerTest extends TestCase
     {
         self::assertSame(
             ['StreamStart', 'Directive:YAML 1.1', 'Directive:TAG !e! tag:e.com,2000:', 'DocumentStart', 'Scalar:a', 'DocumentEnd', 'StreamEnd'],
-            self::summary("%YAML 1.1\n%TAG !e! tag:e.com,2000:\n---\na\n...\n"),
+            $this->summary("%YAML 1.1\n%TAG !e! tag:e.com,2000:\n---\na\n...\n"),
         );
     }
 
@@ -79,7 +79,7 @@ final class YamlTokenizerTest extends TestCase
     {
         self::assertSame(
             ['StreamStart', 'Comment:# head', 'BlockMappingStart', 'Key', 'Scalar:a', 'Value', 'Scalar:1', 'Comment:# line', 'Comment:# foot', 'Key', 'Scalar:b', 'Value', 'Scalar:2', 'BlockEnd', 'StreamEnd'],
-            self::summary("# head\na: 1 # line\n# foot\n\nb: 2\n"),
+            $this->summary("# head\na: 1 # line\n# foot\n\nb: 2\n"),
         );
     }
 
@@ -108,7 +108,7 @@ final class YamlTokenizerTest extends TestCase
     /**
      * @return list<string>
      */
-    private static function summary(string $yaml): array
+    private function summary(string $yaml): array
     {
         return array_map(static fn (Token $t): string => $t->type->name . ('' === $t->value ? '' : ':' . $t->value), self::tokenize($yaml));
     }

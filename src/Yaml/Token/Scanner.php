@@ -132,6 +132,50 @@ final class Scanner
     }
 
     /**
+     * The next token, with the comments that belong to it moved into the comment buffers.
+     *
+     * @throws YamlSyntaxException
+     */
+    public function peek(): ScanToken
+    {
+        if (!$this->tokenAvailable) {
+            $this->fetchMoreTokens();
+        }
+
+        $token = $this->tokens[$this->head];
+        $this->unfoldComments($token);
+
+        return $token;
+    }
+
+    public function skip(): void
+    {
+        $this->tokenAvailable = false;
+        ++$this->parsed;
+        ++$this->head;
+        if ($this->head >= 512) {
+            $this->tokens = \array_slice($this->tokens, $this->head - 2);
+            $this->head   = 2;
+        }
+    }
+
+    /**
+     * Starts keeping a copy of every comment found, for {@see loggedComments()}.
+     */
+    public function logComments(): void
+    {
+        $this->log = [];
+    }
+
+    /**
+     * @return list<ScanComment> the comments found so far, in scan order; empty unless logComments() ran
+     */
+    public function loggedComments(): array
+    {
+        return $this->log ?? [];
+    }
+
+    /**
      * Does the work of prepare() and, when the text has comments, collects in crlf the offsets of the
      * line breaks that were CRLF, because go-yaml sees such a break as two when it looks ahead for
      * comments.
@@ -184,50 +228,6 @@ final class Scanner
         }
 
         return $yaml;
-    }
-
-    /**
-     * The next token, with the comments that belong to it moved into the comment buffers.
-     *
-     * @throws YamlSyntaxException
-     */
-    public function peek(): ScanToken
-    {
-        if (!$this->tokenAvailable) {
-            $this->fetchMoreTokens();
-        }
-
-        $token = $this->tokens[$this->head];
-        $this->unfoldComments($token);
-
-        return $token;
-    }
-
-    public function skip(): void
-    {
-        $this->tokenAvailable = false;
-        ++$this->parsed;
-        ++$this->head;
-        if ($this->head >= 512) {
-            $this->tokens = \array_slice($this->tokens, $this->head - 2);
-            $this->head   = 2;
-        }
-    }
-
-    /**
-     * Starts keeping a copy of every comment found, for {@see loggedComments()}.
-     */
-    public function logComments(): void
-    {
-        $this->log = [];
-    }
-
-    /**
-     * @return list<ScanComment> the comments found so far, in scan order; empty unless logComments() ran
-     */
-    public function loggedComments(): array
-    {
-        return $this->log ?? [];
     }
 
     // ---------------------------------------------------------------- comments

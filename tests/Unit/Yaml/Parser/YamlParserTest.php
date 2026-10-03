@@ -22,7 +22,7 @@ final class YamlParserTest extends TestCase
     #[DataProvider('treeProvider')]
     public function testTree(string $yaml, string $expected): void
     {
-        self::assertSame($expected, self::dump($yaml));
+        self::assertSame($expected, $this->dump($yaml));
     }
 
     /**
@@ -69,7 +69,7 @@ final class YamlParserTest extends TestCase
     #[DataProvider('commentProvider')]
     public function testComments(string $yaml, string $expected): void
     {
-        self::assertSame($expected, self::dump($yaml));
+        self::assertSame($expected, $this->dump($yaml));
     }
 
     /**
@@ -197,7 +197,7 @@ final class YamlParserTest extends TestCase
 
     public function testCrlfAndBomAreAccepted(): void
     {
-        self::assertSame('{!!str=a: !!str=b c; !!str=d: !!int=1}', self::dump("\xEF\xBB\xBFa: b\r\n  c\r\nd: 1\r\n"));
+        self::assertSame('{!!str=a: !!str=b c; !!str=d: !!int=1}', $this->dump("\xEF\xBB\xBFa: b\r\n  c\r\nd: 1\r\n"));
     }
 
     public function testStylesAreRecorded(): void
@@ -226,9 +226,9 @@ final class YamlParserTest extends TestCase
     {
         try {
             self::parse($yaml);
-        } catch (YamlSyntaxException $e) {
-            self::assertSame($line, $e->yamlLine);
-            self::assertSame(\sprintf('yaml: line %d: %s', $line, $problem), $e->getMessage());
+        } catch (YamlSyntaxException $yamlSyntaxException) {
+            self::assertSame($line, $yamlSyntaxException->yamlLine);
+            self::assertSame(\sprintf('yaml: line %d: %s', $line, $problem), $yamlSyntaxException->getMessage());
 
             return;
         }
@@ -269,7 +269,7 @@ final class YamlParserTest extends TestCase
         return iterator_to_array(new YamlParser()->parse($yaml), false);
     }
 
-    private static function dump(string $yaml): string
+    private function dump(string $yaml): string
     {
         $docs = self::parse($yaml);
         self::assertCount(1, $docs);

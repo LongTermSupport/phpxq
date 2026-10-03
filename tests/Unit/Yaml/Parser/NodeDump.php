@@ -68,7 +68,8 @@ final class NodeDump
     {
         $parts = [];
         if ($mapping) {
-            for ($i = 0; $i < \count($node->content); $i += 2) {
+            $counter = \count($node->content);
+            for ($i = 0; $i < $counter; $i += 2) {
                 $parts[] = self::dump($node->content[$i]) . ': ' . self::dump($node->content[$i + 1]);
             }
         } else {

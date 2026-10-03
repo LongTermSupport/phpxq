@@ -166,9 +166,10 @@ final class StreamParser
     private function documentContent(): Node
     {
         $t = $this->sc->peek();
+
         return match ($t->type) {
             ScanToken::VERSION_DIRECTIVE, ScanToken::TAG_DIRECTIVE, ScanToken::DOCUMENT_START, ScanToken::DOCUMENT_END, ScanToken::STREAM_END => $this->emptyScalar($t->startLine, $t->startColumn),
-            default => $this->parseNode(true, false),
+            default                                                                                                                           => $this->parseNode(true, false),
         };
     }
 

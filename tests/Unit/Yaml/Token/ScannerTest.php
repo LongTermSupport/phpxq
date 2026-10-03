@@ -28,7 +28,7 @@ final class ScannerTest extends TestCase
                 ScanToken::BLOCK_END,
                 ScanToken::STREAM_END,
             ],
-            self::types("a: 1\n"),
+            $this->types("a: 1\n"),
         );
     }
 
@@ -36,7 +36,7 @@ final class ScannerTest extends TestCase
     {
         self::assertSame(
             [ScanToken::STREAM_START, ScanToken::BLOCK_SEQUENCE_START, ScanToken::BLOCK_ENTRY, ScanToken::SCALAR, ScanToken::BLOCK_ENTRY, ScanToken::SCALAR, ScanToken::BLOCK_END, ScanToken::STREAM_END],
-            self::types("- a\n- b\n"),
+            $this->types("- a\n- b\n"),
         );
     }
 
@@ -52,7 +52,7 @@ final class ScannerTest extends TestCase
                 ScanToken::FLOW_SEQUENCE_END,
                 ScanToken::STREAM_END,
             ],
-            self::types('[a, b]'),
+            $this->types('[a, b]'),
         );
     }
 
@@ -123,8 +123,8 @@ final class ScannerTest extends TestCase
     {
         try {
             Scanner::prepare($yaml);
-        } catch (YamlSyntaxException $e) {
-            self::assertStringContainsString($message, $e->getMessage());
+        } catch (YamlSyntaxException $yamlSyntaxException) {
+            self::assertStringContainsString($message, $yamlSyntaxException->getMessage());
 
             return;
         }
@@ -144,7 +144,7 @@ final class ScannerTest extends TestCase
     public function testUnterminatedQuoteIsAnError(): void
     {
         $this->expectException(YamlSyntaxException::class);
-        self::types('a: "x');
+        $this->types('a: "x');
     }
 
     public function testTokensArriveLazily(): void
@@ -206,7 +206,7 @@ final class ScannerTest extends TestCase
     /**
      * @return list<int>
      */
-    private static function types(string $yaml): array
+    private function types(string $yaml): array
     {
         return array_map(static fn (ScanToken $t): int => $t->type, self::tokens($yaml));
     }
