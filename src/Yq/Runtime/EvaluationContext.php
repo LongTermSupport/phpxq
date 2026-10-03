@@ -21,6 +21,7 @@ final readonly class EvaluationContext
         public array $matches,
         public RuntimeServices $services,
         public array $variables = [],
+        public bool $dontAutoCreate = false,
     ) {
     }
 
@@ -29,7 +30,7 @@ final readonly class EvaluationContext
      */
     public function withMatches(array $matches): self
     {
-        return new self($matches, $this->services, $this->variables);
+        return new self($matches, $this->services, $this->variables, $this->dontAutoCreate);
     }
 
     /**
@@ -37,6 +38,19 @@ final readonly class EvaluationContext
      */
     public function withVariable(string $name, array $values): self
     {
-        return new self($this->matches, $this->services, [...$this->variables, $name => $values]);
+        return new self($this->matches, $this->services, [...$this->variables, $name => $values], $this->dontAutoCreate);
+    }
+
+    /**
+     * The reference's read-only flag: a traversal that finds no key yields no match instead of a null
+     * placeholder that an assignment would later create.
+     */
+    public function withDontAutoCreate(bool $dontAutoCreate): self
+    {
+        if ($dontAutoCreate === $this->dontAutoCreate) {
+            return $this;
+        }
+
+        return new self($this->matches, $this->services, $this->variables, $dontAutoCreate);
     }
 }
