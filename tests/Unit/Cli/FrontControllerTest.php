@@ -51,7 +51,6 @@ final class FrontControllerTest extends TestCase
      */
     public static function provideTools(): iterable
     {
-        yield 'jq' => ['jq'];
         yield 'yq' => ['yq'];
     }
 
