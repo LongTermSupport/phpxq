@@ -87,14 +87,30 @@ final class MetaCalls implements CallOperatorInterface
     {
         $text = Comments::get($match->node, $kind);
         if ('' === $text && $match->parent instanceof Candidate && NodeKindEnum::Document === $match->parent->node->kind) {
-            return Comments::get($match->parent->node, $kind);
+            $text = Comments::get($match->parent->node, $kind);
+
+            return '' === $text && 'head' === $kind ? $this->firstKeyHead($match->node) : $text;
         }
 
         if ('' === $text && NodeKindEnum::Document === $match->node->kind && isset($match->node->content[0])) {
-            return Comments::get($match->node->content[0], $kind);
+            $root = $match->node->content[0];
+            $text = Comments::get($root, $kind);
+            if ('' === $text && 'head' === $kind) {
+                return $this->firstKeyHead($root);
+            }
+
+            return $text;
         }
 
         return $text;
+    }
+
+    /**
+     * The parser keeps the comment above a mapping's first entry on that entry's key.
+     */
+    private function firstKeyHead(Node $root): string
+    {
+        return NodeKindEnum::Mapping === $root->kind && isset($root->content[0]) ? $root->content[0]->headComment : '';
     }
 
     private function styleName(Node $node): string

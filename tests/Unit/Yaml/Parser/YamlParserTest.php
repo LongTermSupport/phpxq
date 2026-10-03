@@ -103,7 +103,7 @@ final class YamlParserTest extends TestCase
         $docs = $this->parse("# DH1\n\n# DH2\n\n# HA\nka: va\n\n# end\n");
 
         self::assertCount(1, $docs);
-        self::assertSame("# DH1\n\n# DH2", $docs[0]->headComment);
+        self::assertSame("# DH1\n\n# DH2\n", $docs[0]->headComment);
         self::assertSame('# HA', $docs[0]->content[0]->content[0]->headComment);
         self::assertSame('# end', $docs[0]->footComment);
     }
