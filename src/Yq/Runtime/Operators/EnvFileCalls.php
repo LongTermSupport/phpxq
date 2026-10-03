@@ -6,7 +6,6 @@ namespace LTS\PhpXq\Yq\Runtime\Operators;
 
 use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yq\Expression\Ast\Binary;
 use LTS\PhpXq\Yq\Expression\Ast\BinaryOperatorEnum;
 use LTS\PhpXq\Yq\Expression\Ast\Call;
