@@ -22,7 +22,22 @@ Early setup. Tooling is in place; no jq/yq functionality has been implemented ye
 
 ## Requirements
 
-- PHP 8.5
+- PHP 8.5 to run from source or the PHAR; nothing for the static binaries.
+
+## Install
+
+Releases ship static binaries for Linux (x86_64, aarch64) and macOS, plus a PHAR. The installer
+verifies the SHA-256 checksum before installing anything:
+
+```bash
+curl -fsSL https://github.com/LongTermSupport/php-xq/releases/latest/download/install.sh | sh
+# also create jq and yq links (they would shadow a real jq or yq, so this is opt-in):
+curl -fsSL https://github.com/LongTermSupport/php-xq/releases/latest/download/install.sh | sh -s -- --links
+```
+
+The binary dispatches on its name, busybox style: `phpxq jq ...`, or just `jq ...` when invoked
+through a link named `jq` (likewise `yq`). `phpxq --version` reports the release. Releases are cut
+as described in [docs/RELEASING.md](docs/RELEASING.md).
 
 ## Development
 
