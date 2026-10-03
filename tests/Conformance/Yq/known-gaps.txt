@@ -20,3 +20,7 @@ operators/datetime.md: Timezone: from standard RFC3339 format	upstream asserts a
 operators/shuffle.md: *	shuffle output is random and the upstream example pins a Go math/rand seeded sequence
 operators/system-operators.md: *	the system operator spawns an external process, deliberately unsupported by phpxq
 operators/comment-operators.md: Head comment with document split	upstream decodes without header preprocessing; the CLI slurps the "# welcome!" header before the separator by default (matches with --header-preprocess=false)
+
+# yq-eval-r2
+usage/base64.md: Encode base64: string	upstream fixture is damaged: the expected output swallowed trailing markdown ("```" and the next heading)
+usage/base64url.md: Encode base64url: string	upstream fixture is damaged: the expected output swallowed trailing markdown ("```" and the next heading)
