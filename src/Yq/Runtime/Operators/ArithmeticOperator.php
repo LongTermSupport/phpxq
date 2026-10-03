@@ -156,7 +156,7 @@ final class ArithmeticOperator implements BinaryOperatorInterface
                 $items[] = $item->deepCopy();
             }
         } else {
-            $add  = $r->deepCopy();
+            $add  = clone $r; // shallow: children stay shared so `.. |= [] + .` still updates them after the parent is replaced
             $last = [] === $items ? null : $items[\count($items) - 1];
             if ($last instanceof Node && NodeKindEnum::Scalar === $last->kind && NodeKindEnum::Scalar === $add->kind && NodeStyleEnum::Default === $add->style && NodeStyleEnum::Default !== $last->style) {
                 $add->style = $last->style;

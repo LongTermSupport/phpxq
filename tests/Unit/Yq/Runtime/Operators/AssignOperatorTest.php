@@ -48,5 +48,6 @@ final class AssignOperatorTest extends TestCase
         yield 'head comment' => ['.a head_comment="hi"', "a: 1\n", "# hi\na: 1\n"];
         yield 'assign from other path' => ['.b = .a', "a: 1\n", "a: 1\nb: 1\n"];
         yield 'update per target sees target' => ['.a[] |= . + 1', "a:\n  - 1\n  - 2\n", "a:\n  - 2\n  - 3\n"];
+        yield 'recursive wrap in array' => ['.. |= [] + .', "zoo:\n  thing:\n    frog: boing\n", "- zoo:\n    - thing:\n        - frog:\n            - boing\n"];
     }
 }
