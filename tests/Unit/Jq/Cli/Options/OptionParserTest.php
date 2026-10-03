@@ -8,8 +8,8 @@ use LTS\PhpXq\Jq\Cli\Options\CliAction;
 use LTS\PhpXq\Jq\Cli\Options\CliOptions;
 use LTS\PhpXq\Jq\Cli\Options\OptionParser;
 use LTS\PhpXq\Jq\Cli\Options\UsageException;
+use LTS\PhpXq\Json\JsonDecoder;
 use LTS\PhpXq\Json\JsonObject;
-use LTS\PhpXq\Tests\Unit\Jq\Cli\JqApplicationFakeDecoder;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -34,7 +34,7 @@ final class OptionParserTest extends TestCase
 
     public function testProgramAndFiles(): void
     {
-        $options = self::parse(['.a', 'one.json', 'two.json']);
+        $options = $this->parse(['.a', 'one.json', 'two.json']);
 
         self::assertSame(CliAction::Run, $options->action);
         self::assertSame('.a', $options->program);
@@ -44,13 +44,13 @@ final class OptionParserTest extends TestCase
 
     public function testNoProgramLeavesItNull(): void
     {
-        self::assertNull(self::parse([])->program);
-        self::assertNull(self::parse(['-n'])->program);
+        self::assertNull($this->parse([])->program);
+        self::assertNull($this->parse(['-n'])->program);
     }
 
     public function testShortFlagsCombine(): void
     {
-        $options = self::parse(['-nrsSae', '.']);
+        $options = $this->parse(['-nrsSae', '.']);
 
         self::assertTrue($options->nullInput);
         self::assertTrue($options->rawOutput);
@@ -64,7 +64,7 @@ final class OptionParserTest extends TestCase
 
     public function testJoinOutputImpliesRaw(): void
     {
-        $options = self::parse(['-j', '.']);
+        $options = $this->parse(['-j', '.']);
 
         self::assertTrue($options->joinOutput);
         self::assertTrue($options->rawOutput);
@@ -72,7 +72,7 @@ final class OptionParserTest extends TestCase
 
     public function testRawOutput0ImpliesRawAndNoNewline(): void
     {
-        $options = self::parse(['--raw-output0', '.']);
+        $options = $this->parse(['--raw-output0', '.']);
 
         self::assertTrue($options->rawOutput0);
         self::assertTrue($options->rawOutput);
@@ -81,7 +81,7 @@ final class OptionParserTest extends TestCase
 
     public function testLongFlags(): void
     {
-        $options = self::parse([
+        $options = $this->parse([
             '--null-input', '--raw-input', '--slurp', '--raw-output', '--ascii-output', '--sort-keys',
             '--exit-status', '--seq', '--unbuffered', '--binary', '--from-file', '--debug-dump-disasm', '--debug-trace=all', '.',
         ]);
@@ -101,20 +101,20 @@ final class OptionParserTest extends TestCase
 
     public function testStreamErrorsImpliesStream(): void
     {
-        $options = self::parse(['--stream-errors', '.']);
+        $options = $this->parse(['--stream-errors', '.']);
 
         self::assertTrue($options->stream);
         self::assertTrue($options->streamErrors);
-        self::assertFalse(self::parse(['--stream', '.'])->streamErrors);
+        self::assertFalse($this->parse(['--stream', '.'])->streamErrors);
     }
 
     public function testColorFlagsLastOneWins(): void
     {
-        self::assertTrue(self::parse(['-C', '.'])->color);
-        self::assertFalse(self::parse(['-M', '.'])->color);
-        self::assertFalse(self::parse(['-C', '-M', '.'])->color);
-        self::assertTrue(self::parse(['--monochrome-output', '--color-output', '.'])->color);
-        self::assertNull(self::parse(['.'])->color);
+        self::assertTrue($this->parse(['-C', '.'])->color);
+        self::assertFalse($this->parse(['-M', '.'])->color);
+        self::assertFalse($this->parse(['-C', '-M', '.'])->color);
+        self::assertTrue($this->parse(['--monochrome-output', '--color-output', '.'])->color);
+        self::assertNull($this->parse(['.'])->color);
     }
 
     /**
@@ -123,7 +123,7 @@ final class OptionParserTest extends TestCase
     #[DataProvider('provideLayouts')]
     public function testLayoutFlagsActInOrder(array $args, bool $pretty, bool $tab, int $indent): void
     {
-        $options = self::parse($args);
+        $options = $this->parse($args);
 
         self::assertSame($pretty, $options->pretty);
         self::assertSame($tab, $options->tab);
@@ -158,7 +158,7 @@ final class OptionParserTest extends TestCase
 
     public function testIndentLimits(): void
     {
-        self::assertSame(7, self::parse(['--indent', '7', '.'])->indent);
+        self::assertSame(7, $this->parse(['--indent', '7', '.'])->indent);
         $this->assertRefused(['--indent', '8', '.'], 'jq: Cannot indent more than 7 characters');
         $this->assertRefused(['--indent', '-2', '.'], 'jq: Cannot indent less than -1 characters');
         $this->assertRefused(['--indent'], 'jq: --indent takes one parameter');
@@ -166,7 +166,7 @@ final class OptionParserTest extends TestCase
 
     public function testArgsAndJsonargsSwitchTheMeaningOfPositionals(): void
     {
-        $options = self::parse(['-n', '$ARGS.positional', '--args', 'foo', 'bar', '--jsonargs', '1', '{"a":[]}', '--args', 'baz']);
+        $options = $this->parse(['-n', '$ARGS.positional', '--args', 'foo', 'bar', '--jsonargs', '1', '{"a":[]}', '--args', 'baz']);
 
         self::assertSame('$ARGS.positional', $options->program);
         self::assertSame([], $options->files);
@@ -180,7 +180,7 @@ final class OptionParserTest extends TestCase
 
     public function testArgsBeforeTheProgramLeavesTheFirstPositionalAsProgram(): void
     {
-        $options = self::parse(['--args', '-rn', '--', '$ARGS.positional[0]', 'bar']);
+        $options = $this->parse(['--args', '-rn', '--', '$ARGS.positional[0]', 'bar']);
 
         self::assertSame('$ARGS.positional[0]', $options->program);
         self::assertSame(['bar'], $options->positional);
@@ -188,7 +188,7 @@ final class OptionParserTest extends TestCase
 
     public function testProgramGivenBeforeDoubleDash(): void
     {
-        $options = self::parse(['--args', '-rn', '1', '--', '$ARGS.positional[0]', 'bar']);
+        $options = $this->parse(['--args', '-rn', '1', '--', '$ARGS.positional[0]', 'bar']);
 
         self::assertSame('1', $options->program);
         self::assertSame(['$ARGS.positional[0]', 'bar'], $options->positional);
@@ -196,7 +196,7 @@ final class OptionParserTest extends TestCase
 
     public function testDoubleDashEndsOptions(): void
     {
-        $options = self::parse(['-n', '--', '-x', '--arg']);
+        $options = $this->parse(['-n', '--', '-x', '--arg']);
 
         self::assertSame('-x', $options->program);
         self::assertSame(['--arg'], $options->files);
@@ -204,7 +204,7 @@ final class OptionParserTest extends TestCase
 
     public function testASingleDashIsAFileName(): void
     {
-        $options = self::parse(['.', '-']);
+        $options = $this->parse(['.', '-']);
 
         self::assertSame(['-'], $options->files);
     }
@@ -217,7 +217,7 @@ final class OptionParserTest extends TestCase
 
     public function testNamedArguments(): void
     {
-        $options = self::parse(['-n', '--arg', 'a', 'x', '--argjson', 'b', '{"k":1}', '.']);
+        $options = $this->parse(['-n', '--arg', 'a', 'x', '--argjson', 'b', '{"k":1}', '.']);
 
         self::assertSame(['a', 'b'], array_keys($options->named));
         self::assertSame('x', $options->named['a']);
@@ -237,7 +237,7 @@ final class OptionParserTest extends TestCase
     public function testSlurpfileAndRawfile(): void
     {
         $file    = $this->tempFile("{\"this\":1}\n[2]\n");
-        $options = self::parse(['-n', '--slurpfile', 'foo', $file, '--rawfile', 'bar', $file, '.']);
+        $options = $this->parse(['-n', '--slurpfile', 'foo', $file, '--rawfile', 'bar', $file, '.']);
 
         self::assertIsArray($options->named['foo']);
         self::assertCount(2, $options->named['foo']);
@@ -255,7 +255,7 @@ final class OptionParserTest extends TestCase
         $file = $this->tempFile('{"a":1} nope');
 
         try {
-            self::parse(['--slurpfile', 'a', $file, '.']);
+            $this->parse(['--slurpfile', 'a', $file, '.']);
         } catch (UsageException $usageException) {
             self::assertStringStartsWith('jq: Bad JSON in --slurpfile a ' . $file . ': ', $usageException->getMessage());
 
@@ -267,24 +267,24 @@ final class OptionParserTest extends TestCase
 
     public function testLibraryPathForms(): void
     {
-        self::assertSame(['a', 'b', 'c', 'd'], self::parse(['-L', 'a', '-Lb', '-nLc', '-n', '-L', 'd', '.'])->libraryPaths);
-        self::assertSame(['.'], self::parse(['-nL.', '42'])->libraryPaths);
-        self::assertSame(['.'], self::parse(['-nL', '.', '42'])->libraryPaths);
+        self::assertSame(['a', 'b', 'c', 'd'], $this->parse(['-L', 'a', '-Lb', '-nLc', '-n', '-L', 'd', '.'])->libraryPaths);
+        self::assertSame(['.'], $this->parse(['-nL.', '42'])->libraryPaths);
+        self::assertSame(['.'], $this->parse(['-nL', '.', '42'])->libraryPaths);
         $this->assertRefused(['-L'], 'jq: -L takes a parameter: (e.g. -L /search/path or -L/search/path)');
     }
 
     public function testHelpAndVersionEndParsingImmediately(): void
     {
-        self::assertSame(CliAction::Help, self::parse(['-h'])->action);
-        self::assertSame(CliAction::Help, self::parse(['--help'])->action);
-        self::assertSame(CliAction::Version, self::parse(['-V'])->action);
-        self::assertSame(CliAction::Version, self::parse(['--version'])->action);
-        self::assertSame(CliAction::BuildConfiguration, self::parse(['--build-configuration'])->action);
-        self::assertSame(CliAction::Help, self::parse(['-hV'])->action);
-        self::assertSame(CliAction::Version, self::parse(['-Vh'])->action);
-        self::assertSame(CliAction::Help, self::parse(['-h', '-V'])->action);
-        self::assertSame(CliAction::Version, self::parse(['-V', '-h'])->action);
-        self::assertSame(CliAction::Help, self::parse(['-n', '-h', '--bogus'])->action);
+        self::assertSame(CliAction::Help, $this->parse(['-h'])->action);
+        self::assertSame(CliAction::Help, $this->parse(['--help'])->action);
+        self::assertSame(CliAction::Version, $this->parse(['-V'])->action);
+        self::assertSame(CliAction::Version, $this->parse(['--version'])->action);
+        self::assertSame(CliAction::BuildConfiguration, $this->parse(['--build-configuration'])->action);
+        self::assertSame(CliAction::Help, $this->parse(['-hV'])->action);
+        self::assertSame(CliAction::Version, $this->parse(['-Vh'])->action);
+        self::assertSame(CliAction::Help, $this->parse(['-h', '-V'])->action);
+        self::assertSame(CliAction::Version, $this->parse(['-V', '-h'])->action);
+        self::assertSame(CliAction::Help, $this->parse(['-n', '-h', '--bogus'])->action);
     }
 
     public function testUnknownOptionsAreRefused(): void
@@ -297,20 +297,20 @@ final class OptionParserTest extends TestCase
     public function testRefusalIsReachedAtItsPosition(): void
     {
         $this->expectExceptionObject(new UsageException('jq: Unknown option: --bogus'));
-        self::parse(['-n', '--bogus', '-h']);
+        $this->parse(['-n', '--bogus', '-h']);
     }
 
     public function testEmptyArgumentIsTheProgram(): void
     {
-        self::assertSame('', self::parse([''])->program);
+        self::assertSame('', $this->parse([''])->program);
     }
 
     /**
      * @param list<string> $args
      */
-    private static function parse(array $args): CliOptions
+    private function parse(array $args): CliOptions
     {
-        return new OptionParser(new JqApplicationFakeDecoder())->parse($args);
+        return new OptionParser(new JsonDecoder())->parse($args);
     }
 
     /**
@@ -319,7 +319,7 @@ final class OptionParserTest extends TestCase
     private function assertRefused(array $args, string $message): void
     {
         try {
-            self::parse($args);
+            $this->parse($args);
         } catch (UsageException $usageException) {
             self::assertSame($message, $usageException->getMessage());
             self::assertFalse($usageException->showShortUsage);

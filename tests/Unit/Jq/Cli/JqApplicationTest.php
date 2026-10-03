@@ -116,10 +116,16 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testAsciiOutputWithRawStillQuotesStrings(): void
     {
-        [, $out] = $this->jq(['-r', '-a', '.'], '"x"');
+        [, $out] = $this->jq(['-r', '-a', '.'], '"é"');
 
-        self::assertSame("\"x\"\n", $out);
-        self::assertTrue($this->encoder->lastOptions?->ascii);
+        self::assertSame("\"\\u00e9\"\n", $out);
+    }
+
+    public function testAsciiOutputEscapesNonAscii(): void
+    {
+        [, $out] = $this->jq(['-a', '-c', '.'], '["é","\ud83d\ude00"]');
+
+        self::assertSame("[\"\\u00e9\",\"\\ud83d\\ude00\"]\n", $out);
     }
 
     public function testSlurpGivesTheProgramOneArray(): void
@@ -443,18 +449,18 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testSeqWritesARecordSeparatorBeforeEachOutput(): void
     {
-        [, $out] = $this->jq(['--seq', '-c', '.'], '[1] 2');
+        [, $out] = $this->jq(['--seq', '-c', '.'], "\x1e[1]\n\x1e2\n");
 
         self::assertSame("\x1e[1]\n\x1e2\n", $out);
     }
 
     public function testSeqIgnoresDamagedRecordsWithAWarning(): void
     {
-        [$status, $out, $err] = $this->jq(['--seq', '-c', '.'], "1\x1e[0,1\x1e2\n");
+        [$status, $out, $err] = $this->jq(['--seq', '-c', '.'], "\x1e1\n\x1e[0,1\x1e2\n");
 
         self::assertSame(0, $status);
         self::assertSame("\x1e1\n\x1e2\n", $out);
-        self::assertSame("jq: ignoring parse error: Truncated value at line 1, column 7\n", $err);
+        self::assertSame("jq: ignoring parse error: Truncated value at line 2, column 6\n", $err);
     }
 
     public function testStreamTurnsInputIntoEvents(): void
@@ -529,11 +535,11 @@ final class JqApplicationTest extends JqApplicationTestCase
         yield 'tab then compact is compact' => [['--tab', '-c', '.'], "[1,{\"a\":2}]\n"];
     }
 
-    public function testSortKeysIsPassedToTheEncoder(): void
+    public function testSortKeys(): void
     {
-        $this->jq(['-S', '.'], '{"b":1,"a":2}');
+        [, $out] = $this->jq(['-S', '-c', '.'], '{"b":1,"a":{"d":1,"c":2}}');
 
-        self::assertTrue($this->encoder->lastOptions?->sortKeys);
+        self::assertSame("{\"a\":{\"c\":2,\"d\":1},\"b\":1}\n", $out);
     }
 
     public function testIndentOutOfRangeIsRefused(): void
@@ -546,49 +552,56 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testColorFlagUsesTheDefaultPalette(): void
     {
-        $this->withEnv(['JQ_COLORS' => false, 'NO_COLOR' => false], function (): void {
-            $this->jq(['-C', '.'], 'null');
+        $out = '';
+        $this->withEnv(['JQ_COLORS' => false, 'NO_COLOR' => false], function () use (&$out): void {
+            [, $out] = $this->jq(['-C', '-c', '.'], '[{"a":true,"b":false},"abc",123,null]');
         });
 
-        self::assertSame("\e[0;90m", $this->encoder->lastOptions?->colors?->null);
-        self::assertSame("\e[1;34m", $this->encoder->lastOptions->colors->objectKey);
+        self::assertSame(
+            "\e[1;39m[\e[0m\e[1;39m{\e[0m\e[1;34m\"a\"\e[0m\e[1;39m:\e[0m\e[0;39mtrue\e[0m\e[1;39m,\e[0m"
+            . "\e[1;34m\"b\"\e[0m\e[1;39m:\e[0m\e[0;39mfalse\e[0m\e[1;39m}\e[0m\e[1;39m,\e[0m"
+            . "\e[0;32m\"abc\"\e[0m\e[1;39m,\e[0m\e[0;39m123\e[0m\e[1;39m,\e[0m\e[0;90mnull\e[0m\e[1;39m]\e[0m\n",
+            $out,
+        );
     }
 
     public function testJqColorsOverridesThePalette(): void
     {
-        $this->withEnv(['JQ_COLORS' => '4;31'], function (): void {
-            $this->jq(['-C', '.'], 'null');
+        $out = '';
+        $this->withEnv(['JQ_COLORS' => '4;31'], function () use (&$out): void {
+            [, $out] = $this->jq(['-C', '-c', '.'], 'null');
         });
 
-        self::assertSame("\e[4;31m", $this->encoder->lastOptions?->colors?->null);
-        self::assertSame("\e[0;32m", $this->encoder->lastOptions->colors->string);
+        self::assertSame("\e[4;31mnull\e[0m\n", $out);
     }
 
     public function testInvalidJqColorsWarnsAndKeepsTheDefaults(): void
     {
+        $out = '';
         $err = '';
-        $this->withEnv(['JQ_COLORS' => '30m'], function () use (&$err): void {
-            [, , $err] = $this->jq(['-C', '.'], 'null');
+        $this->withEnv(['JQ_COLORS' => '30m'], function () use (&$out, &$err): void {
+            [, $out, $err] = $this->jq(['-C', '-c', '.'], 'null');
         });
 
         self::assertSame("Failed to set \$JQ_COLORS\n", $err);
-        self::assertSame("\e[0;90m", $this->encoder->lastOptions?->colors?->null);
+        self::assertSame("\e[0;90mnull\e[0m\n", $out);
     }
 
     public function testMonochromeWinsOverColorEnvironment(): void
     {
-        $this->withEnv(['JQ_COLORS' => '4;31'], function (): void {
-            $this->jq(['-C', '-M', '.'], 'null');
+        $out = '';
+        $this->withEnv(['JQ_COLORS' => '4;31'], function () use (&$out): void {
+            [, $out] = $this->jq(['-C', '-M', '.'], 'null');
         });
 
-        self::assertNull($this->encoder->lastOptions?->colors);
+        self::assertSame("null\n", $out);
     }
 
     public function testNoColorsWhenNotOnATerminal(): void
     {
-        $this->jq(['.'], 'null');
+        [, $out] = $this->jq(['.'], 'null');
 
-        self::assertNull($this->encoder->lastOptions?->colors);
+        self::assertSame("null\n", $out);
     }
 
     public function testDebugAndStderrWriteToStandardError(): void

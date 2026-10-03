@@ -6,6 +6,7 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Cli;
 
 use LTS\PhpXq\Jq\Cli\ParseDiagnostics;
 use LTS\PhpXq\Jq\Cli\UsageText;
+use LTS\PhpXq\Json\JsonDecoder;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -15,7 +16,7 @@ final class JqApplicationParseDiagnosticsTest extends TestCase
 {
     public function testMessageHasWholeTextPositions(): void
     {
-        $diagnostics = new ParseDiagnostics(new JqApplicationFakeDecoder());
+        $diagnostics = new ParseDiagnostics(new JsonDecoder());
         $text        = "1\n2\n  foo 3";
 
         self::assertSame('Invalid literal at line 3, column 6', $diagnostics->message($text, 6));
@@ -23,14 +24,14 @@ final class JqApplicationParseDiagnosticsTest extends TestCase
 
     public function testMessageFromTheStartOfTheText(): void
     {
-        $diagnostics = new ParseDiagnostics(new JqApplicationFakeDecoder());
+        $diagnostics = new ParseDiagnostics(new JsonDecoder());
 
-        self::assertSame('Invalid literal at line 1, column 4', $diagnostics->message('foo', 0));
+        self::assertSame('Invalid literal at EOF at line 1, column 3', $diagnostics->message('foo', 0));
     }
 
     public function testFallbackWhenTheDecoderFindsNothingWrong(): void
     {
-        $diagnostics = new ParseDiagnostics(new JqApplicationFakeDecoder());
+        $diagnostics = new ParseDiagnostics(new JsonDecoder());
 
         self::assertSame('Invalid JSON text', $diagnostics->message('1 2', 0));
     }

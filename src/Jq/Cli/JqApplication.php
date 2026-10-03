@@ -13,6 +13,7 @@ use LTS\PhpXq\Jq\Parser\Parser;
 use LTS\PhpXq\Jq\Parser\ParserInterface;
 use LTS\PhpXq\Jq\Runtime\CompiledProgram;
 use LTS\PhpXq\Jq\Runtime\JqCompileException;
+use LTS\PhpXq\Json\Codec\JqColors;
 use LTS\PhpXq\Json\ColorScheme;
 use LTS\PhpXq\Json\JsonDecoder;
 use LTS\PhpXq\Json\JsonDecoderInterface;
@@ -284,14 +285,14 @@ final readonly class JqApplication
 
         $spec = getenv('JQ_COLORS');
         if (false === $spec) {
-            return ColorSchemeParser::defaults();
+            return ColorScheme::default();
         }
 
-        $scheme = ColorSchemeParser::parse($spec);
+        $scheme = JqColors::parse($spec);
         if (!$scheme instanceof ColorScheme) {
             $console->err("Failed to set \$JQ_COLORS\n");
 
-            return ColorSchemeParser::defaults();
+            return ColorScheme::default();
         }
 
         return $scheme;

@@ -35,15 +35,9 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
 
     private ?InputItem $lookahead = null;
 
-    private bool $started = false;
-
-    private ?string $filename = null;
-
-    private int $line = 0;
+    private ?InputItem $current = null;
 
     private bool $unreadable = false;
-
-    private readonly ValueScanner $scanner;
 
     private readonly ParseDiagnostics $diagnostics;
 
@@ -61,7 +55,6 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
         private readonly CliOptions $options,
         private readonly Closure $warn,
     ) {
-        $this->scanner     = new ValueScanner();
         $this->diagnostics = new ParseDiagnostics($decoder);
         $this->streams     = new StreamParser($decoder, $this->diagnostics);
     }
@@ -77,9 +70,7 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
             return null;
         }
 
-        $this->started  = true;
-        $this->filename = $item->filename;
-        $this->line     = $item->line;
+        $this->current = $item;
 
         return $item;
     }
@@ -107,7 +98,7 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
 
     public function lineNumber(): int
     {
-        return $this->line;
+        return $this->current?->lineNumber() ?? 0;
     }
 
     /**
@@ -115,7 +106,7 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
      */
     public function filename(): ?string
     {
-        return $this->filename;
+        return $this->current?->filename;
     }
 
     /**
@@ -123,7 +114,7 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
      */
     public function positionLabel(): string
     {
-        return $this->started ? ($this->filename ?? '<stdin>') . ':' . $this->line : '<unknown>';
+        return $this->current instanceof InputItem ? ($this->current->filename ?? '<stdin>') . ':' . $this->current->lineNumber() : '<unknown>';
     }
 
     public function hadUnreadableFile(): bool
@@ -173,7 +164,7 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
 
         $all  = [];
         $name = null;
-        $line = 0;
+        $last = null;
         foreach ($this->items() as $item) {
             if ($item->isError()) {
                 yield $item;
@@ -186,10 +177,10 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
 
             $all[] = $item->value;
             $name  = $item->filename;
-            $line  = $item->line;
+            $last  = $item;
         }
 
-        yield InputItem::value($all, $name, $line);
+        yield InputItem::value($all, $name, $last?->lineNumber() ?? 0);
     }
 
     /**
@@ -204,13 +195,9 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
                 continue;
             }
 
-            if (str_starts_with($text, self::BOM)) {
-                $text = substr($text, 3);
-            }
-
             $failed = false;
             $inner  = match (true) {
-                $this->options->stream => $this->streamEvents($name, $text),
+                $this->options->stream => $this->streamEvents($name, str_starts_with($text, self::BOM) ? substr($text, 3) : $text),
                 $this->options->seq    => $this->seqValues($name, $text),
                 default                => $this->jsonValues($name, $text),
             };
@@ -293,100 +280,40 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
      */
     private function jsonValues(?string $name, string $text): Generator
     {
-        $length  = \strlen($text);
-        $offset  = 0;
-        $counted = 0;
-        $lines   = 0;
-        $eol     = -1;
-        $scanner = $this->scanner;
+        $tracker = new LineTracker(str_starts_with($text, self::BOM) ? substr($text, 3) : $text);
+        $ordinal = 0;
 
-        while (true) {
-            $status = $scanner->find($text, $offset);
-            if (ValueScanner::NONE === $status) {
-                return;
+        try {
+            foreach ($this->decoder->decodeAll($text) as $value) {
+                yield InputItem::tracked($value, $name, $tracker, ++$ordinal);
             }
+        } catch (JsonSyntaxException $jsonSyntaxException) {
+            $message = $jsonSyntaxException->getMessage();
 
-            if (ValueScanner::FOUND === $status) {
-                $start = $scanner->start;
-                $end   = $scanner->end;
-
-                try {
-                    $value = $this->decoder->decodeOne(0 === $start && $end === $length ? $text : substr($text, $start, $end - $start));
-                } catch (JsonSyntaxException) {
-                    yield InputItem::error($this->diagnostics->message($text, $start), true, $name, $lines);
-
-                    return;
-                }
-
-                $offset = $end;
-                if ($eol < $offset) {
-                    $found = strpos($text, "\n", $offset);
-                    $eol   = false === $found ? \PHP_INT_MAX : $found;
-                }
-
-                $upto = \PHP_INT_MAX === $eol ? $length : $eol + 1;
-                if ($upto > $counted) {
-                    $lines  += substr_count($text, "\n", $counted, $upto - $counted);
-                    $counted = $upto;
-                }
-
-                yield InputItem::value($value, $name, $lines);
-
-                continue;
-            }
-
-            yield InputItem::error(
-                $this->diagnostics->message($text, $scanner->start),
-                true,
-                $name,
-                substr_count($text, "\n"),
-            );
-
-            return;
+            yield InputItem::error($message, true, $name, $this->linesBeforeError($text, $message));
         }
     }
 
     /**
-     * RFC 7464 input: the decoder reports a damaged record by throwing, so decoding is resumed at the
-     * next record separator with everything before it blanked (newlines kept, so positions stay right).
+     * RFC 7464 input. The decoder yields a {@see JsonSyntaxException} in place of a damaged record and
+     * carries on with the next one, which becomes a warning item here.
      *
      * @return Generator<int, InputItem>
      */
     private function seqValues(?string $name, string $text): Generator
     {
-        $length  = \strlen($text);
-        $current = $text;
-        $resumed = -1;
+        try {
+            foreach ($this->decoder->decodeAll($text, true) as $value) {
+                if ($value instanceof JsonSyntaxException) {
+                    yield InputItem::error($value->getMessage(), false, $name, $this->linesBeforeError($text, $value->getMessage()));
 
-        while (true) {
-            try {
-                foreach ($this->decoder->decodeAll($current, true) as $value) {
-                    yield InputItem::value($value, $name, 0);
+                    continue;
                 }
 
-                return;
-            } catch (JsonSyntaxException $jsonSyntaxException) {
-                $message = $jsonSyntaxException->getMessage();
-                $offset  = $this->offsetOfPosition($text, $message);
-                yield InputItem::error($message, false, $name, substr_count($text, "\n", 0, $offset ?? $length));
-
-                if (null === $offset) {
-                    return;
-                }
-
-                $from = max($offset - 1, $resumed + 1);
-                if ($from >= $length) {
-                    return;
-                }
-
-                $separator = strpos($text, "\x1e", $from);
-                if (false === $separator) {
-                    return;
-                }
-
-                $resumed = $separator;
-                $current = preg_replace('/[^\n]/', ' ', substr($text, 0, $separator)) . substr($text, $separator);
+                yield InputItem::value($value, $name, 0);
             }
+        } catch (JsonSyntaxException $jsonSyntaxException) {
+            yield InputItem::error($jsonSyntaxException->getMessage(), true, $name, $this->linesBeforeError($text, $jsonSyntaxException->getMessage()));
         }
     }
 
@@ -426,25 +353,16 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
     }
 
     /**
-     * The byte offset a "... at line L, column C" message refers to, or null when it carries no position.
+     * The number of newlines read when a parse error with "... at line L, column C" was found: L - 1, or
+     * every newline of the text for a message without a position.
      */
-    private function offsetOfPosition(string $text, string $message): ?int
+    private function linesBeforeError(string $text, string $message): int
     {
-        if (1 !== preg_match('/at line (\d+), column (\d+)$/', $message, $matches)) {
-            return null;
+        if (1 !== preg_match('/at line (\d+), column \d+/', $message, $matches)) {
+            return substr_count($text, "\n");
         }
 
-        $offset = 0;
-        for ($line = 1; $line < (int)$matches[1]; ++$line) {
-            $newline = strpos($text, "\n", $offset);
-            if (false === $newline) {
-                return null;
-            }
-
-            $offset = $newline + 1;
-        }
-
-        return $offset + (int)$matches[2];
+        return max(0, (int)$matches[1] - 1);
     }
 
     /**

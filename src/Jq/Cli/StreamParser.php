@@ -24,18 +24,25 @@ final readonly class StreamParser
 {
     // Where the parser is inside the innermost container.
     private const int ARRAY_FIRST  = 0;
+
     // after `[`: a value or `]`
     private const int ARRAY_NEXT   = 1;
+
     // after `,`: a value
     private const int ARRAY_AFTER  = 2;
+
     // after a value: `,` or `]`
     private const int OBJECT_FIRST = 3;
+
     // after `{`: a key or `}`
     private const int OBJECT_NEXT  = 4;
+
     // after `,`: a key
     private const int OBJECT_COLON = 5;
+
     // after a key: `:`
     private const int OBJECT_VALUE = 6;
+
     // after `:`: a value
     private const int OBJECT_AFTER = 7; // after a value: `,` or `}`
 
@@ -160,6 +167,7 @@ final readonly class StreamParser
                             if (!$seq) {
                                 return;
                             }
+
                             $path    = [];
                             $isArray = [];
                             $modes   = [];
@@ -179,6 +187,7 @@ final readonly class StreamParser
                         if (!$seq) {
                             return;
                         }
+
                         $path    = [];
                         $isArray = [];
                         $modes   = [];
@@ -225,6 +234,7 @@ final readonly class StreamParser
                 if (!$seq) {
                     return;
                 }
+
                 $path    = [];
                 $isArray = [];
                 $modes   = [];

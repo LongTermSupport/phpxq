@@ -7,6 +7,7 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Cli;
 use LTS\PhpXq\Jq\Cli\ParseDiagnostics;
 use LTS\PhpXq\Jq\Cli\StreamError;
 use LTS\PhpXq\Jq\Cli\StreamParser;
+use LTS\PhpXq\Json\JsonDecoder;
 use LTS\PhpXq\Json\JsonObject;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -218,7 +219,7 @@ final class JqApplicationStreamParserTest extends TestCase
 
     private function parser(): StreamParser
     {
-        $decoder = new JqApplicationFakeDecoder();
+        $decoder = new JsonDecoder();
 
         return new StreamParser($decoder, new ParseDiagnostics($decoder));
     }

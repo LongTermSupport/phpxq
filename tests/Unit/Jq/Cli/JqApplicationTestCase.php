@@ -7,11 +7,14 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Cli;
 use Closure;
 use LTS\PhpXq\Jq\Cli\JqApplication;
 use LTS\PhpXq\Jq\Runtime\RuntimeContext;
+use LTS\PhpXq\Json\JsonDecoder;
+use LTS\PhpXq\Json\JsonEncoder;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
 /**
- * Runs the jq command line in memory against fakes of the decoder, encoder, parser and compiler.
+ * Runs the jq command line in memory with the real JSON codec, against a fake parser and a fake compiler
+ * (the program is a closure, so these tests need no evaluator).
  *
  * @internal
  */
@@ -20,8 +23,6 @@ abstract class JqApplicationTestCase extends TestCase
     protected JqApplicationFakeCompiler $compiler;
 
     protected JqApplicationFakeParser $parser;
-
-    protected JqApplicationFakeEncoder $encoder;
 
     /** @var list<string> */
     private array $tempFiles = [];
@@ -49,8 +50,7 @@ abstract class JqApplicationTestCase extends TestCase
             $emit($input);
         });
         $this->parser  = new JqApplicationFakeParser();
-        $this->encoder = new JqApplicationFakeEncoder();
-        $application   = new JqApplication($this->parser, $this->compiler, new JqApplicationFakeDecoder(), $this->encoder);
+        $application   = new JqApplication($this->parser, $this->compiler, new JsonDecoder(), new JsonEncoder());
 
         $in  = self::memory($stdin);
         $out = self::memory('');

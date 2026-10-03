@@ -8,6 +8,8 @@ use LTS\PhpXq\Jq\Cli\InputItem;
 use LTS\PhpXq\Jq\Cli\InputSource;
 use LTS\PhpXq\Jq\Cli\Options\CliOptions;
 use LTS\PhpXq\Jq\Runtime\JqException;
+use LTS\PhpXq\Json\JsonDecoder;
+use LTS\PhpXq\Json\JsonObject;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -121,7 +123,7 @@ final class JqApplicationInputSourceTest extends TestCase
 
         $items = [];
         while (($item = $source->fetch()) instanceof InputItem) {
-            $items[] = [$item->value, $item->filename === $first ? 'first' : 'second', $item->line, $source->filename() === $item->filename];
+            $items[] = [$item->value, $item->filename === $first ? 'first' : 'second', $item->lineNumber(), $source->filename() === $item->filename];
         }
 
         self::assertSame([[1, 'first', 1, true], [2, 'second', 1, true], [3, 'second', 1, true]], $items);
@@ -194,7 +196,7 @@ final class JqApplicationInputSourceTest extends TestCase
         $source = $this->source('1 foo');
         self::assertSame(1, $source->next());
 
-        $this->expectExceptionObject(JqException::fromMessage('Invalid literal at line 1, column 6'));
+        $this->expectExceptionObject(JqException::fromMessage('Invalid literal at EOF at line 1, column 5'));
         $source->next();
     }
 
@@ -302,7 +304,7 @@ final class JqApplicationInputSourceTest extends TestCase
     {
         $items = $this->items($this->source("[1,\n2]\n3", [], new CliOptions(stream: true)));
 
-        self::assertSame([1, 2, 2, 2], array_map(static fn (InputItem $item): int => $item->line, \array_slice($items, 0, 4)));
+        self::assertSame([1, 2, 2, 2], array_map(static fn (InputItem $item): int => $item->lineNumber(), \array_slice($items, 0, 4)));
     }
 
     public function testStreamErrorBecomesAnErrorItem(): void
@@ -350,11 +352,18 @@ final class JqApplicationInputSourceTest extends TestCase
             $values[] = $item->value;
         }
 
-        self::assertCount(3, $messages);
-        self::assertStringStartsWith('Truncated value at line 2', $messages[0] ?? '');
-        self::assertSame(1, $values[0]);
-        self::assertContains(false, $values);
-        self::assertContains(true, $values);
+        self::assertSame(
+            [
+                'Truncated value at line 2, column 5',
+                'Truncated value at line 2, column 25',
+                'Truncated value at line 2, column 41',
+            ],
+            $messages,
+        );
+        self::assertCount(7, $values);
+        self::assertSame([2, 3, [4, 5], true, 'ab'], \array_slice($values, 0, 5));
+        self::assertInstanceOf(JsonObject::class, $values[5]);
+        self::assertFalse($values[6]);
     }
 
     public function testSeqErrorAtTheEndReportsTheWholeLineCount(): void
@@ -390,7 +399,7 @@ final class JqApplicationInputSourceTest extends TestCase
         return new InputSource(
             $files,
             $stream,
-            new JqApplicationFakeDecoder(),
+            new JsonDecoder(),
             $options ?? new CliOptions(),
             function (string $message): void {
                 $this->warnings[] = $message;
@@ -419,7 +428,7 @@ final class JqApplicationInputSourceTest extends TestCase
         $pairs = [];
         foreach ($this->items($source) as $item) {
             self::assertFalse($item->isError(), (string)$item->error);
-            $pairs[] = [$item->value, $item->line];
+            $pairs[] = [$item->value, $item->lineNumber()];
         }
 
         return $pairs;
