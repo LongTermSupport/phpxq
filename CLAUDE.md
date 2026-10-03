@@ -27,6 +27,12 @@ Full detail on any rule: `bin/hooks-daemon explain-rule <ID>`.
 
 <!-- handler: block-artefact-publishing -->
 
+<!-- handler: block-ask-user-question -->
+
+<!-- handler: block-comment-changelog -->
+
+<!-- handler: block-comment-size -->
+
 <!-- handler: block-curl-pipe-shell -->
 
 <!-- handler: block-dangerous-permissions -->
@@ -56,6 +62,10 @@ Full detail on any rule: `bin/hooks-daemon explain-rule <ID>`.
 <!-- handler: conflict-marker-commit-gate -->
 
 <!-- handler: daemon-location-guard -->
+
+<!-- handler: docs-qa-commit-gate -->
+
+<!-- handler: docs-qa-edit -->
 
 <!-- handler: enforce-markdown-organization -->
 
@@ -113,6 +123,8 @@ Full detail on any rule: `bin/hooks-daemon explain-rule <ID>`.
 
 <!-- handler: subagent-cron-delete-blocker -->
 
+<!-- handler: subagent-full-qa-blocker -->
+
 <!-- handler: subagent-worktree-write-guard -->
 
 <!-- handler: upgrade-approval-guard -->
@@ -140,6 +152,9 @@ Full detail on any rule: `bin/hooks-daemon explain-rule <ID>`.
 | R-GH-PR-MERGE-SQUASH                   | `gh pr merge --squash`                                                                                                                                                                                                                                          | Severs ancestry -- git branch -d refuses the branch forever                                                                                                                                                   | Use gh pr merge --merge instead                                                                                                                                                                                       |
 | R-GH-PR-MERGE-REBASE                   | `gh pr merge --rebase`                                                                                                                                                                                                                                          | Severs ancestry -- git branch -d refuses the branch forever                                                                                                                                                   | Use gh pr merge --merge instead                                                                                                                                                                                       |
 | R-ARTIFACT-PUBLISH                     | publishing an artefact via the `Artifact` tool                                                                                                                                                                                                                  | The page lives OUTSIDE the project and the repository cannot audit or retract it                                                                                                                              | Write the file locally and tell the user its path, or ask a human to publish                                                                                                                                          |
+| R-ASK-USER-QUESTION-UNJUSTIFIED        | AskUserQuestion without `ASKING BECAUSE:` prefix                                                                                                                                                                                                                | Asking pauses the session for a question the daemon cannot verify was necessary                                                                                                                               | State the assumed answer in output text and proceed, or retry every question prefixed `ASKING BECAUSE: <reason>`                                                                                                      |
+| R-COMMENT-CHANGELOG                    | changelog narrative in a code comment                                                                                                                                                                                                                           | A comment describes CURRENT STATE; history belongs elsewhere                                                                                                                                                  | Move it to git, a changelog file, or the plan's JOURNAL/                                                                                                                                                              |
+| R-COMMENT-SIZE                         | a comment growing past its configured size limit                                                                                                                                                                                                                | Comments should describe current state, not accumulate                                                                                                                                                        | Shorten the comment, or declare MUST_EXCEED_COMMENT_SIZE_BECAUSE                                                                                                                                                      |
 | R-CURL-PIPE-SHELL                      | \`curl                                                                                                                                                                                                                                                          | wget ...                                                                                                                                                                                                      | bash                                                                                                                                                                                                                  |
 | R-CHMOD-WORLD-WRITABLE                 | `chmod 777`/`chmod a+w`/`chmod o+w`                                                                                                                                                                                                                             | Allows anyone to read, write, and execute, bypassing all file permission security                                                                                                                             | Use least-privilege permissions instead (755/644/600)                                                                                                                                                                 |
 | R-GIT-MESSAGE-BACKTICK                 | an unescaped backtick in a double-quoted git commit/tag message                                                                                                                                                                                                 | Bash performs command substitution inside double quotes -- the span is EXECUTED, not quoted                                                                                                                   | Use single quotes, or git commit -F <file>                                                                                                                                                                            |
@@ -168,6 +183,8 @@ Full detail on any rule: `bin/hooks-daemon explain-rule <ID>`.
 | R-WRITE-CLOBBER                        | `Write` to an existing file you have not read this session                                                                                                                                                                                                      | You cannot know what you are destroying, so you could not report the loss even afterwards                                                                                                                     | `Read` the file then retry, or use `Edit` for a targeted change                                                                                                                                                       |
 | R-CONFLICT-MARKER-COMMIT               | a commit whose added lines carry a merge-conflict marker                                                                                                                                                                                                        | A leftover marker becomes history, and one disguised by the markdown formatter reads as prose to every later check                                                                                            | Resolve the conflict at each line listed below, re-stage, and commit again                                                                                                                                            |
 | R-DAEMON-DIR-CD                        | `cd`/`pushd` into `.claude/hooks-daemon/`                                                                                                                                                                                                                       | Daemon CLI commands must be run from PROJECT ROOT, causing path confusion otherwise                                                                                                                           | Run daemon commands from project root, e.g. `bin/hooks-daemon status`                                                                                                                                                 |
+| R-DOCS-QA-COMMIT                       | a git commit violates a block-level docs QA staged-tree check                                                                                                                                                                                                   | Most doc rot that matters at commit time is cross-file drift a single-file edit hook cannot see                                                                                                               | Fix the content per each finding's remediation below and amend the commit                                                                                                                                             |
+| R-DOCS-QA-EDIT                         | a documentation Write/Edit violates a block-level docs QA check                                                                                                                                                                                                 | A finding only denies the write when it is BLOCK severity AND the resolved mode for that check is block                                                                                                       | Fix the content per each finding's remediation below and retry                                                                                                                                                        |
 | R-MARKDOWN-WRONG-LOCATION              | MARKDOWN FILE IN WRONG LOCATION — a new `.md` file written to an unrecognised location                                                                                                                                                                          | Markdown files must follow project organization rules                                                                                                                                                         | Move it into an allowed location, declare its sub-project under `projects:`, or configure `extra_allowed_markdown_paths`                                                                                              |
 | R-MARKDOWN-UNTRACKED-MEMORY            | UNTRACKED CLAUDE MEMORY IS DISABLED FOR THIS PROJECT — a write to `~/.claude/projects/*/memory/*.md`                                                                                                                                                            | That knowledge is per-checkout, un-reviewed, and invisible to teammates — it drifts from the repo and bypasses code review                                                                                    | Document it in tracked project docs instead (CLAUDE.md, .claude/rules/\*.md, docs/)                                                                                                                                   |
 | R-MARKDOWN-PLAN-SYNC                   | a `.claude/settings.json` `plansDirectory` out of sync with the daemon's plan_workflow config                                                                                                                                                                   | Plan workflow requires plansDirectory to match daemon config to redirect writes correctly                                                                                                                     | Fix `.claude/settings.json`'s `plansDirectory` key, then restart your session                                                                                                                                         |
@@ -218,6 +235,7 @@ Full detail on any rule: `bin/hooks-daemon explain-rule <ID>`.
 | R-ROOT-RECURSION-CATASTROPHIC          | `grep -r`/`find`/`rg`/... rooted at `/`, `/proc`, `/sys`, `/home`, `/root`, `~`, `$HOME`                                                                                                                                                                        | Walks the entire filesystem and can pin every CPU core for hours                                                                                                                                              | Scope the search to the project (e.g. `rg -l "pattern" .`)                                                                                                                                                            |
 | R-STAGED-LINT-FAILURE                  | a staged file fails the cheap syntax check at commit time                                                                                                                                                                                                       | lint_on_edit only ever runs at Write/Edit time, so a git add of pre-existing content skips it entirely                                                                                                        | Fix the failing file(s) above and re-stage before committing                                                                                                                                                          |
 | R-SUBAGENT-CRON-DELETE                 | `CronDelete` called from inside a subagent                                                                                                                                                                                                                      | A session cron belongs to the coordinator's session, which is the session that loses coverage when it goes                                                                                                    | Report the cron id and your reasoning to the coordinator and let it decide                                                                                                                                            |
+| R-SUBAGENT-FULL-QA                     | a full-suite QA run inside a sub-agent (a declared `full_qa_patterns` command)                                                                                                                                                                                  | Concurrent full runs across agents exhaust the host, and the coordinator runs the full gate over every ready branch anyway                                                                                    | Run targeted QA on what you changed, commit, and hand the commit to the coordinator                                                                                                                                   |
 | R-SUBAGENT-CROSS-WORKTREE-WRITE        | a subagent's Write/Edit/NotebookEdit into another checkout of its repository                                                                                                                                                                                    | Edits land uncommitted in a branch nobody on this task owns, and a later commit there carries them under the wrong branch's name                                                                              | Write only inside your own worktree; report any cross-branch need to the coordinator                                                                                                                                  |
 | R-UPGRADE-APPROVAL-AGENT               | an agent action that grants or forges the owner's upgrade approval (running `approve-upgrade`, writing/touching a marker under `upgrade-approvals/`, forging a venv `.daemon-version` stamp, or moving the `.claude/hooks-daemon` clone to another ref by hand) | Approving a breaking upgrade is the project OWNER's step, not the agent's — the gate exists so a human reads what changed before it happens                                                                   | Report the gate's reasons to the user and stop; the owner runs `hooks-daemon approve-upgrade <version> --from <previous>` in their own terminal (it requires a TTY and a typed confirmation phrase)                   |
 | R-UPGRADE-APPROVAL-ENV-BYPASS          | a Bash command that sets `HOOKS_DAEMON_UPGRADE_HANDOFF`, or runs an upgrade with a variable that picks its interpreter, venv, flags or code, or passes `--uv <path>`                                                                                            | The upgrade and its pre-deploy gate run as shipped, not as an agent steers them                                                                                                                               | Run the upgrade with no such variable set; if it cannot run, tell the user                                                                                                                                            |
@@ -237,6 +255,10 @@ Full detail on any rule: `bin/hooks-daemon explain-rule <ID>`.
 ## Advisories and other active handlers
 
 One line each; these fire with their own guidance when relevant. Full text: `bin/hooks-daemon explain-handler <name>`.
+
+<!-- handler: agent-isolation-advisor -->
+
+- agent_isolation_advisor — isolate concurrent agents
 
 <!-- handler: agent-terminated-early-failure-detector -->
 
@@ -290,6 +312,10 @@ One line each; these fire with their own guidance when relevant. Full text: `bin
 
 - dispatch_declaration — declare where a subagent's reports go
 
+<!-- handler: docs-qa-sweep -->
+
+- docs_qa_sweep — documentation drift report at session start
+
 <!-- handler: failsafe-cron-session-advisor -->
 
 - failsafe_cron_session_advisor — the failsafe cron from session start
@@ -302,9 +328,21 @@ One line each; these fire with their own guidance when relevant. Full text: `bin
 
 - git_upstream_checker — additive fetch + pull/cleanup advice on session start
 
+<!-- handler: goal-injection -->
+
+- goal_injection — plan-start goal signal for the ccy supervisor
+
 <!-- handler: hook-registration-checker -->
 
 - hook_registration_checker — hooks configuration policy
+
+<!-- handler: idle-housekeeping-advisory -->
+
+- idle_housekeeping_advisory — report-first idle housekeeping (beta, opt-in)
+
+<!-- handler: markdown-table-formatter -->
+
+- markdown_table_formatter — markdown tables are auto-aligned
 
 <!-- handler: merge-qa-advisor -->
 
@@ -317,6 +355,10 @@ One line each; these fire with their own guidance when relevant. Full text: `bin
 <!-- handler: model-downgrade-recorder -->
 
 - model_downgrade_recorder — the automatic model downgrade is written down
+
+<!-- handler: model-fallback-detector -->
+
+- model_fallback_detector — silent model substitution is surfaced
 
 <!-- handler: nitpick-dismissive-language -->
 
@@ -358,9 +400,17 @@ One line each; these fire with their own guidance when relevant. Full text: `bin
 
 - reference_repo_sweep — reference clones are made fresh before you read them
 
+<!-- handler: routine-qa-sweep -->
+
+- routine_qa_sweep — recurring work that has stopped recurring
+
 <!-- handler: secret-file-hygiene-checker -->
 
 - secret_file_hygiene_checker -- on-disk hygiene for protected paths
+
+<!-- handler: session-actions-directive -->
+
+- session_actions_directive — the must-do list is delivered as a turn
 
 <!-- handler: standing-authorisations -->
 
@@ -377,6 +427,10 @@ One line each; these fire with their own guidance when relevant. Full text: `bin
 <!-- handler: subagent-report-size-blocker -->
 
 - subagent_report_size_blocker — write large reports to a file
+
+<!-- handler: tool-disable-advisor -->
+
+- tool_disable_advisor — declared never-want tools are checked at session start
 
 <!-- handler: worktree-create -->
 

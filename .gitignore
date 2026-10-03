@@ -25,3 +25,15 @@
 /var/
 
 __pycache__/
+
+# Claude Code runtime
+.claude/worktrees
+.claude/scheduled_tasks.lock
+
+# Protected secret paths
+*.secret*
+.vault-pass*
+*.vault-password
+*vault_pass*
+id_rsa
+id_ed25519

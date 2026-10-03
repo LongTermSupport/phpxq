@@ -89,7 +89,7 @@ handlers:
       enabled: true
       priority: 19
     merge_to_main_approval:
-      enabled: false
+      enabled: true
       priority: 20
     upgrade_approval_guard:
       enabled: true
@@ -104,7 +104,7 @@ handlers:
       enabled: true
       priority: 21
     ask_user_question_blocker:
-      enabled: false
+      enabled: true
       priority: 23
     worktree_file_copy:
       enabled: true
@@ -119,13 +119,13 @@ handlers:
       enabled: true
       priority: 30
     comment_changelog:
-      enabled: false
+      enabled: true
       priority: 31
     comment_size:
-      enabled: false
+      enabled: true
       priority: 33
     subagent_full_qa_blocker:
-      enabled: false
+      enabled: true
       priority: 32
     bash_safe_mode:
       enabled: true
@@ -164,7 +164,7 @@ handlers:
       enabled: true
       priority: 30
     agent_isolation_advisor:
-      enabled: false
+      enabled: true
       priority: 46
     installed_plugin_edit_advisor:
       enabled: true
@@ -193,7 +193,7 @@ handlers:
       enabled: true
       priority: 43
     plan_close_approval:
-      enabled: false
+      enabled: true
       priority: 43
     plan_qa_edit:
       enabled: true
@@ -208,10 +208,10 @@ handlers:
       enabled: true
       priority: 44
     docs_qa_edit:
-      enabled: false
+      enabled: true
       priority: 47
     docs_qa_commit_gate:
-      enabled: false
+      enabled: true
       priority: 47
     guard_config_commit_gate:
       enabled: true
@@ -240,7 +240,7 @@ handlers:
       enabled: false
       priority: 58
     british_english:
-      enabled: false
+      enabled: true
       priority: 60
   post_tool_use:
     lint_on_edit:
@@ -263,10 +263,10 @@ handlers:
       enabled: true
       priority: 29
     goal_injection:
-      enabled: false
+      enabled: true
       priority: 30
     markdown_table_formatter:
-      enabled: false
+      enabled: true
       priority: 31
     budget_exhaustion_detector:
       enabled: true
@@ -284,7 +284,7 @@ handlers:
       enabled: true
       priority: 36
     plan_fact_check_feed:
-      enabled: false
+      enabled: true
       priority: 37
     validate_eslint_on_write:
       enabled: false
@@ -336,10 +336,10 @@ handlers:
       enabled: true
       priority: 71
     routine_qa_sweep:
-      enabled: false
+      enabled: true
       priority: 72
     session_actions_directive:
-      enabled: false
+      enabled: true
       priority: 73
     suggest_status_line:
       enabled: true
@@ -366,7 +366,7 @@ handlers:
       enabled: true
       priority: 68
     skill_opportunity_detector:
-      enabled: false
+      enabled: true
       priority: 61
       options:
         check_interval_days: 7
@@ -378,13 +378,13 @@ handlers:
       enabled: true
       priority: 62
     model_fallback_detector:
-      enabled: false
+      enabled: true
       priority: 63
     docs_qa_sweep:
-      enabled: false
+      enabled: true
       priority: 64
     tool_disable_advisor:
-      enabled: false
+      enabled: true
       priority: 65
     monorepo_detector:
       enabled: true
@@ -406,7 +406,7 @@ handlers:
       enabled: true
       priority: 15
     compaction_signal:
-      enabled: false
+      enabled: true
       priority: 20
   user_prompt_submit:
     usage_pause_gate:
@@ -422,10 +422,10 @@ handlers:
       enabled: true
       priority: 38
     critical_thinking_advisory:
-      enabled: false
+      enabled: true
       priority: 55
     idle_housekeeping_advisory:
-      enabled: false
+      enabled: true
       priority: 56
       options:
         report_stale_checkouts: true
@@ -492,13 +492,13 @@ handlers:
       enabled: true
       priority: 11
     context_sidecar:
-      enabled: false
+      enabled: true
       priority: 12
     environment_indicator:
       enabled: true
       priority: 11
     host_hostname:
-      enabled: false
+      enabled: true
       priority: 7
     supervisor_indicator:
       enabled: true
