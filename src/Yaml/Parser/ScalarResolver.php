@@ -58,6 +58,13 @@ final class ScalarResolver
 
     private static function resolveNumber(string $plain): string
     {
+        // Fast path (benchmark yq:identity-medium): a plain decimal integer that cannot overflow and has no
+        // leading zero, which is most numbers in real documents, needs none of the pattern matching below.
+        $length = \strlen($plain);
+        if ($length <= 18 && \strlen($plain) === strspn($plain, '0123456789') && ('0' !== $plain[0] || 1 === $length)) {
+            return CoreSchema::TAG_INT;
+        }
+
         if (match ($plain) {
             '+.inf', '+.Inf', '+.INF', '-.inf', '-.Inf', '-.INF' => true,
             default                                              => false,
