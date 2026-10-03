@@ -14,8 +14,7 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
 
 /**
  * Writes JSON the way the reference does: `-I n` spaces of indentation (compact at 0), aliases and merge
- * keys resolved, comments dropped, number text kept, no HTML escaping. A top-level scalar prints bare when
- * `unwrapScalar` is on.
+ * keys resolved, comments dropped, number text kept, no HTML escaping. A top-level string stays quoted.
  */
 final class JsonEncoder implements EncoderInterface
 {
@@ -35,8 +34,6 @@ final class JsonEncoder implements EncoderInterface
         "\n"       => '\n',
         "\r"       => '\r',
         "\t"       => '\t',
-        "\x08"     => '\b',
-        "\x0c"     => '\f',
         "\u{2028}" => '\u2028',
         "\u{2029}" => '\u2029',
     ];
@@ -53,11 +50,7 @@ final class JsonEncoder implements EncoderInterface
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
         $root = NodeTools::unwrap($node);
-        if ($options->unwrapScalar && NodeKind::Scalar === $root->kind) {
-            return $root->value . "\n";
-        }
-
-        $out = '';
+        $out  = '';
         $this->write($out, $root, $options->indent > 0 ? str_repeat(' ', $options->indent) : '', 0, $options->colors);
 
         return $out . "\n";
@@ -116,7 +109,8 @@ final class JsonEncoder implements EncoderInterface
         for ($i = 0; $i < $count; $i += 2) {
             $out .= 0 === $i ? '' : $separator;
             $key  = $content[$i];
-            $text = $this->string(NodeKind::Scalar === $key->kind ? $key->value : NodeTools::keyText($key));
+            $key  = NodeTools::unwrap($key);
+            $text = $this->string(NodeKind::Scalar === $key->kind ? $key->value : '');
             $out .= ($colors ? $this->paint($text, self::COLOR_KEY) : $text) . $colon;
             $this->write($out, $content[$i + 1], $indent, $depth + 1, $colors);
         }

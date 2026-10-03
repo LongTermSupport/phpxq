@@ -41,6 +41,8 @@ final readonly class CsvDecoder implements DecoderInterface
         $separator = Format::Tsv === $this->format ? $options->tsvSeparator : $options->csvSeparator;
         $records   = $this->records($input, '' === $separator ? ',' : $separator);
         if ([] === $records) {
+            yield Node::document(Node::scalar('', CoreSchema::TAG_NULL));
+
             return;
         }
 
@@ -90,7 +92,7 @@ final readonly class CsvDecoder implements DecoderInterface
 
     /**
      * RFC 4180 records with the leniency of Go's reader: blank lines are skipped, `\r\n` and `\n` both end
-     * a record, and a quote inside an unquoted field is literal.
+     * a record, and a quote inside an unquoted field is an error.
      *
      * @return list<list<string>>
      */
@@ -112,13 +114,21 @@ final readonly class CsvDecoder implements DecoderInterface
                 continue;
             }
 
+            $start  = $pos;
             $record = [];
             while (true) {
                 if ($pos < $length && '"' === $input[$pos]) {
                     [$field, $pos] = $this->quoted($input, $pos + 1, $length);
+                    if ($pos < $length && "\r" !== $input[$pos] && "\n" !== $input[$pos] && substr($input, $pos, $width) !== $separator) {
+                        throw new FormatException('csv: parse error on line ' . (substr_count($input, "\n", 0, $pos) + 1) . ': extraneous or missing " in quoted-field');
+                    }
                 } else {
                     $stop  = $this->fieldEnd($input, $pos, $length, $separator);
                     $field = substr($input, $pos, $stop - $pos);
+                    if (str_contains($field, '"')) {
+                        throw new FormatException('csv: parse error on line ' . (substr_count($input, "\n", 0, $pos) + 1) . ': bare " in non-quoted-field');
+                    }
+
                     $pos   = $stop;
                 }
 
@@ -134,6 +144,10 @@ final readonly class CsvDecoder implements DecoderInterface
                 }
 
                 break;
+            }
+
+            if ([] !== $records && \count($record) !== \count($records[0])) {
+                throw new FormatException('csv: record on line ' . (substr_count($input, "\n", 0, $start) + 1) . ': wrong number of fields');
             }
 
             $records[] = $record;

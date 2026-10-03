@@ -13,8 +13,12 @@ use LTS\PhpXq\Yq\Format\Format;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
 /**
- * YAML output: delegates to the YAML emitter and prints the `---` separator in front of every result
- * after the first unless the options ask for none.
+ * YAML output: delegates to the YAML emitter and prints the `---` separator in front of a result whose
+ * `$resultIndex` is above zero, unless the options ask for none.
+ *
+ * Pass the position of the result's output document, not of the result: the reference prints `---` only
+ * where the document changes, so every result taken from the first document is index 0 (`.[]` prints
+ * `a` and `b` with no separator) and results from the next document are index 1.
  */
 final readonly class YamlEncoder implements EncoderInterface
 {

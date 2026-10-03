@@ -37,11 +37,11 @@ final class JsonDecoderTest extends TestCase
         $list = $root->content[3]->content;
         self::assertSame(['!!bool', 'true'], [$list[0]->tag, $list[0]->value]);
         self::assertSame(['!!null', 'null'], [$list[1]->tag, $list[1]->value]);
-        self::assertSame(['!!float', '1.50'], [$list[2]->tag, $list[2]->value]);
+        self::assertSame(['!!float', '1.5'], [$list[2]->tag, $list[2]->value]);
         self::assertSame(['!!str', 'x'], [$list[3]->tag, $list[3]->value]);
 
         $inner = $root->content[5];
-        self::assertSame(['!!float', '-2e3'], [$inner->content[1]->tag, $inner->content[1]->value]);
+        self::assertSame(['!!int', '-2000'], [$inner->content[1]->tag, $inner->content[1]->value]);
     }
 
     public function testStringEscapes(): void
@@ -69,12 +69,22 @@ final class JsonDecoderTest extends TestCase
         self::assertSame('1', $this->decode("\u{FEFF}1")[0]->root()->value);
     }
 
-    public function testDuplicateKeyReplacesValue(): void
+    public function testDuplicateKeysAreKept(): void
     {
         $root = $this->decode('{"a": 1, "b": 2, "a": 3}')[0]->root();
 
-        self::assertCount(4, $root->content);
-        self::assertSame('3', $root->content[1]->value);
+        self::assertCount(6, $root->content);
+        self::assertSame('3', $root->content[5]->value);
+    }
+
+    public function testNumbersFollowGoFloatFormatting(): void
+    {
+        $root = $this->decode('[1.0, 1e5, 1e6, 0.00001, 12345678901234567890, -0, 123456789012345678]')[0]->root();
+
+        self::assertSame(
+            ['1', '100000', '1e+06', '1e-05', '1.2345678901234567e+19', '0', '123456789012345678'],
+            array_map(static fn (Node $n): string => $n->value, $root->content),
+        );
     }
 
     #[DataProvider('invalidCases')]

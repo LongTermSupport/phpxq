@@ -88,7 +88,7 @@ final class PropsEncoder implements EncoderInterface
 
     private function appendIndex(string $path, int $position, FormatOptions $options): string
     {
-        if ($options->propertiesArrayBrackets) {
+        if ($options->propertiesArrayBrackets && '' !== $path) {
             return $path . '[' . $position . ']';
         }
 
@@ -131,6 +131,7 @@ final class PropsEncoder implements EncoderInterface
         for ($i = 0; $i < $length; ++$i) {
             $char = $text[$i];
             $out .= match ($char) {
+                '\\'    => '\\\\',
                 "\f"    => '\f',
                 "\n"    => '\n',
                 "\r"    => '\r',

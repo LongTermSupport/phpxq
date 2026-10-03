@@ -241,14 +241,19 @@ final class NodeTools
      */
     private static function mergeSources(Node $value): array
     {
-        $value = self::unwrap($value);
-        if (NodeKind::Mapping === $value->kind) {
-            return [$value];
+        if (NodeKind::Alias === $value->kind) {
+            $target = self::unwrap($value);
+
+            return NodeKind::Mapping === $target->kind ? [$target] : [];
         }
 
         $sources = [];
         if (NodeKind::Sequence === $value->kind) {
             foreach ($value->content as $item) {
+                if (NodeKind::Alias !== $item->kind) {
+                    continue;
+                }
+
                 $item = self::unwrap($item);
                 if (NodeKind::Mapping === $item->kind) {
                     $sources[] = $item;

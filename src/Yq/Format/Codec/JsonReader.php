@@ -70,7 +70,6 @@ final class JsonReader
         ++$this->pos;
         $keys   = [];
         $values = [];
-        $index  = [];
         $this->skipWhitespace();
         if ('}' === $this->peek()) {
             ++$this->pos;
@@ -96,14 +95,9 @@ final class JsonReader
                 throw new FormatException('json: unexpected end of JSON input');
             }
 
-            $value = $this->value($depth + 1);
-            if (isset($index[$key])) {
-                $values[$index[$key]] = $value;
-            } else {
-                $index[$key] = \count($keys);
-                $keys[]      = new Node(NodeKind::Scalar, CoreSchema::TAG_STR, NodeStyle::Default, $key);
-                $values[]    = $value;
-            }
+            $value    = $this->value($depth + 1);
+            $keys[]   = new Node(NodeKind::Scalar, CoreSchema::TAG_STR, NodeStyle::Default, $key);
+            $values[] = $value;
 
             $this->skipWhitespace();
             $char = $this->peek();
@@ -221,7 +215,62 @@ final class JsonReader
             throw $this->unexpected('after top-level value');
         }
 
-        return new Node(NodeKind::Scalar, $float ? CoreSchema::TAG_FLOAT : CoreSchema::TAG_INT, NodeStyle::Default, substr($source, $start, $i - $start));
+        $text = substr($source, $start, $i - $start);
+        if (!$float) {
+            if ('-0' === $text) {
+                $text = '0';
+            }
+
+            if (\strlen($text) <= 18 || (string)(int)$text === $text) {
+                return new Node(NodeKind::Scalar, CoreSchema::TAG_INT, NodeStyle::Default, $text);
+            }
+        }
+
+        $text = $this->goFloat((float)$text);
+
+        return new Node(NodeKind::Scalar, 1 === preg_match('/^-?\d+$/D', $text) ? CoreSchema::TAG_INT : CoreSchema::TAG_FLOAT, NodeStyle::Default, $text);
+    }
+
+    /**
+     * Go's strconv.FormatFloat(f, 'g', -1, 64): the shortest round-trip digits, exponent form outside
+     * 1e-4 to 1e6.
+     */
+    private function goFloat(float $value): string
+    {
+        if (0.0 === $value) {
+            return '0';
+        }
+
+        $sign = $value < 0 ? '-' : '';
+        $abs  = abs($value);
+        $text = '';
+        for ($precision = 0; $precision <= 16; ++$precision) {
+            $text = \sprintf('%.' . $precision . 'e', $abs);
+            if ((float)$text === $abs) {
+                break;
+            }
+        }
+
+        [$mantissa, $exponent] = explode('e', $text);
+        $digits                = str_replace('.', '', $mantissa);
+        $exponent              = (int)$exponent;
+        $count                 = \strlen($digits);
+
+        if ($exponent < -4 || $exponent >= 6) {
+            $body = $digits[0] . ($count > 1 ? '.' . substr($digits, 1) : '');
+
+            return $sign . $body . 'e' . ($exponent < 0 ? '-' : '+') . str_pad((string)abs($exponent), 2, '0', STR_PAD_LEFT);
+        }
+
+        if ($exponent < 0) {
+            return $sign . '0.' . str_repeat('0', -$exponent - 1) . $digits;
+        }
+
+        if ($count <= $exponent + 1) {
+            return $sign . $digits . str_repeat('0', $exponent + 1 - $count);
+        }
+
+        return $sign . substr($digits, 0, $exponent + 1) . '.' . substr($digits, $exponent + 1);
     }
 
     private function literal(): Node

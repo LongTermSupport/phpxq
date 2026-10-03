@@ -13,8 +13,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
 
 /**
  * CSV and TSV output. An array of arrays is one record per inner array, an array of scalars is a single
- * record, and an array of maps is a header (the keys of the first map, printed only for the first result)
- * followed by one record per map. Fields are quoted the way Go's csv writer quotes them.
+ * record, and an array of maps is a header (the keys of the first map, printed only when `$resultIndex` is
+ * zero) followed by one record per map. Fields are quoted the way Go's csv writer quotes them.
  */
 final readonly class CsvEncoder implements EncoderInterface
 {

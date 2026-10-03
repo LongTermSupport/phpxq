@@ -91,7 +91,7 @@ final class JsonEncoderTest extends TestCase
 
         yield 'line separator' => ["\"\u{2028}\"", '"\u2028"'];
 
-        yield 'backspace and form feed' => ['"\b\f"', '"\b\f"'];
+        yield 'backspace and form feed' => ['"\b\f"', '"\u0008\u000c"'];
     }
 
     public function testColorsPaintKeysStringsAndNumbers(): void
@@ -101,9 +101,9 @@ final class JsonEncoderTest extends TestCase
         self::assertSame("{\x1b[36m\"a\"\x1b[0m:\x1b[32m\"x\"\x1b[0m,\x1b[36m\"b\"\x1b[0m:[\x1b[95m1\x1b[0m,\x1b[95mtrue\x1b[0m,null]}\n", $out);
     }
 
-    public function testUnwrapScalarPrintsRawValue(): void
+    public function testTopLevelStringStaysQuotedEvenWhenUnwrapping(): void
     {
-        self::assertSame("cat\n", $this->encode('cat', new FormatOptions(unwrapScalar: true)));
+        self::assertSame("\"cat\"\n", $this->encode('cat', new FormatOptions(unwrapScalar: true)));
     }
 
     public function testInfinityIsRejected(): void
@@ -119,12 +119,11 @@ final class JsonEncoderTest extends TestCase
         self::assertSame("\"a\u{FFFD}b\"\n", new JsonEncoder()->encode($node, new FormatOptions(unwrapScalar: false), 0));
     }
 
-    public function testNonScalarKeyIsRejected(): void
+    public function testNonScalarKeyBecomesEmptyString(): void
     {
         $node = Node::mapping([Node::sequence(), Node::scalar('x')]);
 
-        $this->expectException(FormatException::class);
-        new JsonEncoder()->encode($node, new FormatOptions(), 0);
+        self::assertSame("{\"\":\"x\"}\n", new JsonEncoder()->encode($node, new FormatOptions(indent: 0), 0));
     }
 
     public function testAliasCycleIsRejected(): void

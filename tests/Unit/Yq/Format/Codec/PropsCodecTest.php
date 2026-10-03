@@ -90,7 +90,8 @@ final class PropsCodecTest extends TestCase
     public function testEncodesRootSequences(): void
     {
         self::assertSame("0 = a\n1 = b\n", $this->encodeYaml("- a\n- b\n"));
-        self::assertSame("[0] = a\n", $this->encodeYaml("- a\n", new FormatOptions(propertiesArrayBrackets: true)));
+        self::assertSame("0 = a\n1.b[0] = c\n", $this->encodeYaml("- a\n- b: [c]\n", new FormatOptions(propertiesArrayBrackets: true)));
+        self::assertSame("a = x\\\\y\n", $this->encodeYaml("a: 'x\\y'\n"));
     }
 
     public function testDecodesTheDocumentedExample(): void

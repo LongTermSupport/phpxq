@@ -75,13 +75,31 @@ final class CsvCodecTest extends TestCase
         self::assertSame('2', $rows[0]->content[3]->value);
     }
 
-    public function testShortRowsArePaddedAndEmptyFieldsAreNull(): void
+    public function testEmptyFieldsAreNull(): void
     {
-        $row = $this->decodeDoc("a,b,c\n1\n", Format::Csv)->root()->content[0];
+        $row = $this->decodeDoc("a,b,c\n1,,\n", Format::Csv)->root()->content[0];
 
         self::assertSame('1', $row->content[1]->value);
         self::assertSame('!!null', $row->content[3]->tag);
         self::assertSame('!!null', $row->content[5]->tag);
+    }
+
+    public function testWrongFieldCountIsAnError(): void
+    {
+        $this->expectException(FormatException::class);
+        $this->decodeDoc("a,b\n1\n", Format::Csv);
+    }
+
+    public function testBareQuoteIsAnError(): void
+    {
+        $this->expectException(FormatException::class);
+        $this->decodeDoc("a\nx\"y\n", Format::Csv);
+    }
+
+    public function testStrayTextAfterClosingQuoteIsAnError(): void
+    {
+        $this->expectException(FormatException::class);
+        $this->decodeDoc("a\n\"un\"closed\n", Format::Csv);
     }
 
     public function testHeaderOnlyIsAnEmptyArray(): void
@@ -89,9 +107,12 @@ final class CsvCodecTest extends TestCase
         self::assertSame([], $this->decodeDoc("a,b\n", Format::Csv)->root()->content);
     }
 
-    public function testEmptyInputHasNoDocuments(): void
+    public function testEmptyInputIsOneNullDocument(): void
     {
-        self::assertSame([], [...new CsvDecoder(Format::Csv)->decode('', new FormatOptions())]);
+        $docs = [...new CsvDecoder(Format::Csv)->decode('', new FormatOptions())];
+
+        self::assertCount(1, $docs);
+        self::assertSame('!!null', $docs[0]->root()->tag);
     }
 
     public function testBomIsSkipped(): void
