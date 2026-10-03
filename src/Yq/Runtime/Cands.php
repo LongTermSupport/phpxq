@@ -39,13 +39,46 @@ final class Cands
      * A computed value that always belongs to the document and file of `$from` (object construction
      * `{...}` does, whereas {@see derive} drops them for a value computed from a document root).
      */
-    public static function deriveInDocument(Node $node, ?Candidate $from): Candidate
+    public static function deriveInDocument(Node $node, ?Candidate $from, bool $leadingContent = true): Candidate
     {
         if (!$from instanceof Candidate) {
             return new Candidate($node);
         }
 
+        if ($leadingContent) {
+            $node->leadingContent = self::leadingContentOf($from);
+        }
+
         return new Candidate($node, null, null, $from->documentIndex, $from->fileIndex, $from->filename);
+    }
+
+    /**
+     * Like {@see derive}, for a value computed from a document root that still prints that document's
+     * slurped leading content (`to_entries`, `with_entries`).
+     */
+    public static function deriveHeaded(Node $node, ?Candidate $from): Candidate
+    {
+        if ($from instanceof Candidate) {
+            $node->leadingContent = self::leadingContentOf($from);
+        }
+
+        return self::derive($node, $from);
+    }
+
+    /**
+     * The leading content of the document `$from` is the root of, or '' for any other match.
+     */
+    private static function leadingContentOf(Candidate $from): string
+    {
+        if (NodeKindEnum::Document === $from->node->kind) {
+            return $from->node->commentsCleared ? '' : $from->node->leadingContent;
+        }
+
+        if ($from->parent instanceof Candidate && NodeKindEnum::Document === $from->parent->node->kind && !$from->parent->node->commentsCleared) {
+            return $from->parent->node->leadingContent;
+        }
+
+        return '';
     }
 
     /**

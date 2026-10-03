@@ -51,6 +51,10 @@ final class MetaCalls implements CallOperatorInterface
         switch ($name) {
             case 'tag':
             case 'type':
+                if (NodeKindEnum::Alias === $node->kind) {
+                    return '';
+                }
+
                 $target = NodeOps::deref($node);
 
                 return '' === $target->tag ? NodeOps::effectiveTag($target) : $target->tag;

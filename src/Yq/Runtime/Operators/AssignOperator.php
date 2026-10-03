@@ -163,7 +163,7 @@ final class AssignOperator implements BinaryOperatorInterface
         $node = $target->node;
         switch ($property) {
             case 'style':
-                self::setStyle($node, $value);
+                self::setStyle($node->root(), $value);
 
                 return;
 

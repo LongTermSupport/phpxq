@@ -104,7 +104,7 @@ final class ResultPrinter
     {
         $text     = '';
         $document = NodeKindEnum::Document === $node->kind;
-        $header   = $document && !$node->commentsCleared ? $this->registry->headerFor($node) : '';
+        $header   = $node->commentsCleared ? '' : $node->leadingContent;
 
         if ($separator && !$this->emitOptions->noDocSeparator && !str_starts_with($header, HeaderSplitter::SEPARATOR_MARKER)) {
             $text .= "---\n";

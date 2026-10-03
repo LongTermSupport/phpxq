@@ -45,7 +45,8 @@ final class AssignOperatorTest extends TestCase
         yield 'tag' => ['.a tag="!!str"', "a: 1\n", "a: \"1\"\n"];
         yield 'anchor' => ['.a anchor="x"', "a: 1\n", "a: &x 1\n"];
         yield 'line comment' => ['.a line_comment="hi"', "a: 1\n", "a: 1 # hi\n"];
-        yield 'head comment' => ['.a head_comment="hi"', "a: 1\n", "# hi\na: 1\n"];
+        yield 'head comment' => ['. head_comment="hi"', "a: 1\n", "# hi\na: 1\n"];
+        yield 'head comment of a value is written after the entry, as go-yaml does' => ['.a head_comment="hi"', "a: 1\n", "a: 1\n# hi\n"];
         yield 'assign from other path' => ['.b = .a', "a: 1\n", "a: 1\nb: 1\n"];
         yield 'update per target sees target' => ['.a[] |= . + 1', "a:\n  - 1\n  - 2\n", "a:\n  - 2\n  - 3\n"];
         yield 'recursive wrap in array' => ['.. |= [] + .', "zoo:\n  thing:\n    frog: boing\n", "- zoo:\n    - thing:\n        - frog:\n            - boing\n"];
