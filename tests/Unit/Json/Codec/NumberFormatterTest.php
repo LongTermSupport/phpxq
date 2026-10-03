@@ -13,6 +13,12 @@ use PHPUnit\Framework\TestCase;
  */
 final class NumberFormatterTest extends TestCase
 {
+    #[DataProvider('floatProvider')]
+    public function testFormatsLikeJq(float $value, string $expected): void
+    {
+        self::assertSame($expected, NumberFormatter::format($value));
+    }
+
     /**
      * @return iterable<string, array{float, string}>
      */
@@ -44,19 +50,14 @@ final class NumberFormatterTest extends TestCase
         yield 'negative fraction'  => [-2.5e-5, '-2.5e-05'];
     }
 
-    #[DataProvider('floatProvider')]
-    public function testFormatsLikeJq(float $value, string $expected): void
-    {
-        self::assertSame($expected, NumberFormatter::format($value));
-    }
-
     public function testRandomDoublesRoundTripAndUseJqLayout(): void
     {
         mt_srand(42);
         for ($i = 0; $i < 20000; ++$i) {
             $unpacked = unpack('d', pack('NN', mt_rand(0, 0xFFFFFFFF), mt_rand(0, 0xFFFFFFFF)));
             self::assertIsArray($unpacked);
-            $value = (float)$unpacked[1];
+            $value = $unpacked[1];
+            self::assertIsFloat($value);
             if (is_nan($value) || is_infinite($value)) {
                 continue;
             }

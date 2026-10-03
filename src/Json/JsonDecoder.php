@@ -111,11 +111,26 @@ final class JsonDecoder implements JsonDecoderInterface
                     }
 
                     $value = $this->fast($line, $ok);
-                    if (!$ok) {
+                    if ($ok) {
+                        yield $value;
+
+                        $offset = $end + 1;
+
+                        continue;
+                    }
+
+                    // a line the native decoder cannot take (big numbers, 1.0, nan ...): scan just that
+                    // line; anything unusual, such as a value continuing on the next line or a syntax
+                    // error, is left to the whole text scanner so positions and messages stay exact
+                    try {
+                        $scanned = iterator_to_array($this->scan($text, false, $offset, $end), false);
+                    } catch (JsonSyntaxException) {
                         break;
                     }
 
-                    yield $value;
+                    foreach ($scanned as $item) {
+                        yield $item;
+                    }
 
                     $offset = $end + 1;
                 }
@@ -182,13 +197,14 @@ final class JsonDecoder implements JsonDecoderInterface
     }
 
     /**
-     * jq's parser as a generator: yields each top level value as soon as it is complete.
+     * jq's parser as a generator: yields each top level value as soon as it is complete. $limit, when not
+     * negative, ends the input early (end of a line the caller has already isolated).
      *
      * @return Generator<int, mixed>
      */
-    private function scan(string $text, bool $seq, int $i): Generator
+    private function scan(string $text, bool $seq, int $i, int $limit = -1): Generator
     {
-        $n    = \strlen($text);
+        $n    = $limit < 0 ? \strlen($text) : $limit;
         $base = 0;
         if (0 === $i && $n > 0 && "\xEF" === $text[0]) {
             if (!str_starts_with($text, "\xEF\xBB\xBF")) {

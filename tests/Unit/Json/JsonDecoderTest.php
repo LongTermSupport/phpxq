@@ -18,6 +18,23 @@ final class JsonDecoderTest extends TestCase
 {
     private const string BOM = "\xEF\xBB\xBF";
 
+    #[DataProvider('valueProvider')]
+    public function testDecodeOne(string $json, string $expected): void
+    {
+        self::assertSame($expected, self::describe(new JsonDecoder()->decodeOne($json)));
+    }
+
+    #[DataProvider('valueProvider')]
+    public function testScannerAndFastPathAgree(string $json, string $expected): void
+    {
+        // a leading BOM keeps the text off the native fast path; the result must not change
+        $decoder = new JsonDecoder();
+        $slow    = iterator_to_array($decoder->decodeAll(str_starts_with($json, self::BOM) ? $json : self::BOM . $json), false);
+
+        self::assertCount(1, $slow);
+        self::assertSame($expected, self::describe($slow[0]));
+    }
+
     /**
      * @return iterable<string, array{string, string}>
      */
@@ -37,15 +54,15 @@ final class JsonDecoderTest extends TestCase
         yield 'duplicate key last wins' => ['{"a":1,"b":2,"a":3}', '{a=>int:3,b=>int:2}'];
         yield 'numeric string keys'   => ['{"1":"x","01":"y","-1":"z"}', '{1=>string:x,01=>string:y,-1=>string:z}'];
         yield 'empty key'             => ['{"":1}', '{=>int:1}'];
-        yield 'escapes'               => ['"a\\"b\\\\c\\/d\\b\\f\\n\\r\\t"', "string:a\"b\\c/d\x08\x0c\n\r\t"];
-        yield 'unicode escape'        => ['"\\u00e9\\u20ac"', "string:\u{e9}\u{20ac}"];
-        yield 'surrogate pair'        => ['"\\ud83d\\ude00"', "string:\u{1f600}"];
-        yield 'nul escape'            => ['"a\\u0000b"', "string:a\x00b"];
-        yield 'lone low surrogate'    => ['"\\udc00"', "string:\u{fffd}"];
+        yield 'escapes'               => ['"a\"b\\\c\/d\b\f\n\r\t"', "string:a\"b\\c/d\x08\x0c\n\r\t"];
+        yield 'unicode escape'        => ['"\u00e9\u20ac"', "string:\u{e9}\u{20ac}"];
+        yield 'surrogate pair'        => ['"\ud83d\ude00"', "string:\u{1f600}"];
+        yield 'nul escape'            => ['"a\u0000b"', "string:a\x00b"];
+        yield 'lone low surrogate'    => ['"\udc00"', "string:\u{fffd}"];
         yield 'raw utf8'              => ["\"\u{e9}\u{1f600}\"", "string:\u{e9}\u{1f600}"];
         yield 'invalid utf8'          => ["\"a\xffb\"", "string:a\u{fffd}b"];
         yield 'truncated utf8'        => ["\"a\xe2\x82\"", "string:a\u{fffd}"];
-        yield 'del is plain'          => ["\"\x7f\"", "string:\x7f"];
+        yield 'del is plain'          => ['""', "string:\x7f"];
         yield 'bom'                   => [self::BOM . '[1]', '[int:1]'];
         yield 'nan'                   => ['nan', 'float:NAN'];
         yield 'NaN'                   => ['NaN', 'float:NAN'];
@@ -69,21 +86,17 @@ final class JsonDecoderTest extends TestCase
         yield 'deep key order'        => ['{"z":1,"a":2,"m":{"y":1,"b":2}}', '{z=>int:1,a=>int:2,m=>{y=>int:1,b=>int:2}}'];
     }
 
-    #[DataProvider('valueProvider')]
-    public function testDecodeOne(string $json, string $expected): void
+    #[DataProvider('errorProvider')]
+    public function testSyntaxErrorMessages(string $json, string $message): void
     {
-        self::assertSame($expected, self::describe((new JsonDecoder())->decodeOne($json)));
-    }
-
-    #[DataProvider('valueProvider')]
-    public function testScannerAndFastPathAgree(string $json, string $expected): void
-    {
-        // a leading BOM keeps the text off the native fast path; the result must not change
         $decoder = new JsonDecoder();
-        $slow    = iterator_to_array($decoder->decodeAll(str_starts_with($json, self::BOM) ? $json : self::BOM . $json), false);
+        try {
+            iterator_to_array($decoder->decodeAll($json), false);
 
-        self::assertCount(1, $slow);
-        self::assertSame($expected, self::describe($slow[0]));
+            self::fail('expected a syntax error for ' . $json);
+        } catch (JsonSyntaxException $jsonSyntaxException) {
+            self::assertSame($message, $jsonSyntaxException->getMessage());
+        }
     }
 
     /**
@@ -137,12 +150,12 @@ final class JsonDecoderTest extends TestCase
         yield 'colon first in object'    => ['{:1}', "Expected string key before ':' at line 1, column 2"];
         yield 'double colon'             => ['{"a"::1}', "Expected string key before ':' at line 1, column 6"];
         yield 'second colon'             => ['{"a":1:2}', "':' not as part of an object at line 1, column 7"];
-        yield 'bad escape'               => ['"\\x"', 'Invalid escape at line 1, column 4'];
-        yield 'bad escape v'             => ['"\\v"', 'Invalid escape at line 1, column 4'];
-        yield 'short unicode escape'     => ['"\\u12"', 'Invalid \\uXXXX escape at line 1, column 6'];
-        yield 'bad hex'                  => ['"\\u12G4"', 'Invalid characters in \\uXXXX escape at line 1, column 8'];
-        yield 'lone high surrogate'      => ['"\\ud800A"', 'Invalid \\uXXXX\\uXXXX surrogate pair escape at line 1, column 9'];
-        yield 'high then non low'        => ['"\\ud800\\u0041"', 'Invalid \\uXXXX\\uXXXX surrogate pair escape at line 1, column 14'];
+        yield 'bad escape'               => ['"\x"', 'Invalid escape at line 1, column 4'];
+        yield 'bad escape v'             => ['"\v"', 'Invalid escape at line 1, column 4'];
+        yield 'short unicode escape'     => ['"\u12"', 'Invalid \uXXXX escape at line 1, column 6'];
+        yield 'bad hex'                  => ['"\u12G4"', 'Invalid characters in \uXXXX escape at line 1, column 8'];
+        yield 'lone high surrogate'      => ['"\ud800A"', 'Invalid \uXXXX\uXXXX surrogate pair escape at line 1, column 9'];
+        yield 'high then non low'        => ['"\ud800\u0041"', 'Invalid \uXXXX\uXXXX surrogate pair escape at line 1, column 14'];
         yield 'raw tab'                  => ["\"a\tb\"", 'Invalid string: control characters from U+0000 through U+001F must be escaped at line 1, column 5'];
         yield 'raw newline in string'    => ["\"a\nb\"", 'Invalid string: control characters from U+0000 through U+001F must be escaped at line 2, column 2'];
         yield 'raw 0x1f'                 => ["\"\x1f\"", 'Invalid string: control characters from U+0000 through U+001F must be escaped at line 1, column 3'];
@@ -155,17 +168,12 @@ final class JsonDecoderTest extends TestCase
         yield 'form feed is not space'   => ["1\x0c", 'Invalid numeric literal at EOF at line 1, column 2'];
     }
 
-    #[DataProvider('errorProvider')]
-    public function testSyntaxErrorMessages(string $json, string $message): void
+    #[DataProvider('deepOkProvider')]
+    public function testDepthWithinLimitDecodes(string $json): void
     {
-        $decoder = new JsonDecoder();
-        try {
-            iterator_to_array($decoder->decodeAll($json), false);
+        $values = iterator_to_array(new JsonDecoder()->decodeAll($json), false);
 
-            self::fail('expected a syntax error for ' . $json);
-        } catch (JsonSyntaxException $exception) {
-            self::assertSame($message, $exception->getMessage());
-        }
+        self::assertCount(1, $values);
     }
 
     /**
@@ -177,17 +185,9 @@ final class JsonDecoderTest extends TestCase
         yield 'five thousand objects' => [str_repeat('{"a":', 5000) . '1' . str_repeat('}', 5000)];
     }
 
-    #[DataProvider('deepOkProvider')]
-    public function testDepthWithinLimitDecodes(string $json): void
-    {
-        $values = iterator_to_array((new JsonDecoder())->decodeAll($json), false);
-
-        self::assertCount(1, $values);
-    }
-
     public function testValuesBeforeAnErrorAreYieldedFirst(): void
     {
-        [$seen, $error] = self::collect('1 "a" [2] }');
+        [$seen, $error] = $this->collect('1 "a" [2] }');
 
         self::assertSame(['int:1', 'string:a', '[int:2]'], $seen);
         self::assertSame("Unmatched '}' at line 1, column 11", $error);
@@ -195,10 +195,21 @@ final class JsonDecoderTest extends TestCase
 
     public function testStringValueIsEmittedBeforeALaterColonErrors(): void
     {
-        [$seen, $error] = self::collect('"a":1');
+        [$seen, $error] = $this->collect('"a":1');
 
         self::assertSame(['string:a'], $seen);
         self::assertSame("Expected string key before ':' at line 1, column 4", $error);
+    }
+
+    /**
+     * @param list<string> $expected
+     */
+    #[DataProvider('streamProvider')]
+    public function testDecodeAll(string $text, array $expected): void
+    {
+        $values = array_map(self::describe(...), iterator_to_array(new JsonDecoder()->decodeAll($text), false));
+
+        self::assertSame($expected, $values);
     }
 
     /**
@@ -222,27 +233,16 @@ final class JsonDecoderTest extends TestCase
         yield 'multiple floats'       => ["1.5\n0.25\n-3.75", ['float:1.5', 'float:0.25', 'float:-3.75']];
     }
 
-    /**
-     * @param list<string> $expected
-     */
-    #[DataProvider('streamProvider')]
-    public function testDecodeAll(string $text, array $expected): void
-    {
-        $values = array_map(self::describe(...), iterator_to_array((new JsonDecoder())->decodeAll($text), false));
-
-        self::assertSame($expected, $values);
-    }
-
     public function testDecodeAllKeysAreSequential(): void
     {
-        $keys = array_keys(iterator_to_array((new JsonDecoder())->decodeAll("1\n2\n[3,\n4]\n5")));
+        $keys = array_keys(iterator_to_array(new JsonDecoder()->decodeAll("1\n2\n[3,\n4]\n5")));
 
         self::assertSame([0, 1, 2, 3], $keys);
     }
 
     public function testErrorAfterFastLinesKeepsAbsolutePosition(): void
     {
-        [$seen, $error] = self::collect("1\n2\n3 x\n");
+        [$seen, $error] = $this->collect("1\n2\n3 x\n");
 
         self::assertSame(['int:1', 'int:2', 'int:3'], $seen);
         self::assertSame('Invalid numeric literal at line 4, column 0', $error);
@@ -255,29 +255,29 @@ final class JsonDecoderTest extends TestCase
         try {
             $decoder->decodeOne("{'a': 123}");
             self::fail('expected a syntax error');
-        } catch (JsonSyntaxException $exception) {
-            self::assertSame("Invalid string literal; expected \", but got ' at line 1, column 5 (while parsing '{'a': 123}')", $exception->getMessage());
+        } catch (JsonSyntaxException $jsonSyntaxException) {
+            self::assertSame("Invalid string literal; expected \", but got ' at line 1, column 5 (while parsing '{'a': 123}')", $jsonSyntaxException->getMessage());
         }
     }
 
     public function testDecodeOneRejectsEmptyInput(): void
     {
-        self::assertSame("Expected JSON value (while parsing '  ')", self::failure(static fn (): mixed => (new JsonDecoder())->decodeOne('  ')));
+        self::assertSame("Expected JSON value (while parsing '  ')", $this->failure(static fn (): mixed => new JsonDecoder()->decodeOne('  ')));
     }
 
     public function testDecodeOneRejectsExtraValues(): void
     {
-        self::assertSame("Unexpected extra JSON values (while parsing '1 2')", self::failure(static fn (): mixed => (new JsonDecoder())->decodeOne('1 2')));
+        self::assertSame("Unexpected extra JSON values (while parsing '1 2')", $this->failure(static fn (): mixed => new JsonDecoder()->decodeOne('1 2')));
     }
 
     public function testDecodeOneReportsErrorAfterTheFirstValue(): void
     {
-        self::assertSame("Unmatched '}' at line 1, column 3 (while parsing '1 }')", self::failure(static fn (): mixed => (new JsonDecoder())->decodeOne('1 }')));
+        self::assertSame("Unmatched '}' at line 1, column 3 (while parsing '1 }')", $this->failure(static fn (): mixed => new JsonDecoder()->decodeOne('1 }')));
     }
 
     public function testObjectsAreJsonObjects(): void
     {
-        $value = (new JsonDecoder())->decodeOne('{"b":1,"a":{"2":[]}}');
+        $value = new JsonDecoder()->decodeOne('{"b":1,"a":{"2":[]}}');
 
         self::assertInstanceOf(JsonObject::class, $value);
         self::assertSame(['b', 'a'], $value->keys());
@@ -289,10 +289,33 @@ final class JsonDecoderTest extends TestCase
 
     public function testNanDecodesToNan(): void
     {
-        $value = (new JsonDecoder())->decodeOne('nan');
+        $value = new JsonDecoder()->decodeOne('nan');
 
         self::assertIsFloat($value);
         self::assertNan($value);
+    }
+
+    /**
+     * @param list<string> $values
+     * @param list<string> $errors
+     */
+    #[DataProvider('seqProvider')]
+    public function testSequenceMode(string $text, array $values, array $errors): void
+    {
+        $gotValues = [];
+        $gotErrors = [];
+        foreach (new JsonDecoder()->decodeAll($text, true) as $item) {
+            if ($item instanceof JsonSyntaxException) {
+                $gotErrors[] = $item->getMessage();
+
+                continue;
+            }
+
+            $gotValues[] = self::describe($item);
+        }
+
+        self::assertSame($values, $gotValues);
+        self::assertSame($errors, $gotErrors);
     }
 
     /**
@@ -324,41 +347,18 @@ final class JsonDecoderTest extends TestCase
     }
 
     /**
-     * @param list<string> $values
-     * @param list<string> $errors
-     */
-    #[DataProvider('seqProvider')]
-    public function testSequenceMode(string $text, array $values, array $errors): void
-    {
-        $gotValues = [];
-        $gotErrors = [];
-        foreach ((new JsonDecoder())->decodeAll($text, true) as $item) {
-            if ($item instanceof JsonSyntaxException) {
-                $gotErrors[] = $item->getMessage();
-
-                continue;
-            }
-
-            $gotValues[] = self::describe($item);
-        }
-
-        self::assertSame($values, $gotValues);
-        self::assertSame($errors, $gotErrors);
-    }
-
-    /**
      * @return array{list<string>, ?string}
      */
-    private static function collect(string $text): array
+    private function collect(string $text): array
     {
         $seen = [];
 
         try {
-            foreach ((new JsonDecoder())->decodeAll($text) as $value) {
+            foreach (new JsonDecoder()->decodeAll($text) as $value) {
                 $seen[] = self::describe($value);
             }
-        } catch (JsonSyntaxException $exception) {
-            return [$seen, $exception->getMessage()];
+        } catch (JsonSyntaxException $jsonSyntaxException) {
+            return [$seen, $jsonSyntaxException->getMessage()];
         }
 
         return [$seen, null];
@@ -367,12 +367,12 @@ final class JsonDecoderTest extends TestCase
     /**
      * @param callable(): mixed $call
      */
-    private static function failure(callable $call): string
+    private function failure(callable $call): string
     {
         try {
             $call();
-        } catch (JsonSyntaxException $exception) {
-            return $exception->getMessage();
+        } catch (JsonSyntaxException $jsonSyntaxException) {
+            return $jsonSyntaxException->getMessage();
         }
 
         return 'no exception';

@@ -13,6 +13,13 @@ use PHPUnit\Framework\TestCase;
  */
 final class DecimalLiteralTest extends TestCase
 {
+    #[DataProvider('compareProvider')]
+    public function testCompare(string $left, string $right, int $expected): void
+    {
+        self::assertSame($expected, DecimalLiteral::compare($left, $right));
+        self::assertSame(-$expected, DecimalLiteral::compare($right, $left));
+    }
+
     /**
      * @return iterable<string, array{string, string, int}>
      */
@@ -34,13 +41,6 @@ final class DecimalLiteralTest extends TestCase
         yield 'zero vs tiny'                => ['0', '1E-999999999', -1];
         yield 'negative tiny vs zero'       => ['-1E-999999999', '0', -1];
         yield 'different lengths same lead' => ['1.5', '1.50001', -1];
-    }
-
-    #[DataProvider('compareProvider')]
-    public function testCompare(string $left, string $right, int $expected): void
-    {
-        self::assertSame($expected, DecimalLiteral::compare($left, $right));
-        self::assertSame(-$expected, DecimalLiteral::compare($right, $left));
     }
 
     public function testCanonicalForms(): void

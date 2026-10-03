@@ -15,6 +15,14 @@ use PHPUnit\Framework\TestCase;
  */
 final class NumberParserTest extends TestCase
 {
+    #[DataProvider('plainProvider')]
+    public function testPlainNumbers(string $literal, int|float $expected): void
+    {
+        $parsed = NumberParser::parse($literal);
+
+        self::assertSame($expected, $parsed);
+    }
+
     /**
      * @return iterable<string, array{string, int|float}>
      */
@@ -37,20 +45,22 @@ final class NumberParserTest extends TestCase
         yield 'exponent cancels'     => ['25e-1', 2.5];
     }
 
-    #[DataProvider('plainProvider')]
-    public function testPlainNumbers(string $literal, int|float $expected): void
-    {
-        $parsed = NumberParser::parse($literal);
-
-        self::assertSame($expected, $parsed);
-    }
-
     public function testNegativeZeroIsAFloat(): void
     {
         $parsed = NumberParser::parse('-0');
 
         self::assertIsFloat($parsed);
         self::assertSame(-\INF, fdiv(1.0, $parsed));
+    }
+
+    #[DataProvider('preciseProvider')]
+    public function testPreservedLiterals(string $literal, string $canonical, float $value): void
+    {
+        $parsed = NumberParser::parse($literal);
+
+        self::assertInstanceOf(PreciseNumber::class, $parsed);
+        self::assertSame($canonical, $parsed->literal);
+        self::assertSame($value, $parsed->value);
     }
 
     /**
@@ -84,16 +94,6 @@ final class NumberParserTest extends TestCase
         yield 'leading zeros kept off'  => ['00012.50', '12.50', 12.5];
     }
 
-    #[DataProvider('preciseProvider')]
-    public function testPreservedLiterals(string $literal, string $canonical, float $value): void
-    {
-        $parsed = NumberParser::parse($literal);
-
-        self::assertInstanceOf(PreciseNumber::class, $parsed);
-        self::assertSame($canonical, $parsed->literal);
-        self::assertSame($value, $parsed->value);
-    }
-
     public function testNonFiniteWords(): void
     {
         self::assertNan(NumberParser::parse('nan'));
@@ -102,6 +102,12 @@ final class NumberParserTest extends TestCase
         self::assertSame(\INF, NumberParser::parse('Infinity'));
         self::assertSame(-\INF, NumberParser::parse('-Infinity'));
         self::assertSame(\INF, NumberParser::parse('infinity'));
+    }
+
+    #[DataProvider('invalidProvider')]
+    public function testInvalidLiteralsAreRejected(string $literal): void
+    {
+        self::assertNull(NumberParser::tryParse($literal));
     }
 
     /**
@@ -121,12 +127,6 @@ final class NumberParserTest extends TestCase
         yield 'nan payload'   => ['NaN1'];
         yield 'hex'           => ['0x10'];
         yield 'only point'    => ['.'];
-    }
-
-    #[DataProvider('invalidProvider')]
-    public function testInvalidLiteralsAreRejected(string $literal): void
-    {
-        self::assertNull(NumberParser::tryParse($literal));
     }
 
     public function testParseThrowsForInvalidLiteral(): void

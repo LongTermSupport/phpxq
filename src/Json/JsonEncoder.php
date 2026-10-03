@@ -78,7 +78,7 @@ final class JsonEncoder implements JsonEncoderInterface
         }
 
         $newline = '' === $unit ? '' : "\n";
-        if ($options->colors instanceof \LTS\PhpXq\Json\ColorScheme) {
+        if ($options->colors instanceof ColorScheme) {
             return $this->colored($value, $newline, $unit, $options->sortKeys, $options->ascii, $options->colors);
         }
 

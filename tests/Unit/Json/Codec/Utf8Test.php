@@ -18,6 +18,12 @@ final class Utf8Test extends TestCase
         self::assertSame("a\u{e9}\u{20ac}\u{1f600}", Utf8::sanitize("a\u{e9}\u{20ac}\u{1f600}"));
     }
 
+    #[DataProvider('invalidProvider')]
+    public function testInvalidSequencesAreReplaced(string $input, string $expected): void
+    {
+        self::assertSame($expected, Utf8::sanitize($input));
+    }
+
     /**
      * @return iterable<string, array{string, string}>
      */
@@ -31,12 +37,6 @@ final class Utf8Test extends TestCase
         yield 'surrogate'              => ["\xed\xa0\x80", "\u{fffd}"];
         yield 'above max'              => ["\xf4\x90\x80\x80", "\u{fffd}"];
         yield 'invalid lead'           => ["\xff", "\u{fffd}"];
-    }
-
-    #[DataProvider('invalidProvider')]
-    public function testInvalidSequencesAreReplaced(string $input, string $expected): void
-    {
-        self::assertSame($expected, Utf8::sanitize($input));
     }
 
     public function testEncodeCodepoints(): void

@@ -21,6 +21,6 @@ final class JsonObjectToArrayTest extends TestCase
 
     public function testToArrayOfEmptyObject(): void
     {
-        self::assertSame([], (new JsonObject())->toArray());
+        self::assertSame([], new JsonObject()->toArray());
     }
 }

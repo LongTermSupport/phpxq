@@ -16,6 +16,17 @@ use PHPUnit\Framework\TestCase;
  */
 final class PreciseComparisonTest extends TestCase
 {
+    #[DataProvider('literalPairs')]
+    public function testPreservedLiteralsCompareExactly(string $left, string $right, int $expected): void
+    {
+        $a = NumberParser::parse($left);
+        $b = NumberParser::parse($right);
+
+        self::assertSame($expected, Values::compare($a, $b));
+        self::assertSame(-$expected, Values::compare($b, $a));
+        self::assertSame(0 === $expected, Values::equals($a, $b));
+    }
+
     /**
      * @return iterable<string, array{string, string, int}>
      */
@@ -28,17 +39,6 @@ final class PreciseComparisonTest extends TestCase
         yield 'exponent form'          => ['1e2', '100.0', 0];
         yield 'huge exponents'         => ['1E+999999999', '9E+999999998', 1];
         yield 'both beyond 2^53'       => ['9007199254740995', '9007199254740993', 1];
-    }
-
-    #[DataProvider('literalPairs')]
-    public function testPreservedLiteralsCompareExactly(string $left, string $right, int $expected): void
-    {
-        $a = NumberParser::parse($left);
-        $b = NumberParser::parse($right);
-
-        self::assertSame($expected, Values::compare($a, $b));
-        self::assertSame(-$expected, Values::compare($b, $a));
-        self::assertSame(0 === $expected, Values::equals($a, $b));
     }
 
     public function testPreservedLiteralAgainstComputedDoubleUsesDoubles(): void

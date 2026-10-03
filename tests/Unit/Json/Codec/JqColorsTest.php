@@ -67,6 +67,12 @@ final class JqColorsTest extends TestCase
         self::assertSame("\e[38;2;255;214;165m", $scheme->false);
     }
 
+    #[DataProvider('invalidProvider')]
+    public function testInvalidSpecIsRejected(string $spec): void
+    {
+        self::assertNull(JqColors::parse($spec));
+    }
+
     /**
      * @return iterable<string, array{string}>
      */
@@ -79,11 +85,5 @@ final class JqColorsTest extends TestCase
         yield 'star'           => ['30:*:31'];
         yield 'word'           => ['invalid'];
         yield 'too long'       => [str_repeat('1', 40)];
-    }
-
-    #[DataProvider('invalidProvider')]
-    public function testInvalidSpecIsRejected(string $spec): void
-    {
-        self::assertNull(JqColors::parse($spec));
     }
 }

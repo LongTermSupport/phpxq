@@ -20,6 +20,12 @@ use stdClass;
  */
 final class JsonEncoderTest extends TestCase
 {
+    #[DataProvider('compactProvider')]
+    public function testCompact(mixed $value, string $expected): void
+    {
+        self::assertSame($expected, new JsonEncoder()->encode($value, EncodeOptions::compact()));
+    }
+
     /**
      * @return iterable<string, array{mixed, string}>
      */
@@ -54,24 +60,18 @@ final class JsonEncoderTest extends TestCase
         yield 'object'               => [JsonObject::fromPairs(['b' => 1, 'a' => [2]]), '{"b":1,"a":[2]}'];
         yield 'numeric keys'         => [JsonObject::fromPairs([1 => 'x', '01' => 'y']), '{"1":"x","01":"y"}'];
         yield 'empty key'            => [JsonObject::fromPairs(['' => 1]), '{"":1}'];
-        yield 'quote and backslash'  => ["a\"b\\c", '"a\\"b\\\\c"'];
+        yield 'quote and backslash'  => ['a"b\\c', '"a\"b\\\c"'];
         yield 'solidus untouched'    => ['a/b', '"a/b"'];
-        yield 'short escapes'        => ["\x08\x0c\n\r\t", '"\\b\\f\\n\\r\\t"'];
-        yield 'control characters'   => ["\x00\x01\x1f", '"\\u0000\\u0001\\u001f"'];
-        yield 'delete'               => ["\x7f", '"\\u007f"'];
+        yield 'short escapes'        => ["\x08\x0c\n\r\t", '"\b\f\n\r\t"'];
+        yield 'control characters'   => ["\x00\x01\x1f", '"\u0000\u0001\u001f"'];
+        yield 'delete'               => ["\x7f", '"\u007f"'];
         yield 'printable edge'       => [' ~', '" ~"'];
         yield 'non ascii'            => ["\u{e9}\u{20ac}\u{1f600}", "\"\u{e9}\u{20ac}\u{1f600}\""];
         yield 'line separators'      => ["\u{2028}\u{2029}", "\"\u{2028}\u{2029}\""];
         yield 'invalid utf8'         => ["a\xffb", "\"a\u{fffd}b\""];
         yield 'truncated utf8'       => ["a\xe2\x82", "\"a\u{fffd}\""];
         yield 'invalid among escapes' => ["\n\xff\"", "\"\\n\u{fffd}\\\"\""];
-        yield 'keys are escaped'     => [JsonObject::fromPairs(["a\"b" => 1, "\u{e9}" => 2]), "{\"a\\\"b\":1,\"\u{e9}\":2}"];
-    }
-
-    #[DataProvider('compactProvider')]
-    public function testCompact(mixed $value, string $expected): void
-    {
-        self::assertSame($expected, (new JsonEncoder())->encode($value, EncodeOptions::compact()));
+        yield 'keys are escaped'     => [JsonObject::fromPairs(['a"b' => 1, "\u{e9}" => 2]), "{\"a\\\"b\":1,\"\u{e9}\":2}"];
     }
 
     public function testPrettyPrintsTwoSpacesByDefault(): void
@@ -92,7 +92,7 @@ final class JsonEncoderTest extends TestCase
             }
             JSON;
 
-        self::assertSame($expected, (new JsonEncoder())->encode($value, new EncodeOptions()));
+        self::assertSame($expected, new JsonEncoder()->encode($value, new EncodeOptions()));
     }
 
     public function testIndentWidth(): void
@@ -114,8 +114,8 @@ final class JsonEncoderTest extends TestCase
 
     public function testScalarsHaveNoIndentation(): void
     {
-        self::assertSame('1', (new JsonEncoder())->encode(1, new EncodeOptions()));
-        self::assertSame('"x"', (new JsonEncoder())->encode('x', new EncodeOptions()));
+        self::assertSame('1', new JsonEncoder()->encode(1, new EncodeOptions()));
+        self::assertSame('"x"', new JsonEncoder()->encode('x', new EncodeOptions()));
     }
 
     public function testSortKeysRecursivelyByCodepoint(): void
@@ -129,7 +129,7 @@ final class JsonEncoderTest extends TestCase
             '9'        => 6,
         ]);
 
-        $json = (new JsonEncoder())->encode($value, new EncodeOptions(indent: 0, sortKeys: true));
+        $json = new JsonEncoder()->encode($value, new EncodeOptions(indent: 0, sortKeys: true));
 
         self::assertSame("{\"10\":5,\"9\":6,\"B\":4,\"a\":{\"y\":[{\"c\":2,\"d\":1}],\"z\":1},\"b\":1,\"\u{e9}\":3}", $json);
     }
@@ -138,7 +138,7 @@ final class JsonEncoderTest extends TestCase
     {
         $value = JsonObject::fromPairs(['b' => 1, 'a' => 2, '2' => 3, '1' => 4]);
 
-        self::assertSame('{"b":1,"a":2,"2":3,"1":4}', (new JsonEncoder())->encode($value, EncodeOptions::compact()));
+        self::assertSame('{"b":1,"a":2,"2":3,"1":4}', new JsonEncoder()->encode($value, EncodeOptions::compact()));
     }
 
     public function testAsciiOutputEscapesNonAscii(): void
@@ -146,10 +146,10 @@ final class JsonEncoderTest extends TestCase
         $options = new EncodeOptions(indent: 0, ascii: true);
         $encoder = new JsonEncoder();
 
-        self::assertSame('"\\u00e9\\u20ac\\ud83d\\ude00"', $encoder->encode("\u{e9}\u{20ac}\u{1f600}", $options));
-        self::assertSame('"a\\u007f\\n"', $encoder->encode("a\x7f\n", $options));
-        self::assertSame('"\\ufffd"', $encoder->encode("\xff", $options));
-        self::assertSame('{"\\u00e9":"\\u00e9"}', $encoder->encode(JsonObject::fromPairs(["\u{e9}" => "\u{e9}"]), $options));
+        self::assertSame('"\u00e9\u20ac\ud83d\ude00"', $encoder->encode("\u{e9}\u{20ac}\u{1f600}", $options));
+        self::assertSame('"a\u007f\n"', $encoder->encode("a\x7f\n", $options));
+        self::assertSame('"\ufffd"', $encoder->encode("\xff", $options));
+        self::assertSame('{"\u00e9":"\u00e9"}', $encoder->encode(JsonObject::fromPairs(["\u{e9}" => "\u{e9}"]), $options));
         self::assertSame('"plain"', $encoder->encode('plain', $options));
     }
 
@@ -157,22 +157,22 @@ final class JsonEncoderTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        (new JsonEncoder())->encode(new stdClass(), EncodeOptions::compact());
+        new JsonEncoder()->encode(new stdClass(), EncodeOptions::compact());
     }
 
     public function testRoundTripOfDecodedDocument(): void
     {
-        $text = '{"a":[1,1.5,"x\\ny",null,true,{"b":{}}],"big":12345678909876543212345,"d":1.000,"e":0.00001}';
+        $text = '{"a":[1,1.5,"x\ny",null,true,{"b":{}}],"big":12345678909876543212345,"d":1.000,"e":0.00001}';
 
-        $decoded = (new JsonDecoder())->decodeOne($text);
+        $decoded = new JsonDecoder()->decodeOne($text);
 
-        self::assertSame($text, (new JsonEncoder())->encode($decoded, EncodeOptions::compact()));
+        self::assertSame($text, new JsonEncoder()->encode($decoded, EncodeOptions::compact()));
     }
 
     public function testDefaultColoursMatchJq(): void
     {
         $value = [JsonObject::fromPairs(['a' => true, 'b' => false]), 'abc', 123, null];
-        $json  = (new JsonEncoder())->encode($value, new EncodeOptions(indent: 0, colors: ColorScheme::default()));
+        $json  = new JsonEncoder()->encode($value, new EncodeOptions(indent: 0, colors: ColorScheme::default()));
 
         $expected = "\e[1;39m[\e[0m"
             . "\e[1;39m{\e[0m"
@@ -198,7 +198,7 @@ final class JsonEncoderTest extends TestCase
     public function testPrettyColours(): void
     {
         $value = [JsonObject::fromPairs(['a' => true, 'b' => false]), 'abc', 123, null];
-        $json  = (new JsonEncoder())->encode($value, new EncodeOptions(colors: ColorScheme::default()));
+        $json  = new JsonEncoder()->encode($value, new EncodeOptions(colors: ColorScheme::default()));
 
         $expected = "\e[1;39m[\e[0m\n"
             . "  \e[1;39m{\e[0m\n"
@@ -224,7 +224,7 @@ final class JsonEncoderTest extends TestCase
     public function testCustomColoursAndEmptyContainers(): void
     {
         $colors = new ColorScheme("\e[0;30m", "\e[0;31m", "\e[0;32m", "\e[0;33m", "\e[0;34m", "\e[1;35m", "\e[1;36m", "\e[1;37m");
-        $json   = (new JsonEncoder())->encode([JsonObject::fromPairs(['a' => true]), [], new JsonObject(), 1.5], new EncodeOptions(indent: 0, colors: $colors));
+        $json   = new JsonEncoder()->encode([JsonObject::fromPairs(['a' => true]), [], new JsonObject(), 1.5], new EncodeOptions(indent: 0, colors: $colors));
 
         $expected = "\e[1;35m[\e[0m"
             . "\e[1;36m{\e[0m\e[1;37m\"a\"\e[0m\e[1;36m:\e[0m\e[0;32mtrue\e[0m\e[1;36m}\e[0m"
@@ -242,7 +242,7 @@ final class JsonEncoderTest extends TestCase
     public function testColouredSortedAndAsciiOutput(): void
     {
         $colors = new ColorScheme('', '', '', '', '[S', '[A', '[O', '[K');
-        $json   = (new JsonEncoder())->encode(JsonObject::fromPairs(['b' => "\u{e9}", 'a' => 1]), new EncodeOptions(indent: 0, sortKeys: true, ascii: true, colors: $colors));
+        $json   = new JsonEncoder()->encode(JsonObject::fromPairs(['b' => "\u{e9}", 'a' => 1]), new EncodeOptions(indent: 0, sortKeys: true, ascii: true, colors: $colors));
 
         self::assertSame("[O{\e[0m[K\"a\"\e[0m[O:\e[0m1\e[0m[O,\e[0m[K\"b\"\e[0m[O:\e[0m[S\"\\u00e9\"\e[0m[O}\e[0m", $json);
     }
