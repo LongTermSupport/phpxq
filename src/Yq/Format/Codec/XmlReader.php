@@ -24,6 +24,12 @@ final class XmlReader
 
     private int $pos = 0;
 
+    /** Line of an error found inside decoded text (0 when the position of the reader says it all). */
+    private int $errorLine = 0;
+
+    /** Offset in the source of the text being decoded. */
+    private int $textStart = 0;
+
     private readonly int $length;
 
     public function __construct(private readonly string $source, private readonly FormatOptions $options)
@@ -40,23 +46,29 @@ final class XmlReader
     public function read(): XmlElement
     {
         try {
-            return $this->readDocument();
+            return $this->readTree();
         } catch (FormatException $formatException) {
-            $prefix = 'XML syntax error: ';
-            if (!str_starts_with($formatException->getMessage(), $prefix)) {
+            $message = $formatException->getMessage();
+            $prefix  = 'XML syntax error: ';
+            if (!str_starts_with($message, $prefix)) {
                 throw $formatException;
             }
 
-            $line = 1 + substr_count($this->source, "\n", 0, min($this->pos, $this->length));
+            $detail = substr($message, \strlen($prefix));
+            $line   = $this->errorLine;
+            if (0 === $line) {
+                $offset = str_contains($detail, 'EOF') ? $this->length : $this->pos;
+                $line   = 1 + substr_count($this->source, "\n", 0, $offset);
+            }
 
-            throw new FormatException(\sprintf('XML syntax error on line %d: %s', $line, substr($formatException->getMessage(), \strlen($prefix))), 0, $formatException);
+            throw new FormatException(\sprintf('XML syntax error on line %d: %s', $line, $detail), 0, $formatException);
         }
     }
 
     /**
      * @throws FormatException
      */
-    private function readDocument(): XmlElement
+    private function readTree(): XmlElement
     {
         $root = new XmlElement();
         $elem = $root;
@@ -412,6 +424,7 @@ final class XmlReader
 
     private function text(XmlElement $elem, string $raw): void
     {
+        $this->textStart = $this->pos;
         $this->addText($elem, $this->decodeEntities($raw));
     }
 
@@ -440,8 +453,9 @@ final class XmlReader
 
         return preg_replace_callback(
             '/&(#x[0-9A-Fa-f]+|#[0-9]+|[A-Za-z_][A-Za-z0-9_.-]*);/',
-            function (array $m): string {
-                $entity = $m[1];
+            function (array $m) use ($text): string {
+                $this->errorLine = 1 + substr_count($this->source, "\n", 0, $this->textStart) + substr_count($text, "\n", 0, (int)strpos($text, $m[0]));
+                $entity          = $m[1];
                 if ('#' === $entity[0]) {
                     $code = 'x' === ($entity[1] ?? '') ? (int)hexdec(substr($entity, 2)) : (int)substr($entity, 1);
                     if ($code > 0 && $code <= 0x10FFFF && ($code < 0xD800 || $code > 0xDFFF)) {

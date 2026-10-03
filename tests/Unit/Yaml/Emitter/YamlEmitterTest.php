@@ -332,6 +332,30 @@ final class YamlEmitterTest extends TestCase
         ];
     }
 
+    public function testHeadCommentAfterAFootCommentIsSeparatedByABlankLine(): void
+    {
+        $first               = Node::scalar('a');
+        $first->headComment  = '# a1';
+        $first->footComment  = '# a2';
+
+        $second              = Node::scalar('b');
+        $second->headComment = '# b1';
+
+        $node                = Node::mapping([$first, Node::scalar('1'), $second, Node::scalar('2')]);
+
+        self::assertSame("# a1\na: 1\n# a2\n\n# b1\nb: 2\n", new YamlEmitter()->emit($node));
+    }
+
+    public function testHeadCommentAfterAKeyWithoutFootCommentFollowsDirectly(): void
+    {
+        $second              = Node::scalar('b');
+        $second->headComment = '# b1';
+
+        $node                = Node::mapping([Node::scalar('a'), Node::scalar('1'), $second, Node::scalar('2')]);
+
+        self::assertSame("a: 1\n# b1\nb: 2\n", new YamlEmitter()->emit($node));
+    }
+
     public function testIndentOptionInSequenceUnderMapping(): void
     {
         $node = Node::mapping([Node::scalar('a'), Node::sequence([Node::scalar('1')])]);

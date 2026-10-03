@@ -99,6 +99,10 @@ run_yq_case() {
     mkdir -p "$work/scripts"
     cp "$root/tests/Conformance/Yq/acceptance/$script" "$work/$script"
     cp "$root/tests/Conformance/Yq/acceptance/scripts/shunit2" "$work/scripts/shunit2"
+    # Data files the scripts reference (upstream keeps them next to the scripts / in its repo root).
+    if [[ -d "$root/tests/Conformance/Yq/acceptance/examples" ]]; then
+        cp -R "$root/tests/Conformance/Yq/acceptance/examples" "$work/examples"
+    fi
     if [[ -f "$root/tests/Conformance/Yq/acceptance/utf8.csv" ]]; then
         cp "$root/tests/Conformance/Yq/acceptance/utf8.csv" "$work/utf8.csv"
     fi

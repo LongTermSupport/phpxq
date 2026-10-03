@@ -20,6 +20,9 @@ use SplObjectStorage;
  */
 final class Node
 {
+    /** Set on a Document node whose comments were assigned empty: the slurped file header is dropped with them. */
+    public bool $commentsCleared = false;
+
     /**
      * @param list<Node> $content
      */
