@@ -307,6 +307,18 @@ final class JqApplicationInputSourceTest extends TestCase
         self::assertSame([1, 2, 2, 2], array_map(static fn (InputItem $item): int => $item->lineNumber(), \array_slice($items, 0, 4)));
     }
 
+    public function testStreamOfALongSingleLineCountsLinesLinearly(): void
+    {
+        $text  = '[' . implode(',', range(1, 20000)) . "]\n[1]\n";
+        $items = $this->items($this->source($text, [], new CliOptions(stream: true)));
+
+        self::assertCount(20003, $items);
+        self::assertSame(1, $items[0]->lineNumber());
+        self::assertSame(1, $items[20000]->lineNumber());
+        self::assertSame(2, $items[20001]->lineNumber());
+        self::assertSame(2, $items[20002]->lineNumber());
+    }
+
     public function testStreamErrorBecomesAnErrorItem(): void
     {
         $items = $this->items($this->source('[1,', [], new CliOptions(stream: true)));

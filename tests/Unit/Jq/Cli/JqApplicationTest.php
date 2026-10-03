@@ -10,6 +10,8 @@ use LTS\PhpXq\Jq\Cli\JqExitCode;
 use LTS\PhpXq\Jq\Runtime\HaltException;
 use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
+use LTS\PhpXq\Json\JsonDecoder;
+use LTS\PhpXq\Json\JsonEncoder;
 use LTS\PhpXq\Json\JsonObject;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -778,6 +780,30 @@ final class JqApplicationTest extends JqApplicationTestCase
 
         self::assertSame(2, $status);
         self::assertStringContainsString('Could not open /nonexistent/x.json', $err);
+    }
+
+    public function testOutputThatCannotBeWrittenAtTheEndFailsTheRun(): void
+    {
+        if (!is_writable('/dev/full')) {
+            self::markTestSkipped('/dev/full is not available');
+        }
+
+        $full = fopen('/dev/full', 'wb');
+        self::assertIsResource($full);
+        $err = self::memory('');
+
+        $status = new JqApplication(
+            new JqApplicationFakeParser(),
+            new JqApplicationFakeCompiler(static function (RuntimeContextInterface $context, mixed $input, Closure $emit): void {
+                $emit('x');
+            }),
+            new JsonDecoder(),
+            new JsonEncoder(),
+        )->run(['-n', '.'], self::memory(''), $full, $err);
+
+        self::assertSame(JqExitCode::USAGE, $status);
+        self::assertSame("jq: error: writing output failed: No space left on device\n", self::contents($err));
+        fclose($full);
     }
 
     /**

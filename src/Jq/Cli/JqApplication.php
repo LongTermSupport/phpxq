@@ -259,8 +259,9 @@ final readonly class JqApplication
             }
         }
 
+        $console->flush();
         if ($console->stdoutFailed()) {
-            $console->err("jq: error: writing output failed: Broken pipe\n");
+            $console->err('jq: error: writing output failed: ' . $console->failureReason() . "\n");
 
             return JqExitCode::USAGE;
         }

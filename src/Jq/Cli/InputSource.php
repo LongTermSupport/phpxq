@@ -324,9 +324,16 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
     {
         $counted = 0;
         $lines   = 0;
+        $length  = \strlen($text);
+        // offset of the next newline at or after the last event; cached so a long single line is scanned once
+        $eol = -1;
         foreach ($this->streams->events($text, $this->options->seq) as $offset => $event) {
-            $upto = strpos($text, "\n", $offset);
-            $upto = false === $upto ? \strlen($text) : $upto + 1;
+            if ($eol < $offset) {
+                $found = strpos($text, "\n", $offset);
+                $eol   = false === $found ? \PHP_INT_MAX : $found;
+            }
+
+            $upto = \PHP_INT_MAX === $eol ? $length : $eol + 1;
             if ($upto > $counted) {
                 $lines  += substr_count($text, "\n", $counted, $upto - $counted);
                 $counted = $upto;
