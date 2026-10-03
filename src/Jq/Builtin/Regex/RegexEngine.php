@@ -40,18 +40,13 @@ final class RegexEngine
      */
     public static function find(OnigRegex $regex, string $subject, bool $all, bool $ascii): array
     {
-        $pcre    = $regex->pcre($ascii);
         $length  = \strlen($subject);
         $offset  = 0;
         $matches = [];
 
         do {
-            $found = preg_match($pcre, $subject, $groups, self::FLAGS, $offset);
-            if (false === $found) {
-                throw new JqException(preg_last_error_msg());
-            }
-
-            if (0 === $found) {
+            $groups = self::search($regex, $subject, $offset, $ascii);
+            if (null === $groups) {
                 break;
             }
 
@@ -101,5 +96,43 @@ final class RegexEngine
         }
 
         return 1 === $found;
+    }
+
+    /**
+     * One search from $offset: the first match, or with the `l` modifier the longest match over every start
+     * position at or after $offset (the earliest one wins a tie).
+     *
+     * @return ?array<array{0: ?string, 1: int}>
+     *
+     * @throws JqException when PCRE fails at match time
+     */
+    private static function search(OnigRegex $regex, string $subject, int $offset, bool $ascii): ?array
+    {
+        if (!$regex->longest) {
+            $found = preg_match($regex->pcre($ascii), $subject, $groups, self::FLAGS, $offset);
+            if (false === $found) {
+                throw new JqException(preg_last_error_msg());
+            }
+
+            return 1 === $found ? $groups : null;
+        }
+
+        $anchored  = $regex->anchoredPcre($ascii);
+        $length    = \strlen($subject);
+        $best      = null;
+        $bestWidth = -1;
+        for ($position = $offset; $position <= $length; $position += CodepointCursor::characterWidth($subject, $position)) {
+            $found = preg_match($anchored, $subject, $groups, self::FLAGS, $position);
+            if (false === $found) {
+                throw new JqException(preg_last_error_msg());
+            }
+
+            if (1 === $found && \strlen((string)$groups[0][0]) > $bestWidth) {
+                $best      = $groups;
+                $bestWidth = \strlen((string)$groups[0][0]);
+            }
+        }
+
+        return $best;
     }
 }

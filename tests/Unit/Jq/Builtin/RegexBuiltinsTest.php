@@ -112,10 +112,44 @@ final class RegexBuiltinsTest extends TestCase
         self::assertSame(['first', null], array_column($captures, 'name'));
     }
 
-    public function testHexDigitEscapeFollowsOniguruma(): void
+    public function testHexEscapeIsALiteralLetterInOnigurumasPerlSyntax(): void
     {
-        self::assertTrue($this->test('ff', '^\h+$'));
-        self::assertFalse($this->test('fg', '^\h+$'));
+        self::assertTrue($this->test('hh', '^\h+$'));
+        self::assertFalse($this->test('ff', '^\h+$'));
+        self::assertFalse($this->test('a b', '\h'));
+    }
+
+    public function testPosixPropertyNames(): void
+    {
+        self::assertTrue($this->test('a1', '\p{Digit}'));
+        self::assertFalse($this->test('ab', '\p{Digit}'));
+        self::assertTrue($this->test('ab', '^\P{Digit}+$'));
+        self::assertTrue($this->test("x\ty", 'x\p{Blank}y'));
+        self::assertTrue($this->test('a!', '\p{Punct}'));
+        self::assertTrue($this->test('é', '\p{Alpha}'));
+    }
+
+    public function testCaseInsensitivePosixCasedClasses(): void
+    {
+        self::assertTrue($this->test('a', '[[:upper:]]', 'i'));
+        self::assertFalse($this->test('a', '[[:upper:]]'));
+        self::assertTrue($this->test('A', '\p{Lower}', 'i'));
+    }
+
+    public function testLongestMatchModifier(): void
+    {
+        $matches = self::match("line1\nline2", '\D+', 'l');
+        self::assertSame(5, $matches[0]['offset']);
+        self::assertSame("\nline", $matches[0]['string']);
+
+        $first = self::match('ab12 cd34', '\D+');
+        self::assertSame(0, $first[0]['offset']);
+
+        $global = self::match('ab12 cd34', '\D+', 'gl');
+        self::assertSame([4], array_column($global, 'offset'));
+
+        $ties = self::match('ab12 cd34', '\d+|ab', 'gl');
+        self::assertSame(['ab', '12', '34'], array_column($ties, 'string'));
     }
 
     public function testTestWithPatternAndFlagsArray(): void

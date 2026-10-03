@@ -24,10 +24,18 @@ final class OnigRegexTest extends TestCase
         self::assertFalse(OnigRegex::compile('a', '')->ignoreEmpty);
     }
 
-    public function testAcceptedButIneffectiveFlags(): void
+    public function testSingleLineFlagChangesNothing(): void
     {
-        $regex = OnigRegex::compile('a', 'sl');
+        self::assertSame('/a/u', OnigRegex::compile('a', 's')->pcre(true));
+    }
 
+    public function testLongestFlagAndItsAnchoredPattern(): void
+    {
+        $regex = OnigRegex::compile('a', 'l');
+
+        self::assertTrue($regex->longest);
+        self::assertFalse(OnigRegex::compile('a', 'g')->longest);
+        self::assertSame('/a/uA', $regex->anchoredPcre(true));
         self::assertSame('/a/u', $regex->pcre(true));
     }
 

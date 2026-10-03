@@ -54,26 +54,20 @@ final class Strftime
                 ++$index;
             }
 
-            $colons = 0;
-            while ($index < $length && ':' === $format[$index]) {
-                ++$colons;
-                ++$index;
-            }
-
             if ($index >= $length) {
                 return $out . substr($format, $percent);
             }
 
             $conversion = $format[$index];
             ++$index;
-            $converted = self::convert($conversion, $colons, $flag, $width, $time);
+            $converted = self::convert($conversion, $flag, $width, $time);
             $out      .= $converted ?? substr($format, $percent, $index - $percent);
         }
 
         return $out;
     }
 
-    private static function convert(string $conversion, int $colons, ?string $flag, ?int $width, BrokenDownTime $time): ?string
+    private static function convert(string $conversion, ?string $flag, ?int $width, BrokenDownTime $time): ?string
     {
         $hour12 = 0 === $time->hour % 12 ? 12 : $time->hour % 12;
 
@@ -83,7 +77,7 @@ final class Strftime
             'b', 'h' => self::text(substr(self::MONTHS[self::index($time->month, 12)], 0, 3), $conversion, $flag, $width),
             'B'      => self::text(self::MONTHS[self::index($time->month, 12)], $conversion, $flag, $width),
             'c'      => self::text(self::format('%a %b %e %H:%M:%S %Y', $time), $conversion, $flag, $width),
-            'C'      => self::number(Civil::floorDiv($time->year, 100), 2, '0', $flag, $width),
+            'C'      => self::number(Civil::floorDiv($time->year, 100), 1, '0', $flag, $width),
             'd'      => self::number($time->day, 2, '0', $flag, $width),
             'D'      => self::text(self::format('%m/%d/%y', $time), $conversion, $flag, $width),
             'e'      => self::number($time->day, 2, ' ', $flag, $width),
@@ -115,7 +109,7 @@ final class Strftime
             'X'      => self::text(self::format('%H:%M:%S', $time), $conversion, $flag, $width),
             'y'      => self::number(Civil::floorMod($time->year, 100), 2, '0', $flag, $width),
             'Y'      => self::number($time->year, 1, '0', $flag, $width),
-            'z'      => self::text(self::offset($time->gmtOffset, $colons), $conversion, $flag, $width),
+            'z'      => self::text(self::offset($time->gmtOffset), $conversion, $flag, $width),
             'Z'      => self::text($time->zone, $conversion, $flag, $width),
             '%'      => '%',
             default  => null,
@@ -167,36 +161,14 @@ final class Strftime
         return str_pad($text, $width, '0' === $flag ? '0' : ' ', \STR_PAD_LEFT);
     }
 
-    private static function offset(int $seconds, int $colons): string
-    {
-        $sign    = $seconds < 0 ? '-' : '+';
-        $minutes = intdiv(abs($seconds), 60);
-        $hours   = intdiv($minutes, 60);
-        $minutes %= 60;
-        $rest    = abs($seconds) % 60;
-
-        return match (true) {
-            1 === $colons => \sprintf('%s%02d:%02d', $sign, $hours, $minutes),
-            2 === $colons => \sprintf('%s%02d:%02d:%02d', $sign, $hours, $minutes, $rest),
-            3 === $colons => self::shortestOffset($sign, $hours, $minutes, $rest),
-            default       => \sprintf('%s%02d%02d', $sign, $hours, $minutes),
-        };
-    }
-
     /**
-     * `%:::z`: only as many parts as are non-zero, down to the hours.
+     * `%z`: sign, hours and minutes, as glibc prints it (seconds of the offset are dropped).
      */
-    private static function shortestOffset(string $sign, int $hours, int $minutes, int $seconds): string
+    private static function offset(int $seconds): string
     {
-        if (0 !== $seconds) {
-            return \sprintf('%s%02d:%02d:%02d', $sign, $hours, $minutes, $seconds);
-        }
+        $minutes = intdiv(abs($seconds), 60);
 
-        if (0 !== $minutes) {
-            return \sprintf('%s%02d:%02d', $sign, $hours, $minutes);
-        }
-
-        return \sprintf('%s%02d', $sign, $hours);
+        return \sprintf('%s%02d%02d', $seconds < 0 ? '-' : '+', intdiv($minutes, 60), $minutes % 60);
     }
 
     /**

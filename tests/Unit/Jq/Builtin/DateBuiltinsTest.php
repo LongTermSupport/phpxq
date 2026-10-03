@@ -34,7 +34,7 @@ final class DateBuiltinsTest extends TestCase
 
     public function testRegistersNativesAndPrelude(): void
     {
-        $registry = self::registry();
+        $registry = $this->registry();
 
         foreach (['now/0', 'mktime/0', 'gmtime/0', 'localtime/0', 'strftime/1', 'strflocaltime/1', 'strptime/1'] as $signature) {
             [$name, $arity] = explode('/', $signature);
@@ -170,7 +170,7 @@ final class DateBuiltinsTest extends TestCase
         self::assertSame([2037, 1, 11, 1, 2, 3, 3, 41], $last);
     }
 
-    private static function registry(): BuiltinRegistry
+    private function registry(): BuiltinRegistry
     {
         $registry = new DefaultBuiltinRegistry();
         new DateBuiltins()->registerInto($registry);
@@ -180,7 +180,7 @@ final class DateBuiltinsTest extends TestCase
 
     private function call(string $name, mixed $input, mixed ...$args): mixed
     {
-        $builtin = self::registry()->lookup($name, \count($args));
+        $builtin = $this->registry()->lookup($name, \count($args));
         self::assertInstanceOf(ValueBuiltin::class, $builtin);
 
         return $builtin->call($this->context(), $input, array_values($args));

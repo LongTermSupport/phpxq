@@ -10,9 +10,12 @@ use LTS\PhpXq\Jq\Runtime\JqException;
  * A compiled jq regex: an Oniguruma pattern plus jq's modifier string, translated to PCRE once and cached.
  *
  * Modifiers: `g` global, `i` case-insensitive, `x` extended, `s` single-line (PCRE's default, so a no-op),
- * `p` dot matches newline (and single-line), `n` ignore empty matches, `l` longest match (accepted, but PCRE
- * cannot do leftmost-longest, so it has no effect). `n` rejects empty matches after the fact, so it does not
- * backtrack into a non-empty alternative at the same position the way Oniguruma's option does.
+ * `p` dot matches newline (and single-line), `n` ignore empty matches, `l` longest match.
+ *
+ * Limits: `n` rejects empty matches after the fact, so it does not backtrack into a non-empty alternative at
+ * the same position the way Oniguruma's option does. `l` picks the longest of the matches PCRE finds at each
+ * start position (the first alternative that matches there), where Oniguruma also weighs every alternative at
+ * one position against each other.
  *
  * @internal
  */
@@ -47,9 +50,11 @@ final class OnigRegex
         public readonly string $source,
         public readonly bool $global,
         public readonly bool $ignoreEmpty,
+        public readonly bool $longest,
         public readonly array $groupNames,
         private readonly string $modifiers,
         private readonly bool $extended,
+        private readonly bool $ignoreCase,
         private readonly string $nativePcre,
         private readonly bool $usesWordEscapes,
     ) {
@@ -67,6 +72,8 @@ final class OnigRegex
 
         $global      = false;
         $ignoreEmpty = false;
+        $longest     = false;
+        $ignoreCase  = false;
         $extended    = false;
         $modifiers   = 'u';
         foreach (str_split($flags ?? '') as $flag) {
@@ -78,6 +85,7 @@ final class OnigRegex
 
                 case 'i':
                     $modifiers .= 'i';
+                    $ignoreCase = true;
 
                     break;
 
@@ -97,8 +105,12 @@ final class OnigRegex
 
                     break;
 
-                case 's':
                 case 'l':
+                    $longest = true;
+
+                    break;
+
+                case 's':
                     break;
 
                 default:
@@ -106,14 +118,16 @@ final class OnigRegex
             }
         }
 
-        $translated = RegexTranslator::translate($source, $extended, false);
+        $translated = RegexTranslator::translate($source, $extended, false, $ignoreCase);
         $regex      = new self(
             $source,
             $global,
             $ignoreEmpty,
+            $longest,
             $translated->groupNames,
             $modifiers,
             $extended,
+            $ignoreCase,
             '/' . $translated->pcre . '/' . $modifiers,
             $translated->usesWordEscapes,
         );
@@ -138,9 +152,17 @@ final class OnigRegex
         return $this->unicodeWordPcre ??= $this->translateForUnicodeWords();
     }
 
+    /**
+     * The same pattern, but only matching exactly at the offset given to the search.
+     */
+    public function anchoredPcre(bool $ascii): string
+    {
+        return $this->pcre($ascii) . 'A';
+    }
+
     private function translateForUnicodeWords(): string
     {
-        $translated = RegexTranslator::translate($this->source, $this->extended, true);
+        $translated = RegexTranslator::translate($this->source, $this->extended, true, $this->ignoreCase);
         $delimited  = '/' . $translated->pcre . '/' . $this->modifiers;
         $this->verify($delimited);
 

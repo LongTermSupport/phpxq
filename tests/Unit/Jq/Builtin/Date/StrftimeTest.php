@@ -65,9 +65,7 @@ final class StrftimeTest extends TestCase
         yield 'y' => ['%y', '15'];
         yield 'Y' => ['%Y', '2015'];
         yield 'z' => ['%z', '+0000'];
-        yield 'colon z' => ['%:z', '+00:00'];
-        yield 'two colon z' => ['%::z', '+00:00:00'];
-        yield 'three colon z' => ['%:::z', '+00'];
+        yield 'colon z is not a glibc conversion' => ['%:z', '%:z'];
         yield 'Z' => ['%Z', 'UTC'];
         yield 'percent' => ['%%', '%'];
     }
@@ -116,13 +114,9 @@ final class StrftimeTest extends TestCase
         $time = new BrokenDownTime(2025, 5, 21, 12, 0, 0, 6, 171, 7200, 'CEST', true);
 
         self::assertSame('+0200 CEST', Strftime::format('%z %Z', $time));
-        self::assertSame('+02:00', Strftime::format('%:z', $time));
         self::assertSame('1750500000', Strftime::format('%s', $time));
         self::assertSame('-0330', Strftime::format('%z', new BrokenDownTime(2025, 0, 1, 0, 0, 0, 3, 0, -12600, 'NST')));
-        self::assertSame('-03:30', Strftime::format('%:z', new BrokenDownTime(2025, 0, 1, 0, 0, 0, 3, 0, -12600, 'NST')));
-        self::assertSame('+05:30:15', Strftime::format('%::z', new BrokenDownTime(2025, 0, 1, 0, 0, 0, 3, 0, 19815, 'X')));
-        self::assertSame('+05:30:15', Strftime::format('%:::z', new BrokenDownTime(2025, 0, 1, 0, 0, 0, 3, 0, 19815, 'X')));
-        self::assertSame('+05:30', Strftime::format('%:::z', new BrokenDownTime(2025, 0, 1, 0, 0, 0, 3, 0, 19800, 'X')));
+        self::assertSame('+0530', Strftime::format('%z', new BrokenDownTime(2025, 0, 1, 0, 0, 0, 3, 0, 19815, 'X')));
     }
 
     public function testIsoWeekAtYearBoundaries(): void

@@ -46,17 +46,46 @@ final class RegexTranslatorTest extends TestCase
         self::assertSame(['a', 'b'], $translated->groupNames);
     }
 
-    public function testHexDigitEscapes(): void
+    public function testHexEscapesAreLiteralLettersLikeInOnigurumasPerlSyntax(): void
     {
-        self::assertSame('[0-9a-fA-F]+[^0-9a-fA-F]', RegexTranslator::translate('\h+\H', false, false)->pcre);
-        self::assertSame('[0-9a-fA-Fz]', RegexTranslator::translate('[\hz]', false, false)->pcre);
+        self::assertSame('h+H', RegexTranslator::translate('\h+\H', false, false)->pcre);
+        self::assertSame('[hz]', RegexTranslator::translate('[\hz]', false, false)->pcre);
     }
 
-    public function testNegatedHexEscapeInsideClassIsRejected(): void
+    public function testPosixPropertyNamesPcreLacksAreMapped(): void
+    {
+        self::assertSame('[\p{Nd}]+', RegexTranslator::translate('\p{Digit}+', false, false)->pcre);
+        self::assertSame('[^\p{Nd}]', RegexTranslator::translate('\P{digit}', false, false)->pcre);
+        self::assertSame('[^\p{Nd}]', RegexTranslator::translate('\p{^Digit}', false, false)->pcre);
+        self::assertSame('[\p{Nd}]', RegexTranslator::translate('\P{^Digit}', false, false)->pcre);
+        self::assertSame('[\p{Nd}x]', RegexTranslator::translate('[\p{Digit}x]', false, false)->pcre);
+        self::assertSame('[\P{Nd}x]', RegexTranslator::translate('[\P{Digit}x]', false, false)->pcre);
+        self::assertSame('[\H]', RegexTranslator::translate('[\P{Blank}]', false, false)->pcre);
+        self::assertSame('[0-9a-fA-F]', RegexTranslator::translate('\p{XDigit}', false, false)->pcre);
+        self::assertSame('[\x00-\x7f]', RegexTranslator::translate('\p{ASCII}', false, false)->pcre);
+        self::assertSame('[\p{Pc}]', str_replace('\p{L}\p{M}\p{Nd}\p{Nl}', '', RegexTranslator::translate('\p{Word}', false, false)->pcre));
+    }
+
+    public function testPropertyNamesAreNormalisedAndOthersAreLeftToPcre(): void
+    {
+        self::assertSame('[\p{Nd}]', RegexTranslator::translate('\p{ D_i-g it }', false, false)->pcre);
+        self::assertSame('\p{L}+', RegexTranslator::translate('\p{L}+', false, false)->pcre);
+        self::assertSame('\p{Greek}', RegexTranslator::translate('\p{Greek}', false, false)->pcre);
+        self::assertSame('\p{', RegexTranslator::translate('\p{', false, false)->pcre);
+    }
+
+    public function testCasedClassesWithIgnoreCase(): void
+    {
+        self::assertSame('[\p{Lu}\p{Ll}\p{Lt}]', RegexTranslator::translate('[[:upper:]]', false, false, true)->pcre);
+        self::assertSame('[[:upper:]]', RegexTranslator::translate('[[:upper:]]', false, false, false)->pcre);
+        self::assertSame('[\p{Lu}\p{Ll}\p{Lt}]', RegexTranslator::translate('\p{Lower}', false, false, true)->pcre);
+    }
+
+    public function testNegatedPropertyWithoutAClassFormInsideAClassIsRejected(): void
     {
         self::assertSame(
-            '[\H] (at offset 0) is not a valid regex: \H inside a character class is not supported',
-            $this->errorOf('[\H]'),
+            '[\P{Alnum}] (at offset 0) is not a valid regex: negated property inside a character class is not supported',
+            $this->errorOf('[\P{Alnum}]'),
         );
     }
 

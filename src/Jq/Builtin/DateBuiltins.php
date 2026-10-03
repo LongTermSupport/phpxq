@@ -40,7 +40,6 @@ final class DateBuiltins implements BuiltinProvider
         def date: todate;
         def dateadd(u; n): . + n;
         def datesub(u; n): . - n;
-        def datesub(u; n; $x): . - n;
         JQ;
 
     public function registerInto(BuiltinRegistry $registry): void

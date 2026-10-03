@@ -90,6 +90,36 @@ final class RegexEngineTest extends TestCase
         self::assertSame([null, -1], $matches[0][2]);
     }
 
+    public function testLongestModifierPicksTheLongestMatchOverAllStartPositions(): void
+    {
+        $matches = RegexEngine::find(OnigRegex::compile('\D+', 'l'), 'ab12 cd34', false, true);
+
+        self::assertCount(1, $matches);
+        self::assertSame([' cd', 4], $matches[0][0]);
+    }
+
+    public function testLongestModifierPrefersTheEarlierMatchOnATie(): void
+    {
+        $strings = array_map(
+            static fn (array $groups): string => (string)$groups[0][0],
+            RegexEngine::find(OnigRegex::compile('\d+|ab', 'gl'), 'ab12 cd34', true, true),
+        );
+
+        self::assertSame(['ab', '12', '34'], $strings);
+    }
+
+    public function testLongestModifierOnNonAsciiSubjectsAdvancesByCharacter(): void
+    {
+        $matches = RegexEngine::find(OnigRegex::compile('\p{L}+', 'l'), "\u{e9} abc", false, false);
+
+        self::assertSame(['abc', 3], $matches[0][0]);
+    }
+
+    public function testLongestModifierWithoutAnyMatch(): void
+    {
+        self::assertSame([], RegexEngine::find(OnigRegex::compile('x', 'l'), 'abc', false, true));
+    }
+
     public function testMatches(): void
     {
         self::assertTrue(RegexEngine::matches(OnigRegex::compile('b', null), 'abc', true));

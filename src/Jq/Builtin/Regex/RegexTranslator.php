@@ -10,14 +10,16 @@ use LTS\PhpXq\Jq\Runtime\JqException;
  * Translates an Oniguruma pattern (jq compiles with ONIG_SYNTAX_PERL_NT, so it is already close to PCRE)
  * into PCRE source for the `/` delimiter.
  *
- * Translations: `\h`/`\H` are hex digits in Oniguruma (horizontal space in PCRE); `{,n}` means `{0,n}`;
- * the delimiter `/` is escaped; duplicate group names are allowed. For subjects with non-ASCII text,
+ * Translations: `\h`/`\H` are plain `h`/`H` (the Perl syntax has no such escape, while PCRE reads them as
+ * horizontal space); `{,n}` means `{0,n}`; the delimiter `/` is escaped; duplicate group names are allowed;
+ * the POSIX property names PCRE lacks (`\p{Digit}`, `\p{Blank}`, `\p{Punct}`, ...) are mapped, and with the
+ * `i` modifier `[:upper:]` and `[:lower:]` match any cased letter. For subjects with non-ASCII text,
  * `\w \W \b \B` are rewritten to Oniguruma's Unicode word definition (letters, marks, decimal and letter
  * numbers, connector punctuation), because PCRE2 before 10.43 leaves combining marks out of `\w`.
  *
- * Known limits: `\H` and `\W` cannot be rewritten inside a character class (`\H` is rejected, `\W` keeps
- * PCRE's meaning); Oniguruma-only constructs (absent operator `(?~...)`, `\p{...}` property names PCRE
- * lacks, `\y`/`\Y`) are left to PCRE and fail as invalid regexes.
+ * Known limits: a negated mapped property or `\W` inside a character class cannot be rewritten (the
+ * property case is rejected, `\W` keeps PCRE's meaning); Oniguruma-only constructs (absent operator
+ * `(?~...)`, other `\p{...}` names PCRE lacks, `\y`/`\Y`) are left to PCRE and fail as invalid regexes.
  *
  * @internal
  */
@@ -26,6 +28,26 @@ final class RegexTranslator
     private const string HEX = '0-9a-fA-F';
 
     private const string WORD = '\p{L}\p{M}\p{Nd}\p{Nl}\p{Pc}';
+
+    private const string CASED = '\p{Lu}\p{Ll}\p{Lt}';
+
+    /**
+     * Normalised Oniguruma property name => class body, and the body to use for the negation inside a
+     * character class (null when there is none).
+     */
+    private const array PROPERTIES = [
+        'alnum'  => ['\p{L}\p{Nl}\p{Nd}', null],
+        'ascii'  => ['\x00-\x7f', null],
+        'blank'  => ['\h', '\H'],
+        'cntrl'  => ['\p{Cc}', '\P{Cc}'],
+        'digit'  => ['\p{Nd}', '\P{Nd}'],
+        'lower'  => ['\p{Ll}', '\P{Ll}'],
+        'punct'  => ['\p{P}', '\P{P}'],
+        'space'  => ['\s', '\S'],
+        'upper'  => ['\p{Lu}', '\P{Lu}'],
+        'word'   => [self::WORD, null],
+        'xdigit' => [self::HEX, null],
+    ];
 
     private function __construct()
     {
@@ -39,7 +61,7 @@ final class RegexTranslator
         return new JqException($source . ' (at offset 0) is not a valid regex: ' . $reason);
     }
 
-    public static function translate(string $source, bool $extended, bool $unicodeWord): TranslatedPattern
+    public static function translate(string $source, bool $extended, bool $unicodeWord, bool $ignoreCase = false): TranslatedPattern
     {
         $length     = \strlen($source);
         $out        = '';
@@ -58,6 +80,17 @@ final class RegexTranslator
                 }
 
                 $escape = $source[$i + 1];
+                if (('p' === $escape || 'P' === $escape) && 1 === preg_match('/\G\\\([pP])\{(\^?)([^}]*)\}/', $source, $property, 0, $i)) {
+                    $negated     = ('P' === $property[1]) !== ('^' === $property[2]);
+                    $replacement = self::translateProperty($source, $property[3], $negated, $inClass, $ignoreCase);
+                    if (null !== $replacement) {
+                        $out .= $replacement;
+                        $i   += \strlen($property[0]);
+
+                        continue;
+                    }
+                }
+
                 if ('Q' === $escape) {
                     $end     = strpos($source, '\E', $i + 2);
                     $quoted  = false === $end ? substr($source, $i + 2) : substr($source, $i + 2, $end - $i - 2);
@@ -71,7 +104,7 @@ final class RegexTranslator
                     $usesWord = true;
                 }
 
-                $out .= self::translateEscape($source, $escape, $inClass, $unicodeWord);
+                $out .= self::translateEscape($escape, $inClass, $unicodeWord);
                 $i   += 2;
 
                 continue;
@@ -81,8 +114,9 @@ final class RegexTranslator
                 if ('[' === $c && ':' === ($source[$i + 1] ?? '')) {
                     $close = strpos($source, ':]', $i + 2);
                     if (false !== $close) {
-                        $out .= substr($source, $i, $close + 2 - $i);
-                        $i    = $close + 2;
+                        $bracket = substr($source, $i, $close + 2 - $i);
+                        $out    .= $ignoreCase && ('[:upper:]' === $bracket || '[:lower:]' === $bracket) ? self::CASED : $bracket;
+                        $i       = $close + 2;
 
                         continue;
                     }
@@ -153,18 +187,40 @@ final class RegexTranslator
         return new TranslatedPattern($out, $names, $usesWord);
     }
 
-    private static function translateEscape(string $source, string $escape, bool $inClass, bool $unicodeWord): string
+    /**
+     * `\p{name}` for an Oniguruma name PCRE does not know, or null to leave the escape to PCRE.
+     *
+     * @throws JqException when a negation cannot be expressed inside a character class
+     */
+    private static function translateProperty(string $source, string $name, bool $negated, bool $inClass, bool $ignoreCase): ?string
+    {
+        $key = str_replace([' ', '_', '-'], '', strtolower($name));
+        if (!isset(self::PROPERTIES[$key])) {
+            return null;
+        }
+
+        [$body, $negatedBody] = self::PROPERTIES[$key];
+        if ($ignoreCase && ('upper' === $key || 'lower' === $key)) {
+            [$body, $negatedBody] = [self::CASED, null];
+        }
+
+        if (!$negated) {
+            return $inClass ? $body : '[' . $body . ']';
+        }
+
+        if (!$inClass) {
+            return '[^' . $body . ']';
+        }
+
+        return $negatedBody ?? throw self::invalid($source, 'negated property inside a character class is not supported');
+    }
+
+    private static function translateEscape(string $escape, bool $inClass, bool $unicodeWord): string
     {
         switch ($escape) {
             case 'h':
-                return $inClass ? self::HEX : '[' . self::HEX . ']';
-
             case 'H':
-                if ($inClass) {
-                    throw self::invalid($source, '\H inside a character class is not supported');
-                }
-
-                return '[^' . self::HEX . ']';
+                return $escape;
 
             case 'w':
                 if ($unicodeWord) {
