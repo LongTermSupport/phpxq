@@ -14,7 +14,16 @@
 # genuinely unsupported feature) and finally removed once the suite is fully green.
 
 # yq-yaml
-usage/base64.md: Encode base64: string	Vendored fixture is damaged: the extractor swallowed the next markdown section into the expected output (case 461)
-usage/base64url.md: Encode base64url: string	Vendored fixture is damaged: the extractor swallowed the next markdown section into the expected output (case 466)
-operators/comment-operators.md: Get head comment	upstream reads the root head comment from go-yaml document comments (with the blank line after the leading comment kept in the text); phpxq slurps that leading header ahead of the node tree (header preprocessing), so head_comment cannot see it
-operators/comment-operators.md: Head comment with document split	upstream joins the comment before --- with the one after it into the root head comment; phpxq slurps the leading header ahead of the node tree, so head_comment sees only the comment after the separator
+operators/comment-operators.md: Get head comment	upstream decodes without header preprocessing, so the root head comment keeps the blank line after the leading comment ("welcome!" plus a newline); the CLI slurps the leading header ahead of the node tree by default and head_comment cannot see it
+
+# yq-eval
+operators/datetime.md: Now	upstream asserts a frozen clock (2021-05-19T01:02:03Z); now is the real time here
+operators/datetime.md: To Unix	upstream asserts a frozen clock (2021-05-19T01:02:03Z); now is the real time here
+operators/datetime.md: Timezone: from standard RFC3339 format	upstream asserts a frozen clock (2021-05-19T01:02:03Z); now is the real time here
+operators/shuffle.md: *	shuffle output is random and the upstream example pins a Go math/rand seeded sequence
+operators/system-operators.md: *	the system operator spawns an external process, deliberately unsupported by phpxq
+operators/comment-operators.md: Head comment with document split	upstream decodes without header preprocessing; the CLI slurps the "# welcome!" header before the separator by default (matches with --header-preprocess=false)
+
+# yq-eval-r2
+usage/base64.md: Encode base64: string	upstream fixture is damaged: the expected output swallowed trailing markdown ("```" and the next heading)
+usage/base64url.md: Encode base64url: string	upstream fixture is damaged: the expected output swallowed trailing markdown ("```" and the next heading)

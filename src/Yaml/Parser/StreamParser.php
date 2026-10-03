@@ -151,8 +151,9 @@ final class StreamParser
      */
     private function splitDocumentHead(string $head): array
     {
+        // The document head keeps one trailing newline: it records the blank line that follows the comment.
         if (str_ends_with($head, "\n")) {
-            return [rtrim($head, "\n"), ''];
+            return [rtrim($head, "\n") . "\n", ''];
         }
 
         $at = strrpos($head, "\n\n");
@@ -160,7 +161,7 @@ final class StreamParser
             return ['', $head];
         }
 
-        return [substr($head, 0, $at), substr($head, $at + 2)];
+        return [substr($head, 0, $at) . "\n", substr($head, $at + 2)];
     }
 
     private function documentContent(): Node

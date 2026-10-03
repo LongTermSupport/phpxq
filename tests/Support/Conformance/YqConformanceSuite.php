@@ -80,6 +80,11 @@ final readonly class YqConformanceSuite implements ConformanceSuiteInterface
                 $args[] = $flag;
             }
 
+            // Upstream runs the "FIXED:" scenarios with yamlFixMergeAnchorToSpec enabled.
+            if (str_contains($name, ': FIXED:')) {
+                $args[] = '--yaml-fix-merge-anchor-to-spec';
+            }
+
             if (\is_string($expression)) {
                 $args[] = $expression;
             }

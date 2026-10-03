@@ -58,6 +58,8 @@ final class CoreBuiltinsProgramTest extends TestCase
         yield 'paths and del' => ['del(.a) | [paths]', '{"a":1,"b":[1]}', ['[["b"],["b",0]]']];
 
         yield 'format' => ['@base64', '"hi"', ['"aGk="']];
+        yield 'urid format' => ['@urid', '"a%20%CE%BC"', ['"a μ"']];
+        yield 'urid format error' => ['try @urid catch .', '"abc%"', ['"string (\"abc%\") is not a valid uri encoding"']];
 
         yield 'csv' => ['@csv', '[1,"a"]', ['"1,\"a\""']];
 

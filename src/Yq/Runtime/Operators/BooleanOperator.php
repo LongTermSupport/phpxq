@@ -33,9 +33,13 @@ final class BooleanOperator implements BinaryOperatorInterface
             $expression->right,
             $context,
             $evaluator,
-            static function (?Candidate $left, ?Candidate $right, ?Candidate $from) use ($isAnd): Candidate {
-                $l = $left instanceof Candidate  && NodeOps::truthy(Cands::node($left));
-                $r = $right instanceof Candidate && NodeOps::truthy(Cands::node($right));
+            static function (?Candidate $left, ?Candidate $right, ?Candidate $from) use ($isAnd): ?Candidate {
+                if (!$left instanceof Candidate || !$right instanceof Candidate) {
+                    return null;
+                }
+
+                $l = NodeOps::truthy(Cands::node($left));
+                $r = NodeOps::truthy(Cands::node($right));
 
                 return Cands::derive(NodeOps::bool($isAnd ? $l && $r : $l || $r), $from);
             },

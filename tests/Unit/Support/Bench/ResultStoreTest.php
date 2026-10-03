@@ -64,7 +64,6 @@ final class ResultStoreTest extends TestCase
         unlink($nested);
         rmdir(\dirname($nested));
         rmdir(\dirname($nested, 2));
-        rmdir(\dirname($nested, 3));
     }
 
     public function testLoadRejectsWrongSchema(): void

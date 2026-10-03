@@ -118,7 +118,9 @@ final class ParserTest extends TestCase
         yield 'negate field' => ['-.a', '(neg (idx . "a"))'];
         yield 'subtract negative' => ['1 - -2', '(- 1 (neg 2))'];
         yield 'optional binds tighter' => ['1 + .a?', '(+ 1 (try (idx . "a")))'];
-        yield 'as inside binary rhs' => ['1 + . as $x | $x', '(+ 1 (as . ($x) $x))'];
+        yield 'as binds the whole binary expression' => ['1 + . as $x | $x', '(as (+ 1 .) ($x) $x)'];
+        yield 'as binds a negated term' => ['-1 as $x | $x', '(as (neg 1) ($x) $x)'];
+        yield 'object value negation ends at pipe' => ['{x: -. | abs}', '{("x" (| (neg .) abs))}'];
     }
 
     /**

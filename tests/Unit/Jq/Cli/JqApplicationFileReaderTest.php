@@ -40,18 +40,24 @@ final class JqApplicationFileReaderTest extends TestCase
 
     public function testUnreadableFile(): void
     {
-        if (0 === posix_getuid()) {
-            self::markTestSkipped('root can read everything');
-        }
-
         $path = tempnam(sys_get_temp_dir(), 'jqfr');
         self::assertIsString($path);
         chmod($path, 0o000);
+
+        // root can read everything, so a root run reads as the unprivileged "nobody" user instead.
+        $isRoot = 0 === posix_getuid();
+        if ($isRoot) {
+            self::assertTrue(posix_seteuid(65534), 'cannot drop root privileges');
+        }
 
         try {
             $this->expectExceptionObject(new RuntimeException('Could not open ' . $path . ': Permission denied'));
             FileReader::read($path);
         } finally {
+            if ($isRoot) {
+                posix_seteuid(0);
+            }
+
             unlink($path);
         }
     }

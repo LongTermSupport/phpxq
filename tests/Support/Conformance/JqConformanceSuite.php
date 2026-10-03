@@ -32,6 +32,8 @@ final readonly class JqConformanceSuite implements ConformanceSuiteInterface
 
     private const int EXIT_COMPILE_ERROR = 3;
 
+    private const int EXIT_RUNTIME_ERROR = 5;
+
     private string $directory;
 
     /**
@@ -77,9 +79,18 @@ final readonly class JqConformanceSuite implements ConformanceSuiteInterface
             return '' === $result->stdout ? null : 'expected empty stdout, got: ' . $result->stdout;
         }
 
-        $result = $runner->run(['jq', '-L', $modules, '-c', '--', $case->program], $case->input . "\n");
+        // jq's own test runner exports PAGER=less, which the manual's $ENV.PAGER examples rely on.
+        $previousPager = getenv('PAGER');
+        putenv('PAGER=less');
 
-        if (0 !== $result->exitCode) {
+        try {
+            $result = $runner->run(['jq', '-L', $modules, '-c', '--', $case->program], $case->input . "\n");
+        } finally {
+            putenv(false === $previousPager ? 'PAGER' : 'PAGER=' . $previousPager);
+        }
+
+        // jq's own test runner ignores a runtime error raised after every expected output was produced.
+        if (0 !== $result->exitCode && self::EXIT_RUNTIME_ERROR !== $result->exitCode) {
             return \sprintf('expected exit code 0, got exit code %d; stderr: %s', $result->exitCode, $result->stderr);
         }
 
