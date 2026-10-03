@@ -49,7 +49,8 @@ final class CallsTest extends TestCase
         yield 'select with and' => ['.[] | select(. > 1 and . < 3)', "- 1\n- 2\n- 3\n", "2\n"];
         yield 'and with an empty side selects nothing' => ['.. | select(kind == "scalar" and parent | kind != "seq")', "a: 1\nb:\n  - 2\n", "1\n"];
         yield 'document head comment keeps the blank line' => ['head_comment', "# hi\n\na: 1\n", "hi\n\n"];
-        yield 'head comment of a first key' => ['head_comment', "# bob\na: 1\n", "bob\n"];
+        yield 'head comment of a first key' => ['(.a | key) | head_comment', "# bob\na: 1\n", "bob\n"];
+        yield 'head comment of a root reads nothing of the first key' => ['head_comment', "# bob\na: 1\n", "\n"];
         yield 'has' => ['has("a")', "a: 1\n", "true\n"];
         yield 'not has' => ['has("b")', "a: 1\n", "false\n"];
         yield 'contains' => ['contains(["a"])', "- a\n- b\n", "true\n"];

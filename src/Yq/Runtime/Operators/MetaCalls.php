@@ -85,32 +85,28 @@ final class MetaCalls implements CallOperatorInterface
      */
     private function comment(Candidate $match, string $kind): string
     {
-        $text = Comments::get($match->node, $kind);
-        if ('' === $text && $match->parent instanceof Candidate && NodeKindEnum::Document === $match->parent->node->kind) {
-            $text = Comments::get($match->parent->node, $kind);
-
-            return '' === $text && 'head' === $kind ? $this->firstKeyHead($match->node) : $text;
+        $document = null;
+        if (NodeKindEnum::Document === $match->node->kind) {
+            $document = $match->node;
+        } elseif ($match->parent instanceof Candidate && NodeKindEnum::Document === $match->parent->node->kind) {
+            $document = $match->parent->node;
         }
 
-        if ('' === $text && NodeKindEnum::Document === $match->node->kind && isset($match->node->content[0])) {
-            $root = $match->node->content[0];
-            $text = Comments::get($root, $kind);
-            if ('' === $text && 'head' === $kind) {
-                return $this->firstKeyHead($root);
-            }
+        if ('head' === $kind && $document instanceof Node && !$document->commentsCleared && '' !== $document->leadingContent) {
+            return Comments::fromLeadingContent($document->leadingContent);
+        }
 
+        $text = Comments::get($match->node, $kind);
+        if ('' !== $text || !$document instanceof Node) {
             return $text;
         }
 
-        return $text;
-    }
+        $text = Comments::get($document, $kind);
+        if ('' === $text && $document === $match->node && isset($document->content[0])) {
+            $text = Comments::get($document->content[0], $kind);
+        }
 
-    /**
-     * The parser keeps the comment above a mapping's first entry on that entry's key.
-     */
-    private function firstKeyHead(Node $root): string
-    {
-        return NodeKindEnum::Mapping === $root->kind && isset($root->content[0]) ? $root->content[0]->headComment : '';
+        return $text;
     }
 
     private function styleName(Node $node): string

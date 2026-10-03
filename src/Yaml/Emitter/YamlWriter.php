@@ -395,7 +395,7 @@ final class YamlWriter
         $stag  = $this->shortTag($node->tag);
         $tag   = $stag;
 
-        if ($this->options->prettyPrint && (NodeStyleEnum::DoubleQuoted === $style || NodeStyleEnum::SingleQuoted === $style)) {
+        if ($this->options->prettyPrint && NodeStyleEnum::Default !== $style && NodeStyleEnum::Flow !== $style) {
             $style = isset(self::OLD_BOOLS[$value]) ? NodeStyleEnum::DoubleQuoted : NodeStyleEnum::Default;
         }
 

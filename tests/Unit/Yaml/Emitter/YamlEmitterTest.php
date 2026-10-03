@@ -564,7 +564,8 @@ final class YamlEmitterTest extends TestCase
 
         $doc               = Node::document($root);
 
-        self::assertSame("# only\n# comments\n", new YamlEmitter()->emit($doc));
+        // A bare scalar prints as its value alone, as the reference does: its comments are not printed.
+        self::assertSame("\n", new YamlEmitter()->emit($doc));
     }
 
     public function testStreamSeparators(): void
