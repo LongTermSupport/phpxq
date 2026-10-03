@@ -11,6 +11,7 @@ use LTS\PhpXq\Tests\Support\Conformance\GapList;
 use LTS\PhpXq\Tests\Support\Conformance\JqConformanceSuite;
 use LTS\PhpXq\Tests\Support\Conformance\YqConformanceSuite;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Large;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -20,6 +21,7 @@ use PHPUnit\Framework\TestCase;
  *
  * @internal
  */
+#[Large]
 final class GapAwareConformanceTest extends TestCase
 {
     #[DataProvider('provideSuites')]
