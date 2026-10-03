@@ -104,6 +104,7 @@ final class PrattParserTest extends TestCase
         yield 'greater equal'         => ['.a >= .b', '(>= (field . !!str:a) (field . !!str:b))'];
         yield 'arithmetic'            => ['1 + 2 * 3 - 4', '(- (+ !!int:1 (* !!int:2 !!int:3)) !!int:4)'];
         yield 'divide modulo'         => ['.a / .b % 2', '(% (/ (field . !!str:a) (field . !!str:b)) !!int:2)'];
+        yield 'pipe below and'        => ['.a and .b | kind != "seq"', '(and (field . !!str:a) (| (field . !!str:b) (!= (call kind) !!str:seq)))'];
         yield 'compare below add'     => ['.a + 1 == 3', '(== (+ (field . !!str:a) !!int:1) !!int:3)'];
         yield 'subtract identity'     => ['. - [1]', '(- . (collect !!int:1))'];
         yield 'multiply plus'         => ['.a *+ .b', '(*/+ (field . !!str:a) (field . !!str:b))'];
