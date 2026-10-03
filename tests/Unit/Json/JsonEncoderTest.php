@@ -60,7 +60,7 @@ final class JsonEncoderTest extends TestCase
         yield 'object'               => [JsonObject::fromPairs(['b' => 1, 'a' => [2]]), '{"b":1,"a":[2]}'];
         yield 'numeric keys'         => [JsonObject::fromPairs([1 => 'x', '01' => 'y']), '{"1":"x","01":"y"}'];
         yield 'empty key'            => [JsonObject::fromPairs(['' => 1]), '{"":1}'];
-        yield 'quote and backslash'  => ['a"b\\c', '"a\"b\\\c"'];
+        yield 'quote and backslash'  => ['a"b\c', '"a\"b\\\c"'];
         yield 'solidus untouched'    => ['a/b', '"a/b"'];
         yield 'short escapes'        => ["\x08\x0c\n\r\t", '"\b\f\n\r\t"'];
         yield 'control characters'   => ["\x00\x01\x1f", '"\u0000\u0001\u001f"'];
@@ -151,6 +151,36 @@ final class JsonEncoderTest extends TestCase
         self::assertSame('"\ufffd"', $encoder->encode("\xff", $options));
         self::assertSame('{"\u00e9":"\u00e9"}', $encoder->encode(JsonObject::fromPairs(["\u{e9}" => "\u{e9}"]), $options));
         self::assertSame('"plain"', $encoder->encode('plain', $options));
+    }
+
+    public function testNestingBeyondTheDepthLimitIsSkippedLikeJq(): void
+    {
+        $encoder = new JsonEncoder();
+        $nested  = static function (int $levels, mixed $leaf): mixed {
+            $value = $leaf;
+            for ($i = 0; $i < $levels; ++$i) {
+                $value = [$value];
+            }
+
+            return $value;
+        };
+
+        $atLimit = $encoder->encode($nested(10000, []), EncodeOptions::compact());
+        self::assertSame(str_repeat('[', 10001) . str_repeat(']', 10001), $atLimit);
+
+        $beyond = $encoder->encode($nested(10001, []), EncodeOptions::compact());
+        self::assertSame(str_repeat('[', 10001) . '<skipped: too deep>' . str_repeat(']', 10001), $beyond);
+
+        $leaf = $encoder->encode($nested(10000, 1), EncodeOptions::compact());
+        self::assertStringNotContainsString('skipped', $leaf);
+        $leafBeyond = $encoder->encode($nested(10001, 1), EncodeOptions::compact());
+        self::assertSame(str_repeat('[', 10001) . '<skipped: too deep>' . str_repeat(']', 10001), $leafBeyond);
+
+        $object = JsonObject::fromPairs(['a' => $nested(10000, JsonObject::fromPairs(['b' => 1]))]);
+        self::assertStringContainsString('<skipped: too deep>', $encoder->encode($object, EncodeOptions::compact()));
+
+        $colored = $encoder->encode($nested(10002, 1), new EncodeOptions(indent: 0, colors: ColorScheme::default()));
+        self::assertStringContainsString('<skipped: too deep>', $colored);
     }
 
     public function testRejectsValuesOutsideTheModel(): void

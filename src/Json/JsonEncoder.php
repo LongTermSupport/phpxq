@@ -21,6 +21,13 @@ final class JsonEncoder implements JsonEncoderInterface
     private const string RESET = "\e[0m";
 
     /**
+     * jq prints a value nested more than this many containers deep as this marker (MAX_PRINT_DEPTH).
+     */
+    private const int MAX_PRINT_DEPTH = 10000;
+
+    private const string SKIPPED = '<skipped: too deep>';
+
+    /**
      * Valid UTF-8 without a character that JSON escapes: printed as is (one pass checks both).
      */
     private const string PLAIN_UTF8 = '/^[^\x00-\x1f"\\\\\x7f]*+$/Du';
@@ -89,8 +96,12 @@ final class JsonEncoder implements JsonEncoderInterface
      * @param string $newline the line break plus indentation of the current depth ("" when compact)
      * @param string $unit    one level of indentation ("" when compact)
      */
-    private function plain(mixed $value, string $newline, string $unit, bool $sortKeys, bool $ascii): string
+    private function plain(mixed $value, string $newline, string $unit, bool $sortKeys, bool $ascii, int $depth = 0): string
     {
+        if ($depth > self::MAX_PRINT_DEPTH) {
+            return self::SKIPPED;
+        }
+
         if (\is_string($value)) {
             return $this->quote($value, $ascii);
         }
@@ -105,6 +116,10 @@ final class JsonEncoder implements JsonEncoderInterface
             }
 
             $child = $newline . $unit;
+            if ($depth >= self::MAX_PRINT_DEPTH) {
+                return '[' . $child . implode(',' . $child, array_fill(0, \count($value), self::SKIPPED)) . $newline . ']';
+            }
+
             $parts = [];
             foreach ($value as $item) {
                 if (\is_string($item)) {
@@ -119,7 +134,7 @@ final class JsonEncoder implements JsonEncoderInterface
                     continue;
                 }
 
-                $parts[] = $this->plain($item, $child, $unit, $sortKeys, $ascii);
+                $parts[] = $this->plain($item, $child, $unit, $sortKeys, $ascii, $depth + 1);
             }
 
             return '[' . $child . implode(',' . $child, $parts) . $newline . ']';
@@ -134,7 +149,7 @@ final class JsonEncoder implements JsonEncoderInterface
             $colon = '' === $unit ? ':' : ': ';
             $parts = [];
             foreach ($this->members($value, $sortKeys) as $key => $member) {
-                $parts[] = $this->quote((string)$key, $ascii) . $colon . $this->plain($member, $child, $unit, $sortKeys, $ascii);
+                $parts[] = $this->quote((string)$key, $ascii) . $colon . $this->plain($member, $child, $unit, $sortKeys, $ascii, $depth + 1);
             }
 
             return '{' . $child . implode(',' . $child, $parts) . $newline . '}';
@@ -143,8 +158,12 @@ final class JsonEncoder implements JsonEncoderInterface
         return $this->scalar($value);
     }
 
-    private function colored(mixed $value, string $newline, string $unit, bool $sortKeys, bool $ascii, ColorScheme $colors): string
+    private function colored(mixed $value, string $newline, string $unit, bool $sortKeys, bool $ascii, ColorScheme $colors, int $depth = 0): string
     {
+        if ($depth > self::MAX_PRINT_DEPTH) {
+            return self::SKIPPED;
+        }
+
         if (\is_array($value)) {
             if ([] === $value) {
                 return $colors->array . '[]' . self::RESET;
@@ -156,7 +175,7 @@ final class JsonEncoder implements JsonEncoderInterface
             $out   = $open;
             $first = true;
             foreach ($value as $item) {
-                $out  .= ($first ? '' : $comma) . $child . $this->colored($item, $child, $unit, $sortKeys, $ascii, $colors);
+                $out  .= ($first ? '' : $comma) . $child . $this->colored($item, $child, $unit, $sortKeys, $ascii, $colors, $depth + 1);
                 $first = false;
             }
 
@@ -178,7 +197,7 @@ final class JsonEncoder implements JsonEncoderInterface
                 $out .= ($first ? '' : $comma) . $child
                     . $colors->objectKey . $this->quote((string)$key, $ascii) . self::RESET
                     . $colon
-                    . $this->colored($member, $child, $unit, $sortKeys, $ascii, $colors);
+                    . $this->colored($member, $child, $unit, $sortKeys, $ascii, $colors, $depth + 1);
                 $first = false;
             }
 
