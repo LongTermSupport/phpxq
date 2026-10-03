@@ -140,6 +140,16 @@ final class ArithmeticTest extends TestCase
         );
     }
 
+    public function testMultiplyRejectsTooDeepObjectMerges(): void
+    {
+        $deep = new JsonObject([]);
+        for ($i = 0; $i < 10001; ++$i) {
+            $deep = new JsonObject(['a' => $deep]);
+        }
+
+        self::assertRaises(JqException::class, 'Object merge too deep', static fn (): mixed => Arithmetic::multiply($deep, $deep));
+    }
+
     public function testMultiplyRejectsHugeRepeats(): void
     {
         self::assertRaises(JqException::class, 'Repeat string result too long', static fn (): mixed => Arithmetic::multiply('abc', 1000000000));

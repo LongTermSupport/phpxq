@@ -40,6 +40,16 @@ final class PathOpsTest extends TestCase
         self::assertSame('bc', PathOps::getPath('abcd', [$slice]));
     }
 
+    public function testPathsLongerThanTenThousandStepsAreRejected(): void
+    {
+        $path = array_fill(0, 10001, 0);
+
+        self::assertNull(PathOps::getPath(null, \array_slice($path, 1)));
+        self::assertRaises(JqException::class, 'Path too deep', static fn (): mixed => PathOps::getPath(null, $path));
+        self::assertRaises(JqException::class, 'Path too deep', static fn (): mixed => PathOps::setPath(null, $path, 0));
+        self::assertRaises(JqException::class, 'Path too deep', static fn (): mixed => PathOps::deletePaths(null, [$path]));
+    }
+
     public function testGetPathPropagatesTypeErrors(): void
     {
         self::assertRaises(JqException::class, 'Cannot index number with string ("b")', static fn (): mixed => PathOps::getPath(new JsonObject(['a' => 1]), ['a', 'b']));

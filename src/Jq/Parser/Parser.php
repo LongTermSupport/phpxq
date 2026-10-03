@@ -372,7 +372,16 @@ final class Parser implements ParserInterface
     {
         $left = $this->parseUnary();
         while (true) {
-            $tok   = $this->tokens[$this->pos];
+            $tok = $this->tokens[$this->pos];
+            if (TokenTypeEnum::KwAs === $tok->type && $this->bindingAllowed && $min <= self::LEVEL_ALT) {
+                // `as` binds the whole operator expression on its left (`1 + 2 as $x | ...` binds 3).
+                ++$this->pos;
+                $patterns = $this->parsePatterns();
+                $this->expect(TokenTypeEnum::Pipe);
+
+                return new Bind($left, $patterns, $this->parsePipe());
+            }
+
             $level = self::LEVEL[$tok->type->value] ?? 0;
             if (0 === $level || $level < $min) {
                 return $left;
@@ -479,16 +488,7 @@ final class Parser implements ParserInterface
                 return new Label($name->text, $this->parsePipe());
 
             default:
-                $term = $this->parsePostfix();
-                if (!$this->bindingAllowed || TokenTypeEnum::KwAs !== $this->tokens[$this->pos]->type) {
-                    return $term;
-                }
-
-                ++$this->pos;
-                $patterns = $this->parsePatterns();
-                $this->expect(TokenTypeEnum::Pipe);
-
-                return new Bind($term, $patterns, $this->parsePipe());
+                return $this->parsePostfix();
         }
     }
 
@@ -1059,7 +1059,7 @@ final class Parser implements ParserInterface
     {
         if (TokenTypeEnum::Minus === $this->tokens[$this->pos]->type) {
             ++$this->pos;
-            $value = new Negate($this->parseObjectValue());
+            $value = new Negate($this->parseExpr(self::LEVEL_MUL));
         } else {
             $value = $this->parseExpr(self::LEVEL_ALT);
         }

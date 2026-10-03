@@ -6,6 +6,7 @@ namespace LTS\PhpXq\Cli;
 
 use LTS\PhpXq\Jq\Cli\JqApplication;
 use LTS\PhpXq\Yq\Cli\YqApplication;
+use Throwable;
 
 /**
  * @api
@@ -23,10 +24,16 @@ final class FrontController implements FrontControllerInterface
             return self::EXIT_USAGE;
         }
 
-        if ('jq' === $tool) {
-            return JqApplication::create()->run(\array_slice($args, 1), $stdin, $stdout, $stderr);
-        }
+        try {
+            if ('jq' === $tool) {
+                return JqApplication::create()->run(\array_slice($args, 1), $stdin, $stdout, $stderr);
+            }
 
-        return new YqApplication()->run(\array_slice($args, 1), $stdin, $stdout, $stderr);
+            return new YqApplication()->run(\array_slice($args, 1), $stdin, $stdout, $stderr);
+        } catch (Throwable $throwable) {
+            fwrite($stderr, \sprintf("%s: error (at <unknown>): internal error: %s\n", $tool, $throwable->getMessage()));
+
+            return self::EXIT_INTERNAL;
+        }
     }
 }

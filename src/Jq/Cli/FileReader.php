@@ -34,7 +34,15 @@ final class FileReader
             throw new RuntimeException('Could not open ' . $path . ': Permission denied');
         }
 
-        set_error_handler(static fn (): bool => true);
+        $reason = 'Input/output error';
+        set_error_handler(static function (int $level, string $message) use (&$reason): bool {
+            $separator = strrpos($message, ': ');
+            if (false !== $separator) {
+                $reason = substr($message, $separator + 2);
+            }
+
+            return true;
+        });
 
         try {
             $contents = file_get_contents($path);
@@ -43,7 +51,7 @@ final class FileReader
         }
 
         if (false === $contents) {
-            throw new RuntimeException('Could not open ' . $path . ': Input/output error');
+            throw new RuntimeException('Could not open ' . $path . ': ' . $reason);
         }
 
         return $contents;

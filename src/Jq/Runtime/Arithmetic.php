@@ -23,6 +23,8 @@ final class Arithmetic
 
     private const int MAX_STRING = 2147483647;
 
+    private const int MAX_MERGE_DEPTH = 10000;
+
     private function __construct()
     {
     }
@@ -279,13 +281,17 @@ final class Arithmetic
         return str_repeat($text, $times);
     }
 
-    private static function mergeDeep(JsonObject $left, JsonObject $right): JsonObject
+    private static function mergeDeep(JsonObject $left, JsonObject $right, int $depth = 0): JsonObject
     {
+        if ($depth > self::MAX_MERGE_DEPTH) {
+            throw new JqException('Object merge too deep');
+        }
+
         $merged = $left;
         foreach ($right->entries() as $key => $value) {
             $existing = $merged->get($key);
             if ($value instanceof JsonObject && $existing instanceof JsonObject) {
-                $merged = $merged->with($key, self::mergeDeep($existing, $value));
+                $merged = $merged->with($key, self::mergeDeep($existing, $value, $depth + 1));
             } else {
                 $merged = $merged->with($key, $value);
             }

@@ -238,10 +238,10 @@ final class TypeFunctions
             return true;
         }
 
-        if (\is_array($haystack) && \is_array($needle)) {
-            foreach ($needle as $wanted) {
-                $found = array_any($haystack, static fn ($candidate): bool => self::kind($candidate) === self::kind($wanted) && self::contains($candidate, $wanted, $depth + 1));
-                if (!$found) {
+        if (\is_array($haystack) && array_is_list($haystack) && \is_array($needle) && array_is_list($needle)) {
+            $wanted = \count($needle);
+            for ($i = 0; $i < $wanted; ++$i) {
+                if (!self::anyContains($haystack, $needle[$i], $depth + 1)) {
                     return false;
                 }
             }
@@ -254,6 +254,27 @@ final class TypeFunctions
         }
 
         return Values::equals($haystack, $needle);
+    }
+
+    /**
+     * Whether some element of the array contains $wanted. The loops of this class are indexed rather than
+     * `array_any`/`array_all` with a closure: a closure callback re-enters the engine through native
+     * code, so a depth of 10000 would exhaust the C stack, while plain PHP calls do not.
+     *
+     * @param list<mixed> $haystack
+     */
+    private static function anyContains(array $haystack, mixed $wanted, int $depth): bool
+    {
+        $wantedKind = self::kind($wanted);
+        $count      = \count($haystack);
+        for ($i = 0; $i < $count; ++$i) {
+            $candidate = $haystack[$i];
+            if (self::kind($candidate) === $wantedKind && self::contains($candidate, $wanted, $depth)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
