@@ -11,7 +11,6 @@ folder (e.g. `00001-feature-name/`) with a `PLAN.md` file.
 ## Active Plans
 
 - [00001: Epic Initial Build](00001-epic-initial-build/PLAN.md) - In Progress
-- [00002: Upstream Conformance Test Harness](00002-upstream-conformance-test-harness/PLAN.md) - Not Started
 - [00003: jq JSON Functionality](00003-jq-json-functionality/PLAN.md) - Not Started
 - [00004: yq YAML Functionality](00004-yq-yaml-functionality/PLAN.md) - Not Started
 - [00005: Benchmarking Suite](00005-benchmarking-suite/PLAN.md) - Not Started
@@ -20,10 +19,10 @@ folder (e.g. `00001-feature-name/`) with a `PLAN.md` file.
 
 ## Completed Plans
 
-_No completed plans yet._
+- [00002: Upstream Conformance Test Harness](Completed/00002-upstream-conformance-test-harness/PLAN.md) - Complete (delivered in PR #4)
 
 ## Statistics
 
 - **Total**: 7
-- **Active**: 7
-- **Completed**: 0
+- **Active**: 6
+- **Completed**: 1

@@ -50,6 +50,12 @@ vendor/bin/phpunit -c qaConfig/phpunit.xml --testsuite yq     # upstream yq conf
 ```
 
 The vendored fixtures record their upstream tag, commit and licence in a `NOTICE.md` beside them.
+`scripts/refresh-upstream-fixtures.bash` re-fetches them from the pinned tags.
+
+`scripts/conformance.bash [jq|yq|all]` runs everything, including the upstream shell suites (jq
+`shtest`, yq acceptance scripts), and checks the results against each tool's
+`tests/Conformance/<Tool>/known-gaps.txt`. It exits non-zero on an unexpected failure or on a known
+gap that now passes, so the gap lists shrink as the tools are built.
 
 The project has no production dependencies, so php-qa-ci's Safe-function Rector
 lane and its `thecodingmachine/safe` require-checker scan files are overridden in

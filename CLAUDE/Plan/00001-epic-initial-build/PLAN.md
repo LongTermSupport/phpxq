@@ -47,7 +47,7 @@ optimisation round will accept ugly code for measured speed.
 
 ### Phase 1: Foundations
 
-- [ ] ⬜ **Task 1.1**: Plan 00002 - upstream conformance test harness (runs jq and yq upstream suites)
+- [x] ✅ **Task 1.1**: Plan 00002 - upstream conformance test harness (runs jq and yq upstream suites)
 - [ ] ⬜ **Task 1.2**: Plan 00005 - benchmarking suite (baseline before and after optimisation)
 
 ### Phase 2: Functionality
@@ -81,10 +81,11 @@ optimisation round will accept ugly code for measured speed.
 **Context**: Two projects are called yq. mikefarah/yq is the Go tool with its own expression
 language and native YAML handling. kislyuk/yq is a Python wrapper that feeds YAML through jq.
 **Options Considered**:
+
 1. mikefarah/yq - the common `yq`, own syntax, MIT, has an acceptance test directory
 2. kislyuk/yq - jq syntax over YAML, so largely free once jq works
-**Decision**: Working assumption is mikefarah/yq; the owner has not confirmed it. Plan 00004
-holds the question open and must be confirmed before implementation starts.
+   **Decision**: Working assumption is mikefarah/yq; the owner has not confirmed it. Plan 00004
+   holds the question open and must be confirmed before implementation starts.
 
 ## Success Criteria
 
@@ -96,11 +97,11 @@ holds the question open and must be confirmed before implementation starts.
 
 ## Risks & Mitigations
 
-| Risk | Impact | Probability | Mitigation |
-| ---- | ------ | ----------- | ---------- |
-| Full jq language surface is large | High | High | Drive scope from the upstream suite, not from memory |
-| PHP too slow versus C/Go tools | Medium | Medium | Benchmark early; optimisation round is a first-class plan |
-| YAML spec complexity in pure PHP | High | Medium | Use the YAML test suite as the arbiter; scope recorded in Plan 00004 |
+| Risk                              | Impact | Probability | Mitigation                                                           |
+| --------------------------------- | ------ | ----------- | -------------------------------------------------------------------- |
+| Full jq language surface is large | High   | High        | Drive scope from the upstream suite, not from memory                 |
+| PHP too slow versus C/Go tools    | Medium | Medium      | Benchmark early; optimisation round is a first-class plan            |
+| YAML spec complexity in pure PHP  | High   | Medium      | Use the YAML test suite as the arbiter; scope recorded in Plan 00004 |
 
 ## Delivery & Milestones
 

@@ -52,6 +52,8 @@ refresh_jq() {
 
     rm -rf "$fixtures/modules"
     cp -pR "$src/tests/modules" "$fixtures/modules"
+    # Not upstream: keeps git from rewriting the vendored bytes.
+    printf '* -text -diff -whitespace\n' > "$fixtures/modules/.gitattributes"
 
     for file in shtest setup jq-f-test.sh no-main-program.jq yes-main-program.jq utf8test; do
         cp -p "$src/tests/$file" "$fixtures/shell/tests/$file"

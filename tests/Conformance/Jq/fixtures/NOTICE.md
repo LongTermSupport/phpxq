@@ -29,10 +29,12 @@ under Creative Commons Attribution 3.0 (https://creativecommons.org/licenses/by/
 
 ## Refresh procedure
 
-1. Shallow-clone the new tag: git clone --depth 1 --branch <tag> https://github.com/jqlang/jq
-2. Copy tests/{jq,man,onig,uri,manonig,base64,optional}.test over the files here, byte for byte (the
-   BOM and line endings matter), and tests/modules/ over ../modules/.
-3. Copy COPYING over the one here and update the tag and commit SHA in this file.
-4. Copy tests/{shtest,setup,jq-f-test.sh,no-main-program.jq,yes-main-program.jq,utf8test,torture/} over
-   ../shell/tests/, keeping the executable bits; the modules symlink stays.
-5. Update the expected case counts in tests/Unit/Support/Jq/JqVendoredFixturesTest.php.
+Run scripts/refresh-upstream-fixtures.bash jq. It clones the pinned tag, refuses a tag that no longer
+points at the recorded commit, and copies every vendored file byte for byte (the BOM and line endings
+matter), keeping the executable bits and the modules symlink.
+
+To move to a newer jq release:
+
+1. Change the tag and commit pins at the top of scripts/refresh-upstream-fixtures.bash.
+2. Run the script, and update the tag and commit SHA in this file.
+3. Update the expected case counts in tests/Unit/Support/Jq/JqVendoredFixturesTest.php.

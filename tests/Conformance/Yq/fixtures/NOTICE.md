@@ -37,14 +37,12 @@ not fixed here.
 
 Refresh
 
-Check out the pinned tag in a yq clone, then from the repository root:
+From the repository root run scripts/refresh-upstream-fixtures.bash yq. It clones the pinned tag,
+refuses a tag that no longer points at the recorded commit, copies the acceptance scripts, shunit2 and
+LICENSE, and regenerates cases.json and skipped.json.
 
-git -C /path/to/yq checkout v4.54.1
-php scripts/refresh-yq-fixtures.php /path/to/yq
+The generator is tests/Support/Yq/YqDocExtractor.php, run through scripts/refresh-yq-fixtures.php
+(which takes a path to any yq clone); its unit tests are in tests/Unit/Support/Yq/.
 
-The generator is tests/Support/Yq/YqDocExtractor.php; its unit tests are in tests/Unit/Support/Yq/.
-For the shell suite, copy acceptance_tests/\*.sh over acceptance/ and scripts/shunit2 over
-acceptance/scripts/shunit2 from the same checkout, keeping the executable bits.
-
-To move to a newer yq release, update the tag and commit in this file together with the regenerated
-JSON.
+To move to a newer yq release, change the tag and commit pins at the top of
+scripts/refresh-upstream-fixtures.bash, run it, and update the tag and commit in this file.
