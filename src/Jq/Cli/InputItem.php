@@ -55,6 +55,6 @@ final readonly class InputItem
 
     public function lineNumber(): int
     {
-        return $this->tracker instanceof \LTS\PhpXq\Jq\Cli\LineTracker ? $this->tracker->lineOfValue($this->ordinal) : $this->line;
+        return $this->tracker instanceof LineTracker ? $this->tracker->lineOfValue($this->ordinal) : $this->line;
     }
 }

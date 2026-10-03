@@ -156,6 +156,10 @@ final readonly class JqApplication
             $home = getenv('HOME');
             $ast  = new ProgramLoader($this->parser, false === $home ? null : $home)->load($source);
 
+            if ($options->debugDumpDisasm) {
+                $console->out(implode("\n", ProgramDump::lines($ast)) . "\n");
+            }
+
             return $this->compilers->create($options->libraryPaths)->compile($ast, $options->globalNames());
         } catch (JqCompileException $jqCompileException) {
             $this->reportCompileError($jqCompileException->getMessage(), $source, $console);
