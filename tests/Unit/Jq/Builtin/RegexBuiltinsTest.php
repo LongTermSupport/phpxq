@@ -136,6 +136,15 @@ final class RegexBuiltinsTest extends TestCase
         self::assertTrue($this->test('A', '\p{Lower}', 'i'));
     }
 
+    public function testIgnoreEmptyBacktracksIntoANonEmptyAlternative(): void
+    {
+        $matches = self::match('abc', '|a', 'n');
+
+        self::assertSame([['offset' => 0, 'length' => 1, 'string' => 'a', 'captures' => []]], $matches);
+        self::assertTrue($this->test('abc', '|a', 'n'));
+        self::assertFalse($this->test('xbc', '|a', 'n'));
+    }
+
     public function testLongestMatchModifier(): void
     {
         $matches = self::match("line1\nline2", '\D+', 'l');

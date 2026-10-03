@@ -43,6 +43,13 @@ final class CodepointCursorTest extends TestCase
         self::assertSame(6, $cursor->offset(12));
     }
 
+    public function testMeasureCountsCodepointsOnlyForNonAsciiSubjects(): void
+    {
+        self::assertSame(3, new CodepointCursor('abc', true)->measure('abc'));
+        self::assertSame(2, new CodepointCursor("\u{e9}\u{20ac}", false)->measure("\u{e9}\u{20ac}"));
+        self::assertSame(0, new CodepointCursor('', false)->measure(''));
+    }
+
     public function testCharacterWidth(): void
     {
         $subject = "a\u{e9}\u{20ac}\u{1F600}";

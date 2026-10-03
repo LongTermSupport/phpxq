@@ -23,6 +23,14 @@ final class CodepointCursor
     }
 
     /**
+     * The number of codepoints in a piece of the subject (its byte length when the subject is ASCII).
+     */
+    public function measure(string $text): int
+    {
+        return $this->ascii ? \strlen($text) : self::length($text);
+    }
+
+    /**
      * The number of codepoints in a UTF-8 string.
      */
     public static function length(string $text): int

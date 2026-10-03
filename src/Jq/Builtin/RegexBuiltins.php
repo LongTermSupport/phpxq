@@ -128,7 +128,10 @@ final class RegexBuiltins implements BuiltinProvider
             throw ErrorText::typeError($flags, 'is not a string');
         }
 
-        return [$input, OnigRegex::compile($pattern, $flags), RegexEngine::isAscii($input)];
+        $regex = OnigRegex::compile($pattern, $flags);
+
+        // the subject kind only matters here for the word-escape variant of the pattern
+        return [$input, $regex, !$regex->usesWordEscapes || RegexEngine::isAscii($input)];
     }
 
     /**
@@ -163,6 +166,7 @@ final class RegexBuiltins implements BuiltinProvider
             return RegexEngine::matches($regex, $subject, $ascii);
         }
 
+        $ascii   = RegexEngine::isAscii($subject);
         $cursor  = new CodepointCursor($subject, $ascii);
         $objects = [];
         foreach (RegexEngine::find($regex, $subject, $regex->global, $ascii) as $groups) {

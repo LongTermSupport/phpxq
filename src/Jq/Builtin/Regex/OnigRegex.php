@@ -12,10 +12,9 @@ use LTS\PhpXq\Jq\Runtime\JqException;
  * Modifiers: `g` global, `i` case-insensitive, `x` extended, `s` single-line (PCRE's default, so a no-op),
  * `p` dot matches newline (and single-line), `n` ignore empty matches, `l` longest match.
  *
- * Limits: `n` rejects empty matches after the fact, so it does not backtrack into a non-empty alternative at
- * the same position the way Oniguruma's option does. `l` picks the longest of the matches PCRE finds at each
- * start position (the first alternative that matches there), where Oniguruma also weighs every alternative at
- * one position against each other.
+ * `n` becomes PCRE's `(*NOTEMPTY)`, which backtracks into a non-empty alternative like Oniguruma's option.
+ * Limit: `l` picks the longest of the matches PCRE finds at each start position (the first alternative that
+ * matches there), where Oniguruma also weighs every alternative at one position against each other.
  *
  * @internal
  */
@@ -56,7 +55,7 @@ final class OnigRegex
         private readonly bool $extended,
         private readonly bool $ignoreCase,
         private readonly string $nativePcre,
-        private readonly bool $usesWordEscapes,
+        public readonly bool $usesWordEscapes,
     ) {
     }
 
@@ -128,7 +127,7 @@ final class OnigRegex
             $modifiers,
             $extended,
             $ignoreCase,
-            '/' . $translated->pcre . '/' . $modifiers,
+            self::delimit($translated->pcre, $ignoreEmpty, $modifiers),
             $translated->usesWordEscapes,
         );
         $regex->verify($regex->nativePcre);
@@ -163,10 +162,15 @@ final class OnigRegex
     private function translateForUnicodeWords(): string
     {
         $translated = RegexTranslator::translate($this->source, $this->extended, true, $this->ignoreCase);
-        $delimited  = '/' . $translated->pcre . '/' . $this->modifiers;
+        $delimited  = self::delimit($translated->pcre, $this->ignoreEmpty, $this->modifiers);
         $this->verify($delimited);
 
         return $delimited;
+    }
+
+    private static function delimit(string $pcre, bool $ignoreEmpty, string $modifiers): string
+    {
+        return '/' . ($ignoreEmpty ? '(*NOTEMPTY)' : '') . $pcre . '/' . $modifiers;
     }
 
     private function verify(string $delimited): void

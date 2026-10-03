@@ -38,7 +38,7 @@ final class MatchObjects
             } else {
                 $captures[] = new JsonObject([
                     'offset' => $cursor->offset($byteOffset),
-                    'length' => CodepointCursor::length($text),
+                    'length' => $cursor->measure($text),
                     'string' => $text,
                     'name'   => $name,
                 ]);
@@ -47,7 +47,7 @@ final class MatchObjects
 
         return new JsonObject([
             'offset'   => $cursor->offset($groups[0][1]),
-            'length'   => CodepointCursor::length($whole),
+            'length'   => $cursor->measure($whole),
             'string'   => $whole,
             'captures' => $captures,
         ]);
