@@ -1,0 +1,10 @@
+# PHP extensions compiled into the static runtime, one per line (comments and blank lines ignored).
+# scripts/build-binary.bash unions this list with every ext-* in composer.json "require", so an
+# extension the code needs only has to be declared once, in composer.json.
+#
+# phar     required: the binary is a PHAR combined with the micro SFX
+# mbstring multibyte string handling for jq/yq string functions
+# ctype    character classification used by the lexers
+phar
+mbstring
+ctype
