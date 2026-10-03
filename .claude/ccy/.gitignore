@@ -8,3 +8,4 @@
 !ccy.env
 !mounts
 !claude-supervise*
+!claude-supervise.py

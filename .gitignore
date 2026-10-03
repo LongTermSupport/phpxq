@@ -1,1 +1,7 @@
 /untracked/
+
+# Claude Code Hooks Daemon
+.claude/hooks-daemon/
+
+# ClaudeMdInjector backup (session artifact, never commit)
+.CLAUDE.md.pre-inject
