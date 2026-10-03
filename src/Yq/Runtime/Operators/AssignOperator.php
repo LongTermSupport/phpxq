@@ -1,0 +1,244 @@
+<?php
+
+declare(strict_types=1);
+
+namespace LTS\PhpXq\Yq\Runtime\Operators;
+
+use LTS\PhpXq\Yaml\Node;
+use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yq\Expression\Ast\Binary;
+use LTS\PhpXq\Yq\Expression\Ast\BinaryOperator;
+use LTS\PhpXq\Yq\Expression\Ast\Call;
+use LTS\PhpXq\Yq\Expression\ExpressionNode;
+use LTS\PhpXq\Yq\Runtime\Anchors;
+use LTS\PhpXq\Yq\Runtime\BinaryOperatorInterface;
+use LTS\PhpXq\Yq\Runtime\Candidate;
+use LTS\PhpXq\Yq\Runtime\Cands;
+use LTS\PhpXq\Yq\Runtime\Comments;
+use LTS\PhpXq\Yq\Runtime\Detached;
+use LTS\PhpXq\Yq\Runtime\EvaluationContext;
+use LTS\PhpXq\Yq\Runtime\EvaluationException;
+use LTS\PhpXq\Yq\Runtime\EvaluatorInterface;
+use LTS\PhpXq\Yq\Runtime\NodeOps;
+
+/**
+ * `=`, `|=` and the compound assignments (`+=`, `-=`, `*=`, `/=`, `%=`). The left side is evaluated against
+ * the document and each match is updated in place; the result is the unchanged input. `X style = "..."`
+ * (and `tag`, `anchor`, `alias`, `comments`, `head_comment`, `line_comment`, `foot_comment`) set a property
+ * of the matched nodes instead of their value.
+ */
+final class AssignOperator implements BinaryOperatorInterface
+{
+    private const array PROPERTY_SETTERS = [
+        'style'        => 'style',
+        'tag'          => 'tag',
+        'anchor'       => 'anchor',
+        'alias'        => 'alias',
+        'comments'     => 'comments',
+        'head_comment' => 'head',
+        'headComment'  => 'head',
+        'line_comment' => 'line',
+        'lineComment'  => 'line',
+        'foot_comment' => 'foot',
+        'footComment'  => 'foot',
+    ];
+
+    public function operators(): array
+    {
+        return [
+            BinaryOperator::Assign,
+            BinaryOperator::Update,
+            BinaryOperator::AddAssign,
+            BinaryOperator::SubtractAssign,
+            BinaryOperator::MultiplyAssign,
+            BinaryOperator::DivideAssign,
+            BinaryOperator::ModuloAssign,
+        ];
+    }
+
+    public function evaluate(Binary $expression, EvaluationContext $context, EvaluatorInterface $evaluator): array
+    {
+        $setter = self::propertySetter($expression->left);
+        $write  = $context->withDontAutoCreate(false);
+        if (null !== $setter) {
+            [$target, $property] = $setter;
+
+            return $this->setProperty($expression, $target, $property, $write, $evaluator);
+        }
+
+        $targets = $evaluator->evaluate($expression->left, $write);
+        $read    = $context->withDontAutoCreate(true);
+        $layout  = Cands::dateLayout($context);
+        switch ($expression->operator) {
+            case BinaryOperator::Assign:
+                $values = $evaluator->evaluate($expression->right, $read);
+                $first  = $values[0] ?? null;
+                $source = $first instanceof Candidate ? $first->node : NodeOps::null();
+                $adopt  = 1 === \count($targets) && (!$first instanceof Candidate || !$first->parent instanceof Candidate);
+                foreach ($targets as $target) {
+                    self::replace($target, $source, 'c' === $expression->modifiers, $adopt);
+                }
+
+                break;
+
+            case BinaryOperator::Update:
+                foreach ($targets as $target) {
+                    $values = $evaluator->evaluate($expression->right, $read->withMatches([$target]));
+                    if ([] !== $values) {
+                        self::replace($target, $values[0]->node, 'c' === $expression->modifiers, !$values[0]->parent instanceof Candidate);
+                    }
+                }
+
+                break;
+
+            default:
+                $values = $evaluator->evaluate($expression->right, $read);
+                $value  = $values[0] ?? null;
+                foreach ($targets as $target) {
+                    $result = ArithmeticOperator::apply($expression->operator, $target->node, $value?->node, $expression->modifiers, $layout);
+                    if ($result instanceof Node) {
+                        self::replace($target, $result, str_contains($expression->modifiers, 'c'), true);
+                    }
+                }
+
+                break;
+        }
+
+        return $context->matches;
+    }
+
+    private static function replace(Candidate $target, Node $source, bool $clobberTags, bool $adopt): void
+    {
+        Detached::attach($target);
+        NodeOps::updateFrom(Cands::node($target), $source, $clobberTags, $adopt);
+    }
+
+    /**
+     * @return array{ExpressionNode, string}|null the property target expression and the property to set
+     */
+    private static function propertySetter(ExpressionNode $left): ?array
+    {
+        if ($left instanceof Binary && BinaryOperator::Pipe === $left->operator && $left->right instanceof Call && [] === $left->right->arguments && isset(self::PROPERTY_SETTERS[$left->right->name])) {
+            return [$left->left, self::PROPERTY_SETTERS[$left->right->name]];
+        }
+
+        return null;
+    }
+
+    /**
+     * @return list<Candidate>
+     */
+    private function setProperty(Binary $expression, ExpressionNode $targetExpression, string $property, EvaluationContext $context, EvaluatorInterface $evaluator): array
+    {
+        $targets = $evaluator->evaluate($targetExpression, $context);
+        $read    = $context->withDontAutoCreate(true);
+        $fixed   = null;
+        if (BinaryOperator::Update !== $expression->operator) {
+            $values = $evaluator->evaluate($expression->right, $read);
+            $fixed  = $values[0]->node ?? null;
+        }
+
+        foreach ($targets as $target) {
+            $source = $fixed;
+            if (BinaryOperator::Update === $expression->operator) {
+                $values = $evaluator->evaluate($expression->right, $read->withMatches([$target]));
+                $source = $values[0]->node ?? null;
+            }
+
+            if (!$source instanceof Node) {
+                continue;
+            }
+
+            $value = NodeKind::Scalar === NodeOps::deref($source)->kind ? NodeOps::deref($source)->value : '';
+            Detached::attach($target);
+            self::apply($target, $property, $value);
+        }
+
+        return $context->matches;
+    }
+
+    private static function apply(Candidate $target, string $property, string $value): void
+    {
+        $node = $target->node;
+        switch ($property) {
+            case 'style':
+                self::setStyle($node, $value);
+
+                return;
+
+            case 'tag':
+                $node->tag = $value;
+
+                return;
+
+            case 'anchor':
+                $node->anchor = $value;
+
+                return;
+
+            case 'alias':
+                self::setAlias($target, $value);
+
+                return;
+
+            default:
+                $kind = match ($property) {
+                    'head'  => 'head',
+                    'foot'  => 'foot',
+                    'line'  => 'line',
+                    default => 'all',
+                };
+                Comments::set($node, $kind, $value);
+                if ('' === $value && Cands::isRoot($target) && $target->parent instanceof Candidate) {
+                    Comments::set($target->parent->node, $kind, '');
+                }
+
+                return;
+        }
+    }
+
+    private static function setStyle(Node $node, string $style): void
+    {
+        $node->tagExplicit = 'tagged'          === $style;
+        $collection        = NodeKind::Mapping === $node->kind || NodeKind::Sequence === $node->kind;
+        $new               = match ($style) {
+            'double'  => NodeStyle::DoubleQuoted,
+            'single'  => NodeStyle::SingleQuoted,
+            'literal' => NodeStyle::Literal,
+            'folded'  => NodeStyle::Folded,
+            'flow'    => NodeStyle::Flow,
+            default   => NodeStyle::Default,
+        };
+        if ($collection && NodeStyle::Flow !== $new) {
+            $new = NodeStyle::Default;
+        }
+
+        $node->style = $new;
+    }
+
+    private static function setAlias(Candidate $target, string $name): void
+    {
+        if ('' === $name) {
+            return;
+        }
+
+        $root   = Cands::root($target);
+        $anchor = Anchors::find(Cands::node($root), $name);
+        if (!$anchor instanceof Node && NodeKind::Document === $root->node->kind) {
+            $anchor = Anchors::find($root->node, $name);
+        }
+
+        $node              = $target->node;
+        $node->kind        = NodeKind::Alias;
+        $node->value       = $name;
+        $node->aliasTarget = $anchor;
+        $node->content     = [];
+        $node->style       = NodeStyle::Default;
+        $node->tag         = '';
+        $node->anchor      = '';
+        if (!$anchor instanceof Node) {
+            throw new EvaluationException(\sprintf('Could not find anchor %s', $name));
+        }
+    }
+}
