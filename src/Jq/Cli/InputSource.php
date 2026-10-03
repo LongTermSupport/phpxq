@@ -39,9 +39,8 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
 
     private bool $unreadable = false;
 
-    private readonly ParseDiagnostics $diagnostics;
-
-    private readonly StreamParser $streams;
+    /** only `--stream` needs it: built on demand so that other runs do not load its classes */
+    private ?StreamParser $streams = null;
 
     /**
      * @param list<string>          $files
@@ -55,8 +54,6 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
         private readonly CliOptions $options,
         private readonly Closure $warn,
     ) {
-        $this->diagnostics = new ParseDiagnostics($decoder);
-        $this->streams     = new StreamParser($decoder, $this->diagnostics);
     }
 
     /**
@@ -324,7 +321,8 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
     {
         $counted = 0;
         $lines   = 0;
-        foreach ($this->streams->events($text, $this->options->seq) as $offset => $event) {
+        $streams = $this->streams ??= new StreamParser($this->decoder, new ParseDiagnostics($this->decoder));
+        foreach ($streams->events($text, $this->options->seq) as $offset => $event) {
             $upto = strpos($text, "\n", $offset);
             $upto = false === $upto ? \strlen($text) : $upto + 1;
             if ($upto > $counted) {

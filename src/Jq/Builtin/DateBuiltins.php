@@ -32,17 +32,16 @@ use LTS\PhpXq\Json\Values;
  */
 final class DateBuiltins implements BuiltinProviderInterface
 {
-    private const string PRELUDE = <<<'JQ'
-        def todate: strftime("%Y-%m-%dT%H:%M:%SZ");
-        def fromdateiso8601: strptime("%Y-%m-%dT%H:%M:%SZ") | mktime;
-        def todateiso8601: strftime("%Y-%m-%dT%H:%M:%SZ");
-        def fromdate: fromdateiso8601;
-        def date: todate;
-        def dateadd(u; n): . + n;
-        def datesub(u; n): . - n;
-        JQ;
-
     public function registerInto(BuiltinRegistryInterface $registry): void
+    {
+        $this->registerNatives($registry);
+        $registry->addPrelude(BuiltinCatalog::DATE_PRELUDE);
+    }
+
+    /**
+     * The native half of {@see self::registerInto()}: what {@see BuiltinCatalog} loads on first use.
+     */
+    public function registerNatives(BuiltinRegistryInterface $registry): void
     {
         $registry->register(new NativeValue('now', 0, static fn (mixed $input, array $args, RuntimeContextInterface $context): mixed => $context->now()));
         $registry->register(new NativeValue('mktime', 0, static fn (mixed $input): mixed => self::mktime($input)));
@@ -51,7 +50,6 @@ final class DateBuiltins implements BuiltinProviderInterface
         $registry->register(new NativeValue('strftime', 1, static fn (mixed $input, array $args): mixed => self::strftime($input, $args[0])));
         $registry->register(new NativeValue('strflocaltime', 1, static fn (mixed $input, array $args): mixed => self::strflocaltime($input, $args[0])));
         $registry->register(new NativeValue('strptime', 1, static fn (mixed $input, array $args): mixed => self::strptime($input, $args[0])));
-        $registry->addPrelude(self::PRELUDE);
     }
 
     /**
