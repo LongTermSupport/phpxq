@@ -22,7 +22,7 @@ use Closure;
  *
  * @api
  */
-interface Filter
+interface FilterInterface
 {
     /**
      * @param Closure(mixed): void $emit

@@ -11,7 +11,7 @@ namespace LTS\PhpXq\Yq\Cli;
  * the first file's header (later files keep their comments on their nodes so merging them works) and
  * prints it with the first document.
  */
-enum HeaderMode
+enum HeaderModeEnum
 {
     case None;
 

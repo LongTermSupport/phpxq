@@ -11,10 +11,10 @@ use LTS\PhpXq\Jq\Builtin\Date\TimeZones;
 use LTS\PhpXq\Jq\Builtin\Date\ZoneInfo;
 use LTS\PhpXq\Jq\Builtin\Regex\NativeValue;
 use LTS\PhpXq\Jq\Runtime\Arithmetic;
-use LTS\PhpXq\Jq\Runtime\BuiltinProvider;
-use LTS\PhpXq\Jq\Runtime\BuiltinRegistry;
+use LTS\PhpXq\Jq\Runtime\BuiltinProviderInterface;
+use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
 use LTS\PhpXq\Jq\Runtime\JqException;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Json\PreciseNumber;
 use LTS\PhpXq\Json\Values;
 
@@ -30,7 +30,7 @@ use LTS\PhpXq\Json\Values;
  *
  * @api
  */
-final class DateBuiltins implements BuiltinProvider
+final class DateBuiltins implements BuiltinProviderInterface
 {
     private const string PRELUDE = <<<'JQ'
         def todate: strftime("%Y-%m-%dT%H:%M:%SZ");
@@ -42,9 +42,9 @@ final class DateBuiltins implements BuiltinProvider
         def datesub(u; n): . - n;
         JQ;
 
-    public function registerInto(BuiltinRegistry $registry): void
+    public function registerInto(BuiltinRegistryInterface $registry): void
     {
-        $registry->register(new NativeValue('now', 0, static fn (mixed $input, array $args, RuntimeContext $context): mixed => $context->now()));
+        $registry->register(new NativeValue('now', 0, static fn (mixed $input, array $args, RuntimeContextInterface $context): mixed => $context->now()));
         $registry->register(new NativeValue('mktime', 0, static fn (mixed $input): mixed => self::mktime($input)));
         $registry->register(new NativeValue('gmtime', 0, static fn (mixed $input): mixed => self::gmtime($input, ZoneInfo::utc(), 'gmtime')));
         $registry->register(new NativeValue('localtime', 0, static fn (mixed $input): mixed => self::gmtime($input, TimeZones::local(), 'localtime')));

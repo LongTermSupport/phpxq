@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime\Operators;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yq\Expression\Ast\Call;
 use LTS\PhpXq\Yq\Runtime\Anchors;
 use LTS\PhpXq\Yq\Runtime\Args;
@@ -65,7 +65,7 @@ final class MetaCalls implements CallOperatorInterface
                 return $node->anchor;
 
             case 'alias':
-                return NodeKind::Alias === $node->kind ? $node->value : '';
+                return NodeKindEnum::Alias === $node->kind ? $node->value : '';
 
             case 'head_comment':
             case 'headComment':
@@ -86,11 +86,11 @@ final class MetaCalls implements CallOperatorInterface
     private function comment(Candidate $match, string $kind): string
     {
         $text = Comments::get($match->node, $kind);
-        if ('' === $text && $match->parent instanceof Candidate && NodeKind::Document === $match->parent->node->kind) {
+        if ('' === $text && $match->parent instanceof Candidate && NodeKindEnum::Document === $match->parent->node->kind) {
             return Comments::get($match->parent->node, $kind);
         }
 
-        if ('' === $text && NodeKind::Document === $match->node->kind && isset($match->node->content[0])) {
+        if ('' === $text && NodeKindEnum::Document === $match->node->kind && isset($match->node->content[0])) {
             return Comments::get($match->node->content[0], $kind);
         }
 
@@ -99,17 +99,17 @@ final class MetaCalls implements CallOperatorInterface
 
     private function styleName(Node $node): string
     {
-        if ($node->tagExplicit && NodeStyle::Default === $node->style) {
+        if ($node->tagExplicit && NodeStyleEnum::Default === $node->style) {
             return 'tagged';
         }
 
         return match ($node->style) {
-            NodeStyle::DoubleQuoted => 'double',
-            NodeStyle::SingleQuoted => 'single',
-            NodeStyle::Literal      => 'literal',
-            NodeStyle::Folded       => 'folded',
-            NodeStyle::Flow         => 'flow',
-            default                 => '',
+            NodeStyleEnum::DoubleQuoted => 'double',
+            NodeStyleEnum::SingleQuoted => 'single',
+            NodeStyleEnum::Literal      => 'literal',
+            NodeStyleEnum::Folded       => 'folded',
+            NodeStyleEnum::Flow         => 'flow',
+            default                     => '',
         };
     }
 
@@ -133,7 +133,7 @@ final class MetaCalls implements CallOperatorInterface
             }
 
             $node = NodeOps::deref($node);
-            if (NodeKind::Mapping === $node->kind) {
+            if (NodeKindEnum::Mapping === $node->kind) {
                 $this->sortPairs($node);
             }
         }

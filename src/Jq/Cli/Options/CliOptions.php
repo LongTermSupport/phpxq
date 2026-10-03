@@ -26,7 +26,7 @@ final readonly class CliOptions
      * @param ?bool                $color        true for -C, false for -M, null for "decide from the terminal"
      */
     public function __construct(
-        public CliAction $action = CliAction::Run,
+        public CliActionEnum $action = CliActionEnum::Run,
         public ?string $program = null,
         public array $files = [],
         public array $libraryPaths = [],

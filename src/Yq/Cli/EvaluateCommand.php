@@ -8,12 +8,12 @@ use LTS\PhpXq\Yaml\Emitter\EmitOptions;
 use LTS\PhpXq\Yaml\Emitter\YamlEmitterInterface;
 use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yaml\Parser\YamlParserInterface;
 use LTS\PhpXq\Yq\Expression\ExpressionParserInterface;
 use LTS\PhpXq\Yq\Expression\ExpressionSyntaxException;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use LTS\PhpXq\Yq\Format\FormatRegistryInterface;
@@ -82,7 +82,7 @@ final readonly class EvaluateCommand
         $colors = $args->bool('colors')
             || (!$args->bool('no-colors') && !$inPlace && '' === $splitExpression && stream_isatty($stdout));
         $unwrap = $args->bool('unwrapScalar');
-        if (!$args->given('unwrapScalar') && Format::Json === $outputFormat) {
+        if (!$args->given('unwrapScalar') && FormatEnum::Json === $outputFormat) {
             $unwrap = false;
         }
 
@@ -135,7 +135,7 @@ final readonly class EvaluateCommand
 
         try {
             if ($nullInput) {
-                $empty = new Candidate(Node::document(new Node(NodeKind::Scalar, '!!null', NodeStyle::Default, '')));
+                $empty = new Candidate(Node::document(new Node(NodeKindEnum::Scalar, '!!null', NodeStyleEnum::Default, '')));
                 $printer->print($this->evaluator->evaluate($program, new EvaluationContext([$empty], $services)));
             } else {
                 $documents = $source->read(
@@ -170,13 +170,13 @@ final readonly class EvaluateCommand
         return YqApplicationInterface::EXIT_OK;
     }
 
-    private function headerMode(ParsedArguments $args, bool $evalAll): HeaderMode
+    private function headerMode(ParsedArguments $args, bool $evalAll): HeaderModeEnum
     {
         if (!$args->bool('header-preprocess')) {
-            return HeaderMode::None;
+            return HeaderModeEnum::None;
         }
 
-        return $evalAll ? HeaderMode::FirstFile : HeaderMode::PerFile;
+        return $evalAll ? HeaderModeEnum::FirstFile : HeaderModeEnum::PerFile;
     }
 
     /**
@@ -286,7 +286,7 @@ final readonly class EvaluateCommand
     /**
      * @param list<string> $files
      *
-     * @return array{Format, bool} the input format and whether it was auto-detected
+     * @return array{FormatEnum, bool} the input format and whether it was auto-detected
      *
      * @throws CliException
      */
@@ -296,11 +296,11 @@ final readonly class EvaluateCommand
         if (\in_array($name, ['auto', 'a', ''], true)) {
             $first = $files[0] ?? '-';
 
-            return ['-' === $first ? Format::Yaml : $this->detector->fromFilename($first), true];
+            return ['-' === $first ? FormatEnum::Yaml : $this->detector->fromFilename($first), true];
         }
 
-        $format = Format::fromName($name);
-        if (!$format instanceof Format) {
+        $format = FormatEnum::fromName($name);
+        if (!$format instanceof FormatEnum) {
             throw new CliException(\sprintf("unknown format '%s' please use [%s]", $name, self::FORMAT_LIST));
         }
 
@@ -314,22 +314,22 @@ final readonly class EvaluateCommand
     /**
      * @throws CliException
      */
-    private function outputFormat(ParsedArguments $args, Format $inputFormat, bool $autoInput): Format
+    private function outputFormat(ParsedArguments $args, FormatEnum $inputFormat, bool $autoInput): FormatEnum
     {
         $name = $args->string('output-format');
         if (\in_array($name, ['auto', 'a', ''], true)) {
-            return $autoInput ? $inputFormat : Format::Yaml;
+            return $autoInput ? $inputFormat : FormatEnum::Yaml;
         }
 
-        $format = Format::fromName($name);
-        if (!$format instanceof Format) {
+        $format = FormatEnum::fromName($name);
+        if (!$format instanceof FormatEnum) {
             throw new CliException(\sprintf("unknown format '%s' please use [%s]", $name, self::FORMAT_LIST));
         }
 
         return $format;
     }
 
-    private function formatOptions(ParsedArguments $args, Format $format, bool $colors, bool $unwrap): FormatOptions
+    private function formatOptions(ParsedArguments $args, FormatEnum $format, bool $colors, bool $unwrap): FormatOptions
     {
         return new FormatOptions(
             indent: $args->int('indent'),
@@ -338,7 +338,7 @@ final readonly class EvaluateCommand
             prettyPrint: $args->bool('prettyPrint'),
             noDocSeparator: $args->bool('no-doc'),
             csvSeparator: $args->string('csv-separator'),
-            csvAutoParse: Format::Tsv === $format ? $args->bool('tsv-auto-parse') : $args->bool('csv-auto-parse'),
+            csvAutoParse: FormatEnum::Tsv === $format ? $args->bool('tsv-auto-parse') : $args->bool('csv-auto-parse'),
             propertiesSeparator: $args->string('properties-separator'),
             propertiesArrayBrackets: $args->bool('properties-array-brackets'),
             xmlAttributePrefix: $args->string('xml-attribute-prefix'),

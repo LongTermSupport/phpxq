@@ -11,7 +11,7 @@ use Closure;
  *
  * @api
  */
-interface CompiledProgram
+interface CompiledProgramInterface
 {
     /**
      * Run the program on one input value, calling $emit for every output as it is produced (so output
@@ -22,5 +22,5 @@ interface CompiledProgram
      * @throws JqException   uncaught jq error
      * @throws HaltException `halt` / `halt_error`
      */
-    public function run(RuntimeContext $context, mixed $input, Closure $emit): void;
+    public function run(RuntimeContextInterface $context, mixed $input, Closure $emit): void;
 }

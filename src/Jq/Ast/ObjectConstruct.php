@@ -10,7 +10,7 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class ObjectConstruct implements Node
+final readonly class ObjectConstruct implements NodeInterface
 {
     /**
      * @param list<ObjectEntry> $entries

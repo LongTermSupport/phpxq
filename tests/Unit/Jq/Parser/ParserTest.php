@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Jq\Parser;
 
-use LTS\PhpXq\Jq\Ast\ImportKind;
+use LTS\PhpXq\Jq\Ast\ImportKindEnum;
 use LTS\PhpXq\Jq\Parser\Lexer;
 use LTS\PhpXq\Jq\Parser\Parser;
 use LTS\PhpXq\Jq\Runtime\JqCompileException;
@@ -272,10 +272,10 @@ final class ParserTest extends TestCase
 
         self::assertCount(4, $program->imports);
         [$a, $b, $c, $d] = $program->imports;
-        self::assertSame(['a', 'foo', ImportKind::Import, null], [$a->path, $a->alias, $a->kind, $a->metadata]);
-        self::assertSame(['b', 'data', ImportKind::Data], [$b->path, $b->alias, $b->kind]);
+        self::assertSame(['a', 'foo', ImportKindEnum::Import, null], [$a->path, $a->alias, $a->kind, $a->metadata]);
+        self::assertSame(['b', 'data', ImportKindEnum::Data], [$b->path, $b->alias, $b->kind]);
         self::assertEquals(new JsonObject(['search' => './']), $b->metadata);
-        self::assertSame(['c', null, ImportKind::Include, null], [$c->path, $c->alias, $c->kind, $c->metadata]);
+        self::assertSame(['c', null, ImportKindEnum::Include, null], [$c->path, $c->alias, $c->kind, $c->metadata]);
         self::assertEquals(new JsonObject(['search' => 'x']), $d->metadata);
         self::assertNotNull($program->body);
     }

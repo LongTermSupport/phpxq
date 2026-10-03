@@ -29,7 +29,7 @@ final readonly class ProgramLoader
     public function load(string $source): Program
     {
         $program = $this->parser->parse($source);
-        if (!$program->body instanceof \LTS\PhpXq\Jq\Ast\Node && ([] !== $program->defs || [] !== $program->imports)) {
+        if (!$program->body instanceof \LTS\PhpXq\Jq\Ast\NodeInterface && ([] !== $program->defs || [] !== $program->imports)) {
             throw new JqCompileException('Top-level program not given (try ".")');
         }
 

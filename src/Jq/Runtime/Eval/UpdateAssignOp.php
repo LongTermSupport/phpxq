@@ -15,20 +15,20 @@ use stdClass;
  */
 final class UpdateAssignOp extends AbstractSingleOp
 {
-    private readonly ?SingleOp $single;
+    private readonly ?SingleOpInterface $single;
 
     public function __construct(
-        private readonly Op $left,
-        private readonly Op $update,
+        private readonly OpInterface $left,
+        private readonly OpInterface $update,
     ) {
-        $this->single = $update instanceof SingleOp ? $update : null;
+        $this->single = $update instanceof SingleOpInterface ? $update : null;
     }
 
     public function value(?Env $env, mixed $input): mixed
     {
         $paths  = Assignment::collect($this->left, $env, $input);
         $single = $this->single;
-        if ($single instanceof SingleOp) {
+        if ($single instanceof SingleOpInterface) {
             return Assignment::setAll($input, $paths, static fn (mixed $old): mixed => $single->value($env, $old));
         }
 

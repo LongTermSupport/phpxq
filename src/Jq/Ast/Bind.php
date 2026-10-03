@@ -12,15 +12,15 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class Bind implements Node
+final readonly class Bind implements NodeInterface
 {
     /**
-     * @param non-empty-list<Pattern> $patterns
+     * @param non-empty-list<PatternInterface> $patterns
      */
     public function __construct(
-        public Node $source,
+        public NodeInterface $source,
         public array $patterns,
-        public Node $body,
+        public NodeInterface $body,
     ) {
     }
 }

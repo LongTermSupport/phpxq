@@ -6,8 +6,8 @@ namespace LTS\PhpXq\Tests\Unit\Yaml\Parser;
 
 use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yaml\Parser\YamlParser;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -123,7 +123,7 @@ final class YamlParserTest extends TestCase
 
         self::assertCount(1, $docs);
         $root = $docs[0]->content[0];
-        self::assertSame(NodeKind::Scalar, $root->kind);
+        self::assertSame(NodeKindEnum::Scalar, $root->kind);
         self::assertSame('!!null', $root->tag);
         self::assertSame("# only\n", $root->headComment);
     }
@@ -157,7 +157,7 @@ final class YamlParserTest extends TestCase
         $docs = $this->parse("a: &x 1\n---\nb: *x\n");
 
         $alias = $docs[1]->content[0]->content[1];
-        self::assertSame(NodeKind::Alias, $alias->kind);
+        self::assertSame(NodeKindEnum::Alias, $alias->kind);
         self::assertSame($docs[0]->content[0]->content[1], $alias->aliasTarget);
     }
 
@@ -204,10 +204,10 @@ final class YamlParserTest extends TestCase
     {
         $root = $this->parse("[a, 'b', \"c\"]\n")[0]->content[0];
 
-        self::assertSame(NodeStyle::Flow, $root->style);
-        self::assertSame(NodeStyle::Default, $root->content[0]->style);
-        self::assertSame(NodeStyle::SingleQuoted, $root->content[1]->style);
-        self::assertSame(NodeStyle::DoubleQuoted, $root->content[2]->style);
+        self::assertSame(NodeStyleEnum::Flow, $root->style);
+        self::assertSame(NodeStyleEnum::Default, $root->content[0]->style);
+        self::assertSame(NodeStyleEnum::SingleQuoted, $root->content[1]->style);
+        self::assertSame(NodeStyleEnum::DoubleQuoted, $root->content[2]->style);
     }
 
     public function testDocumentsAreYieldedLazily(): void

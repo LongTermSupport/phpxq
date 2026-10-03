@@ -9,9 +9,9 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class ArrayConstruct implements Node
+final readonly class ArrayConstruct implements NodeInterface
 {
-    public function __construct(public ?Node $body)
+    public function __construct(public ?NodeInterface $body)
     {
     }
 }

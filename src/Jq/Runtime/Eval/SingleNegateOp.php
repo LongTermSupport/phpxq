@@ -13,7 +13,7 @@ use LTS\PhpXq\Jq\Runtime\Arithmetic;
  */
 final class SingleNegateOp extends AbstractSingleOp
 {
-    public function __construct(private readonly SingleOp $operand)
+    public function __construct(private readonly SingleOpInterface $operand)
     {
     }
 

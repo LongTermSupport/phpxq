@@ -12,12 +12,12 @@ use Closure;
  *
  * @internal
  */
-final readonly class BindOp implements Op
+final readonly class BindOp implements OpInterface
 {
     public function __construct(
-        private Op $source,
-        private Binder $binder,
-        private Op $body,
+        private OpInterface $source,
+        private BinderInterface $binder,
+        private OpInterface $body,
     ) {
     }
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Jq\Ast;
 
 use LTS\PhpXq\Jq\Ast\ImportDirective;
-use LTS\PhpXq\Jq\Ast\ImportKind;
+use LTS\PhpXq\Jq\Ast\ImportKindEnum;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -15,11 +15,11 @@ final class ImportDirectiveTest extends TestCase
 {
     public function testCarriesPathAliasKindAndMetadata(): void
     {
-        $directive = new ImportDirective('a', 'alias', ImportKind::Data, ['search' => './']);
+        $directive = new ImportDirective('a', 'alias', ImportKindEnum::Data, ['search' => './']);
 
         self::assertSame('a', $directive->path);
         self::assertSame('alias', $directive->alias);
-        self::assertSame(ImportKind::Data, $directive->kind);
+        self::assertSame(ImportKindEnum::Data, $directive->kind);
         self::assertSame(['search' => './'], $directive->metadata);
     }
 }

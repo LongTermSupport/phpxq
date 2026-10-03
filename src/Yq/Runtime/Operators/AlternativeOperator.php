@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime\Operators;
 
 use LTS\PhpXq\Yq\Expression\Ast\Binary;
-use LTS\PhpXq\Yq\Expression\Ast\BinaryOperator;
+use LTS\PhpXq\Yq\Expression\Ast\BinaryOperatorEnum;
 use LTS\PhpXq\Yq\Runtime\BinaryOperatorInterface;
 use LTS\PhpXq\Yq\Runtime\Cands;
 use LTS\PhpXq\Yq\Runtime\Cross;
@@ -21,18 +21,18 @@ use LTS\PhpXq\Yq\Runtime\NodeOps;
 final class AlternativeOperator implements BinaryOperatorInterface
 {
     private const array ASSIGNMENTS = [
-        BinaryOperator::Assign,
-        BinaryOperator::Update,
-        BinaryOperator::AddAssign,
-        BinaryOperator::SubtractAssign,
-        BinaryOperator::MultiplyAssign,
-        BinaryOperator::DivideAssign,
-        BinaryOperator::ModuloAssign,
+        BinaryOperatorEnum::Assign,
+        BinaryOperatorEnum::Update,
+        BinaryOperatorEnum::AddAssign,
+        BinaryOperatorEnum::SubtractAssign,
+        BinaryOperatorEnum::MultiplyAssign,
+        BinaryOperatorEnum::DivideAssign,
+        BinaryOperatorEnum::ModuloAssign,
     ];
 
     public function operators(): array
     {
-        return [BinaryOperator::Alternative];
+        return [BinaryOperatorEnum::Alternative];
     }
 
     public function evaluate(Binary $expression, EvaluationContext $context, EvaluatorInterface $evaluator): array

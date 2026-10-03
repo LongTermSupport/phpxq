@@ -11,7 +11,7 @@ use Closure;
  *
  * @internal
  */
-final class IdentityOp implements SingleOp
+final class IdentityOp implements SingleOpInterface
 {
     public function value(?Env $env, mixed $input): mixed
     {

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\FormatException;
 
@@ -133,11 +133,11 @@ final class TomlParser
         }
 
         $child = $map->content[$at + 1];
-        if (NodeKind::Sequence === $child->kind && !isset($this->sealed[spl_object_id($child)]) && [] !== $child->content) {
+        if (NodeKindEnum::Sequence === $child->kind && !isset($this->sealed[spl_object_id($child)]) && [] !== $child->content) {
             $child = $child->content[\count($child->content) - 1];
         }
 
-        if (NodeKind::Mapping !== $child->kind || isset($this->sealed[spl_object_id($child)])) {
+        if (NodeKindEnum::Mapping !== $child->kind || isset($this->sealed[spl_object_id($child)])) {
             throw $this->error('key ' . $part . ' is not a table');
         }
 
@@ -158,7 +158,7 @@ final class TomlParser
         }
 
         $child = $parent->content[$at + 1];
-        if (NodeKind::Mapping !== $child->kind || isset($this->sealed[spl_object_id($child)]) || isset($this->dotted[spl_object_id($child)]) || isset($this->headers[spl_object_id($child)])) {
+        if (NodeKindEnum::Mapping !== $child->kind || isset($this->sealed[spl_object_id($child)]) || isset($this->dotted[spl_object_id($child)]) || isset($this->headers[spl_object_id($child)])) {
             throw $this->error('table ' . $part . ' is already defined');
         }
 
@@ -184,7 +184,7 @@ final class TomlParser
         }
 
         $existing = $parent->content[$at + 1];
-        if (NodeKind::Sequence !== $existing->kind || isset($this->sealed[spl_object_id($existing)])) {
+        if (NodeKindEnum::Sequence !== $existing->kind || isset($this->sealed[spl_object_id($existing)])) {
             throw $this->error('key ' . $part . ' is not an array of tables');
         }
 
@@ -247,7 +247,7 @@ final class TomlParser
             }
 
             $child = $node->content[$at + 1];
-            if (NodeKind::Mapping !== $child->kind || isset($this->sealed[spl_object_id($child)])) {
+            if (NodeKindEnum::Mapping !== $child->kind || isset($this->sealed[spl_object_id($child)])) {
                 throw $this->error('key ' . $part . ' is not a table');
             }
 

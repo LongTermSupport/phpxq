@@ -10,6 +10,6 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-interface Node
+interface NodeInterface
 {
 }

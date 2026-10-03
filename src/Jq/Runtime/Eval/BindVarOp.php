@@ -11,18 +11,18 @@ use Closure;
  *
  * @internal
  */
-final readonly class BindVarOp implements Op
+final readonly class BindVarOp implements OpInterface
 {
     public function __construct(
-        private Op $source,
-        private Op $body,
+        private OpInterface $source,
+        private OpInterface $body,
     ) {
     }
 
     public function run(?Env $env, mixed $input, Closure $emit): void
     {
         $body = $this->body;
-        if ($this->source instanceof SingleOp) {
+        if ($this->source instanceof SingleOpInterface) {
             $body->run(new Env($env, $this->source->value($env, $input)), $input, $emit);
 
             return;

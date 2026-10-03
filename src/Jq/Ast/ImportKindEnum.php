@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Ast;
 /**
  * @api
  */
-enum ImportKind: string
+enum ImportKindEnum: string
 {
     /** `import "a" as name;` namespaced definitions */
     case Import = 'import';

@@ -6,12 +6,12 @@ namespace LTS\PhpXq\Tests\Unit\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Emitter\YamlEmitter;
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yaml\Parser\YamlParser;
 use LTS\PhpXq\Yq\Format\Codec\HclDecoder;
 use LTS\PhpXq\Yq\Format\Codec\HclEncoder;
 use LTS\PhpXq\Yq\Format\Codec\HclScanner;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -87,7 +87,7 @@ final class HclCodecTest extends TestCase
         $root = $this->decode('a = "q\" \\\ \n \t \u00e9 \U0001F60A \z ${x}"')->root();
 
         self::assertSame("q\" \\ \n \t é 😊 \\z \${x}", $root->content[1]->value);
-        self::assertSame(NodeStyle::DoubleQuoted, $root->content[1]->style);
+        self::assertSame(NodeStyleEnum::DoubleQuoted, $root->content[1]->style);
     }
 
     public function testMarkersDistinguishShapes(): void
@@ -145,8 +145,8 @@ final class HclCodecTest extends TestCase
     public function testEmptyInputHasNoDocuments(): void
     {
         self::assertSame([], [...new HclDecoder()->decode("\n", new FormatOptions())]);
-        self::assertSame(Format::Hcl, new HclDecoder()->format());
-        self::assertSame(Format::Hcl, new HclEncoder()->format());
+        self::assertSame(FormatEnum::Hcl, new HclDecoder()->format());
+        self::assertSame(FormatEnum::Hcl, new HclEncoder()->format());
     }
 
     #[DataProvider('roundTrips')]

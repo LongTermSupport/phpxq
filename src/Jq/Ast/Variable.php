@@ -10,7 +10,7 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class Variable implements Node
+final readonly class Variable implements NodeInterface
 {
     public function __construct(
         public string $name,

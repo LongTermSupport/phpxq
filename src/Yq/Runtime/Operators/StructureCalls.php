@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime\Operators;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yq\Expression\Ast\Call;
 use LTS\PhpXq\Yq\Runtime\Args;
 use LTS\PhpXq\Yq\Runtime\CallOperatorInterface;
@@ -45,7 +45,7 @@ final class StructureCalls implements CallOperatorInterface
                 foreach ($context->matches as $match) {
                     foreach (Args::results($call, 0, $context, $evaluator, $match) as $paths) {
                         $list = NodeOps::deref(Cands::node($paths));
-                        foreach (NodeKind::Sequence === $list->kind ? $list->content : [] as $path) {
+                        foreach (NodeKindEnum::Sequence === $list->kind ? $list->content : [] as $path) {
                             $target = PathOps::follow($match, PathOps::elements($path), false, $fixed);
                             if ($target instanceof Candidate) {
                                 $targets[] = $target;
@@ -86,7 +86,7 @@ final class StructureCalls implements CallOperatorInterface
         $keys = [];
         foreach (Args::results($call, 0, $context, $evaluator, $match) as $result) {
             $key = NodeOps::deref(Cands::node($result));
-            if (NodeKind::Sequence === $key->kind) {
+            if (NodeKindEnum::Sequence === $key->kind) {
                 foreach ($key->content as $item) {
                     $keys[] = NodeOps::deref($item);
                 }
@@ -96,11 +96,11 @@ final class StructureCalls implements CallOperatorInterface
         }
 
         $pick = 'pick' === $call->name;
-        if (NodeKind::Mapping === $node->kind) {
+        if (NodeKindEnum::Mapping === $node->kind) {
             return $this->mapping($node, $keys, $pick);
         }
 
-        if (NodeKind::Sequence === $node->kind) {
+        if (NodeKindEnum::Sequence === $node->kind) {
             return $this->sequence($node, $keys, $pick);
         }
 

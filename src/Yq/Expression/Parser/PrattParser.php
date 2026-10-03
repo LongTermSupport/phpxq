@@ -6,7 +6,7 @@ namespace LTS\PhpXq\Yq\Expression\Parser;
 
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yq\Expression\Ast\Binary;
-use LTS\PhpXq\Yq\Expression\Ast\BinaryOperator;
+use LTS\PhpXq\Yq\Expression\Ast\BinaryOperatorEnum;
 use LTS\PhpXq\Yq\Expression\Ast\Bind;
 use LTS\PhpXq\Yq\Expression\Ast\Call;
 use LTS\PhpXq\Yq\Expression\Ast\Collect;
@@ -23,10 +23,10 @@ use LTS\PhpXq\Yq\Expression\Ast\Reduce;
 use LTS\PhpXq\Yq\Expression\Ast\Slice;
 use LTS\PhpXq\Yq\Expression\Ast\VariableRef;
 use LTS\PhpXq\Yq\Expression\ExpressionLexer;
-use LTS\PhpXq\Yq\Expression\ExpressionNode;
+use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 use LTS\PhpXq\Yq\Expression\ExpressionSyntaxException;
 use LTS\PhpXq\Yq\Expression\ExpressionToken;
-use LTS\PhpXq\Yq\Expression\ExpressionTokenKind;
+use LTS\PhpXq\Yq\Expression\ExpressionTokenKindEnum;
 
 /**
  * Precedence-climbing parser over a token list from ExpressionLexer.
@@ -70,21 +70,21 @@ final class PrattParser
     /**
      * @throws ExpressionSyntaxException
      */
-    public function parseAll(): ExpressionNode
+    public function parseAll(): ExpressionNodeInterface
     {
-        if (ExpressionTokenKind::EndOfInput === $this->tokens[0]->kind) {
+        if (ExpressionTokenKindEnum::EndOfInput === $this->tokens[0]->kind) {
             return new Identity();
         }
 
         $node = $this->parseExpr(1);
-        if (ExpressionTokenKind::EndOfInput !== $this->tokens[$this->pos]->kind) {
+        if (ExpressionTokenKindEnum::EndOfInput !== $this->tokens[$this->pos]->kind) {
             throw $this->fail(self::GENERIC);
         }
 
         return $node;
     }
 
-    private function parseExpr(int $minBp): ExpressionNode
+    private function parseExpr(int $minBp): ExpressionNodeInterface
     {
         $left = $this->parseOperand();
         while (true) {
@@ -100,51 +100,51 @@ final class PrattParser
     }
 
     /**
-     * @return array{int, bool, BinaryOperator, string}|null binding power, right associative, operator, modifiers
+     * @return array{int, bool, BinaryOperatorEnum, string}|null binding power, right associative, operator, modifiers
      */
     private function binaryInfo(ExpressionToken $token): ?array
     {
-        if (ExpressionTokenKind::Word === $token->kind) {
+        if (ExpressionTokenKindEnum::Word === $token->kind) {
             return match ($token->text) {
-                'or'    => [5, false, BinaryOperator::Or, ''],
-                'and'   => [6, false, BinaryOperator::And, ''],
+                'or'    => [5, false, BinaryOperatorEnum::Or, ''],
+                'and'   => [6, false, BinaryOperatorEnum::And, ''],
                 default => null,
             };
         }
 
-        if (ExpressionTokenKind::Operator !== $token->kind) {
+        if (ExpressionTokenKindEnum::Operator !== $token->kind) {
             return null;
         }
 
         $text = $token->text;
 
         return match ($text) {
-            '|'     => [1, false, BinaryOperator::Pipe, ''],
-            ','     => $this->union ? [2, false, BinaryOperator::Union, ''] : null,
-            '='     => [3, true, BinaryOperator::Assign, ''],
-            '=c'    => [3, true, BinaryOperator::Assign, 'c'],
-            '|='    => [3, true, BinaryOperator::Update, ''],
-            '+='    => [3, true, BinaryOperator::AddAssign, ''],
-            '-='    => [3, true, BinaryOperator::SubtractAssign, ''],
-            '/='    => [3, true, BinaryOperator::DivideAssign, ''],
-            '%='    => [3, true, BinaryOperator::ModuloAssign, ''],
-            '//'    => [4, false, BinaryOperator::Alternative, ''],
-            '=='    => [7, false, BinaryOperator::Equal, ''],
-            '!='    => [7, false, BinaryOperator::NotEqual, ''],
-            '<'     => [7, false, BinaryOperator::Less, ''],
-            '<='    => [7, false, BinaryOperator::LessOrEqual, ''],
-            '>'     => [7, false, BinaryOperator::Greater, ''],
-            '>='    => [7, false, BinaryOperator::GreaterOrEqual, ''],
-            '+'     => [8, false, BinaryOperator::Add, ''],
-            '-'     => [8, false, BinaryOperator::Subtract, ''],
-            '/'     => [9, false, BinaryOperator::Divide, ''],
-            '%'     => [9, false, BinaryOperator::Modulo, ''],
+            '|'     => [1, false, BinaryOperatorEnum::Pipe, ''],
+            ','     => $this->union ? [2, false, BinaryOperatorEnum::Union, ''] : null,
+            '='     => [3, true, BinaryOperatorEnum::Assign, ''],
+            '=c'    => [3, true, BinaryOperatorEnum::Assign, 'c'],
+            '|='    => [3, true, BinaryOperatorEnum::Update, ''],
+            '+='    => [3, true, BinaryOperatorEnum::AddAssign, ''],
+            '-='    => [3, true, BinaryOperatorEnum::SubtractAssign, ''],
+            '/='    => [3, true, BinaryOperatorEnum::DivideAssign, ''],
+            '%='    => [3, true, BinaryOperatorEnum::ModuloAssign, ''],
+            '//'    => [4, false, BinaryOperatorEnum::Alternative, ''],
+            '=='    => [7, false, BinaryOperatorEnum::Equal, ''],
+            '!='    => [7, false, BinaryOperatorEnum::NotEqual, ''],
+            '<'     => [7, false, BinaryOperatorEnum::Less, ''],
+            '<='    => [7, false, BinaryOperatorEnum::LessOrEqual, ''],
+            '>'     => [7, false, BinaryOperatorEnum::Greater, ''],
+            '>='    => [7, false, BinaryOperatorEnum::GreaterOrEqual, ''],
+            '+'     => [8, false, BinaryOperatorEnum::Add, ''],
+            '-'     => [8, false, BinaryOperatorEnum::Subtract, ''],
+            '/'     => [9, false, BinaryOperatorEnum::Divide, ''],
+            '%'     => [9, false, BinaryOperatorEnum::Modulo, ''],
             default => $this->multiplyInfo($text),
         };
     }
 
     /**
-     * @return array{int, bool, BinaryOperator, string}|null
+     * @return array{int, bool, BinaryOperatorEnum, string}|null
      */
     private function multiplyInfo(string $text): ?array
     {
@@ -153,24 +153,24 @@ final class PrattParser
         }
 
         if (isset($text[1]) && '=' === $text[1]) {
-            return [3, true, BinaryOperator::MultiplyAssign, substr($text, 2)];
+            return [3, true, BinaryOperatorEnum::MultiplyAssign, substr($text, 2)];
         }
 
-        return [9, false, BinaryOperator::Multiply, substr($text, 1)];
+        return [9, false, BinaryOperatorEnum::Multiply, substr($text, 1)];
     }
 
-    private function parseOperand(bool $allowBind = true): ExpressionNode
+    private function parseOperand(bool $allowBind = true): ExpressionNodeInterface
     {
         $node = $this->parsePrimary();
         while (true) {
             $node  = $this->parsePostfix($node);
             $token = $this->tokens[$this->pos];
-            if (ExpressionTokenKind::Word !== $token->kind) {
+            if (ExpressionTokenKindEnum::Word !== $token->kind) {
                 return $node;
             }
 
             $word = $token->text;
-            if ($allowBind && ('as' === $word || ('ref' === $word && ExpressionTokenKind::Variable === $this->tokens[$this->pos + 1]->kind))) {
+            if ($allowBind && ('as' === $word || ('ref' === $word && ExpressionTokenKindEnum::Variable === $this->tokens[$this->pos + 1]->kind))) {
                 return $this->parseBind($node, $word);
             }
 
@@ -179,32 +179,32 @@ final class PrattParser
             }
 
             ++$this->pos;
-            $node = new Binary(BinaryOperator::Pipe, $node, $this->finishCall($word));
+            $node = new Binary(BinaryOperatorEnum::Pipe, $node, $this->finishCall($word));
         }
     }
 
-    private function parseBind(ExpressionNode $source, string $word): ExpressionNode
+    private function parseBind(ExpressionNodeInterface $source, string $word): ExpressionNodeInterface
     {
         ++$this->pos;
         $variable = $this->tokens[$this->pos];
-        if (ExpressionTokenKind::Variable !== $variable->kind) {
+        if (ExpressionTokenKindEnum::Variable !== $variable->kind) {
             throw $this->fail(self::GENERIC);
         }
 
         ++$this->pos;
         $next = $this->tokens[$this->pos];
-        if ('as' === $word && ExpressionTokenKind::Word === $next->kind && 'ireduce' === $next->text) {
+        if ('as' === $word && ExpressionTokenKindEnum::Word === $next->kind && 'ireduce' === $next->text) {
             ++$this->pos;
-            $this->expect(ExpressionTokenKind::LeftParen, 'Bad expression, could not find matching `(`');
+            $this->expect(ExpressionTokenKindEnum::LeftParen, 'Bad expression, could not find matching `(`');
             $initial = $this->parseFull();
-            $this->expect(ExpressionTokenKind::Semicolon, self::GENERIC);
+            $this->expect(ExpressionTokenKindEnum::Semicolon, self::GENERIC);
             $update = $this->parseFull();
-            $this->expect(ExpressionTokenKind::RightParen, 'Bad expression, could not find matching `)`');
+            $this->expect(ExpressionTokenKindEnum::RightParen, 'Bad expression, could not find matching `)`');
 
             return new Reduce($source, $variable->text, $initial, $update);
         }
 
-        if (ExpressionTokenKind::Operator !== $next->kind || '|' !== $next->text) {
+        if (ExpressionTokenKindEnum::Operator !== $next->kind || '|' !== $next->text) {
             throw $this->fail(self::GENERIC);
         }
 
@@ -213,45 +213,45 @@ final class PrattParser
         return new Bind($source, $variable->text, $this->parseExpr(1), 'ref' === $word);
     }
 
-    private function parsePrimary(): ExpressionNode
+    private function parsePrimary(): ExpressionNodeInterface
     {
         $token = $this->tokens[$this->pos];
         switch ($token->kind) {
-            case ExpressionTokenKind::Number:
+            case ExpressionTokenKindEnum::Number:
                 ++$this->pos;
 
                 return new Literal(Node::scalar($token->text));
-            case ExpressionTokenKind::String:
+            case ExpressionTokenKindEnum::String:
                 ++$this->pos;
 
                 return $this->stringNode($token);
-            case ExpressionTokenKind::Variable:
+            case ExpressionTokenKindEnum::Variable:
                 ++$this->pos;
 
                 return new VariableRef($token->text);
-            case ExpressionTokenKind::Dot:
+            case ExpressionTokenKindEnum::Dot:
                 return $this->parseDot($token);
-            case ExpressionTokenKind::DotDot:
-            case ExpressionTokenKind::DotDotDot:
+            case ExpressionTokenKindEnum::DotDot:
+            case ExpressionTokenKindEnum::DotDotDot:
                 ++$this->pos;
-                $node = new RecursiveDescent(new Identity(), ExpressionTokenKind::DotDotDot === $token->kind);
+                $node = new RecursiveDescent(new Identity(), ExpressionTokenKindEnum::DotDotDot === $token->kind);
                 $this->optional();
 
                 return $node;
-            case ExpressionTokenKind::LeftParen:
+            case ExpressionTokenKindEnum::LeftParen:
                 ++$this->pos;
                 $inner = $this->parseFull();
-                $this->expect(ExpressionTokenKind::RightParen, 'Bad expression, could not find matching `)`');
+                $this->expect(ExpressionTokenKindEnum::RightParen, 'Bad expression, could not find matching `)`');
 
                 return $inner;
-            case ExpressionTokenKind::LeftBracket:
+            case ExpressionTokenKindEnum::LeftBracket:
                 return $this->parseCollect();
-            case ExpressionTokenKind::LeftBrace:
+            case ExpressionTokenKindEnum::LeftBrace:
                 return $this->parseObject();
-            case ExpressionTokenKind::Word:
+            case ExpressionTokenKindEnum::Word:
                 return $this->parseWord($token);
-            case ExpressionTokenKind::Operator:
-                if ('-' === $token->text && ExpressionTokenKind::Number === $this->tokens[$this->pos + 1]->kind) {
+            case ExpressionTokenKindEnum::Operator:
+                if ('-' === $token->text && ExpressionTokenKindEnum::Number === $this->tokens[$this->pos + 1]->kind) {
                     $this->pos += 2;
 
                     return new Literal(Node::scalar('-' . $this->tokens[$this->pos - 1]->text));
@@ -265,17 +265,17 @@ final class PrattParser
         throw $this->fail(self::GENERIC);
     }
 
-    private function parseDot(ExpressionToken $dot): ExpressionNode
+    private function parseDot(ExpressionToken $dot): ExpressionNodeInterface
     {
         $next = $this->tokens[$this->pos + 1];
         if ($next->offset === $dot->offset + 1) {
-            if (ExpressionTokenKind::Word === $next->kind) {
+            if (ExpressionTokenKindEnum::Word === $next->kind) {
                 $this->pos += 2;
 
                 return $this->field(new Identity(), $this->literalString($next->text));
             }
 
-            if (ExpressionTokenKind::String === $next->kind) {
+            if (ExpressionTokenKindEnum::String === $next->kind) {
                 $this->pos += 2;
 
                 return $this->field(new Identity(), $this->stringNode($next));
@@ -287,7 +287,7 @@ final class PrattParser
         return new Identity();
     }
 
-    private function parseWord(ExpressionToken $token): ExpressionNode
+    private function parseWord(ExpressionToken $token): ExpressionNodeInterface
     {
         $word = $token->text;
         switch ($word) {
@@ -326,7 +326,7 @@ final class PrattParser
         $this->expectWord('then');
         $then  = $this->parseFull();
         $token = $this->tokens[$this->pos];
-        if (ExpressionTokenKind::Word === $token->kind) {
+        if (ExpressionTokenKindEnum::Word === $token->kind) {
             if ('elif' === $token->text) {
                 ++$this->pos;
 
@@ -343,69 +343,69 @@ final class PrattParser
         return new Conditional($condition, $then);
     }
 
-    private function parsePrefixReduce(): ExpressionNode
+    private function parsePrefixReduce(): ExpressionNodeInterface
     {
         ++$this->pos;
         $source = $this->parseOperand(false);
         $this->expectWord('as');
         $variable = $this->tokens[$this->pos];
-        if (ExpressionTokenKind::Variable !== $variable->kind) {
+        if (ExpressionTokenKindEnum::Variable !== $variable->kind) {
             throw $this->fail(self::GENERIC);
         }
 
         ++$this->pos;
-        $this->expect(ExpressionTokenKind::LeftParen, 'Bad expression, could not find matching `(`');
+        $this->expect(ExpressionTokenKindEnum::LeftParen, 'Bad expression, could not find matching `(`');
         $initial = $this->parseFull();
-        $this->expect(ExpressionTokenKind::Semicolon, self::GENERIC);
+        $this->expect(ExpressionTokenKindEnum::Semicolon, self::GENERIC);
         $update = $this->parseFull();
-        $this->expect(ExpressionTokenKind::RightParen, 'Bad expression, could not find matching `)`');
+        $this->expect(ExpressionTokenKindEnum::RightParen, 'Bad expression, could not find matching `)`');
 
         return new Reduce($source, $variable->text, $initial, $update);
     }
 
     private function finishCall(string $name): Call
     {
-        if (ExpressionTokenKind::LeftParen !== $this->tokens[$this->pos]->kind) {
+        if (ExpressionTokenKindEnum::LeftParen !== $this->tokens[$this->pos]->kind) {
             return new Call($name);
         }
 
         ++$this->pos;
-        if (ExpressionTokenKind::RightParen === $this->tokens[$this->pos]->kind) {
+        if (ExpressionTokenKindEnum::RightParen === $this->tokens[$this->pos]->kind) {
             ++$this->pos;
 
             return new Call($name);
         }
 
         $arguments = [$this->parseFull()];
-        while (ExpressionTokenKind::Semicolon === $this->tokens[$this->pos]->kind) {
+        while (ExpressionTokenKindEnum::Semicolon === $this->tokens[$this->pos]->kind) {
             ++$this->pos;
             $arguments[] = $this->parseFull();
         }
 
-        $this->expect(ExpressionTokenKind::RightParen, 'Bad expression, could not find matching `)`');
+        $this->expect(ExpressionTokenKindEnum::RightParen, 'Bad expression, could not find matching `)`');
 
         return new Call($name, $arguments);
     }
 
-    private function parseCollect(): ExpressionNode
+    private function parseCollect(): ExpressionNodeInterface
     {
         ++$this->pos;
-        if (ExpressionTokenKind::RightBracket === $this->tokens[$this->pos]->kind) {
+        if (ExpressionTokenKindEnum::RightBracket === $this->tokens[$this->pos]->kind) {
             ++$this->pos;
 
             return new Collect();
         }
 
         $inner = $this->parseFull();
-        $this->expect(ExpressionTokenKind::RightBracket, 'Bad expression, could not find matching `]`');
+        $this->expect(ExpressionTokenKindEnum::RightBracket, 'Bad expression, could not find matching `]`');
 
         return new Collect($inner);
     }
 
-    private function parseObject(): ExpressionNode
+    private function parseObject(): ExpressionNodeInterface
     {
         ++$this->pos;
-        if (ExpressionTokenKind::RightBrace === $this->tokens[$this->pos]->kind) {
+        if (ExpressionTokenKindEnum::RightBrace === $this->tokens[$this->pos]->kind) {
             ++$this->pos;
 
             return new ObjectConstruct();
@@ -415,13 +415,13 @@ final class PrattParser
         while (true) {
             $entries[] = $this->parseObjectEntry();
             $token     = $this->tokens[$this->pos];
-            if (ExpressionTokenKind::Operator === $token->kind && ',' === $token->text) {
+            if (ExpressionTokenKindEnum::Operator === $token->kind && ',' === $token->text) {
                 ++$this->pos;
 
                 continue;
             }
 
-            $this->expect(ExpressionTokenKind::RightBrace, 'Bad expression, could not find matching `}`');
+            $this->expect(ExpressionTokenKindEnum::RightBrace, 'Bad expression, could not find matching `}`');
 
             return new ObjectConstruct($entries);
         }
@@ -432,22 +432,22 @@ final class PrattParser
         $token = $this->tokens[$this->pos];
         $next  = $this->tokens[$this->pos + 1];
         $key   = null;
-        if (ExpressionTokenKind::Word === $token->kind && !isset(self::RESERVED[$token->text]) && $this->endsEntryKey($next)) {
+        if (ExpressionTokenKindEnum::Word === $token->kind && !isset(self::RESERVED[$token->text]) && $this->endsEntryKey($next)) {
             $key = $this->literalString($token->text);
             ++$this->pos;
-        } elseif (ExpressionTokenKind::String === $token->kind && !$token->raw && $this->endsEntryKey($next)) {
+        } elseif (ExpressionTokenKindEnum::String === $token->kind && !$token->raw && $this->endsEntryKey($next)) {
             $key = $this->literalString($token->text);
             ++$this->pos;
         }
 
         if (!$key instanceof Literal) {
             $key = $this->parseOperand(false);
-            $this->expect(ExpressionTokenKind::Colon, 'Bad expression, could not find matching `}`');
+            $this->expect(ExpressionTokenKindEnum::Colon, 'Bad expression, could not find matching `}`');
 
             return new ObjectEntry($key, $this->parseNoUnion());
         }
 
-        if (ExpressionTokenKind::Colon === $this->tokens[$this->pos]->kind) {
+        if (ExpressionTokenKindEnum::Colon === $this->tokens[$this->pos]->kind) {
             ++$this->pos;
 
             return new ObjectEntry($key, $this->parseNoUnion());
@@ -458,22 +458,22 @@ final class PrattParser
 
     private function endsEntryKey(ExpressionToken $next): bool
     {
-        return ExpressionTokenKind::Colon      === $next->kind
-            || ExpressionTokenKind::RightBrace === $next->kind
-            || (ExpressionTokenKind::Operator === $next->kind && ',' === $next->text);
+        return ExpressionTokenKindEnum::Colon      === $next->kind
+            || ExpressionTokenKindEnum::RightBrace === $next->kind
+            || (ExpressionTokenKindEnum::Operator === $next->kind && ',' === $next->text);
     }
 
-    private function parsePostfix(ExpressionNode $node): ExpressionNode
+    private function parsePostfix(ExpressionNodeInterface $node): ExpressionNodeInterface
     {
         while (true) {
             $token = $this->tokens[$this->pos];
-            if (ExpressionTokenKind::LeftBracket === $token->kind) {
+            if (ExpressionTokenKindEnum::LeftBracket === $token->kind) {
                 $node = $this->parseBracket($node);
 
                 continue;
             }
 
-            if (ExpressionTokenKind::Dot !== $token->kind) {
+            if (ExpressionTokenKindEnum::Dot !== $token->kind) {
                 return $node;
             }
 
@@ -482,13 +482,13 @@ final class PrattParser
                 return $node;
             }
 
-            if (ExpressionTokenKind::Word === $next->kind) {
+            if (ExpressionTokenKindEnum::Word === $next->kind) {
                 $this->pos += 2;
                 $node       = $this->field($node, $this->literalString($next->text));
-            } elseif (ExpressionTokenKind::String === $next->kind) {
+            } elseif (ExpressionTokenKindEnum::String === $next->kind) {
                 $this->pos += 2;
                 $node       = $this->field($node, $this->stringNode($next));
-            } elseif (ExpressionTokenKind::LeftBracket === $next->kind) {
+            } elseif (ExpressionTokenKindEnum::LeftBracket === $next->kind) {
                 ++$this->pos;
                 $node = $this->parseBracket($node);
             } else {
@@ -497,31 +497,31 @@ final class PrattParser
         }
     }
 
-    private function parseBracket(ExpressionNode $base): ExpressionNode
+    private function parseBracket(ExpressionNodeInterface $base): ExpressionNodeInterface
     {
         ++$this->pos;
         $token = $this->tokens[$this->pos];
-        if (ExpressionTokenKind::RightBracket === $token->kind) {
+        if (ExpressionTokenKindEnum::RightBracket === $token->kind) {
             ++$this->pos;
 
             return new Iterate($base, $this->optional());
         }
 
-        $from = ExpressionTokenKind::Colon === $token->kind ? null : $this->parseFull();
-        if (ExpressionTokenKind::Colon === $this->tokens[$this->pos]->kind) {
+        $from = ExpressionTokenKindEnum::Colon === $token->kind ? null : $this->parseFull();
+        if (ExpressionTokenKindEnum::Colon === $this->tokens[$this->pos]->kind) {
             ++$this->pos;
-            $to = ExpressionTokenKind::RightBracket === $this->tokens[$this->pos]->kind ? null : $this->parseFull();
-            $this->expect(ExpressionTokenKind::RightBracket, 'Bad expression, could not find matching `]`');
+            $to = ExpressionTokenKindEnum::RightBracket === $this->tokens[$this->pos]->kind ? null : $this->parseFull();
+            $this->expect(ExpressionTokenKindEnum::RightBracket, 'Bad expression, could not find matching `]`');
 
             return new Slice($base, $from, $to, $this->optional());
         }
 
-        $this->expect(ExpressionTokenKind::RightBracket, 'Bad expression, could not find matching `]`');
+        $this->expect(ExpressionTokenKindEnum::RightBracket, 'Bad expression, could not find matching `]`');
 
         return $this->field($base, $from ?? throw $this->fail(self::GENERIC));
     }
 
-    private function field(ExpressionNode $base, ExpressionNode $key): Field
+    private function field(ExpressionNodeInterface $base, ExpressionNodeInterface $key): Field
     {
         return new Field($base, $key, $this->optional());
     }
@@ -529,7 +529,7 @@ final class PrattParser
     private function optional(): bool
     {
         $optional = false;
-        while (ExpressionTokenKind::Question === $this->tokens[$this->pos]->kind) {
+        while (ExpressionTokenKindEnum::Question === $this->tokens[$this->pos]->kind) {
             ++$this->pos;
             $optional = true;
         }
@@ -537,7 +537,7 @@ final class PrattParser
         return $optional;
     }
 
-    private function parseFull(): ExpressionNode
+    private function parseFull(): ExpressionNodeInterface
     {
         $saved       = $this->union;
         $this->union = true;
@@ -548,7 +548,7 @@ final class PrattParser
         }
     }
 
-    private function parseNoUnion(): ExpressionNode
+    private function parseNoUnion(): ExpressionNodeInterface
     {
         $saved       = $this->union;
         $this->union = false;
@@ -564,7 +564,7 @@ final class PrattParser
         return new Literal(Node::scalar($text, '!!str'));
     }
 
-    private function stringNode(ExpressionToken $token): ExpressionNode
+    private function stringNode(ExpressionToken $token): ExpressionNodeInterface
     {
         if (!$token->raw) {
             return $this->literalString($token->text);
@@ -588,7 +588,7 @@ final class PrattParser
         return $hasNodes ? new Interpolation($parts) : $this->literalString($text);
     }
 
-    private function subParse(string $source, int $base): ExpressionNode
+    private function subParse(string $source, int $base): ExpressionNodeInterface
     {
         try {
             $tokens = new ExpressionLexer()->tokenize($source);
@@ -599,7 +599,7 @@ final class PrattParser
         return new self($tokens, $base)->parseAll();
     }
 
-    private function expect(ExpressionTokenKind $kind, string $message): void
+    private function expect(ExpressionTokenKindEnum $kind, string $message): void
     {
         if ($kind !== $this->tokens[$this->pos]->kind) {
             throw $this->fail($message);
@@ -611,7 +611,7 @@ final class PrattParser
     private function expectWord(string $word): void
     {
         $token = $this->tokens[$this->pos];
-        if (ExpressionTokenKind::Word !== $token->kind || $word !== $token->text) {
+        if (ExpressionTokenKindEnum::Word !== $token->kind || $word !== $token->text) {
             throw $this->fail(self::GENERIC);
         }
 

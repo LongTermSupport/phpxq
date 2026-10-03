@@ -13,7 +13,7 @@ final readonly class Scope
 {
     public function __construct(
         public ?self $parent,
-        public ScopeKind $kind,
+        public ScopeKindEnum $kind,
         public string $name,
         public int $arity = 0,
         public ?FuncInfo $function = null,
@@ -22,22 +22,22 @@ final readonly class Scope
 
     public static function variable(?self $parent, string $name): self
     {
-        return new self($parent, ScopeKind::Variable, $name);
+        return new self($parent, ScopeKindEnum::Variable, $name);
     }
 
     public static function param(?self $parent, string $name): self
     {
-        return new self($parent, ScopeKind::Param, $name);
+        return new self($parent, ScopeKindEnum::Param, $name);
     }
 
     public static function label(?self $parent, string $name): self
     {
-        return new self($parent, ScopeKind::Label, $name);
+        return new self($parent, ScopeKindEnum::Label, $name);
     }
 
     public static function func(?self $parent, FuncInfo $function): self
     {
-        return new self($parent, ScopeKind::Func, $function->definition->name, $function->definition->arity(), $function);
+        return new self($parent, ScopeKindEnum::Func, $function->definition->name, $function->definition->arity(), $function);
     }
 
     /**
@@ -45,15 +45,15 @@ final readonly class Scope
      */
     public function depthOfVariable(string $name): ?int
     {
-        return $this->depthOf(ScopeKind::Variable, $name);
+        return $this->depthOf(ScopeKindEnum::Variable, $name);
     }
 
     public function depthOfLabel(string $name): ?int
     {
-        return $this->depthOf(ScopeKind::Label, $name);
+        return $this->depthOf(ScopeKindEnum::Label, $name);
     }
 
-    private function depthOf(ScopeKind $kind, string $name): ?int
+    private function depthOf(ScopeKindEnum $kind, string $name): ?int
     {
         $depth = 0;
         for ($scope = $this; $scope instanceof self; $scope = $scope->parent) {

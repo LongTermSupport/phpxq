@@ -7,10 +7,10 @@ namespace LTS\PhpXq\Yq\Cli;
 use Generator;
 use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yaml\Parser\YamlParserInterface;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use LTS\PhpXq\Yq\Format\FormatRegistryInterface;
@@ -43,18 +43,18 @@ final readonly class SourceDocuments
      *
      * @throws CliException
      */
-    public function read(array $inputs, mixed $stdin, Format $format, FormatOptions $options, HeaderMode $mode): Generator
+    public function read(array $inputs, mixed $stdin, FormatEnum $format, FormatOptions $options, HeaderModeEnum $mode): Generator
     {
         foreach ($inputs as $fileIndex => $input) {
             $content = $input->content ?? $this->contents($input->name, $stdin);
             $header  = '';
-            if (Format::Yaml === $format && (HeaderMode::PerFile === $mode || (HeaderMode::FirstFile === $mode && 0 === $fileIndex))) {
+            if (FormatEnum::Yaml === $format && (HeaderModeEnum::PerFile === $mode || (HeaderModeEnum::FirstFile === $mode && 0 === $fileIndex))) {
                 [$header, $content] = $this->headers->split($content);
             }
 
             $docIndex = 0;
             try {
-                $documents = Format::Yaml === $format
+                $documents = FormatEnum::Yaml === $format
                     ? $this->yamlParser->parse($content)
                     : $this->formats->decoder($format)->decode($content, $options);
                 foreach ($documents as $document) {
@@ -69,7 +69,7 @@ final readonly class SourceDocuments
             }
 
             if (0 === $docIndex) {
-                $document = Node::document(new Node(NodeKind::Scalar, '!!null', NodeStyle::Default, ''));
+                $document = Node::document(new Node(NodeKindEnum::Scalar, '!!null', NodeStyleEnum::Default, ''));
                 $this->registry->register($document, $header, true);
 
                 yield new Candidate($document, null, null, 0, $fileIndex, $input->name);

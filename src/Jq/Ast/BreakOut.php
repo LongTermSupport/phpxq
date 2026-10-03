@@ -10,7 +10,7 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class BreakOut implements Node
+final readonly class BreakOut implements NodeInterface
 {
     public function __construct(
         public string $label,

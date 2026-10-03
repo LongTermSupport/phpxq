@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Yq\Cli;
 /**
  * The value kind of a command line flag, as pflag distinguishes them.
  */
-enum FlagType
+enum FlagTypeEnum
 {
     case Bool;
 

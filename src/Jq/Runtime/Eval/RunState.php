@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Jq\Runtime\Eval;
 
 use LogicException;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Json\JsonObject;
 
 /**
@@ -17,14 +17,14 @@ use LTS\PhpXq\Json\JsonObject;
  */
 final class RunState
 {
-    private ?RuntimeContext $context = null;
+    private ?RuntimeContextInterface $context = null;
 
     /** @var array<string, mixed> */
     private array $globals = [];
 
     private ?JsonObject $environment = null;
 
-    public function context(): RuntimeContext
+    public function context(): RuntimeContextInterface
     {
         return $this->context ?? throw new LogicException('No program is running');
     }
@@ -32,7 +32,7 @@ final class RunState
     /**
      * @param array<string, mixed> $globals
      */
-    public function enter(?RuntimeContext $context, array $globals): void
+    public function enter(?RuntimeContextInterface $context, array $globals): void
     {
         $this->context = $context;
         $this->globals = $globals;
@@ -52,7 +52,7 @@ final class RunState
     }
 
     /**
-     * @return array{context: ?RuntimeContext, globals: array<string, mixed>}
+     * @return array{context: ?RuntimeContextInterface, globals: array<string, mixed>}
      */
     public function snapshot(): array
     {

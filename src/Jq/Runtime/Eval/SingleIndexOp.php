@@ -11,11 +11,11 @@ use Closure;
  *
  * @internal
  */
-final readonly class SingleIndexOp implements SingleOp
+final readonly class SingleIndexOp implements SingleOpInterface
 {
     public function __construct(
-        private SingleOp $target,
-        private SingleOp $index,
+        private SingleOpInterface $target,
+        private SingleOpInterface $index,
     ) {
     }
 

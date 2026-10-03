@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Runtime;
 
-use LTS\PhpXq\Yq\Expression\Ast\BinaryOperator;
+use LTS\PhpXq\Yq\Expression\Ast\BinaryOperatorEnum;
 use LTS\PhpXq\Yq\Runtime\Operators\AlternativeOperator;
 use LTS\PhpXq\Yq\Runtime\Operators\ArithmeticOperator;
 use LTS\PhpXq\Yq\Runtime\Operators\AssignOperator;
@@ -89,7 +89,7 @@ final class OperatorRegistry implements OperatorRegistryInterface
         return $this->calls[$name] ?? null;
     }
 
-    public function binary(BinaryOperator $operator): ?BinaryOperatorInterface
+    public function binary(BinaryOperatorEnum $operator): ?BinaryOperatorInterface
     {
         return $this->binaries[$operator->value] ?? null;
     }

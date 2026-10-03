@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -22,16 +22,16 @@ final class KyamlEncoder implements EncoderInterface
 {
     private const int MAX_DEPTH = 1000;
 
-    public function format(): Format
+    public function format(): FormatEnum
     {
-        return Format::Kyaml;
+        return FormatEnum::Kyaml;
     }
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
         $root   = NodeTools::unwrap($node);
         $header = $node->headComment;
-        if ('' === $header && NodeKind::Mapping === $root->kind && [] !== $root->content) {
+        if ('' === $header && NodeKindEnum::Mapping === $root->kind && [] !== $root->content) {
             $header                = $root->content[0]->headComment;
             $firstKey              = clone $root->content[0];
             $firstKey->headComment = '';
@@ -52,13 +52,13 @@ final class KyamlEncoder implements EncoderInterface
         }
 
         $node = NodeTools::unwrap($node);
-        if (NodeKind::Scalar === $node->kind) {
+        if (NodeKindEnum::Scalar === $node->kind) {
             return $this->scalar($node);
         }
 
         $inner = str_repeat('  ', $depth + 1);
         $close = str_repeat('  ', $depth);
-        if (NodeKind::Sequence === $node->kind) {
+        if (NodeKindEnum::Sequence === $node->kind) {
             if ([] === $node->content) {
                 return '[]';
             }
@@ -84,7 +84,7 @@ final class KyamlEncoder implements EncoderInterface
             $resolved = NodeTools::unwrap($value);
             $out     .= $this->comment($key->headComment, $inner);
             $out     .= $inner . $this->key($key) . ': ' . $this->value($value, $depth + 1, $options) . ',';
-            $out     .= $this->trailing($key->lineComment, $value->lineComment, NodeKind::Scalar === $resolved->kind ? $resolved->lineComment : '') . "\n";
+            $out     .= $this->trailing($key->lineComment, $value->lineComment, NodeKindEnum::Scalar === $resolved->kind ? $resolved->lineComment : '') . "\n";
             $out     .= $this->comment($key->footComment, $inner);
         }
 

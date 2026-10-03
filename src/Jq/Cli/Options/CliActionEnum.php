@@ -9,7 +9,7 @@ namespace LTS\PhpXq\Jq\Cli\Options;
  *
  * @api
  */
-enum CliAction
+enum CliActionEnum
 {
     /** compile the program and run it over the inputs */
     case Run;

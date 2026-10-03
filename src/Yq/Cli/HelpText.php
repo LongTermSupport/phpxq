@@ -109,9 +109,9 @@ final class HelpText
 
             $left = '  ' . ('' === $spec->short ? '    ' : '-' . $spec->short . ', ') . '--' . $spec->name;
             $name = '' !== $spec->valueName ? $spec->valueName : match ($spec->type) {
-                FlagType::String => 'string',
-                FlagType::Int    => 'int',
-                FlagType::Bool   => '',
+                FlagTypeEnum::String => 'string',
+                FlagTypeEnum::Int    => 'int',
+                FlagTypeEnum::Bool   => '',
             };
             if ('' !== $name) {
                 $left .= ' ' . $name;

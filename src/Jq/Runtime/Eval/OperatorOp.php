@@ -14,27 +14,27 @@ use Closure;
  */
 final class OperatorOp extends AbstractOp
 {
-    private readonly ?SingleOp $leftSingle;
+    private readonly ?SingleOpInterface $leftSingle;
 
-    private readonly ?SingleOp $rightSingle;
+    private readonly ?SingleOpInterface $rightSingle;
 
     /**
      * @param Closure(mixed, mixed): mixed $operation
      */
     public function __construct(
-        private readonly Op $left,
-        private readonly Op $right,
+        private readonly OpInterface $left,
+        private readonly OpInterface $right,
         private readonly Closure $operation,
     ) {
-        $this->leftSingle  = $left instanceof SingleOp ? $left : null;
-        $this->rightSingle = $right instanceof SingleOp ? $right : null;
+        $this->leftSingle  = $left instanceof SingleOpInterface ? $left : null;
+        $this->rightSingle = $right instanceof SingleOpInterface ? $right : null;
     }
 
     public function run(?Env $env, mixed $input, Closure $emit): void
     {
         $operation = $this->operation;
         $left      = $this->left;
-        if ($this->rightSingle instanceof SingleOp) {
+        if ($this->rightSingle instanceof SingleOpInterface) {
             $rightValue = $this->rightSingle->value($env, $input);
             $left->run($env, $input, static function (mixed $leftValue) use ($operation, $rightValue, $emit): void {
                 $emit($operation($leftValue, $rightValue));
@@ -45,7 +45,7 @@ final class OperatorOp extends AbstractOp
 
         $leftSingle = $this->leftSingle;
         $this->right->run($env, $input, static function (mixed $rightValue) use ($operation, $left, $leftSingle, $env, $input, $emit): void {
-            if ($leftSingle instanceof SingleOp) {
+            if ($leftSingle instanceof SingleOpInterface) {
                 $emit($operation($leftSingle->value($env, $input), $rightValue));
 
                 return;

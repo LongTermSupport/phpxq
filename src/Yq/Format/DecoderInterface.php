@@ -19,7 +19,7 @@ use LTS\PhpXq\Yaml\Node;
  */
 interface DecoderInterface
 {
-    public function format(): Format;
+    public function format(): FormatEnum;
 
     /**
      * @return iterable<Node>

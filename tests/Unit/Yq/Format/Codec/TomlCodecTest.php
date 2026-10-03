@@ -9,7 +9,7 @@ use LTS\PhpXq\Yaml\Parser\YamlParser;
 use LTS\PhpXq\Yq\Format\Codec\JsonEncoder;
 use LTS\PhpXq\Yq\Format\Codec\TomlDecoder;
 use LTS\PhpXq\Yq\Format\Codec\TomlEncoder;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -116,8 +116,8 @@ final class TomlCodecTest extends TestCase
     public function testEmptyInputHasNoDocuments(): void
     {
         self::assertSame([], [...new TomlDecoder()->decode("\n", new FormatOptions())]);
-        self::assertSame(Format::Toml, new TomlDecoder()->format());
-        self::assertSame(Format::Toml, new TomlEncoder()->format());
+        self::assertSame(FormatEnum::Toml, new TomlDecoder()->format());
+        self::assertSame(FormatEnum::Toml, new TomlEncoder()->format());
     }
 
     public function testSpecialFloatsUseYamlSpelling(): void
@@ -133,7 +133,7 @@ final class TomlCodecTest extends TestCase
         $inline = $this->decode("t = {a = 1}\n")->root()->content[1];
 
         self::assertTrue($inline->explicitStart);
-        self::assertSame(\LTS\PhpXq\Yaml\NodeStyle::Default, $inline->style);
+        self::assertSame(\LTS\PhpXq\Yaml\NodeStyleEnum::Default, $inline->style);
     }
 
     public function testCommentsAreKept(): void

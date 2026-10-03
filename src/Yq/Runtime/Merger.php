@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 
 /**
  * The deep merge behind `*`: mappings merge key by key, sequences are replaced (or appended, or merged
@@ -41,14 +41,14 @@ final readonly class Merger
     public function merge(Node $lhs, Node $rhs): void
     {
         $right = NodeOps::deref(NodeOps::unwrap($rhs));
-        if (NodeKind::Mapping === $lhs->kind && NodeKind::Mapping === $right->kind) {
+        if (NodeKindEnum::Mapping === $lhs->kind && NodeKindEnum::Mapping === $right->kind) {
             $this->mergeMappings($lhs, $right);
             $this->clobber($lhs, $right);
 
             return;
         }
 
-        if (NodeKind::Sequence === $lhs->kind && NodeKind::Sequence === $right->kind) {
+        if (NodeKindEnum::Sequence === $lhs->kind && NodeKindEnum::Sequence === $right->kind) {
             $this->mergeSequences($lhs, $right);
             $this->clobber($lhs, $right);
 

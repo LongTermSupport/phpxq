@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Yq\Cli;
 
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yq\Expression\Ast\Field;
 use LTS\PhpXq\Yq\Expression\Ast\Identity;
 use LTS\PhpXq\Yq\Expression\Ast\Iterate;
 use LTS\PhpXq\Yq\Expression\Ast\Literal;
 use LTS\PhpXq\Yq\Expression\Ast\VariableRef;
-use LTS\PhpXq\Yq\Expression\ExpressionNode;
+use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 use LTS\PhpXq\Yq\Runtime\Candidate;
 use LTS\PhpXq\Yq\Runtime\EvaluationContext;
 use LTS\PhpXq\Yq\Runtime\EvaluationException;
@@ -24,7 +24,7 @@ final class FakeEvaluator implements EvaluatorInterface
     /** @var list<EvaluationContext> */
     public array $contexts = [];
 
-    public function evaluate(ExpressionNode $expression, EvaluationContext $context): array
+    public function evaluate(ExpressionNodeInterface $expression, EvaluationContext $context): array
     {
         $this->contexts[] = $context;
 
@@ -34,7 +34,7 @@ final class FakeEvaluator implements EvaluatorInterface
     /**
      * @return list<Candidate>
      */
-    private function walk(ExpressionNode $expression, EvaluationContext $context): array
+    private function walk(ExpressionNodeInterface $expression, EvaluationContext $context): array
     {
         if ($expression instanceof Identity) {
             return $context->matches;
@@ -62,7 +62,7 @@ final class FakeEvaluator implements EvaluatorInterface
             foreach ($this->walk($expression->base, $context) as $parent) {
                 $container = $parent->node->root();
                 foreach ($container->content as $i => $child) {
-                    if (NodeKind::Mapping === $container->kind && 0 === $i % 2) {
+                    if (NodeKindEnum::Mapping === $container->kind && 0 === $i % 2) {
                         continue;
                     }
 

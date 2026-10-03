@@ -9,7 +9,7 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class VariablePattern implements Pattern
+final readonly class VariablePattern implements PatternInterface
 {
     public function __construct(public string $name)
     {

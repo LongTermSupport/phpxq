@@ -108,7 +108,7 @@ final class Assignment
      *
      * @throws JqException
      */
-    public static function collect(Op $left, ?Env $env, mixed $input): array
+    public static function collect(OpInterface $left, ?Env $env, mixed $input): array
     {
         $paths = [];
         $left->paths($env, [], $input, static function (?array $path, mixed $found) use (&$paths): void {

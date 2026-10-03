@@ -11,20 +11,20 @@ namespace LTS\PhpXq\Jq\Runtime\Eval;
  */
 final class ArrayOp extends AbstractSingleOp
 {
-    private readonly ?SingleOp $single;
+    private readonly ?SingleOpInterface $single;
 
-    public function __construct(private readonly ?Op $body)
+    public function __construct(private readonly ?OpInterface $body)
     {
-        $this->single = $body instanceof SingleOp ? $body : null;
+        $this->single = $body instanceof SingleOpInterface ? $body : null;
     }
 
     public function value(?Env $env, mixed $input): mixed
     {
-        if (!$this->body instanceof Op) {
+        if (!$this->body instanceof OpInterface) {
             return [];
         }
 
-        if ($this->single instanceof SingleOp) {
+        if ($this->single instanceof SingleOpInterface) {
             return [$this->single->value($env, $input)];
         }
 

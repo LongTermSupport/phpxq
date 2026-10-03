@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Tests\Unit\Yq\Format\Codec;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\Parser\YamlParser;
 use LTS\PhpXq\Yq\Format\Codec\KyamlEncoder;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -60,7 +60,7 @@ final class KyamlEncoderTest extends TestCase
 
     public function testFormat(): void
     {
-        self::assertSame(Format::Kyaml, new KyamlEncoder()->format());
+        self::assertSame(FormatEnum::Kyaml, new KyamlEncoder()->format());
     }
 
     public function testDocumentComments(): void

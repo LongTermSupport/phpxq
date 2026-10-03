@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Expression\Ast;
 
-use LTS\PhpXq\Yq\Expression\ExpressionNode;
+use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 
 /**
  * A named operator or function: `select(.a)`, `length`, `keys`, `not`, `with(.a; . = 1)`, `has("k")`,
@@ -12,10 +12,10 @@ use LTS\PhpXq\Yq\Expression\ExpressionNode;
  * source. A bare word with no parentheses is a Call with no arguments. The evaluator looks `name` up in
  * the operator registry, so adding an operator never touches the AST or the parser.
  */
-final readonly class Call implements ExpressionNode
+final readonly class Call implements ExpressionNodeInterface
 {
     /**
-     * @param list<ExpressionNode> $arguments
+     * @param list<ExpressionNodeInterface> $arguments
      */
     public function __construct(
         public string $name,

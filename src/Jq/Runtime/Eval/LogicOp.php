@@ -18,8 +18,8 @@ final class LogicOp extends AbstractOp
      * @param bool $isAnd true for `and`, false for `or`
      */
     public function __construct(
-        private readonly Op $left,
-        private readonly Op $right,
+        private readonly OpInterface $left,
+        private readonly OpInterface $right,
         private readonly bool $isAnd,
     ) {
     }

@@ -24,9 +24,9 @@ final class Node
      * @param list<Node> $content
      */
     public function __construct(
-        public NodeKind $kind,
+        public NodeKindEnum $kind,
         public string $tag = '',
-        public NodeStyle $style = NodeStyle::Default,
+        public NodeStyleEnum $style = NodeStyleEnum::Default,
         public string $value = '',
         public array $content = [],
         public string $anchor = '',
@@ -47,39 +47,39 @@ final class Node
      * A scalar. Pass an empty tag to have the core schema resolve it from a plain value; quoted and block
      * scalars resolve to !!str.
      */
-    public static function scalar(string $value, string $tag = '', NodeStyle $style = NodeStyle::Default): self
+    public static function scalar(string $value, string $tag = '', NodeStyleEnum $style = NodeStyleEnum::Default): self
     {
         if ('' === $tag) {
-            $tag = NodeStyle::Default === $style ? CoreSchema::resolve($value) : CoreSchema::TAG_STR;
+            $tag = NodeStyleEnum::Default === $style ? CoreSchema::resolve($value) : CoreSchema::TAG_STR;
         }
 
-        return new self(NodeKind::Scalar, $tag, $style, $value);
+        return new self(NodeKindEnum::Scalar, $tag, $style, $value);
     }
 
     /**
      * @param list<Node> $items
      */
-    public static function sequence(array $items = [], NodeStyle $style = NodeStyle::Default): self
+    public static function sequence(array $items = [], NodeStyleEnum $style = NodeStyleEnum::Default): self
     {
-        return new self(NodeKind::Sequence, CoreSchema::TAG_SEQ, $style, '', $items);
+        return new self(NodeKindEnum::Sequence, CoreSchema::TAG_SEQ, $style, '', $items);
     }
 
     /**
      * @param list<Node> $keysAndValues the flat list key0, value0, key1, value1, ...
      */
-    public static function mapping(array $keysAndValues = [], NodeStyle $style = NodeStyle::Default): self
+    public static function mapping(array $keysAndValues = [], NodeStyleEnum $style = NodeStyleEnum::Default): self
     {
-        return new self(NodeKind::Mapping, CoreSchema::TAG_MAP, $style, '', $keysAndValues);
+        return new self(NodeKindEnum::Mapping, CoreSchema::TAG_MAP, $style, '', $keysAndValues);
     }
 
     public static function document(self $root): self
     {
-        return new self(NodeKind::Document, '', NodeStyle::Default, '', [$root]);
+        return new self(NodeKindEnum::Document, '', NodeStyleEnum::Default, '', [$root]);
     }
 
     public static function alias(string $anchorName, self $target): self
     {
-        $node              = new self(NodeKind::Alias, '', NodeStyle::Default, $anchorName);
+        $node              = new self(NodeKindEnum::Alias, '', NodeStyleEnum::Default, $anchorName);
         $node->aliasTarget = $target;
 
         return $node;
@@ -90,7 +90,7 @@ final class Node
      */
     public function root(): self
     {
-        if (NodeKind::Document === $this->kind && isset($this->content[0])) {
+        if (NodeKindEnum::Document === $this->kind && isset($this->content[0])) {
             return $this->content[0];
         }
 

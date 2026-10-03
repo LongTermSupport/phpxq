@@ -22,7 +22,7 @@ final readonly class Program
         public array $imports,
         public ?ModuleDirective $module,
         public array $defs,
-        public ?Node $body,
+        public ?NodeInterface $body,
     ) {
     }
 }

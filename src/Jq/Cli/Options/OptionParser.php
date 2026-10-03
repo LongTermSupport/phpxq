@@ -157,10 +157,10 @@ final readonly class OptionParser
                             break;
 
                         case 'h':
-                            return new CliOptions(action: CliAction::Help);
+                            return new CliOptions(action: CliActionEnum::Help);
 
                         case 'V':
-                            return new CliOptions(action: CliAction::Version);
+                            return new CliOptions(action: CliActionEnum::Version);
 
                         case 'L':
                             $rest = substr($text, $k + 1);
@@ -184,13 +184,13 @@ final readonly class OptionParser
 
             switch (substr($text, 2)) {
                 case 'help':
-                    return new CliOptions(action: CliAction::Help);
+                    return new CliOptions(action: CliActionEnum::Help);
 
                 case 'version':
-                    return new CliOptions(action: CliAction::Version);
+                    return new CliOptions(action: CliActionEnum::Version);
 
                 case 'build-configuration':
-                    return new CliOptions(action: CliAction::BuildConfiguration);
+                    return new CliOptions(action: CliActionEnum::BuildConfiguration);
 
                 case 'null-input':
                     $flags['nullInput'] = true;
@@ -369,7 +369,7 @@ final readonly class OptionParser
         }
 
         return new CliOptions(
-            action: CliAction::Run,
+            action: CliActionEnum::Run,
             program: $program,
             files: $files,
             libraryPaths: $libraries,

@@ -12,17 +12,17 @@ use Closure;
  *
  * @internal
  */
-final readonly class ReduceOp implements Op
+final readonly class ReduceOp implements OpInterface
 {
-    private ?SingleOp $updateSingle;
+    private ?SingleOpInterface $updateSingle;
 
     public function __construct(
-        private Op $source,
-        private Binder $binder,
-        private Op $init,
-        private Op $update,
+        private OpInterface $source,
+        private BinderInterface $binder,
+        private OpInterface $init,
+        private OpInterface $update,
     ) {
-        $this->updateSingle = $update instanceof SingleOp ? $update : null;
+        $this->updateSingle = $update instanceof SingleOpInterface ? $update : null;
     }
 
     public function run(?Env $env, mixed $input, Closure $emit): void
@@ -33,7 +33,7 @@ final readonly class ReduceOp implements Op
             $single = $this->updateSingle;
             $this->source->run($env, $input, function (mixed $item) use (&$state, $update, $single, $env): void {
                 $this->binder->bind($env, $item, static function (?Env $bound) use (&$state, $update, $single): void {
-                    if ($single instanceof SingleOp) {
+                    if ($single instanceof SingleOpInterface) {
                         $state = $single->value($bound, $state);
 
                         return;

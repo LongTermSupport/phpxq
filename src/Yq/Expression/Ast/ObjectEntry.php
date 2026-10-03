@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Expression\Ast;
 
-use LTS\PhpXq\Yq\Expression\ExpressionNode;
+use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 
 /**
  * One `key: value` pair of a `{ ... }` constructor. The shorthand `{a}` is `{a: .a}` and is desugared by
@@ -13,8 +13,8 @@ use LTS\PhpXq\Yq\Expression\ExpressionNode;
 final readonly class ObjectEntry
 {
     public function __construct(
-        public ExpressionNode $key,
-        public ExpressionNode $value,
+        public ExpressionNodeInterface $key,
+        public ExpressionNodeInterface $value,
     ) {
     }
 }

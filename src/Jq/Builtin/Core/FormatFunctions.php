@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Jq\Builtin\Core;
 
-use LTS\PhpXq\Jq\Runtime\BuiltinRegistry;
+use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
 use LTS\PhpXq\Jq\Runtime\JqException;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Json\Codec\Utf8;
 use LTS\PhpXq\Json\JsonObject;
 
@@ -26,9 +26,9 @@ final class FormatFunctions
     {
     }
 
-    public static function register(BuiltinRegistry $registry): void
+    public static function register(BuiltinRegistryInterface $registry): void
     {
-        $registry->register(new ValueFunction('format', 1, static function (RuntimeContext $c, mixed $v, array $a): mixed {
+        $registry->register(new ValueFunction('format', 1, static function (RuntimeContextInterface $c, mixed $v, array $a): mixed {
             if (!\is_string($a[0])) {
                 throw Problems::type($a[0], 'is not a valid format');
             }

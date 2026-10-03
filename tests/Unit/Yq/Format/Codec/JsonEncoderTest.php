@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Parser\YamlParser;
 use LTS\PhpXq\Yq\Format\Codec\JsonEncoder;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -21,7 +21,7 @@ final class JsonEncoderTest extends TestCase
 {
     public function testFormat(): void
     {
-        self::assertSame(Format::Json, new JsonEncoder()->format());
+        self::assertSame(FormatEnum::Json, new JsonEncoder()->format());
     }
 
     public function testPrettyPrintsWithTwoSpaces(): void
@@ -138,7 +138,7 @@ final class JsonEncoderTest extends TestCase
     private function encode(string $yaml, ?FormatOptions $options = null): string
     {
         foreach (new YamlParser()->parse($yaml) as $document) {
-            self::assertSame(NodeKind::Document, $document->kind);
+            self::assertSame(NodeKindEnum::Document, $document->kind);
 
             return new JsonEncoder()->encode($document, $options ?? new FormatOptions(), 0);
         }

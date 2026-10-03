@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 
 /**
  * Anchor and alias resolution: `explode` (replace aliases by copies, drop anchors, expand `<<` merge
@@ -52,7 +52,7 @@ final class Anchors
             return;
         }
 
-        if (NodeKind::Alias === $node->kind) {
+        if (NodeKindEnum::Alias === $node->kind) {
             self::replaceAlias($node, $fixedMerge, $depth);
 
             return;
@@ -60,7 +60,7 @@ final class Anchors
 
         $node->anchor = '';
 
-        if (NodeKind::Mapping === $node->kind) {
+        if (NodeKindEnum::Mapping === $node->kind) {
             self::resolveMerges($node, $fixedMerge);
         }
 
@@ -72,7 +72,7 @@ final class Anchors
     private static function replaceAlias(Node $alias, bool $fixedMerge, int $depth): void
     {
         $target = NodeOps::deref($alias);
-        if (NodeKind::Alias === $target->kind) {
+        if (NodeKindEnum::Alias === $target->kind) {
             return;
         }
 
@@ -86,7 +86,7 @@ final class Anchors
         $alias->content     = $copy->content;
         $alias->aliasTarget = null;
         $alias->anchor      = '';
-        if (NodeKind::Alias !== $alias->kind && NodeStyle::Default === $alias->style && '' === $alias->value && [] === $alias->content) {
+        if (NodeKindEnum::Alias !== $alias->kind && NodeStyleEnum::Default === $alias->style && '' === $alias->value && [] === $alias->content) {
             $alias->style = $copy->style;
         }
     }

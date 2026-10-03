@@ -7,8 +7,8 @@ namespace LTS\PhpXq\Tests\Unit\Yaml\Emitter;
 use LTS\PhpXq\Yaml\Emitter\EmitOptions;
 use LTS\PhpXq\Yaml\Emitter\YamlEmitter;
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -60,14 +60,14 @@ final class YamlEmitterTest extends TestCase
 
         yield 'flow collections' => [
             Node::mapping([
-                Node::scalar('a'), Node::sequence([Node::scalar('1'), Node::scalar('2')], NodeStyle::Flow),
-                Node::scalar('b'), Node::mapping([Node::scalar('c'), Node::scalar('3'), Node::scalar('d'), Node::scalar('4')], NodeStyle::Flow),
+                Node::scalar('a'), Node::sequence([Node::scalar('1'), Node::scalar('2')], NodeStyleEnum::Flow),
+                Node::scalar('b'), Node::mapping([Node::scalar('c'), Node::scalar('3'), Node::scalar('d'), Node::scalar('4')], NodeStyleEnum::Flow),
             ]),
             "a: [1, 2]\nb: {c: 3, d: 4}\n",
         ];
 
         yield 'block collection inside flow collection becomes flow' => [
-            Node::sequence([Node::sequence([Node::scalar('1')]), Node::mapping([Node::scalar('a'), Node::scalar('b')])], NodeStyle::Flow),
+            Node::sequence([Node::sequence([Node::scalar('1')]), Node::mapping([Node::scalar('a'), Node::scalar('b')])], NodeStyleEnum::Flow),
             "[[1], {a: b}]\n",
         ];
 
@@ -84,7 +84,7 @@ final class YamlEmitterTest extends TestCase
         yield 'empty null in sequence' => [Node::sequence([Node::scalar('')]), "-\n"];
 
         yield 'empty null in flow is quoted' => [
-            Node::sequence([Node::scalar('')], NodeStyle::Flow),
+            Node::sequence([Node::scalar('')], NodeStyleEnum::Flow),
             "['']\n",
         ];
 
@@ -124,12 +124,12 @@ final class YamlEmitterTest extends TestCase
         ];
 
         yield 'explicitly double quoted empty key stays double quoted' => [
-            Node::mapping([Node::scalar('', '!!str', NodeStyle::DoubleQuoted), Node::scalar('x')]),
+            Node::mapping([Node::scalar('', '!!str', NodeStyleEnum::DoubleQuoted), Node::scalar('x')]),
             "\"\": x\n",
         ];
 
         yield 'empty string value keeps its double quotes' => [
-            Node::mapping([Node::scalar('a'), Node::scalar('', '!!str', NodeStyle::DoubleQuoted)]),
+            Node::mapping([Node::scalar('a'), Node::scalar('', '!!str', NodeStyleEnum::DoubleQuoted)]),
             "a: \"\"\n",
         ];
 
@@ -161,22 +161,22 @@ final class YamlEmitterTest extends TestCase
         ];
 
         yield 'flow context quotes commas and brackets' => [
-            Node::sequence([Node::scalar('a,b', '!!str'), Node::scalar('a]', '!!str'), Node::scalar('a:b', '!!str')], NodeStyle::Flow),
+            Node::sequence([Node::scalar('a,b', '!!str'), Node::scalar('a]', '!!str'), Node::scalar('a:b', '!!str')], NodeStyleEnum::Flow),
             "['a,b', 'a]', 'a:b']\n",
         ];
 
         yield 'single quote is doubled' => [
-            Node::sequence([Node::scalar("it's", '!!str', NodeStyle::SingleQuoted)]),
+            Node::sequence([Node::scalar("it's", '!!str', NodeStyleEnum::SingleQuoted)]),
             "- 'it''s'\n",
         ];
 
         yield 'preserved single quoted style' => [
-            Node::sequence([Node::scalar('abc', '!!str', NodeStyle::SingleQuoted)]),
+            Node::sequence([Node::scalar('abc', '!!str', NodeStyleEnum::SingleQuoted)]),
             "- 'abc'\n",
         ];
 
         yield 'preserved double quoted style' => [
-            Node::sequence([Node::scalar('abc', '!!str', NodeStyle::DoubleQuoted)]),
+            Node::sequence([Node::scalar('abc', '!!str', NodeStyleEnum::DoubleQuoted)]),
             "- \"abc\"\n",
         ];
 
@@ -186,7 +186,7 @@ final class YamlEmitterTest extends TestCase
         ];
 
         yield 'double quoted escapes' => [
-            Node::sequence([Node::scalar("q\"b\\\x01\x7f", '!!str', NodeStyle::DoubleQuoted)]),
+            Node::sequence([Node::scalar("q\"b\\\x01\x7f", '!!str', NodeStyleEnum::DoubleQuoted)]),
             "- \"q\\\"b\\\\\\x01\\x7F\"\n",
         ];
 
@@ -221,12 +221,12 @@ final class YamlEmitterTest extends TestCase
         ];
 
         yield 'literal with leading space gets an indentation hint' => [
-            Node::mapping([Node::scalar('a'), Node::scalar(" x\ny", '!!str', NodeStyle::Literal)]),
+            Node::mapping([Node::scalar('a'), Node::scalar(" x\ny", '!!str', NodeStyleEnum::Literal)]),
             "a: |2-\n   x\n  y\n",
         ];
 
         yield 'literal blank line inside' => [
-            Node::mapping([Node::scalar('a'), Node::scalar("x\n\ny", '!!str', NodeStyle::Literal)]),
+            Node::mapping([Node::scalar('a'), Node::scalar("x\n\ny", '!!str', NodeStyleEnum::Literal)]),
             "a: |-\n  x\n\n  y\n",
         ];
 
@@ -236,17 +236,17 @@ final class YamlEmitterTest extends TestCase
         ];
 
         yield 'literal with trailing space falls back to double quotes' => [
-            Node::mapping([Node::scalar('a'), Node::scalar("x\ny ", '!!str', NodeStyle::Literal)]),
+            Node::mapping([Node::scalar('a'), Node::scalar("x\ny ", '!!str', NodeStyleEnum::Literal)]),
             "a: \"x\\ny \"\n",
         ];
 
         yield 'literal in flow becomes double quoted' => [
-            Node::sequence([Node::scalar("x\ny", '!!str')], NodeStyle::Flow),
+            Node::sequence([Node::scalar("x\ny", '!!str')], NodeStyleEnum::Flow),
             "[\"x\\ny\"]\n",
         ];
 
         yield 'folded style is preserved' => [
-            Node::mapping([Node::scalar('a'), Node::scalar("x\ny\n", '!!str', NodeStyle::Folded)]),
+            Node::mapping([Node::scalar('a'), Node::scalar("x\ny\n", '!!str', NodeStyleEnum::Folded)]),
             "a: >\n  x\n\n  y\n",
         ];
 
@@ -256,7 +256,7 @@ final class YamlEmitterTest extends TestCase
         ];
 
         yield 'single quoted multi-line folds with a blank line' => [
-            Node::mapping([Node::scalar('a'), Node::scalar("x\ny", '!!str', NodeStyle::SingleQuoted)]),
+            Node::mapping([Node::scalar('a'), Node::scalar("x\ny", '!!str', NodeStyleEnum::SingleQuoted)]),
             "a: 'x\n\n  y'\n",
         ];
 
@@ -307,12 +307,12 @@ final class YamlEmitterTest extends TestCase
         ];
 
         yield 'custom tag on a mapping' => [
-            Node::mapping([Node::scalar('a'), new Node(NodeKind::Mapping, '!thing', NodeStyle::Default, '', [Node::scalar('b'), Node::scalar('1')])]),
+            Node::mapping([Node::scalar('a'), new Node(NodeKindEnum::Mapping, '!thing', NodeStyleEnum::Default, '', [Node::scalar('b'), Node::scalar('1')])]),
             "a: !thing\n  b: 1\n",
         ];
 
         yield 'custom tag on a flow sequence' => [
-            Node::mapping([Node::scalar('a'), new Node(NodeKind::Sequence, '!thing', NodeStyle::Flow, '', [Node::scalar('1')])]),
+            Node::mapping([Node::scalar('a'), new Node(NodeKindEnum::Sequence, '!thing', NodeStyleEnum::Flow, '', [Node::scalar('1')])]),
             "a: !thing [1]\n",
         ];
 
@@ -422,7 +422,7 @@ final class YamlEmitterTest extends TestCase
 
     public function testLineCommentAfterFlowCollection(): void
     {
-        $seq              = Node::sequence([Node::scalar('1')], NodeStyle::Flow);
+        $seq              = Node::sequence([Node::scalar('1')], NodeStyleEnum::Flow);
         $seq->lineComment = '# c';
 
         self::assertSame("a: [1] # c\n", new YamlEmitter()->emit(Node::mapping([Node::scalar('a'), $seq])));
@@ -432,9 +432,9 @@ final class YamlEmitterTest extends TestCase
     {
         $emitter = new YamlEmitter();
 
-        self::assertSame("hello\n", $emitter->emit(Node::scalar('hello', '!!str', NodeStyle::DoubleQuoted)));
+        self::assertSame("hello\n", $emitter->emit(Node::scalar('hello', '!!str', NodeStyleEnum::DoubleQuoted)));
         self::assertSame("a\nb\n", $emitter->emit(Node::scalar("a\nb", '!!str')));
-        self::assertSame("\"hello\"\n", $emitter->emit(Node::scalar('hello', '!!str', NodeStyle::DoubleQuoted), new EmitOptions(unwrapScalar: false)));
+        self::assertSame("\"hello\"\n", $emitter->emit(Node::scalar('hello', '!!str', NodeStyleEnum::DoubleQuoted), new EmitOptions(unwrapScalar: false)));
         self::assertSame("|-\n  a\n  b\n", $emitter->emit(Node::scalar("a\nb", '!!str'), new EmitOptions(unwrapScalar: false)));
         self::assertSame("hello\n", $emitter->emit(Node::document(Node::scalar('hello'))));
     }
@@ -567,17 +567,17 @@ final class YamlEmitterTest extends TestCase
     public function testPrettyPrintNormalisesStyles(): void
     {
         $node = Node::mapping([
-            Node::scalar('k', '!!str', NodeStyle::DoubleQuoted),
+            Node::scalar('k', '!!str', NodeStyleEnum::DoubleQuoted),
             Node::sequence([
-                Node::scalar('yes', '!!str', NodeStyle::DoubleQuoted),
-                Node::scalar('yesSir', '!!str', NodeStyle::DoubleQuoted),
-                Node::scalar('true', '!!str', NodeStyle::DoubleQuoted),
-                Node::scalar('Y', '!!str', NodeStyle::SingleQuoted),
+                Node::scalar('yes', '!!str', NodeStyleEnum::DoubleQuoted),
+                Node::scalar('yesSir', '!!str', NodeStyleEnum::DoubleQuoted),
+                Node::scalar('true', '!!str', NodeStyleEnum::DoubleQuoted),
+                Node::scalar('Y', '!!str', NodeStyleEnum::SingleQuoted),
                 Node::scalar('yes', '!!str'),
-                Node::scalar("a\nb", '!!str', NodeStyle::Literal),
-            ], NodeStyle::Flow),
+                Node::scalar("a\nb", '!!str', NodeStyleEnum::Literal),
+            ], NodeStyleEnum::Flow),
             Node::scalar('m'),
-            Node::mapping([Node::scalar('x'), Node::scalar('1')], NodeStyle::Flow),
+            Node::mapping([Node::scalar('x'), Node::scalar('1')], NodeStyleEnum::Flow),
         ]);
 
         self::assertSame(
@@ -588,10 +588,10 @@ final class YamlEmitterTest extends TestCase
 
     public function testPrettyPrintKeepsComments(): void
     {
-        $key              = Node::scalar('a', '!!str', NodeStyle::DoubleQuoted);
+        $key              = Node::scalar('a', '!!str', NodeStyleEnum::DoubleQuoted);
         $key->headComment = '# c';
 
-        self::assertSame("# c\na: b\n", new YamlEmitter()->emit(Node::mapping([$key, Node::scalar('b', '!!str', NodeStyle::SingleQuoted)]), new EmitOptions(prettyPrint: true)));
+        self::assertSame("# c\na: b\n", new YamlEmitter()->emit(Node::mapping([$key, Node::scalar('b', '!!str', NodeStyleEnum::SingleQuoted)]), new EmitOptions(prettyPrint: true)));
     }
 
     public function testColours(): void

@@ -64,10 +64,10 @@ structure. See the class for the field list; summary:
 
 | Field                                        | Meaning                                                                          |
 | -------------------------------------------- | -------------------------------------------------------------------------------- |
-| `kind` (`NodeKind`)                          | Document, Sequence, Mapping, Scalar, Alias                                       |
+| `kind` (`NodeKindEnum`)                          | Document, Sequence, Mapping, Scalar, Alias                                       |
 | `tag`                                        | resolved tag (`!!str`, `!!int`, `!!map`, custom `!x`); documents have `''`       |
 | `tagExplicit`                                | the tag was written in the source (`!!str 12`); drives `tag` style output        |
-| `style` (`NodeStyle`)                        | Default (block/plain), Flow, SingleQuoted, DoubleQuoted, Literal, Folded         |
+| `style` (`NodeStyleEnum`)                        | Default (block/plain), Flow, SingleQuoted, DoubleQuoted, Literal, Folded         |
 | `value`                                      | decoded scalar text; for an Alias, the anchor name                               |
 | `content`                                    | children; Mapping is the flat list key0, value0, key1, value1...; Document has 1 |
 | `anchor`                                     | `&name` defined on this node, or `''`                                            |
@@ -133,7 +133,7 @@ root. Plan 00003's JSON codec is likewise not reused by default (Section 7).
 ### 5.1 Syntax
 
 Pipeline: `Yq\Expression\ExpressionLexerInterface::tokenize(string): list<ExpressionToken>` then
-`ExpressionParserInterface::parse(string): ExpressionNode`. The parser is a precedence-climbing (Pratt)
+`ExpressionParserInterface::parse(string): ExpressionNodeInterface`. The parser is a precedence-climbing (Pratt)
 parser, not a shunting yard.
 
 Binding power, loosest to tightest (all left-associative unless noted):
@@ -163,7 +163,7 @@ indexes, `.[a:b]` slices), `..` and `...` (recursive descent without/with keys),
 `name`, `name(arg; arg)`, `if c then a elif c2 then b else d end`, `expr as $x | body`, `reduce src as $x (init; update)`, comments (`#` to end of line) skipped.
 
 AST: closed set of immutable classes under `Yq\Expression\Ast` (Identity, Literal, VariableRef, Field,
-Slice, Iterate, RecursiveDescent, Binary + `BinaryOperator`, Call, Collect, ObjectConstruct +
+Slice, Iterate, RecursiveDescent, Binary + `BinaryOperatorEnum`, Call, Collect, ObjectConstruct +
 ObjectEntry, Conditional, Bind, Reduce, Interpolation). Index access `.[expr]` is `Field` with the
 index expression as key. All named operators are `Call` nodes, so adding one never touches the AST.
 
@@ -200,7 +200,7 @@ source and records the final list in the evaluator's docblocks.
 
 ## 6. Evaluator
 
-`Yq\Runtime\EvaluatorInterface::evaluate(ExpressionNode, EvaluationContext): list<Candidate>`.
+`Yq\Runtime\EvaluatorInterface::evaluate(ExpressionNodeInterface, EvaluationContext): list<Candidate>`.
 
 - yq semantics: the context carries ALL current matches and each operator sees the whole list (so
   `collect`, `sort`, `add`, `first`, `reduce`, `group_by` work over a list), while most operators map over
@@ -292,11 +292,11 @@ your own directory, never by editing a neighbour's. Every worker adds its tests 
 
 Frozen (changes only via the orchestrator, because several workers depend on them):
 
-- `src/Yaml/Node.php`, `NodeKind.php`, `NodeStyle.php`, `Schema/CoreSchema.php`,
+- `src/Yaml/Node.php`, `NodeKindEnum.php`, `NodeStyleEnum.php`, `Schema/CoreSchema.php`,
   `Exception/YamlSyntaxException.php`, `Token/Token.php`, `Token/TokenType.php`,
   `Token/YamlTokenizerInterface.php`, `Parser/YamlParserInterface.php`, `Emitter/EmitOptions.php`,
   `Emitter/YamlEmitterInterface.php`
-- `src/Yq/Expression/ExpressionNode.php`, `ExpressionToken.php`, `ExpressionTokenKind.php`,
+- `src/Yq/Expression/ExpressionNodeInterface.php`, `ExpressionToken.php`, `ExpressionTokenKindEnum.php`,
   `ExpressionLexerInterface.php`, `ExpressionParserInterface.php`, `ExpressionSyntaxException.php`,
   everything under `src/Yq/Expression/Ast/`
 - `src/Yq/Runtime/Candidate.php`, `EvaluationContext.php`, `EvaluationException.php`,
@@ -311,7 +311,7 @@ plan's JOURNAL and works around it locally until the orchestrator applies it bet
 
 Seams between workers (what each may assume of the others, all via interfaces):
 
-- W3 produces `ExpressionNode` trees; W4 consumes them. Their only shared artefact is the frozen AST.
+- W3 produces `ExpressionNodeInterface` trees; W4 consumes them. Their only shared artefact is the frozen AST.
 - W4 uses `YamlParserInterface`, `FormatRegistryInterface` and `ExpressionParserInterface` only through
   `RuntimeServices`; unit tests construct fakes of these interfaces, never the other workers' classes.
 - W5's YAML codec uses `YamlParserInterface`/`YamlEmitterInterface` by interface.

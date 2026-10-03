@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Jq\Cli;
 
-use LTS\PhpXq\Jq\Cli\Options\CliAction;
+use LTS\PhpXq\Jq\Cli\Options\CliActionEnum;
 use LTS\PhpXq\Jq\Cli\Options\CliOptions;
 use LTS\PhpXq\Jq\Cli\Options\OptionParser;
 use LTS\PhpXq\Jq\Cli\Options\UsageException;
 use LTS\PhpXq\Jq\Parser\Lexer;
 use LTS\PhpXq\Jq\Parser\Parser;
 use LTS\PhpXq\Jq\Parser\ParserInterface;
-use LTS\PhpXq\Jq\Runtime\CompiledProgram;
+use LTS\PhpXq\Jq\Runtime\CompiledProgramInterface;
 use LTS\PhpXq\Jq\Runtime\JqCompileException;
 use LTS\PhpXq\Json\Codec\JqColors;
 use LTS\PhpXq\Json\ColorScheme;
@@ -82,19 +82,19 @@ final readonly class JqApplication
             return JqExitCode::USAGE;
         }
 
-        if (CliAction::Help === $options->action) {
+        if (CliActionEnum::Help === $options->action) {
             $console->out(UsageText::full());
 
             return JqExitCode::OK;
         }
 
-        if (CliAction::Version === $options->action) {
+        if (CliActionEnum::Version === $options->action) {
             $console->out(UsageText::version());
 
             return JqExitCode::OK;
         }
 
-        if (CliAction::BuildConfiguration === $options->action) {
+        if (CliActionEnum::BuildConfiguration === $options->action) {
             $console->out(UsageText::buildConfiguration());
 
             return JqExitCode::OK;
@@ -106,7 +106,7 @@ final readonly class JqApplication
         }
 
         $program = $this->compile($source, $options, $console);
-        if (!$program instanceof CompiledProgram) {
+        if (!$program instanceof CompiledProgramInterface) {
             return $program;
         }
 
@@ -146,7 +146,7 @@ final readonly class JqApplication
         }
     }
 
-    private function compile(string $source, CliOptions $options, Console $console): CompiledProgram|int
+    private function compile(string $source, CliOptions $options, Console $console): CompiledProgramInterface|int
     {
         try {
             if ($options->fromFile && str_contains($source, "\0")) {
@@ -203,7 +203,7 @@ final readonly class JqApplication
      * @param resource $stdin
      * @param resource $stdout
      */
-    private function runProgram(CompiledProgram $program, CliOptions $options, mixed $stdin, mixed $stdout, Console $console): int
+    private function runProgram(CompiledProgramInterface $program, CliOptions $options, mixed $stdin, mixed $stdout, Console $console): int
     {
         $scheme  = $this->colorScheme($options, $stdout, $console);
         $source  = new InputSource(

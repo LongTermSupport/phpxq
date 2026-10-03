@@ -9,6 +9,6 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-interface Pattern
+interface PatternInterface
 {
 }

@@ -6,11 +6,11 @@ namespace LTS\PhpXq\Yq\Runtime\Operators;
 
 use DateTimeImmutable;
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Expression\Ast\Binary;
-use LTS\PhpXq\Yq\Expression\Ast\BinaryOperator;
+use LTS\PhpXq\Yq\Expression\Ast\BinaryOperatorEnum;
 use LTS\PhpXq\Yq\Runtime\BinaryOperatorInterface;
 use LTS\PhpXq\Yq\Runtime\Candidate;
 use LTS\PhpXq\Yq\Runtime\Cands;
@@ -34,11 +34,11 @@ final class ArithmeticOperator implements BinaryOperatorInterface
     public function operators(): array
     {
         return [
-            BinaryOperator::Add,
-            BinaryOperator::Subtract,
-            BinaryOperator::Multiply,
-            BinaryOperator::Divide,
-            BinaryOperator::Modulo,
+            BinaryOperatorEnum::Add,
+            BinaryOperatorEnum::Subtract,
+            BinaryOperatorEnum::Multiply,
+            BinaryOperatorEnum::Divide,
+            BinaryOperatorEnum::Modulo,
         ];
     }
 
@@ -67,18 +67,18 @@ final class ArithmeticOperator implements BinaryOperatorInterface
      *
      * @throws EvaluationException
      */
-    public static function apply(BinaryOperator $operator, ?Node $left, ?Node $right, string $modifiers = '', ?string $layout = null): ?Node
+    public static function apply(BinaryOperatorEnum $operator, ?Node $left, ?Node $right, string $modifiers = '', ?string $layout = null): ?Node
     {
         $l = $left instanceof Node ? NodeOps::deref(NodeOps::unwrap($left)) : null;
         $r = $right instanceof Node ? NodeOps::deref(NodeOps::unwrap($right)) : null;
 
         return match ($operator) {
-            BinaryOperator::Add, BinaryOperator::AddAssign           => self::add($l, $r, $layout),
-            BinaryOperator::Subtract, BinaryOperator::SubtractAssign => self::subtract($l, $r, $layout),
-            BinaryOperator::Multiply, BinaryOperator::MultiplyAssign => self::multiply($l, $r, $modifiers),
-            BinaryOperator::Divide, BinaryOperator::DivideAssign     => self::divide($l, $r),
-            BinaryOperator::Modulo, BinaryOperator::ModuloAssign     => self::modulo($l, $r),
-            default                                                  => throw new EvaluationException('Unsupported arithmetic operator ' . $operator->value),
+            BinaryOperatorEnum::Add, BinaryOperatorEnum::AddAssign           => self::add($l, $r, $layout),
+            BinaryOperatorEnum::Subtract, BinaryOperatorEnum::SubtractAssign => self::subtract($l, $r, $layout),
+            BinaryOperatorEnum::Multiply, BinaryOperatorEnum::MultiplyAssign => self::multiply($l, $r, $modifiers),
+            BinaryOperatorEnum::Divide, BinaryOperatorEnum::DivideAssign     => self::divide($l, $r),
+            BinaryOperatorEnum::Modulo, BinaryOperatorEnum::ModuloAssign     => self::modulo($l, $r),
+            default                                                          => throw new EvaluationException('Unsupported arithmetic operator ' . $operator->value),
         };
     }
 
@@ -96,11 +96,11 @@ final class ArithmeticOperator implements BinaryOperatorInterface
             return $r->deepCopy();
         }
 
-        if (NodeKind::Sequence === $l->kind) {
+        if (NodeKindEnum::Sequence === $l->kind) {
             return self::addToSequence($l, $r);
         }
 
-        if (NodeKind::Mapping === $l->kind && NodeKind::Mapping === $r->kind) {
+        if (NodeKindEnum::Mapping === $l->kind && NodeKindEnum::Mapping === $r->kind) {
             $merged = $l->deepCopy();
             for ($i = 0, $n = \count($r->content); $i < $n; $i += 2) {
                 $found = null;
@@ -123,7 +123,7 @@ final class ArithmeticOperator implements BinaryOperatorInterface
             return $merged;
         }
 
-        if (NodeKind::Scalar !== $l->kind || NodeKind::Scalar !== $r->kind) {
+        if (NodeKindEnum::Scalar !== $l->kind || NodeKindEnum::Scalar !== $r->kind) {
             throw new EvaluationException(\sprintf('%s (%s) cannot be added to a %s (%s)', $r->tag, NodeOps::kindName($r), $l->tag, NodeOps::kindName($l)));
         }
 
@@ -142,7 +142,7 @@ final class ArithmeticOperator implements BinaryOperatorInterface
         $out->value = $l->value . $r->value;
         if (CoreSchema::TAG_STR !== NodeOps::effectiveTag($l)) {
             $out->tag   = CoreSchema::TAG_STR;
-            $out->style = NodeStyle::Default;
+            $out->style = NodeStyleEnum::Default;
         }
 
         return $out;
@@ -151,14 +151,14 @@ final class ArithmeticOperator implements BinaryOperatorInterface
     private static function addToSequence(Node $l, Node $r): Node
     {
         $items = array_map(static fn (Node $item): Node => $item->deepCopy(), $l->content);
-        if (NodeKind::Sequence === $r->kind) {
+        if (NodeKindEnum::Sequence === $r->kind) {
             foreach ($r->content as $item) {
                 $items[] = $item->deepCopy();
             }
         } else {
             $add  = $r->deepCopy();
             $last = [] === $items ? null : $items[\count($items) - 1];
-            if ($last instanceof Node && NodeKind::Scalar === $last->kind && NodeKind::Scalar === $add->kind && NodeStyle::Default === $add->style && NodeStyle::Default !== $last->style) {
+            if ($last instanceof Node && NodeKindEnum::Scalar === $last->kind && NodeKindEnum::Scalar === $add->kind && NodeStyleEnum::Default === $add->style && NodeStyleEnum::Default !== $last->style) {
                 $add->style = $last->style;
             }
 
@@ -182,8 +182,8 @@ final class ArithmeticOperator implements BinaryOperatorInterface
             return $l->deepCopy();
         }
 
-        if (NodeKind::Sequence === $l->kind) {
-            $remove = NodeKind::Sequence === $r->kind ? $r->content : [$r];
+        if (NodeKindEnum::Sequence === $l->kind) {
+            $remove = NodeKindEnum::Sequence === $r->kind ? $r->content : [$r];
             $items  = [];
             foreach ($l->content as $item) {
                 $drop = array_any($remove, static fn (Node $candidate): bool => Compare::deepEquals($item, $candidate));
@@ -199,7 +199,7 @@ final class ArithmeticOperator implements BinaryOperatorInterface
             return $new;
         }
 
-        if (NodeKind::Scalar !== $l->kind || NodeKind::Scalar !== $r->kind) {
+        if (NodeKindEnum::Scalar !== $l->kind || NodeKindEnum::Scalar !== $r->kind) {
             throw new EvaluationException(\sprintf('%s (%s) cannot be subtracted from %s (%s)', $r->tag, NodeOps::kindName($r), $l->tag, NodeOps::kindName($l)));
         }
 
@@ -227,7 +227,7 @@ final class ArithmeticOperator implements BinaryOperatorInterface
             return $l->deepCopy();
         }
 
-        if (NodeKind::Scalar === $l->kind && NodeKind::Scalar === $r->kind) {
+        if (NodeKindEnum::Scalar === $l->kind && NodeKindEnum::Scalar === $r->kind) {
             $ln = Numbers::of($l);
             $rn = Numbers::of($r);
             if (null !== $ln && null !== $rn) {
@@ -253,7 +253,7 @@ final class ArithmeticOperator implements BinaryOperatorInterface
     {
         $out        = NodeOps::str(str_repeat($text->value, max(0, (int)$times)));
         $out->tag   = $text->tag;
-        $out->style = NodeStyle::Default;
+        $out->style = NodeStyleEnum::Default;
 
         return $out;
     }
@@ -264,7 +264,7 @@ final class ArithmeticOperator implements BinaryOperatorInterface
             return $l?->deepCopy() ?? $r?->deepCopy();
         }
 
-        if (NodeKind::Scalar === $l->kind && NodeKind::Scalar === $r->kind) {
+        if (NodeKindEnum::Scalar === $l->kind && NodeKindEnum::Scalar === $r->kind) {
             $ln = Numbers::of($l);
             $rn = Numbers::of($r);
             if (null !== $ln && null !== $rn) {

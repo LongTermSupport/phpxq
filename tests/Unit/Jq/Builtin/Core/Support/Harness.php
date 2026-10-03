@@ -7,14 +7,14 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Builtin\Core\Support;
 use InvalidArgumentException;
 use LogicException;
 use LTS\PhpXq\Jq\Builtin\CoreBuiltins;
-use LTS\PhpXq\Jq\Runtime\BuiltinRegistry;
+use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
 use LTS\PhpXq\Jq\Runtime\DefaultBuiltinRegistry;
-use LTS\PhpXq\Jq\Runtime\Filter;
+use LTS\PhpXq\Jq\Runtime\FilterInterface;
 use LTS\PhpXq\Jq\Runtime\JqException;
-use LTS\PhpXq\Jq\Runtime\PathStreamBuiltin;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
-use LTS\PhpXq\Jq\Runtime\StreamBuiltin;
-use LTS\PhpXq\Jq\Runtime\ValueBuiltin;
+use LTS\PhpXq\Jq\Runtime\PathStreamBuiltinInterface;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
+use LTS\PhpXq\Jq\Runtime\StreamBuiltinInterface;
+use LTS\PhpXq\Jq\Runtime\ValueBuiltinInterface;
 use LTS\PhpXq\Json\JsonDecoder;
 
 /**
@@ -25,15 +25,15 @@ use LTS\PhpXq\Json\JsonDecoder;
  */
 final class Harness
 {
-    private static ?BuiltinRegistry $registry = null;
+    private static ?BuiltinRegistryInterface $registry = null;
 
     private function __construct()
     {
     }
 
-    public static function registry(): BuiltinRegistry
+    public static function registry(): BuiltinRegistryInterface
     {
-        if (!self::$registry instanceof BuiltinRegistry) {
+        if (!self::$registry instanceof BuiltinRegistryInterface) {
             $registry = new DefaultBuiltinRegistry();
             new CoreBuiltins()->registerInto($registry);
             self::$registry = $registry;
@@ -55,10 +55,10 @@ final class Harness
      *
      * @param list<mixed> $args
      */
-    public static function call(string $name, mixed $input, array $args = [], ?RuntimeContext $context = null): mixed
+    public static function call(string $name, mixed $input, array $args = [], ?RuntimeContextInterface $context = null): mixed
     {
         $builtin = self::registry()->lookup($name, \count($args));
-        if (!$builtin instanceof ValueBuiltin) {
+        if (!$builtin instanceof ValueBuiltinInterface) {
             throw new InvalidArgumentException($name . '/' . \count($args) . ' is not a value builtin');
         }
 
@@ -84,9 +84,9 @@ final class Harness
     /**
      * The value of the jq error a stream builtin raises.
      *
-     * @param list<Filter> $filters
+     * @param list<FilterInterface> $filters
      */
-    public static function streamError(string $name, mixed $input, array $filters = [], ?RuntimeContext $context = null): mixed
+    public static function streamError(string $name, mixed $input, array $filters = [], ?RuntimeContextInterface $context = null): mixed
     {
         try {
             self::stream($name, $input, $filters, $context);
@@ -100,14 +100,14 @@ final class Harness
     /**
      * Run a stream builtin and collect everything it emits.
      *
-     * @param list<Filter> $filters
+     * @param list<FilterInterface> $filters
      *
      * @return list<mixed>
      */
-    public static function stream(string $name, mixed $input, array $filters = [], ?RuntimeContext $context = null): array
+    public static function stream(string $name, mixed $input, array $filters = [], ?RuntimeContextInterface $context = null): array
     {
         $builtin = self::registry()->lookup($name, \count($filters));
-        if (!$builtin instanceof StreamBuiltin) {
+        if (!$builtin instanceof StreamBuiltinInterface) {
             throw new InvalidArgumentException($name . '/' . \count($filters) . ' is not a stream builtin');
         }
 
@@ -122,15 +122,15 @@ final class Harness
     /**
      * Run a path-aware stream builtin in path mode and collect `[path, value]` pairs.
      *
-     * @param ?list<mixed> $path
-     * @param list<Filter> $filters
+     * @param ?list<mixed>          $path
+     * @param list<FilterInterface> $filters
      *
      * @return list<array{?list<mixed>, mixed}>
      */
     public static function paths(string $name, ?array $path, mixed $input, array $filters = []): array
     {
         $builtin = self::registry()->lookup($name, \count($filters));
-        if (!$builtin instanceof PathStreamBuiltin) {
+        if (!$builtin instanceof PathStreamBuiltinInterface) {
             throw new InvalidArgumentException($name . '/' . \count($filters) . ' is not a path builtin');
         }
 

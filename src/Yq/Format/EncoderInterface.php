@@ -18,7 +18,7 @@ use LTS\PhpXq\Yaml\Node;
  */
 interface EncoderInterface
 {
-    public function format(): Format;
+    public function format(): FormatEnum;
 
     /**
      * @throws FormatException

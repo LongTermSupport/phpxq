@@ -9,12 +9,12 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class Slice implements Node
+final readonly class Slice implements NodeInterface
 {
     public function __construct(
-        public Node $target,
-        public ?Node $from,
-        public ?Node $to,
+        public NodeInterface $target,
+        public ?NodeInterface $from,
+        public ?NodeInterface $to,
     ) {
     }
 }

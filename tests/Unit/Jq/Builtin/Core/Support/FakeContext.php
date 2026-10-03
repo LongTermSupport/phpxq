@@ -6,14 +6,14 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Builtin\Core\Support;
 
 use LTS\PhpXq\Jq\Runtime\InputProviderInterface;
 use LTS\PhpXq\Jq\Runtime\JqException;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 
 /**
- * A recording {@see RuntimeContext} for builtin tests.
+ * A recording {@see RuntimeContextInterface} for builtin tests.
  *
  * @internal
  */
-final class FakeContext implements RuntimeContext
+final class FakeContext implements RuntimeContextInterface
 {
     /** @var list<mixed> */
     public array $debugged = [];

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 
 /**
@@ -78,7 +78,7 @@ final class Numbers
      */
     public static function of(Node $node): int|float|null
     {
-        if (NodeKind::Scalar !== $node->kind) {
+        if (NodeKindEnum::Scalar !== $node->kind) {
             return null;
         }
 

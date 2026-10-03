@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -27,15 +27,15 @@ final class LuaEncoder implements EncoderInterface
         'nil', 'not', 'or', 'repeat', 'return', 'then', 'true', 'until', 'while',
     ];
 
-    public function format(): Format
+    public function format(): FormatEnum
     {
-        return Format::Lua;
+        return FormatEnum::Lua;
     }
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
         $root = NodeTools::unwrap($node);
-        if ($options->luaGlobals && NodeKind::Mapping === $root->kind) {
+        if ($options->luaGlobals && NodeKindEnum::Mapping === $root->kind) {
             $out = '';
             foreach (NodeTools::pairs($root) as [$key, $value]) {
                 $out .= $this->entry($key, $value, 0, $options->luaUnquoted, $options, true);
@@ -54,12 +54,12 @@ final class LuaEncoder implements EncoderInterface
         }
 
         $node = NodeTools::unwrap($node);
-        if (NodeKind::Scalar === $node->kind) {
+        if (NodeKindEnum::Scalar === $node->kind) {
             return $this->scalar($node);
         }
 
         $inner = str_repeat("\t", $depth + 1);
-        if (NodeKind::Sequence === $node->kind) {
+        if (NodeKindEnum::Sequence === $node->kind) {
             if ([] === $node->content) {
                 return '{}';
             }
@@ -101,7 +101,7 @@ final class LuaEncoder implements EncoderInterface
     private function keyText(Node $key, int $depth, bool $unquoted, FormatOptions $options): string
     {
         $resolved = NodeTools::unwrap($key);
-        if (NodeKind::Scalar !== $resolved->kind) {
+        if (NodeKindEnum::Scalar !== $resolved->kind) {
             return '[' . $this->value($resolved, $depth, $options) . ']';
         }
 

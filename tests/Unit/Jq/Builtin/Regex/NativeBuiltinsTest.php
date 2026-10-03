@@ -9,7 +9,7 @@ use LTS\PhpXq\Jq\Builtin\Regex\NativeStream;
 use LTS\PhpXq\Jq\Builtin\Regex\NativeValue;
 use LTS\PhpXq\Jq\Runtime\InputProviderInterface;
 use LTS\PhpXq\Jq\Runtime\JqException;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -29,7 +29,7 @@ final class NativeBuiltinsTest extends TestCase
     public function testNativeValuePassesTheContext(): void
     {
         $context = $this->context();
-        $builtin = new NativeValue('ctx', 0, static fn (mixed $input, array $args, RuntimeContext $given): mixed => $given);
+        $builtin = new NativeValue('ctx', 0, static fn (mixed $input, array $args, RuntimeContextInterface $given): mixed => $given);
 
         self::assertSame($context, $builtin->call($context, null, []));
     }
@@ -52,9 +52,9 @@ final class NativeBuiltinsTest extends TestCase
         self::assertSame(['x', 2], $seen);
     }
 
-    private function context(): RuntimeContext
+    private function context(): RuntimeContextInterface
     {
-        return new class implements RuntimeContext {
+        return new class implements RuntimeContextInterface {
             public function inputs(): InputProviderInterface
             {
                 throw new JqException('no inputs');

@@ -11,7 +11,7 @@ use LTS\PhpXq\Jq\Runtime\Eval\CommaOp;
 use LTS\PhpXq\Jq\Runtime\Eval\ErrorOp;
 use LTS\PhpXq\Jq\Runtime\Eval\IterateOp;
 use LTS\PhpXq\Jq\Runtime\Eval\ObjectBinder;
-use LTS\PhpXq\Jq\Runtime\Eval\Op;
+use LTS\PhpXq\Jq\Runtime\Eval\OpInterface;
 use LTS\PhpXq\Jq\Runtime\Eval\VarBinder;
 use LTS\PhpXq\Jq\Runtime\Eval\VarOp;
 use LTS\PhpXq\Jq\Runtime\JqException;
@@ -115,7 +115,7 @@ final class BindAltOpTest extends OpTestCase
         self::assertSame([[[0], 'x']], self::pathOutputs($op, ['x']));
     }
 
-    private function pair(): Op
+    private function pair(): OpInterface
     {
         return new ArrayOp(new CommaOp(new VarOp(1), new VarOp(0)));
     }

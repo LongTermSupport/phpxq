@@ -13,7 +13,7 @@ use stdClass;
  *
  * @internal
  */
-final readonly class BreakOp implements Op
+final readonly class BreakOp implements OpInterface
 {
     public function __construct(private int $depth)
     {

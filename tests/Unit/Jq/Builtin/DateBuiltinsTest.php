@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Jq\Builtin;
 
 use LTS\PhpXq\Jq\Builtin\DateBuiltins;
-use LTS\PhpXq\Jq\Runtime\BuiltinRegistry;
+use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
 use LTS\PhpXq\Jq\Runtime\DefaultBuiltinRegistry;
 use LTS\PhpXq\Jq\Runtime\InputProviderInterface;
 use LTS\PhpXq\Jq\Runtime\JqException;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
-use LTS\PhpXq\Jq\Runtime\ValueBuiltin;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
+use LTS\PhpXq\Jq\Runtime\ValueBuiltinInterface;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
@@ -170,7 +170,7 @@ final class DateBuiltinsTest extends TestCase
         self::assertSame([2037, 1, 11, 1, 2, 3, 3, 41], $last);
     }
 
-    private function registry(): BuiltinRegistry
+    private function registry(): BuiltinRegistryInterface
     {
         $registry = new DefaultBuiltinRegistry();
         new DateBuiltins()->registerInto($registry);
@@ -181,7 +181,7 @@ final class DateBuiltinsTest extends TestCase
     private function call(string $name, mixed $input, mixed ...$args): mixed
     {
         $builtin = $this->registry()->lookup($name, \count($args));
-        self::assertInstanceOf(ValueBuiltin::class, $builtin);
+        self::assertInstanceOf(ValueBuiltinInterface::class, $builtin);
 
         return $builtin->call($this->context(), $input, array_values($args));
     }
@@ -197,9 +197,9 @@ final class DateBuiltinsTest extends TestCase
         self::fail('Expected a JqException');
     }
 
-    private function context(): RuntimeContext
+    private function context(): RuntimeContextInterface
     {
-        return new class implements RuntimeContext {
+        return new class implements RuntimeContextInterface {
             public function inputs(): InputProviderInterface
             {
                 throw new JqException('no inputs');

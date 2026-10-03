@@ -15,7 +15,7 @@ namespace LTS\PhpXq\Jq\Parser;
  *
  * @api
  */
-enum TokenType: string
+enum TokenTypeEnum: string
 {
     // literals and names
     case Number         = 'number';         // text: the literal as written

@@ -6,7 +6,7 @@ namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yq\Format\DecoderInterface;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
 /**
@@ -14,9 +14,9 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  */
 final class TomlDecoder implements DecoderInterface
 {
-    public function format(): Format
+    public function format(): FormatEnum
     {
-        return Format::Toml;
+        return FormatEnum::Toml;
     }
 
     /**

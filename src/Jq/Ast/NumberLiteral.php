@@ -10,7 +10,7 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class NumberLiteral implements Node
+final readonly class NumberLiteral implements NodeInterface
 {
     public function __construct(public string $text)
     {

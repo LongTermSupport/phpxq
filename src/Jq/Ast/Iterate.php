@@ -9,9 +9,9 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class Iterate implements Node
+final readonly class Iterate implements NodeInterface
 {
-    public function __construct(public Node $target)
+    public function __construct(public NodeInterface $target)
     {
     }
 }

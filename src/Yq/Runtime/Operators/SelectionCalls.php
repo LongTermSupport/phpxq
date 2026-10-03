@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime\Operators;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yq\Expression\Ast\Call;
 use LTS\PhpXq\Yq\Runtime\Args;
 use LTS\PhpXq\Yq\Runtime\CallOperatorInterface;
@@ -99,7 +99,7 @@ final class SelectionCalls implements CallOperatorInterface
 
     private function hasKey(Node $node, Node $key): bool
     {
-        if (NodeKind::Mapping === $node->kind) {
+        if (NodeKindEnum::Mapping === $node->kind) {
             for ($i = 0, $n = \count($node->content); $i < $n; $i += 2) {
                 if ($node->content[$i]->value === $key->value) {
                     return true;
@@ -109,7 +109,7 @@ final class SelectionCalls implements CallOperatorInterface
             return false;
         }
 
-        if (NodeKind::Sequence === $node->kind) {
+        if (NodeKindEnum::Sequence === $node->kind) {
             $index = Numbers::of($key);
 
             return \is_int($index) && $index >= 0 && $index < \count($node->content);
@@ -144,7 +144,7 @@ final class SelectionCalls implements CallOperatorInterface
         }
 
         switch ($left->kind) {
-            case NodeKind::Scalar:
+            case NodeKindEnum::Scalar:
                 if (NodeOps::isNull($left) || NodeOps::isNull($right)) {
                     return NodeOps::isNull($left) && NodeOps::isNull($right);
                 }
@@ -155,7 +155,7 @@ final class SelectionCalls implements CallOperatorInterface
 
                 return Compare::deepEquals($left, $right);
 
-            case NodeKind::Sequence:
+            case NodeKindEnum::Sequence:
                 foreach ($right->content as $wanted) {
                     $found = array_any($left->content, static fn (Node $item): bool => self::containsNode($item, $wanted));
                     if (!$found) {
@@ -165,7 +165,7 @@ final class SelectionCalls implements CallOperatorInterface
 
                 return true;
 
-            case NodeKind::Mapping:
+            case NodeKindEnum::Mapping:
                 for ($i = 0, $n = \count($right->content); $i < $n; $i += 2) {
                     $found = false;
                     for ($j = 0, $m = \count($left->content); $j < $m; $j += 2) {
@@ -203,7 +203,7 @@ final class SelectionCalls implements CallOperatorInterface
         $out  = [];
         foreach ($context->matches as $match) {
             $node = NodeOps::deref(Cands::node($match));
-            if (NodeKind::Sequence !== $node->kind) {
+            if (NodeKindEnum::Sequence !== $node->kind) {
                 throw new EvaluationException(\sprintf('Cannot apply %s to %s', $call->name, $node->tag));
             }
 
@@ -248,7 +248,7 @@ final class SelectionCalls implements CallOperatorInterface
         $out  = [];
         foreach ($context->matches as $match) {
             $node = NodeOps::deref(Cands::node($match));
-            if (NodeKind::Mapping !== $node->kind && NodeKind::Sequence !== $node->kind) {
+            if (NodeKindEnum::Mapping !== $node->kind && NodeKindEnum::Sequence !== $node->kind) {
                 continue;
             }
 

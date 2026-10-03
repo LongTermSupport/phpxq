@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Jq\Builtin\Regex;
 
 use Closure;
-use LTS\PhpXq\Jq\Runtime\Filter;
+use LTS\PhpXq\Jq\Runtime\FilterInterface;
 
 /**
  * Evaluates closure parameters the way jq expands `def f($a; $b): ...`: the first parameter is the
@@ -20,7 +20,7 @@ final class Cartesian
     }
 
     /**
-     * @param list<Filter>               $filters
+     * @param list<FilterInterface>      $filters
      * @param Closure(list<mixed>): void $body
      */
     public static function each(array $filters, mixed $input, Closure $body): void
@@ -29,7 +29,7 @@ final class Cartesian
     }
 
     /**
-     * @param list<Filter>               $filters
+     * @param list<FilterInterface>      $filters
      * @param list<mixed>                $values
      * @param Closure(list<mixed>): void $body
      */

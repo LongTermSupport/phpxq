@@ -19,7 +19,7 @@ this document and the interfaces disagree, fix the document.
 ## Pipeline
 
 ```text
-jq source --Lexer--> Token[] --Parser--> Ast\Program --Compiler--> CompiledProgram
+jq source --Lexer--> Token[] --Parser--> Ast\Program --Compiler--> CompiledProgramInterface
                                                                        |
 JSON text --JsonDecoder--> values --(per input)--> run(ctx, input, emit)
                                                                        |
@@ -31,7 +31,7 @@ JSON text --JsonDecoder--> values --(per input)--> run(ctx, input, emit)
 | Lexer    | `Parser\LexerInterface::tokenize(string): list<Token>`           | `src/Jq/Parser/LexerInterface.php`     |
 | Parser   | `Parser\ParserInterface::parse(string): Ast\Program`             | `src/Jq/Parser/ParserInterface.php`    |
 | Compiler | `Runtime\CompilerInterface::compile(Program, globals): Compiled` | `src/Jq/Runtime/CompilerInterface.php` |
-| Run      | `CompiledProgram::run(RuntimeContext, input, emit): void`        | `src/Jq/Runtime/CompiledProgram.php`   |
+| Run      | `CompiledProgramInterface::run(RuntimeContextInterface, input, emit): void`        | `src/Jq/Runtime/CompiledProgramInterface.php`   |
 | Decode   | `Json\JsonDecoderInterface`                                      | `src/Json/JsonDecoderInterface.php`    |
 | Encode   | `Json\JsonEncoderInterface`                                      | `src/Json/JsonEncoderInterface.php`    |
 | CLI      | `Cli\JqApplication::run(args, stdin, stdout, stderr): int`       | `src/Jq/Cli/JqApplication.php`         |
@@ -39,7 +39,7 @@ JSON text --JsonDecoder--> values --(per input)--> run(ctx, input, emit)
 The lexer and parser know nothing about evaluation, the compiler knows nothing about text. That keeps the
 parser reusable by Plan 00004 if yq's expression language turns out to share jq syntax: only the evaluator
 side would then be swapped, or extended with YAML-specific builtins through the same
-`BuiltinRegistry`.
+`BuiltinRegistryInterface`.
 
 Errors cross stage boundaries as exceptions, all in `src/Jq/Runtime` or `src/Json`:
 
@@ -72,11 +72,11 @@ implement `Pattern`.
 
 | Group       | Classes                                                                                                                  |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Program     | `Program` (imports, module directive, top-level defs, optional body), `ImportDirective`, `ImportKind`, `ModuleDirective` |
+| Program     | `Program` (imports, module directive, top-level defs, optional body), `ImportDirective`, `ImportKindEnum`, `ModuleDirective` |
 | Terms       | `Identity`, `Literal`, `NumberLiteral`, `Format`, `StringInterpolation`, `Variable`, `Location`                          |
 | Postfix     | `Index`, `Slice`, `Iterate`, `TryCatch` (also postfix `?`)                                                               |
 | Construct   | `ArrayConstruct`, `ObjectConstruct`, `ObjectEntry` (not a Node)                                                          |
-| Combinators | `Pipe`, `Comma`, `Negate`, `Binary` + `BinaryOp`, `Assign` + `AssignOp`, `IfThenElse`                                    |
+| Combinators | `Pipe`, `Comma`, `Negate`, `Binary` + `BinaryOpEnum`, `Assign` + `AssignOpEnum`, `IfThenElse`                                    |
 | Binding     | `Bind` (`as`, with `?//` alternatives), `VariablePattern`, `ArrayPattern`, `ObjectPattern`, `ObjectPatternEntry`         |
 | Loops       | `Reduce`, `ForeachLoop`, `Label`, `BreakOut`                                                                             |
 | Functions   | `FuncDef` (not a Node), `FuncDefScope` (nested `def ...; rest`), `FunctionCall`                                          |
@@ -232,7 +232,7 @@ mode is a second method on every `Filter`, not a separate interpreter, so the tw
   `Invalid path expression with result ...` when `$path` is null, but only when they would actually index, as
   jq does: `path(1|empty)` is fine). `Pipe` threads path and value. `Comma`, `IfThenElse`, `Alt`, `TryCatch`,
   `Reduce`, `ForeachLoop`, `Label`, function calls and closure parameters propagate. Literals, arithmetic,
-  constructors and `ValueBuiltin`s emit `(null, value)`.
+  constructors and `ValueBuiltinInterface`s emit `(null, value)`.
 - A `FuncDef` body is compiled once; both modes are available on the resulting `Filter`.
 - Assignment is defined on top of paths exactly as jq's builtins: `lhs = rhs` is `reduce path(lhs) as $p (.; setpath($p; $v))` per `$v` of `rhs`; `lhs |= f` is `reduce path(lhs) as $p (.; setpath($p; getpath($p) | f))`
   with the 1.8 rule that an empty `f` deletes the path (implemented with `label`/`delpaths`); arithmetic
@@ -265,17 +265,17 @@ for binary operators follows jq: the right operand is the outer loop (`[(1,2) + 
 
 ## Builtins
 
-Two kinds, one registry (`Runtime\BuiltinRegistry`, array-backed `DefaultBuiltinRegistry`):
+Two kinds, one registry (`Runtime\BuiltinRegistryInterface`, array-backed `DefaultBuiltinRegistry`):
 
 1. **Native PHP builtins**, registered by `name/arity`:
-   - `ValueBuiltin::call(RuntimeContext, input, list<mixed> args): mixed`. The compiler evaluates the argument
+   - `ValueBuiltinInterface::call(RuntimeContextInterface, input, list<mixed> args): mixed`. The compiler evaluates the argument
      filters as nested loops (last argument outermost, first innermost: jq's cfunction convention) and calls
      once per combination. This is the fast path for `length`, `keys`, `has`, `contains`, `ltrimstr`, `test`,
      `strftime`, math, `tojson`, `tostring`, `implode`, `splits`... anything that is a pure function.
-   - `StreamBuiltin::run(ctx, input, list<Filter> args, emit)` for builtins that take closure parameters or emit
+   - `StreamBuiltinInterface::run(ctx, input, list<Filter> args, emit)` for builtins that take closure parameters or emit
      0..n outputs: `empty`, `error`, `range/2`, `limit`, `first/1`, `isempty`, `input`, `inputs`, `path/1`,
      `recurse/1`, `env`, `getpath` ...
-   - `PathStreamBuiltin::runPaths` in addition, for natives valid inside a path expression (`getpath`, `empty`,
+   - `PathStreamBuiltinInterface::runPaths` in addition, for natives valid inside a path expression (`getpath`, `empty`,
      `error`, `first/1`, `limit`, `select` when native, `recurse`).
 2. **jq-defined builtins** in the prelude, plain jq source of `def`s (`map`, `select`, `recurse`, `to_entries`,
    `from_entries`, `with_entries`, `walk`, `paths`, `leaf_paths`, `any`, `all`, `flatten`, `env`-free helpers,
@@ -287,13 +287,13 @@ Two kinds, one registry (`Runtime\BuiltinRegistry`, array-backed `DefaultBuiltin
 Provider layout (each file has one owner, see the ownership map):
 
 ```text
-Builtin\StandardBuiltins   FROZEN, lists the three providers, create(): BuiltinRegistry
+Builtin\StandardBuiltins   FROZEN, lists the three providers, create(): BuiltinRegistryInterface
 Builtin\CoreBuiltins       builtins worker: everything except regex and date; prelude in prelude.jq
 Builtin\RegexBuiltins      regex/date worker: match/test/capture/scan/split/sub/gsub, Oniguruma -> PCRE translation
 Builtin\DateBuiltins       regex/date worker: mktime/gmtime/localtime/strftime/strptime/todate/fromdate...
 ```
 
-Each provider's `registerInto(BuiltinRegistry)` calls `register()` for natives and `addPrelude()` for jq
+Each provider's `registerInto(BuiltinRegistryInterface)` calls `register()` for natives and `addPrelude()` for jq
 source; preludes concatenate in provider order (core first, so regex/date preludes may use core defs).
 Duplicate `name/arity` registrations throw, so two owners cannot silently shadow each other.
 
@@ -316,7 +316,7 @@ prefix. The fixtures live in `tests/Conformance/Jq/modules/`.
 
 `Cli\JqApplication::run(array $args, $stdin, $stdout, $stderr): int` is wired from
 `Cli\FrontController` for the tool `jq` (arguments after `jq`). It owns, in order: option parsing (`-n -r -j -a -s -c -C -M -S -e -f --tab --indent n --arg --argjson --slurpfile --rawfile --args --jsonargs --seq --stream --stream-errors -R -L --raw-output0 --binary -h -V --build-configuration` and combined short flags), reading the
-program (inline, `-f file`, `--from-file`), building `RuntimeContext` (`$ENV`, `$__prog_args`, `$ARGS`, named
+program (inline, `-f file`, `--from-file`), building `RuntimeContextInterface` (`$ENV`, `$__prog_args`, `$ARGS`, named
 arguments), compiling with the `Cli\CompilerFactoryInterface` (so the `-L` paths reach the module loader),
 decoding inputs lazily (`JsonDecoderInterface::decodeAll`) from files or stdin, running the program per input,
 encoding each output with `JsonEncoderInterface` (`EncodeOptions`: indent, tab, sort keys, ASCII, `ColorScheme`
@@ -329,7 +329,7 @@ output; 5 uncaught runtime error or invalid JSON input. `halt`/`halt_error` set 
 Implementation notes (`src/Jq/Cli/`), where jq 1.8.2's own tests (`tests/Conformance/Jq/shell/tests/shtest`) fixed
 a detail:
 
-- Layout: `Options/` (`OptionParser`, `CliOptions`, `CliAction`, `UsageException`), `InputSource` (files or stdin,
+- Layout: `Options/` (`OptionParser`, `CliOptions`, `CliActionEnum`, `UsageException`), `InputSource` (files or stdin,
   lazily; `LineTracker` answers line numbers on demand, `StreamParser` produces `--stream` events with jq's
   error wording, `ValueScanner` finds value extents), `ProgramRunner` (one input at a time, formatting and
   error reports), `ProgramLoader` (parse, "Top-level program not given", definitions of `~/.jq` when it is a
@@ -347,7 +347,7 @@ a detail:
 - `input_line_number`: the input provider implements `Runtime\InputPositionInterface` (additive contract), so
   the builtin reads `$context->inputs() instanceof InputPositionInterface ? lineNumber() : 0`. jq counts a
   value's line through the end of the line it ends on (`1\n` is line 1, a last value without newline is
-  line 0). `input_filename` comes from `RuntimeContext::inputFilename()`.
+  line 0). `input_filename` comes from `RuntimeContextInterface::inputFilename()`.
 - A `--raw-output0` string containing NUL stops the program run for that input with status 5; internally that
   is a `HaltException` raised by the output step, because no jq construct can catch it.
 
@@ -370,8 +370,8 @@ constructor and method signatures.
 
 FROZEN (orchestrator only):
 
-- `src/Jq/Ast/**` (all node classes), `src/Jq/Parser/{Token,TokenType,LexerInterface,ParserInterface}.php`
-- `src/Jq/Runtime/{Filter,CompiledProgram,CompilerInterface,RuntimeContext,InputProviderInterface,Builtin,ValueBuiltin,StreamBuiltin,PathStreamBuiltin,BuiltinRegistry,BuiltinProvider,DefaultBuiltinRegistry,ModuleLoaderInterface,LoadedModule}.php`
+- `src/Jq/Ast/**` (all node classes), `src/Jq/Parser/{Token,TokenTypeEnum,LexerInterface,ParserInterface}.php`
+- `src/Jq/Runtime/{FilterInterface,CompiledProgramInterface,CompilerInterface,RuntimeContextInterface,InputProviderInterface,BuiltinInterface,ValueBuiltinInterface,StreamBuiltinInterface,PathStreamBuiltinInterface,BuiltinRegistryInterface,BuiltinProviderInterface,DefaultBuiltinRegistry,ModuleLoaderInterface,LoadedModule}.php`
 - `src/Jq/Runtime/{JqException,JqCompileException,BreakException,HaltException}.php`
 - `src/Json/{JsonObject,PreciseNumber,Values,ColorScheme,EncodeOptions,JsonSyntaxException,JsonDecoderInterface,JsonEncoderInterface}.php`
 - `src/Jq/Builtin/StandardBuiltins.php`, `src/Jq/Cli/{CompilerFactoryInterface,DefaultCompilerFactory,JqExitCode}.php`
@@ -382,8 +382,8 @@ Cross-worker dependencies, so ordering is clear:
 
 - The parser worker tests against hand built `Token` lists or a fake `LexerInterface` until the lexer lands.
 - The evaluator worker tests against ASTs built by hand (the AST classes are final and trivial to construct) and
-  a fake `BuiltinRegistry`/`RuntimeContext`, so it needs neither parser nor builtins to start.
-- The builtins workers test natives by calling `ValueBuiltin::call` / `StreamBuiltin::run` directly with
+  a fake `BuiltinRegistryInterface`/`RuntimeContextInterface`, so it needs neither parser nor builtins to start.
+- The builtins workers test natives by calling `ValueBuiltinInterface::call` / `StreamBuiltinInterface::run` directly with
   `Filter` fakes; prelude text is verified end to end only after the evaluator, parser and lexer have merged.
 - The CLI worker tests with a fake `CompilerFactoryInterface` and a fake decoder/encoder until the real ones
   merge.

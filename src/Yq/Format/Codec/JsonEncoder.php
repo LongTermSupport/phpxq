@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -42,9 +42,9 @@ final class JsonEncoder implements EncoderInterface
 
     private const string JSON_NUMBER = '/^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?$/D';
 
-    public function format(): Format
+    public function format(): FormatEnum
     {
-        return Format::Json;
+        return FormatEnum::Json;
     }
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
@@ -62,11 +62,11 @@ final class JsonEncoder implements EncoderInterface
             throw new FormatException('json: exceeded max depth (alias cycle?)');
         }
 
-        if (NodeKind::Alias === $node->kind || NodeKind::Document === $node->kind) {
+        if (NodeKindEnum::Alias === $node->kind || NodeKindEnum::Document === $node->kind) {
             $node = NodeTools::unwrap($node);
         }
 
-        if (NodeKind::Scalar === $node->kind) {
+        if (NodeKindEnum::Scalar === $node->kind) {
             $text = $this->scalar($node);
             $out .= $colors ? $this->paint($text, $this->valueColor($node->tag)) : $text;
 
@@ -74,7 +74,7 @@ final class JsonEncoder implements EncoderInterface
         }
 
         $pretty = '' !== $indent;
-        if (NodeKind::Sequence === $node->kind) {
+        if (NodeKindEnum::Sequence === $node->kind) {
             if ([] === $node->content) {
                 $out .= '[]';
 
@@ -110,7 +110,7 @@ final class JsonEncoder implements EncoderInterface
             $out .= 0 === $i ? '' : $separator;
             $key  = $content[$i];
             $key  = NodeTools::unwrap($key);
-            $text = $this->string(NodeKind::Scalar === $key->kind ? $key->value : '');
+            $text = $this->string(NodeKindEnum::Scalar === $key->kind ? $key->value : '');
             $out .= ($colors ? $this->paint($text, self::COLOR_KEY) : $text) . $colon;
             $this->write($out, $content[$i + 1], $indent, $depth + 1, $colors);
         }

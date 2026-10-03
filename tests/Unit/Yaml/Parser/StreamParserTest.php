@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Yaml\Parser;
 
 use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Parser\StreamParser;
 use PHPUnit\Framework\TestCase;
 
@@ -20,7 +20,7 @@ final class StreamParserTest extends TestCase
 
         self::assertCount(2, $docs);
         foreach ($docs as $doc) {
-            self::assertSame(NodeKind::Document, $doc->kind);
+            self::assertSame(NodeKindEnum::Document, $doc->kind);
             self::assertCount(1, $doc->content);
         }
     }

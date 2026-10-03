@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Expression\Ast;
 
-use LTS\PhpXq\Yq\Expression\ExpressionNode;
+use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 
 /**
  * `base.name`, `base."quoted name"`, `base.["name"]` (as a Literal key) and the glob forms such as
@@ -14,11 +14,11 @@ use LTS\PhpXq\Yq\Expression\ExpressionNode;
  * a plain name is recognised by the evaluator from the key text, not by a separate node.
  * `optional` marks a trailing `?`, which turns a traversal error into no match.
  */
-final readonly class Field implements ExpressionNode
+final readonly class Field implements ExpressionNodeInterface
 {
     public function __construct(
-        public ExpressionNode $base,
-        public ExpressionNode $key,
+        public ExpressionNodeInterface $base,
+        public ExpressionNodeInterface $key,
         public bool $optional = false,
     ) {
     }

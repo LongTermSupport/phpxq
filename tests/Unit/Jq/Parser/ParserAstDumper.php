@@ -25,11 +25,11 @@ use LTS\PhpXq\Jq\Ast\Label;
 use LTS\PhpXq\Jq\Ast\Literal;
 use LTS\PhpXq\Jq\Ast\Location;
 use LTS\PhpXq\Jq\Ast\Negate;
-use LTS\PhpXq\Jq\Ast\Node;
+use LTS\PhpXq\Jq\Ast\NodeInterface;
 use LTS\PhpXq\Jq\Ast\NumberLiteral;
 use LTS\PhpXq\Jq\Ast\ObjectConstruct;
 use LTS\PhpXq\Jq\Ast\ObjectPattern;
-use LTS\PhpXq\Jq\Ast\Pattern;
+use LTS\PhpXq\Jq\Ast\PatternInterface;
 use LTS\PhpXq\Jq\Ast\Pipe;
 use LTS\PhpXq\Jq\Ast\Program;
 use LTS\PhpXq\Jq\Ast\Reduce;
@@ -46,7 +46,7 @@ use LTS\PhpXq\Jq\Ast\VariablePattern;
  */
 final class ParserAstDumper
 {
-    public static function dump(Node $node): string
+    public static function dump(NodeInterface $node): string
     {
         return match (true) {
             $node instanceof Identity            => '.',
@@ -59,7 +59,7 @@ final class ParserAstDumper
             $node instanceof Index               => '(idx ' . self::dump($node->target) . ' ' . self::dump($node->index) . ')',
             $node instanceof Slice               => '(slice ' . self::dump($node->target) . ' ' . self::opt($node->from) . ' ' . self::opt($node->to) . ')',
             $node instanceof Iterate             => '(iter ' . self::dump($node->target) . ')',
-            $node instanceof TryCatch            => $node->handler instanceof Node
+            $node instanceof TryCatch            => $node->handler instanceof NodeInterface
                 ? '(try ' . self::dump($node->body) . ' ' . self::dump($node->handler) . ')'
                 : '(try ' . self::dump($node->body) . ')',
             $node instanceof ArrayConstruct      => '[' . self::opt($node->body, '') . ']',
@@ -88,7 +88,7 @@ final class ParserAstDumper
      */
     public static function program(Program $program): string
     {
-        $text = $program->body instanceof Node ? self::dump($program->body) : '_';
+        $text = $program->body instanceof NodeInterface ? self::dump($program->body) : '_';
         foreach (array_reverse($program->defs) as $def) {
             $text = '(def ' . self::def($def) . ' ' . $text . ')';
         }
@@ -101,7 +101,7 @@ final class ParserAstDumper
         return $def->name . '(' . implode(' ', $def->params) . ') ' . self::dump($def->body);
     }
 
-    public static function pattern(Pattern $pattern): string
+    public static function pattern(PatternInterface $pattern): string
     {
         if ($pattern instanceof VariablePattern) {
             return '$' . $pattern->name;
@@ -125,9 +125,9 @@ final class ParserAstDumper
         throw new InvalidArgumentException('unknown pattern ' . $pattern::class);
     }
 
-    private static function opt(?Node $node, string $none = '_'): string
+    private static function opt(?NodeInterface $node, string $none = '_'): string
     {
-        return $node instanceof Node ? self::dump($node) : $none;
+        return $node instanceof NodeInterface ? self::dump($node) : $none;
     }
 
     private static function interpolation(StringInterpolation $node): string

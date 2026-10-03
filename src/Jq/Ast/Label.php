@@ -9,11 +9,11 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class Label implements Node
+final readonly class Label implements NodeInterface
 {
     public function __construct(
         public string $name,
-        public Node $body,
+        public NodeInterface $body,
     ) {
     }
 }

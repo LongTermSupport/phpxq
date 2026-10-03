@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Yaml\Token;
 
 use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yaml\Token\Token;
-use LTS\PhpXq\Yaml\Token\TokenType;
+use LTS\PhpXq\Yaml\Token\TokenTypeEnum;
 use LTS\PhpXq\Yaml\Token\YamlTokenizer;
 use PHPUnit\Framework\TestCase;
 
@@ -20,8 +20,8 @@ final class YamlTokenizerTest extends TestCase
     {
         $tokens = $this->tokenize('');
 
-        self::assertSame(TokenType::StreamStart, $tokens[0]->type);
-        self::assertSame(TokenType::StreamEnd, $tokens[\count($tokens) - 1]->type);
+        self::assertSame(TokenTypeEnum::StreamStart, $tokens[0]->type);
+        self::assertSame(TokenTypeEnum::StreamEnd, $tokens[\count($tokens) - 1]->type);
     }
 
     public function testBlockMapping(): void
@@ -58,11 +58,11 @@ final class YamlTokenizerTest extends TestCase
 
     public function testScalarStyles(): void
     {
-        $scalars = array_values(array_filter($this->tokenize("- a\n- 'b'\n- \"c\"\n- |\n  d\n- >\n  e\n"), static fn (Token $t): bool => TokenType::Scalar === $t->type));
+        $scalars = array_values(array_filter($this->tokenize("- a\n- 'b'\n- \"c\"\n- |\n  d\n- >\n  e\n"), static fn (Token $t): bool => TokenTypeEnum::Scalar === $t->type));
 
         self::assertSame(
-            [NodeStyle::Default, NodeStyle::SingleQuoted, NodeStyle::DoubleQuoted, NodeStyle::Literal, NodeStyle::Folded],
-            array_map(static fn (Token $t): NodeStyle => $t->style, $scalars),
+            [NodeStyleEnum::Default, NodeStyleEnum::SingleQuoted, NodeStyleEnum::DoubleQuoted, NodeStyleEnum::Literal, NodeStyleEnum::Folded],
+            array_map(static fn (Token $t): NodeStyleEnum => $t->style, $scalars),
         );
     }
 
@@ -70,7 +70,7 @@ final class YamlTokenizerTest extends TestCase
     {
         $scalar = $this->tokenize("x: 1\ny: 22\n")[7];
 
-        self::assertSame(TokenType::Scalar, $scalar->type);
+        self::assertSame(TokenTypeEnum::Scalar, $scalar->type);
         self::assertSame('y', $scalar->value);
         self::assertSame([2, 1], [$scalar->line, $scalar->column]);
     }
@@ -85,7 +85,7 @@ final class YamlTokenizerTest extends TestCase
 
     public function testMultiLineCommentBlockIsOneToken(): void
     {
-        $comments = array_values(array_filter($this->tokenize("# a\n# b\n\n# c\nk: v\n"), static fn (Token $t): bool => TokenType::Comment === $t->type));
+        $comments = array_values(array_filter($this->tokenize("# a\n# b\n\n# c\nk: v\n"), static fn (Token $t): bool => TokenTypeEnum::Comment === $t->type));
 
         self::assertSame(["# a\n# b\n\n# c"], array_map(static fn (Token $t): string => $t->value, $comments));
         self::assertSame([1, 1], [$comments[0]->line, $comments[0]->column]);

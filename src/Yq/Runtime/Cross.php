@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Runtime;
 
-use LTS\PhpXq\Yq\Expression\ExpressionNode;
+use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 
 /**
  * The reference's "cross function": an infix operator evaluates both sides against each match (or against
@@ -42,7 +42,7 @@ final class Cross
      *
      * @return list<Candidate>
      */
-    public static function run(ExpressionNode $left, ExpressionNode $right, EvaluationContext $context, EvaluatorInterface $evaluator, callable $calculate): array
+    public static function run(ExpressionNodeInterface $left, ExpressionNodeInterface $right, EvaluationContext $context, EvaluatorInterface $evaluator, callable $calculate): array
     {
         $read = $context->withDontAutoCreate(true);
         $out  = [];

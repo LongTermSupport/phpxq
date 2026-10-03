@@ -17,8 +17,8 @@ final class SingleOperatorOp extends AbstractSingleOp
      * @param Closure(mixed, mixed): mixed $operation
      */
     public function __construct(
-        private readonly SingleOp $left,
-        private readonly SingleOp $right,
+        private readonly SingleOpInterface $left,
+        private readonly SingleOpInterface $right,
         private readonly Closure $operation,
     ) {
     }

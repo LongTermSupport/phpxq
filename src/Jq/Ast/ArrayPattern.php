@@ -9,10 +9,10 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class ArrayPattern implements Pattern
+final readonly class ArrayPattern implements PatternInterface
 {
     /**
-     * @param non-empty-list<Pattern> $elements
+     * @param non-empty-list<PatternInterface> $elements
      */
     public function __construct(public array $elements)
     {

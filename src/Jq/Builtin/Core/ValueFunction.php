@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Jq\Builtin\Core;
 
 use Closure;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
-use LTS\PhpXq\Jq\Runtime\ValueBuiltin;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
+use LTS\PhpXq\Jq\Runtime\ValueBuiltinInterface;
 
 /**
- * A {@see ValueBuiltin} backed by a closure: `(context, input, args) => output`.
+ * A {@see ValueBuiltinInterface} backed by a closure: `(context, input, args) => output`.
  *
  * @internal
  */
-final readonly class ValueFunction implements ValueBuiltin
+final readonly class ValueFunction implements ValueBuiltinInterface
 {
     /**
-     * @param Closure(RuntimeContext, mixed, list<mixed>): mixed $function
+     * @param Closure(RuntimeContextInterface, mixed, list<mixed>): mixed $function
      */
     public function __construct(
         private string $name,
@@ -35,7 +35,7 @@ final readonly class ValueFunction implements ValueBuiltin
         return $this->arity;
     }
 
-    public function call(RuntimeContext $context, mixed $input, array $args): mixed
+    public function call(RuntimeContextInterface $context, mixed $input, array $args): mixed
     {
         return ($this->function)($context, $input, $args);
     }

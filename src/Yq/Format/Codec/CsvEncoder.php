@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -18,11 +18,11 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  */
 final readonly class CsvEncoder implements EncoderInterface
 {
-    public function __construct(private Format $format = Format::Csv)
+    public function __construct(private FormatEnum $format = FormatEnum::Csv)
     {
     }
 
-    public function format(): Format
+    public function format(): FormatEnum
     {
         return $this->format;
     }
@@ -30,11 +30,11 @@ final readonly class CsvEncoder implements EncoderInterface
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
         $root = NodeTools::unwrap($node);
-        if (NodeKind::Scalar === $root->kind) {
+        if (NodeKindEnum::Scalar === $root->kind) {
             return $root->value . "\n";
         }
 
-        if (NodeKind::Sequence !== $root->kind) {
+        if (NodeKindEnum::Sequence !== $root->kind) {
             throw new FormatException('csv: only arrays can be written as ' . $this->format->value . ', got a map');
         }
 
@@ -42,20 +42,20 @@ final readonly class CsvEncoder implements EncoderInterface
             return '';
         }
 
-        $separator = Format::Tsv === $this->format ? $options->tsvSeparator : $options->csvSeparator;
-        $separator = ''          === $separator ? ',' : $separator;
+        $separator = FormatEnum::Tsv === $this->format ? $options->tsvSeparator : $options->csvSeparator;
+        $separator = ''              === $separator ? ',' : $separator;
 
         $first     = NodeTools::unwrap($root->content[0]);
 
-        if (NodeKind::Scalar === $first->kind) {
+        if (NodeKindEnum::Scalar === $first->kind) {
             return $this->record($root->content, $separator);
         }
 
-        if (NodeKind::Sequence === $first->kind) {
+        if (NodeKindEnum::Sequence === $first->kind) {
             $out = '';
             foreach ($root->content as $row) {
                 $row = NodeTools::unwrap($row);
-                if (NodeKind::Sequence !== $row->kind) {
+                if (NodeKindEnum::Sequence !== $row->kind) {
                     throw new FormatException('csv: every row must be an array');
                 }
 
@@ -78,7 +78,7 @@ final readonly class CsvEncoder implements EncoderInterface
         $out = 0 === $resultIndex ? $this->fields($header, $separator) : '';
         foreach ($root->content as $item) {
             $item = NodeTools::unwrap($item);
-            if (NodeKind::Mapping !== $item->kind) {
+            if (NodeKindEnum::Mapping !== $item->kind) {
                 throw new FormatException('csv: every row must be an object');
             }
 
@@ -114,7 +114,7 @@ final readonly class CsvEncoder implements EncoderInterface
     private function cell(Node $node): string
     {
         $node = NodeTools::unwrap($node);
-        if (NodeKind::Scalar !== $node->kind) {
+        if (NodeKindEnum::Scalar !== $node->kind) {
             throw new FormatException('csv: cannot write a nested array or map into a field');
         }
 

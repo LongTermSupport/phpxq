@@ -9,7 +9,7 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class Format implements Node
+final readonly class Format implements NodeInterface
 {
     public function __construct(public string $name)
     {

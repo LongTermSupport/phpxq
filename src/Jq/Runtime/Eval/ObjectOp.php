@@ -22,13 +22,13 @@ final class ObjectOp extends AbstractOp
     private readonly int $count;
 
     /**
-     * @param list<array{Op, Op}> $entries key and value expression of every entry
+     * @param list<array{OpInterface, OpInterface}> $entries key and value expression of every entry
      */
     public function __construct(private readonly array $entries)
     {
         $single = [];
         foreach ($entries as [$key, $value]) {
-            $single[] = $key instanceof SingleOp && $value instanceof SingleOp;
+            $single[] = $key instanceof SingleOpInterface && $value instanceof SingleOpInterface;
         }
 
         $this->single = $single;
@@ -49,7 +49,7 @@ final class ObjectOp extends AbstractOp
     {
         while ($index < $this->count && $this->single[$index]) {
             [$keyOp, $valueOp] = $this->entries[$index];
-            \assert($keyOp instanceof SingleOp && $valueOp instanceof SingleOp);
+            \assert($keyOp instanceof SingleOpInterface && $valueOp instanceof SingleOpInterface);
             $key = $keyOp->value($env, $input);
             if (!\is_string($key)) {
                 throw new JqException('Object keys must be strings');

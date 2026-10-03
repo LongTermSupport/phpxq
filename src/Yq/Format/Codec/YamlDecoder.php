@@ -8,7 +8,7 @@ use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
 use LTS\PhpXq\Yaml\Parser\YamlParser;
 use LTS\PhpXq\Yaml\Parser\YamlParserInterface;
 use LTS\PhpXq\Yq\Format\DecoderInterface;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -21,9 +21,9 @@ final readonly class YamlDecoder implements DecoderInterface
     {
     }
 
-    public function format(): Format
+    public function format(): FormatEnum
     {
-        return Format::Yaml;
+        return FormatEnum::Yaml;
     }
 
     public function decode(string $input, FormatOptions $options): iterable

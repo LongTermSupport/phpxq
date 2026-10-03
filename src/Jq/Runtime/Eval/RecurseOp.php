@@ -12,7 +12,7 @@ use LTS\PhpXq\Json\JsonObject;
  *
  * @internal
  */
-final class RecurseOp implements Op
+final class RecurseOp implements OpInterface
 {
     public function run(?Env $env, mixed $input, Closure $emit): void
     {

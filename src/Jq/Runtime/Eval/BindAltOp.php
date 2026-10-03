@@ -14,26 +14,26 @@ use LTS\PhpXq\Jq\Runtime\JqException;
  *
  * @internal
  */
-final readonly class BindAltOp implements Op
+final readonly class BindAltOp implements OpInterface
 {
     /**
-     * @param non-empty-list<Binder>       $binders
-     * @param non-empty-list<list<string>> $events    variable name of each binding event, per alternative
-     * @param list<string>                 $variables canonical variable order seen by the body
+     * @param non-empty-list<BinderInterface> $binders
+     * @param non-empty-list<list<string>>    $events    variable name of each binding event, per alternative
+     * @param list<string>                    $variables canonical variable order seen by the body
      */
     public function __construct(
-        private Op $source,
+        private OpInterface $source,
         private array $binders,
         private array $events,
         private array $variables,
-        private Op $body,
+        private OpInterface $body,
     ) {
     }
 
     public function run(?Env $env, mixed $input, Closure $emit): void
     {
         $this->source->run($env, $input, function (mixed $value) use ($env, $input, $emit): void {
-            $this->alternatives($env, $value, static function (Op $body, ?Env $bound, Downstream $downstream) use ($input, $emit): void {
+            $this->alternatives($env, $value, static function (OpInterface $body, ?Env $bound, Downstream $downstream) use ($input, $emit): void {
                 $body->run($bound, $input, $downstream->guard($emit));
             });
         });
@@ -42,14 +42,14 @@ final readonly class BindAltOp implements Op
     public function paths(?Env $env, ?array $path, mixed $input, Closure $emit): void
     {
         $this->source->run($env, $input, function (mixed $value) use ($env, $path, $input, $emit): void {
-            $this->alternatives($env, $value, static function (Op $body, ?Env $bound, Downstream $downstream) use ($path, $input, $emit): void {
+            $this->alternatives($env, $value, static function (OpInterface $body, ?Env $bound, Downstream $downstream) use ($path, $input, $emit): void {
                 $body->paths($bound, $path, $input, $downstream->guardPaths($emit));
             });
         });
     }
 
     /**
-     * @param Closure(Op, ?Env, Downstream): void $runBody
+     * @param Closure(OpInterface, ?Env, Downstream): void $runBody
      */
     private function alternatives(?Env $env, mixed $value, Closure $runBody): void
     {

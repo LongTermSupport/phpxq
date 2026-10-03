@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Jq\Runtime;
 
 use InvalidArgumentException;
-use LTS\PhpXq\Jq\Runtime\Builtin;
+use LTS\PhpXq\Jq\Runtime\BuiltinInterface;
 use LTS\PhpXq\Jq\Runtime\DefaultBuiltinRegistry;
 use PHPUnit\Framework\TestCase;
 
@@ -57,9 +57,9 @@ final class DefaultBuiltinRegistryTest extends TestCase
         self::assertSame("def a: 1;\ndef b: 2;\n", $registry->prelude());
     }
 
-    private function builtin(string $name, int $arity): Builtin
+    private function builtin(string $name, int $arity): BuiltinInterface
     {
-        return new readonly class($name, $arity) implements Builtin {
+        return new readonly class($name, $arity) implements BuiltinInterface {
             public function __construct(private string $name, private int $arity)
             {
             }

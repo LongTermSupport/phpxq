@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 
 /**
@@ -34,10 +34,10 @@ final class Traversal
         $node = NodeOps::deref($base->node);
 
         switch ($node->kind) {
-            case NodeKind::Mapping:
+            case NodeKindEnum::Mapping:
                 return self::mappingField($base, $node, $key, $fixedMerge, $autoCreate);
 
-            case NodeKind::Sequence:
+            case NodeKindEnum::Sequence:
                 $name = $key->value;
                 if (1 === preg_match('/^-?[0-9]+$/D', $name)) {
                     return self::index($base, $node, (int)$name, $autoCreate);
@@ -52,7 +52,7 @@ final class Traversal
                 }
 
                 throw new EvaluationException(\sprintf("Cannot index array with '%s'", $name));
-            case NodeKind::Scalar:
+            case NodeKindEnum::Scalar:
                 if (CoreSchema::TAG_NULL === $node->tag && $autoCreate && !str_contains($key->value, '*')) {
                     return [self::placeholder($base, $key)];
                 }
@@ -161,15 +161,15 @@ final class Traversal
     public static function mergeTargets(Node $value): array
     {
         $value = NodeOps::deref($value);
-        if (NodeKind::Mapping === $value->kind) {
+        if (NodeKindEnum::Mapping === $value->kind) {
             return [$value];
         }
 
         $targets = [];
-        if (NodeKind::Sequence === $value->kind) {
+        if (NodeKindEnum::Sequence === $value->kind) {
             foreach ($value->content as $item) {
                 $item = NodeOps::deref($item);
-                if (NodeKind::Mapping === $item->kind) {
+                if (NodeKindEnum::Mapping === $item->kind) {
                     $targets[] = $item;
                 }
             }
@@ -188,7 +188,7 @@ final class Traversal
         $base = Cands::rooted($base);
         $node = NodeOps::deref($base->node);
         $out  = [];
-        if (NodeKind::Mapping === $node->kind) {
+        if (NodeKindEnum::Mapping === $node->kind) {
             $content = $node->content;
             $count   = \count($content);
             $merge   = false;
@@ -215,7 +215,7 @@ final class Traversal
             return $out;
         }
 
-        if (NodeKind::Sequence === $node->kind) {
+        if (NodeKindEnum::Sequence === $node->kind) {
             foreach ($node->content as $index => $item) {
                 $out[] = Cands::child($item, $base, NodeOps::int($index));
             }
@@ -235,7 +235,7 @@ final class Traversal
         $candidate = Cands::rooted($candidate);
         $out[]     = $candidate;
         $node      = $candidate->node;
-        if (NodeKind::Mapping === $node->kind) {
+        if (NodeKindEnum::Mapping === $node->kind) {
             $content = $node->content;
             $count   = \count($content);
             for ($i = 0; $i < $count; $i += 2) {
@@ -250,7 +250,7 @@ final class Traversal
 
                 self::descend(Cands::child($content[$i + 1], $candidate, $key), $includeKeys, $out);
             }
-        } elseif (NodeKind::Sequence === $node->kind) {
+        } elseif (NodeKindEnum::Sequence === $node->kind) {
             foreach ($node->content as $index => $item) {
                 self::descend(Cands::child($item, $candidate, NodeOps::int($index)), $includeKeys, $out);
             }

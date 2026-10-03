@@ -13,10 +13,10 @@ use LTS\PhpXq\Jq\Builtin\Regex\NativeValue;
 use LTS\PhpXq\Jq\Builtin\Regex\OnigRegex;
 use LTS\PhpXq\Jq\Builtin\Regex\RegexEngine;
 use LTS\PhpXq\Jq\Runtime\Arithmetic;
-use LTS\PhpXq\Jq\Runtime\BuiltinProvider;
-use LTS\PhpXq\Jq\Runtime\BuiltinRegistry;
+use LTS\PhpXq\Jq\Runtime\BuiltinProviderInterface;
+use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
 use LTS\PhpXq\Jq\Runtime\Eval\ErrorText;
-use LTS\PhpXq\Jq\Runtime\Filter;
+use LTS\PhpXq\Jq\Runtime\FilterInterface;
 use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Json\Values;
 
@@ -29,7 +29,7 @@ use LTS\PhpXq\Json\Values;
  *
  * @api
  */
-final class RegexBuiltins implements BuiltinProvider
+final class RegexBuiltins implements BuiltinProviderInterface
 {
     private const string PRELUDE = <<<'JQ'
         def match(re; mode): _match_impl(re; mode; false) | .[];
@@ -49,7 +49,7 @@ final class RegexBuiltins implements BuiltinProvider
         def splits($re): splits($re; null);
         JQ;
 
-    public function registerInto(BuiltinRegistry $registry): void
+    public function registerInto(BuiltinRegistryInterface $registry): void
     {
         $registry->register(new NativeValue(
             '_match_impl',
@@ -198,8 +198,8 @@ final class RegexBuiltins implements BuiltinProvider
     }
 
     /**
-     * @param list<Filter>         $args
-     * @param Closure(mixed): void $emit
+     * @param list<FilterInterface> $args
+     * @param Closure(mixed): void  $emit
      *
      * @throws JqException
      */
@@ -230,8 +230,8 @@ final class RegexBuiltins implements BuiltinProvider
      * yields several values, output number n applies its n-th value to every match, as jq's own
      * definition does; with no match (or no replacement values) the input is the single output.
      *
-     * @param list<Filter>         $args
-     * @param Closure(mixed): void $emit
+     * @param list<FilterInterface> $args
+     * @param Closure(mixed): void  $emit
      *
      * @throws JqException
      */

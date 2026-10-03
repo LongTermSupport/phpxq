@@ -9,9 +9,9 @@ use LogicException;
 use LTS\PhpXq\Jq\Ast\ArrayConstruct;
 use LTS\PhpXq\Jq\Ast\ArrayPattern;
 use LTS\PhpXq\Jq\Ast\Assign;
-use LTS\PhpXq\Jq\Ast\AssignOp;
+use LTS\PhpXq\Jq\Ast\AssignOpEnum;
 use LTS\PhpXq\Jq\Ast\Binary;
-use LTS\PhpXq\Jq\Ast\BinaryOp;
+use LTS\PhpXq\Jq\Ast\BinaryOpEnum;
 use LTS\PhpXq\Jq\Ast\Bind;
 use LTS\PhpXq\Jq\Ast\BreakOut;
 use LTS\PhpXq\Jq\Ast\Comma;
@@ -27,11 +27,11 @@ use LTS\PhpXq\Jq\Ast\Label;
 use LTS\PhpXq\Jq\Ast\Literal;
 use LTS\PhpXq\Jq\Ast\Location;
 use LTS\PhpXq\Jq\Ast\Negate;
-use LTS\PhpXq\Jq\Ast\Node;
+use LTS\PhpXq\Jq\Ast\NodeInterface;
 use LTS\PhpXq\Jq\Ast\NumberLiteral;
 use LTS\PhpXq\Jq\Ast\ObjectConstruct;
 use LTS\PhpXq\Jq\Ast\ObjectPattern;
-use LTS\PhpXq\Jq\Ast\Pattern;
+use LTS\PhpXq\Jq\Ast\PatternInterface;
 use LTS\PhpXq\Jq\Ast\Pipe;
 use LTS\PhpXq\Jq\Ast\Reduce;
 use LTS\PhpXq\Jq\Ast\Slice;
@@ -41,14 +41,14 @@ use LTS\PhpXq\Jq\Ast\Variable;
 use LTS\PhpXq\Jq\Ast\VariablePattern;
 use LTS\PhpXq\Jq\Runtime\Arithmetic;
 use LTS\PhpXq\Jq\Runtime\JqCompileException;
-use LTS\PhpXq\Jq\Runtime\StreamBuiltin;
-use LTS\PhpXq\Jq\Runtime\ValueBuiltin;
+use LTS\PhpXq\Jq\Runtime\StreamBuiltinInterface;
+use LTS\PhpXq\Jq\Runtime\ValueBuiltinInterface;
 use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Json\NumberParser;
 use LTS\PhpXq\Json\Values;
 
 /**
- * Translates AST nodes to {@see Op}s inside one name-resolution context: the {@see DefSet} the enclosing
+ * Translates AST nodes to {@see OpInterface}s inside one name-resolution context: the {@see DefSet} the enclosing
  * top-level definition belongs to and the lexical {@see Scope} that mirrors the run-time environment.
  *
  * @internal
@@ -67,7 +67,7 @@ final readonly class NodeCompiler
     /**
      * @throws JqCompileException
      */
-    public function compile(Node $node, ?Scope $scope): Op
+    public function compile(NodeInterface $node, ?Scope $scope): OpInterface
     {
         return match (true) {
             $node instanceof Identity            => new IdentityOp(),
@@ -82,15 +82,15 @@ final readonly class NodeCompiler
             $node instanceof Iterate             => new IterateOp($node->target instanceof Identity ? null : $this->compile($node->target, $scope)),
             $node instanceof Slice               => new SliceOp(
                 $this->compile($node->target, $scope),
-                $node->from instanceof Node ? $this->compile($node->from, $scope) : null,
-                $node->to instanceof Node ? $this->compile($node->to, $scope) : null,
+                $node->from instanceof NodeInterface ? $this->compile($node->from, $scope) : null,
+                $node->to instanceof NodeInterface ? $this->compile($node->to, $scope) : null,
             ),
             $node instanceof IfThenElse          => $this->conditional($node, $scope),
             $node instanceof TryCatch            => new TryOp(
                 $this->compile($node->body, $scope),
-                $node->handler instanceof Node ? $this->compile($node->handler, $scope) : null,
+                $node->handler instanceof NodeInterface ? $this->compile($node->handler, $scope) : null,
             ),
-            $node instanceof ArrayConstruct      => new ArrayOp($node->body instanceof Node ? $this->compile($node->body, $scope) : null),
+            $node instanceof ArrayConstruct      => new ArrayOp($node->body instanceof NodeInterface ? $this->compile($node->body, $scope) : null),
             $node instanceof ObjectConstruct     => $this->object($node, $scope),
             $node instanceof Negate              => $this->negate($node, $scope),
             $node instanceof Assign              => $this->assign($node, $scope),
@@ -107,22 +107,22 @@ final readonly class NodeCompiler
         };
     }
 
-    private function pipe(Pipe $node, ?Scope $scope): Op
+    private function pipe(Pipe $node, ?Scope $scope): OpInterface
     {
         $left  = $this->compile($node->left, $scope);
         $right = $this->compile($node->right, $scope);
-        if ($left instanceof SingleOp && $right instanceof SingleOp) {
+        if ($left instanceof SingleOpInterface && $right instanceof SingleOpInterface) {
             return new SinglePipeOp($left, $right);
         }
 
-        if ($left instanceof SingleOp) {
+        if ($left instanceof SingleOpInterface) {
             return new ValuePipeOp($left, $right);
         }
 
         return new PipeOp($left, $right);
     }
 
-    private function index(Index $node, ?Scope $scope): Op
+    private function index(Index $node, ?Scope $scope): OpInterface
     {
         $index = $this->compile($node->index, $scope);
         if ($node->target instanceof Identity && $index instanceof ConstOp && \is_string($index->constant)) {
@@ -130,51 +130,51 @@ final readonly class NodeCompiler
         }
 
         $target = $this->compile($node->target, $scope);
-        if ($target instanceof SingleOp && $index instanceof SingleOp) {
+        if ($target instanceof SingleOpInterface && $index instanceof SingleOpInterface) {
             return new SingleIndexOp($target, $index);
         }
 
         return new IndexOp($target, $index);
     }
 
-    private function negate(Negate $node, ?Scope $scope): Op
+    private function negate(Negate $node, ?Scope $scope): OpInterface
     {
         $operand = $this->compile($node->operand, $scope);
 
-        return $operand instanceof SingleOp ? new SingleNegateOp($operand) : new NegateOp($operand);
+        return $operand instanceof SingleOpInterface ? new SingleNegateOp($operand) : new NegateOp($operand);
     }
 
-    private function conditional(IfThenElse $node, ?Scope $scope): Op
+    private function conditional(IfThenElse $node, ?Scope $scope): OpInterface
     {
         $condition = $this->compile($node->condition, $scope);
         $then      = $this->compile($node->then, $scope);
-        $else      = $node->else instanceof Node ? $this->compile($node->else, $scope) : null;
-        if ($condition instanceof SingleOp && $then instanceof SingleOp && (!$else instanceof Op || $else instanceof SingleOp)) {
+        $else      = $node->else instanceof NodeInterface ? $this->compile($node->else, $scope) : null;
+        if ($condition instanceof SingleOpInterface && $then instanceof SingleOpInterface && (!$else instanceof OpInterface || $else instanceof SingleOpInterface)) {
             return new SingleIfOp($condition, $then, $else);
         }
 
         return new IfOp($condition, $then, $else);
     }
 
-    private function binary(Binary $node, ?Scope $scope): Op
+    private function binary(Binary $node, ?Scope $scope): OpInterface
     {
         $left  = $this->compile($node->left, $scope);
         $right = $this->compile($node->right, $scope);
-        if (BinaryOp::Alt === $node->op) {
+        if (BinaryOpEnum::Alt === $node->op) {
             return new AltOp($left, $right);
         }
 
-        if (BinaryOp::And === $node->op || BinaryOp::Or === $node->op) {
-            $isAnd = BinaryOp::And === $node->op;
+        if (BinaryOpEnum::And === $node->op || BinaryOpEnum::Or === $node->op) {
+            $isAnd = BinaryOpEnum::And === $node->op;
 
-            return $left instanceof SingleOp && $right instanceof SingleOp
+            return $left instanceof SingleOpInterface && $right instanceof SingleOpInterface
                 ? new SingleLogicOp($left, $right, $isAnd)
                 : new LogicOp($left, $right, $isAnd);
         }
 
         $operation = $this->operation($node->op);
 
-        return $left instanceof SingleOp && $right instanceof SingleOp
+        return $left instanceof SingleOpInterface && $right instanceof SingleOpInterface
             ? new SingleOperatorOp($left, $right, $operation)
             : new OperatorOp($left, $right, $operation);
     }
@@ -182,38 +182,38 @@ final readonly class NodeCompiler
     /**
      * @return Closure(mixed, mixed): mixed
      */
-    private function operation(BinaryOp $operator): Closure
+    private function operation(BinaryOpEnum $operator): Closure
     {
         return match ($operator) {
-            BinaryOp::Add => Arithmetic::add(...),
-            BinaryOp::Sub => Arithmetic::subtract(...),
-            BinaryOp::Mul => Arithmetic::multiply(...),
-            BinaryOp::Div => Arithmetic::divide(...),
-            BinaryOp::Mod => Arithmetic::modulo(...),
-            BinaryOp::Eq  => Cmp::eq(...),
-            BinaryOp::Neq => Cmp::ne(...),
-            BinaryOp::Lt  => Cmp::lt(...),
-            BinaryOp::Le  => Cmp::le(...),
-            BinaryOp::Gt  => Cmp::gt(...),
-            BinaryOp::Ge  => Cmp::ge(...),
-            default       => throw new LogicException('Not an arithmetic operator: ' . $operator->value),
+            BinaryOpEnum::Add => Arithmetic::add(...),
+            BinaryOpEnum::Sub => Arithmetic::subtract(...),
+            BinaryOpEnum::Mul => Arithmetic::multiply(...),
+            BinaryOpEnum::Div => Arithmetic::divide(...),
+            BinaryOpEnum::Mod => Arithmetic::modulo(...),
+            BinaryOpEnum::Eq  => Cmp::eq(...),
+            BinaryOpEnum::Neq => Cmp::ne(...),
+            BinaryOpEnum::Lt  => Cmp::lt(...),
+            BinaryOpEnum::Le  => Cmp::le(...),
+            BinaryOpEnum::Gt  => Cmp::gt(...),
+            BinaryOpEnum::Ge  => Cmp::ge(...),
+            default           => throw new LogicException('Not an arithmetic operator: ' . $operator->value),
         };
     }
 
-    private function assign(Assign $node, ?Scope $scope): Op
+    private function assign(Assign $node, ?Scope $scope): OpInterface
     {
         $left  = $this->compile($node->left, $scope);
         $right = $this->compile($node->right, $scope);
 
         return match ($node->op) {
-            AssignOp::Set    => new SetAssignOp($left, $right),
-            AssignOp::Update => new UpdateAssignOp($left, $right),
-            AssignOp::Add    => new ArithAssignOp($left, $right, Arithmetic::add(...)),
-            AssignOp::Sub    => new ArithAssignOp($left, $right, Arithmetic::subtract(...)),
-            AssignOp::Mul    => new ArithAssignOp($left, $right, Arithmetic::multiply(...)),
-            AssignOp::Div    => new ArithAssignOp($left, $right, Arithmetic::divide(...)),
-            AssignOp::Mod    => new ArithAssignOp($left, $right, Arithmetic::modulo(...)),
-            AssignOp::Alt    => new ArithAssignOp(
+            AssignOpEnum::Set    => new SetAssignOp($left, $right),
+            AssignOpEnum::Update => new UpdateAssignOp($left, $right),
+            AssignOpEnum::Add    => new ArithAssignOp($left, $right, Arithmetic::add(...)),
+            AssignOpEnum::Sub    => new ArithAssignOp($left, $right, Arithmetic::subtract(...)),
+            AssignOpEnum::Mul    => new ArithAssignOp($left, $right, Arithmetic::multiply(...)),
+            AssignOpEnum::Div    => new ArithAssignOp($left, $right, Arithmetic::divide(...)),
+            AssignOpEnum::Mod    => new ArithAssignOp($left, $right, Arithmetic::modulo(...)),
+            AssignOpEnum::Alt    => new ArithAssignOp(
                 $left,
                 $right,
                 static fn (mixed $old, mixed $operand): mixed => null !== $old && false !== $old ? $old : $operand,
@@ -221,7 +221,7 @@ final readonly class NodeCompiler
         };
     }
 
-    private function object(ObjectConstruct $node, ?Scope $scope): Op
+    private function object(ObjectConstruct $node, ?Scope $scope): OpInterface
     {
         $entries = [];
         $single  = true;
@@ -229,14 +229,14 @@ final readonly class NodeCompiler
             $this->assertObjectKey($entry->key);
             $key       = $this->compile($entry->key, $scope);
             $value     = $this->compile($entry->value, $scope);
-            $single    = $single && $key instanceof SingleOp && $value instanceof SingleOp;
+            $single    = $single && $key instanceof SingleOpInterface && $value instanceof SingleOpInterface;
             $entries[] = [$key, $value];
         }
 
         if ($single) {
             $singles = [];
             foreach ($entries as [$key, $value]) {
-                \assert($key instanceof SingleOp && $value instanceof SingleOp);
+                \assert($key instanceof SingleOpInterface && $value instanceof SingleOpInterface);
                 $singles[] = [$key, $value];
             }
 
@@ -251,7 +251,7 @@ final readonly class NodeCompiler
      *
      * @throws JqCompileException
      */
-    private function assertObjectKey(Node $key): void
+    private function assertObjectKey(NodeInterface $key): void
     {
         $constant = match (true) {
             $key instanceof NumberLiteral => NumberParser::parse($key->text),
@@ -267,7 +267,7 @@ final readonly class NodeCompiler
         }
     }
 
-    private function breakOut(BreakOut $node, ?Scope $scope): Op
+    private function breakOut(BreakOut $node, ?Scope $scope): OpInterface
     {
         $depth = $scope?->depthOfLabel($node->label);
         if (null === $depth) {
@@ -277,7 +277,7 @@ final readonly class NodeCompiler
         return new BreakOp($depth);
     }
 
-    private function nestedDefinition(FuncDefScope $node, ?Scope $scope): Op
+    private function nestedDefinition(FuncDefScope $node, ?Scope $scope): OpInterface
     {
         $info           = new FuncInfo($node->def, null, 0);
         $withSelf       = Scope::func($scope, $info);
@@ -292,7 +292,7 @@ final readonly class NodeCompiler
         return new FuncDefOp($this->compile($node->rest, $withSelf));
     }
 
-    private function variable(Variable $node, ?Scope $scope): Op
+    private function variable(Variable $node, ?Scope $scope): OpInterface
     {
         $name  = $node->name;
         $depth = $scope?->depthOfVariable($name);
@@ -313,17 +313,17 @@ final readonly class NodeCompiler
         throw new JqCompileException(\sprintf('$%s is not defined at <top-level>, line %d:', $name, $node->line));
     }
 
-    private function call(FunctionCall $node, ?Scope $scope): Op
+    private function call(FunctionCall $node, ?Scope $scope): OpInterface
     {
         $name  = $node->name;
         $arity = $node->arity();
         $depth = 0;
         for ($entry = $scope; $entry instanceof Scope; $entry = $entry->parent) {
-            if (ScopeKind::Param === $entry->kind && 0 === $arity && $entry->name === $name) {
+            if (ScopeKindEnum::Param === $entry->kind && 0 === $arity && $entry->name === $name) {
                 return new ParamCallOp($depth);
             }
 
-            if (ScopeKind::Func === $entry->kind && $entry->arity === $arity && $entry->name === $name && $entry->function instanceof FuncInfo) {
+            if (ScopeKindEnum::Func === $entry->kind && $entry->arity === $arity && $entry->name === $name && $entry->function instanceof FuncInfo) {
                 return new CallOp($entry->function, $depth, $this->arguments($node, $scope));
             }
 
@@ -336,7 +336,7 @@ final readonly class NodeCompiler
         }
 
         $intrinsic = $this->intrinsic($node, $scope);
-        if ($intrinsic instanceof Op) {
+        if ($intrinsic instanceof OpInterface) {
             return $intrinsic;
         }
 
@@ -345,7 +345,7 @@ final readonly class NodeCompiler
         }
 
         $native = $this->core->builtins->lookup($name, $arity);
-        if ($native instanceof ValueBuiltin) {
+        if ($native instanceof ValueBuiltinInterface) {
             $arguments = $this->arguments($node, $scope);
             if ($this->allSingle($arguments)) {
                 return new SingleNativeOp($native, $arguments, $this->core->state);
@@ -354,7 +354,7 @@ final readonly class NodeCompiler
             return new NativeValueOp($native, $arguments, $this->core->state);
         }
 
-        if ($native instanceof StreamBuiltin) {
+        if ($native instanceof StreamBuiltinInterface) {
             return new NativeStreamOp($native, $this->arguments($node, $scope), $this->core->state);
         }
 
@@ -376,7 +376,7 @@ final readonly class NodeCompiler
         return $this->home->find($name, $arity, $this->limit);
     }
 
-    private function callTopLevel(FuncInfo $function, FunctionCall $node, ?Scope $scope): Op
+    private function callTopLevel(FuncInfo $function, FunctionCall $node, ?Scope $scope): OpInterface
     {
         $this->core->ensureCompiled($function);
 
@@ -384,7 +384,7 @@ final readonly class NodeCompiler
     }
 
     /**
-     * @return list<Op>
+     * @return list<OpInterface>
      */
     private function arguments(FunctionCall $node, ?Scope $scope): array
     {
@@ -397,16 +397,16 @@ final readonly class NodeCompiler
     }
 
     /**
-     * @param list<Op> $operations
+     * @param list<OpInterface> $operations
      *
-     * @phpstan-assert-if-true list<SingleOp> $operations
+     * @phpstan-assert-if-true list<SingleOpInterface> $operations
      */
     private function allSingle(array $operations): bool
     {
-        return array_all($operations, static fn (Op $operation): bool => $operation instanceof SingleOp);
+        return array_all($operations, static fn (OpInterface $operation): bool => $operation instanceof SingleOpInterface);
     }
 
-    private function intrinsic(FunctionCall $node, ?Scope $scope): ?Op
+    private function intrinsic(FunctionCall $node, ?Scope $scope): ?OpInterface
     {
         return match ($node->signature()) {
             'empty/0'           => new EmptyOp(),
@@ -423,14 +423,14 @@ final readonly class NodeCompiler
         };
     }
 
-    private function bind(Bind $node, ?Scope $scope): Op
+    private function bind(Bind $node, ?Scope $scope): OpInterface
     {
         $source = $this->compile($node->source, $scope);
         if (1 === \count($node->patterns)) {
             $pattern = $node->patterns[0];
             if ($pattern instanceof VariablePattern) {
                 $body = $this->compile($node->body, Scope::variable($scope, $pattern->name));
-                if ($source instanceof SingleOp && $body instanceof SingleOp) {
+                if ($source instanceof SingleOpInterface && $body instanceof SingleOpInterface) {
                     return new SingleBindVarOp($source, $body);
                 }
 
@@ -464,7 +464,7 @@ final readonly class NodeCompiler
         return new BindAltOp($source, $binders, $events, $variables, $this->compile($node->body, $inner));
     }
 
-    private function reduce(Reduce $node, ?Scope $scope): Op
+    private function reduce(Reduce $node, ?Scope $scope): OpInterface
     {
         $source           = $this->compile($node->source, $scope);
         $init             = $this->compile($node->init, $scope);
@@ -473,7 +473,7 @@ final readonly class NodeCompiler
         return new ReduceOp($source, $binder, $init, $this->compile($node->update, $inner));
     }
 
-    private function foreach(ForeachLoop $node, ?Scope $scope): Op
+    private function foreach(ForeachLoop $node, ?Scope $scope): OpInterface
     {
         $source           = $this->compile($node->source, $scope);
         $init             = $this->compile($node->init, $scope);
@@ -484,7 +484,7 @@ final readonly class NodeCompiler
             $binder,
             $init,
             $this->compile($node->update, $inner),
-            $node->extract instanceof Node ? $this->compile($node->extract, $inner) : null,
+            $node->extract instanceof NodeInterface ? $this->compile($node->extract, $inner) : null,
         );
     }
 
@@ -492,9 +492,9 @@ final readonly class NodeCompiler
      * Compile a pattern: its binder, the scope after all its variables, and the variable names in the order
      * the binder pushes them.
      *
-     * @return array{Binder, ?Scope, list<string>}
+     * @return array{BinderInterface, ?Scope, list<string>}
      */
-    private function pattern(Pattern $pattern, ?Scope $scope): array
+    private function pattern(PatternInterface $pattern, ?Scope $scope): array
     {
         if ($pattern instanceof VariablePattern) {
             return [new VarBinder(), Scope::variable($scope, $pattern->name), [$pattern->name]];
@@ -542,7 +542,7 @@ final readonly class NodeCompiler
         return [new ObjectBinder($entries), $scope, $names];
     }
 
-    private function interpolation(StringInterpolation $node, ?Scope $scope): Op
+    private function interpolation(StringInterpolation $node, ?Scope $scope): OpInterface
     {
         $parts  = [];
         $single = true;
@@ -554,7 +554,7 @@ final readonly class NodeCompiler
             }
 
             $op      = $this->compile($part, $scope);
-            $single  = $single && $op instanceof SingleOp;
+            $single  = $single && $op instanceof SingleOpInterface;
             $parts[] = $op;
         }
 
@@ -562,7 +562,7 @@ final readonly class NodeCompiler
         if ($single) {
             $singles = [];
             foreach ($parts as $part) {
-                \assert(\is_string($part) || $part instanceof SingleOp);
+                \assert(\is_string($part) || $part instanceof SingleOpInterface);
                 $singles[] = $part;
             }
 
@@ -590,7 +590,7 @@ final readonly class NodeCompiler
         }
 
         $builtin = $this->core->builtins->lookup('format', 1);
-        if (!$builtin instanceof ValueBuiltin) {
+        if (!$builtin instanceof ValueBuiltinInterface) {
             throw new JqCompileException('format/1 is not defined at <top-level>, line 1:');
         }
 

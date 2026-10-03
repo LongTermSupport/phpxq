@@ -9,7 +9,7 @@ use LTS\PhpXq\Yaml\Parser\YamlParser;
 use LTS\PhpXq\Yq\Format\Codec\JsonEncoder;
 use LTS\PhpXq\Yq\Format\Codec\XmlDecoder;
 use LTS\PhpXq\Yq\Format\Codec\XmlEncoder;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -123,8 +123,8 @@ final class XmlCodecTest extends TestCase
     public function testEmptyInputHasNoDocuments(): void
     {
         self::assertSame([], [...new XmlDecoder()->decode("  \n", new FormatOptions())]);
-        self::assertSame(Format::Xml, new XmlDecoder()->format());
-        self::assertSame(Format::Xml, new XmlEncoder()->format());
+        self::assertSame(FormatEnum::Xml, new XmlDecoder()->format());
+        self::assertSame(FormatEnum::Xml, new XmlEncoder()->format());
     }
 
     #[DataProvider('encodeCases')]

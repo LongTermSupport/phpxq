@@ -8,12 +8,12 @@ use LTS\PhpXq\Jq\Ast\Bind;
 use LTS\PhpXq\Jq\Ast\FuncDef;
 use LTS\PhpXq\Jq\Ast\FunctionCall;
 use LTS\PhpXq\Jq\Ast\ImportDirective;
-use LTS\PhpXq\Jq\Ast\ImportKind;
-use LTS\PhpXq\Jq\Ast\Node;
+use LTS\PhpXq\Jq\Ast\ImportKindEnum;
+use LTS\PhpXq\Jq\Ast\NodeInterface;
 use LTS\PhpXq\Jq\Ast\Program;
 use LTS\PhpXq\Jq\Ast\VariablePattern;
 use LTS\PhpXq\Jq\Parser\ParserInterface;
-use LTS\PhpXq\Jq\Runtime\BuiltinRegistry;
+use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
 use LTS\PhpXq\Jq\Runtime\JqCompileException;
 use LTS\PhpXq\Jq\Runtime\ModuleLoaderInterface;
 use LTS\PhpXq\Json\JsonObject;
@@ -40,7 +40,7 @@ final class Core
     private array $loading = [];
 
     public function __construct(
-        public readonly BuiltinRegistry $builtins,
+        public readonly BuiltinRegistryInterface $builtins,
         private readonly ParserInterface $parser,
         public readonly ModuleLoaderInterface $loader,
     ) {
@@ -54,7 +54,7 @@ final class Core
      *
      * @throws JqCompileException
      */
-    public function compileMain(Program $program, array $globalNames): Op
+    public function compileMain(Program $program, array $globalNames): OpInterface
     {
         $this->globalNames = $globalNames;
         $set               = $this->buildSet($program, null);
@@ -62,7 +62,7 @@ final class Core
             $this->ensureCompiled($function);
         }
 
-        if (!$program->body instanceof Node) {
+        if (!$program->body instanceof NodeInterface) {
             return new IdentityOp();
         }
 
@@ -81,7 +81,7 @@ final class Core
      */
     public function ensureCompiled(FuncInfo $function): void
     {
-        if ($function->op instanceof Op || $function->compiling || !$function->home instanceof DefSet) {
+        if ($function->op instanceof OpInterface || $function->compiling || !$function->home instanceof DefSet) {
             return;
         }
 
@@ -103,7 +103,7 @@ final class Core
      * Closure parameter names and the body of a definition with `$name` parameters expanded to
      * `name as $name | ...` bindings (the first parameter outermost).
      *
-     * @return array{list<string>, Node}
+     * @return array{list<string>, NodeInterface}
      */
     public static function expand(FuncDef $definition): array
     {
@@ -157,14 +157,14 @@ final class Core
         $set = new DefSet($this->prelude());
         foreach ($program->imports as $import) {
             $search = $import->metadata instanceof JsonObject ? $import->metadata->get('search') : null;
-            if (ImportKind::Data === $import->kind) {
+            if (ImportKindEnum::Data === $import->kind) {
                 $set->addData((string)$import->alias, $this->loader->loadData($import->path, $search, $path));
 
                 continue;
             }
 
             $module = $this->module($import, $search, $path);
-            if (ImportKind::Include === $import->kind) {
+            if (ImportKindEnum::Include === $import->kind) {
                 $set->include($module);
             } else {
                 $set->alias((string)$import->alias, $module);

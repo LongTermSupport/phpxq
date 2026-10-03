@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Yaml;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -17,7 +17,7 @@ final class NodeTest extends TestCase
     public function testScalarResolvesPlainTagFromTheCoreSchema(): void
     {
         self::assertSame('!!int', Node::scalar('12')->tag);
-        self::assertSame('!!str', Node::scalar('12', '', NodeStyle::DoubleQuoted)->tag);
+        self::assertSame('!!str', Node::scalar('12', '', NodeStyleEnum::DoubleQuoted)->tag);
         self::assertSame('!!binary', Node::scalar('aGk=', '!!binary')->tag);
     }
 
@@ -28,7 +28,7 @@ final class NodeTest extends TestCase
         $mapping = Node::mapping([$key, $value]);
         $seq     = Node::sequence([$value]);
 
-        self::assertSame(NodeKind::Mapping, $mapping->kind);
+        self::assertSame(NodeKindEnum::Mapping, $mapping->kind);
         self::assertSame('!!map', $mapping->tag);
         self::assertSame([$key, $value], $mapping->content);
         self::assertSame('!!seq', $seq->tag);
@@ -39,7 +39,7 @@ final class NodeTest extends TestCase
         $root = Node::scalar('x');
         $doc  = Node::document($root);
 
-        self::assertSame(NodeKind::Document, $doc->kind);
+        self::assertSame(NodeKindEnum::Document, $doc->kind);
         self::assertSame($root, $doc->root());
         self::assertSame($root, $root->root());
     }

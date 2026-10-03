@@ -9,7 +9,7 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class ObjectPattern implements Pattern
+final readonly class ObjectPattern implements PatternInterface
 {
     /**
      * @param non-empty-list<ObjectPatternEntry> $entries

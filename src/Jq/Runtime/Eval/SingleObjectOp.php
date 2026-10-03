@@ -15,7 +15,7 @@ use LTS\PhpXq\Json\JsonObject;
 final class SingleObjectOp extends AbstractSingleOp
 {
     /**
-     * @param list<array{SingleOp, SingleOp}> $entries
+     * @param list<array{SingleOpInterface, SingleOpInterface}> $entries
      */
     public function __construct(private readonly array $entries)
     {

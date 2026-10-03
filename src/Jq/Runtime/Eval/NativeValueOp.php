@@ -5,20 +5,20 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Jq\Runtime\Eval;
 
 use Closure;
-use LTS\PhpXq\Jq\Runtime\ValueBuiltin;
+use LTS\PhpXq\Jq\Runtime\ValueBuiltinInterface;
 
 /**
- * A call of a {@see ValueBuiltin} with generating arguments: nested loops with the last argument outermost.
+ * A call of a {@see ValueBuiltinInterface} with generating arguments: nested loops with the last argument outermost.
  *
  * @internal
  */
 final class NativeValueOp extends AbstractOp
 {
     /**
-     * @param non-empty-list<Op> $arguments
+     * @param non-empty-list<OpInterface> $arguments
      */
     public function __construct(
-        private readonly ValueBuiltin $builtin,
+        private readonly ValueBuiltinInterface $builtin,
         private readonly array $arguments,
         private readonly RunState $state,
     ) {

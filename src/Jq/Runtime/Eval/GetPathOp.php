@@ -13,9 +13,9 @@ use LTS\PhpXq\Jq\Runtime\PathOps;
  *
  * @internal
  */
-final readonly class GetPathOp implements Op
+final readonly class GetPathOp implements OpInterface
 {
-    public function __construct(private Op $argument)
+    public function __construct(private OpInterface $argument)
     {
     }
 

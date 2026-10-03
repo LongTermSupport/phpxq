@@ -9,12 +9,12 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class Assign implements Node
+final readonly class Assign implements NodeInterface
 {
     public function __construct(
-        public AssignOp $op,
-        public Node $left,
-        public Node $right,
+        public AssignOpEnum $op,
+        public NodeInterface $left,
+        public NodeInterface $right,
     ) {
     }
 }

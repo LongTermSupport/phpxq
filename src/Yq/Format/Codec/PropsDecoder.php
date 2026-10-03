@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\DecoderInterface;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -21,9 +21,9 @@ final class PropsDecoder implements DecoderInterface
 {
     private const string BLANKS = " \t\f";
 
-    public function format(): Format
+    public function format(): FormatEnum
     {
-        return Format::Props;
+        return FormatEnum::Props;
     }
 
     /**
@@ -202,7 +202,7 @@ final class PropsDecoder implements DecoderInterface
         $node = $root;
         $last = \count($parts) - 1;
         foreach ($parts as $position => $part) {
-            if (NodeKind::Sequence === $node->kind) {
+            if (NodeKindEnum::Sequence === $node->kind) {
                 if (!\is_int($part)) {
                     throw new FormatException('properties: cannot use "' . $part . '" as an array index');
                 }
@@ -278,7 +278,7 @@ final class PropsDecoder implements DecoderInterface
     private function container(?Node $existing, int|string $next): Node
     {
         if ($existing instanceof Node) {
-            if (NodeKind::Mapping === $existing->kind || (NodeKind::Sequence === $existing->kind && \is_int($next))) {
+            if (NodeKindEnum::Mapping === $existing->kind || (NodeKindEnum::Sequence === $existing->kind && \is_int($next))) {
                 return $existing;
             }
         }

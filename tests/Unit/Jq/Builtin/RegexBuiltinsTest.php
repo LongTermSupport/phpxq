@@ -6,14 +6,14 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Builtin;
 
 use Closure;
 use LTS\PhpXq\Jq\Builtin\RegexBuiltins;
-use LTS\PhpXq\Jq\Runtime\BuiltinRegistry;
+use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
 use LTS\PhpXq\Jq\Runtime\DefaultBuiltinRegistry;
-use LTS\PhpXq\Jq\Runtime\Filter;
+use LTS\PhpXq\Jq\Runtime\FilterInterface;
 use LTS\PhpXq\Jq\Runtime\InputProviderInterface;
 use LTS\PhpXq\Jq\Runtime\JqException;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
-use LTS\PhpXq\Jq\Runtime\StreamBuiltin;
-use LTS\PhpXq\Jq\Runtime\ValueBuiltin;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
+use LTS\PhpXq\Jq\Runtime\StreamBuiltinInterface;
+use LTS\PhpXq\Jq\Runtime\ValueBuiltinInterface;
 use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Tests\Unit\Jq\Builtin\Regex\FakeFilter;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -328,7 +328,7 @@ final class RegexBuiltinsTest extends TestCase
         yield 'ascii' => ['xxa', 'a', null, 2];
     }
 
-    private static function registry(): BuiltinRegistry
+    private static function registry(): BuiltinRegistryInterface
     {
         $registry = new DefaultBuiltinRegistry();
         new RegexBuiltins()->registerInto($registry);
@@ -336,23 +336,23 @@ final class RegexBuiltinsTest extends TestCase
         return $registry;
     }
 
-    private static function value(string $name, int $arity): ValueBuiltin
+    private static function value(string $name, int $arity): ValueBuiltinInterface
     {
         $builtin = self::registry()->lookup($name, $arity);
-        self::assertInstanceOf(ValueBuiltin::class, $builtin);
+        self::assertInstanceOf(ValueBuiltinInterface::class, $builtin);
 
         return $builtin;
     }
 
     /**
-     * @param list<Filter> $args
+     * @param list<FilterInterface> $args
      *
      * @return list<mixed>
      */
     private static function stream(string $name, mixed $input, array $args): array
     {
         $builtin = self::registry()->lookup($name, \count($args));
-        self::assertInstanceOf(StreamBuiltin::class, $builtin);
+        self::assertInstanceOf(StreamBuiltinInterface::class, $builtin);
 
         $outputs = [];
         $builtin->run(self::context(), $input, $args, static function (mixed $value) use (&$outputs): void {
@@ -422,9 +422,9 @@ final class RegexBuiltinsTest extends TestCase
         self::fail('Expected a JqException');
     }
 
-    private static function context(): RuntimeContext
+    private static function context(): RuntimeContextInterface
     {
-        return new class implements RuntimeContext {
+        return new class implements RuntimeContextInterface {
             public function inputs(): InputProviderInterface
             {
                 throw new JqException('no inputs');

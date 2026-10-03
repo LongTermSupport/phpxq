@@ -5,21 +5,21 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Jq\Runtime\Eval;
 
 use Closure;
-use LTS\PhpXq\Jq\Runtime\PathStreamBuiltin;
-use LTS\PhpXq\Jq\Runtime\StreamBuiltin;
+use LTS\PhpXq\Jq\Runtime\PathStreamBuiltinInterface;
+use LTS\PhpXq\Jq\Runtime\StreamBuiltinInterface;
 
 /**
- * A call of a {@see StreamBuiltin}: its arguments are closures bound to the caller's environment.
+ * A call of a {@see StreamBuiltinInterface}: its arguments are closures bound to the caller's environment.
  *
  * @internal
  */
-final readonly class NativeStreamOp implements Op
+final readonly class NativeStreamOp implements OpInterface
 {
     /**
-     * @param list<Op> $arguments
+     * @param list<OpInterface> $arguments
      */
     public function __construct(
-        private StreamBuiltin $builtin,
+        private StreamBuiltinInterface $builtin,
         private array $arguments,
         private RunState $state,
     ) {
@@ -32,7 +32,7 @@ final readonly class NativeStreamOp implements Op
 
     public function paths(?Env $env, ?array $path, mixed $input, Closure $emit): void
     {
-        if ($this->builtin instanceof PathStreamBuiltin) {
+        if ($this->builtin instanceof PathStreamBuiltinInterface) {
             $this->builtin->runPaths($this->state->context(), $path, $input, $this->bind($env), $emit);
 
             return;

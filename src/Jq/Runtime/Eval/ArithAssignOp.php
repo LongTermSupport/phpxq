@@ -18,8 +18,8 @@ final class ArithAssignOp extends AbstractOp
      * @param Closure(mixed, mixed): mixed $operation receives the old value and the right-hand value
      */
     public function __construct(
-        private readonly Op $left,
-        private readonly Op $right,
+        private readonly OpInterface $left,
+        private readonly OpInterface $right,
         private readonly Closure $operation,
     ) {
     }

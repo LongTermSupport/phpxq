@@ -12,7 +12,7 @@ use LogicException;
  *
  * @internal
  */
-final readonly class ParamCallOp implements Op
+final readonly class ParamCallOp implements OpInterface
 {
     public function __construct(private int $depth)
     {

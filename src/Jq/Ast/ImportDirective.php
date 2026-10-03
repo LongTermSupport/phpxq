@@ -17,7 +17,7 @@ final readonly class ImportDirective
     public function __construct(
         public string $path,
         public ?string $alias,
-        public ImportKind $kind,
+        public ImportKindEnum $kind,
         public mixed $metadata = null,
     ) {
     }

@@ -9,7 +9,7 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-enum AssignOp: string
+enum AssignOpEnum: string
 {
     case Set    = '=';
     case Update = '|=';

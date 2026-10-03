@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime\Operators;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yq\Expression\Ast\Binary;
-use LTS\PhpXq\Yq\Expression\Ast\BinaryOperator;
+use LTS\PhpXq\Yq\Expression\Ast\BinaryOperatorEnum;
 use LTS\PhpXq\Yq\Expression\Ast\Call;
-use LTS\PhpXq\Yq\Expression\ExpressionNode;
+use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 use LTS\PhpXq\Yq\Runtime\Anchors;
 use LTS\PhpXq\Yq\Runtime\BinaryOperatorInterface;
 use LTS\PhpXq\Yq\Runtime\Candidate;
@@ -47,13 +47,13 @@ final class AssignOperator implements BinaryOperatorInterface
     public function operators(): array
     {
         return [
-            BinaryOperator::Assign,
-            BinaryOperator::Update,
-            BinaryOperator::AddAssign,
-            BinaryOperator::SubtractAssign,
-            BinaryOperator::MultiplyAssign,
-            BinaryOperator::DivideAssign,
-            BinaryOperator::ModuloAssign,
+            BinaryOperatorEnum::Assign,
+            BinaryOperatorEnum::Update,
+            BinaryOperatorEnum::AddAssign,
+            BinaryOperatorEnum::SubtractAssign,
+            BinaryOperatorEnum::MultiplyAssign,
+            BinaryOperatorEnum::DivideAssign,
+            BinaryOperatorEnum::ModuloAssign,
         ];
     }
 
@@ -71,7 +71,7 @@ final class AssignOperator implements BinaryOperatorInterface
         $read    = $context->withDontAutoCreate(true);
         $layout  = Cands::dateLayout($context);
         switch ($expression->operator) {
-            case BinaryOperator::Assign:
+            case BinaryOperatorEnum::Assign:
                 $values = $evaluator->evaluate($expression->right, $read);
                 $first  = $values[0] ?? null;
                 $source = $first instanceof Candidate ? $first->node : NodeOps::null();
@@ -82,7 +82,7 @@ final class AssignOperator implements BinaryOperatorInterface
 
                 break;
 
-            case BinaryOperator::Update:
+            case BinaryOperatorEnum::Update:
                 foreach ($targets as $target) {
                     $values = $evaluator->evaluate($expression->right, $read->withMatches([$target]));
                     if ([] !== $values) {
@@ -115,11 +115,11 @@ final class AssignOperator implements BinaryOperatorInterface
     }
 
     /**
-     * @return array{ExpressionNode, string}|null the property target expression and the property to set
+     * @return array{ExpressionNodeInterface, string}|null the property target expression and the property to set
      */
-    private static function propertySetter(ExpressionNode $left): ?array
+    private static function propertySetter(ExpressionNodeInterface $left): ?array
     {
-        if ($left instanceof Binary && BinaryOperator::Pipe === $left->operator && $left->right instanceof Call && [] === $left->right->arguments && isset(self::PROPERTY_SETTERS[$left->right->name])) {
+        if ($left instanceof Binary && BinaryOperatorEnum::Pipe === $left->operator && $left->right instanceof Call && [] === $left->right->arguments && isset(self::PROPERTY_SETTERS[$left->right->name])) {
             return [$left->left, self::PROPERTY_SETTERS[$left->right->name]];
         }
 
@@ -129,19 +129,19 @@ final class AssignOperator implements BinaryOperatorInterface
     /**
      * @return list<Candidate>
      */
-    private function setProperty(Binary $expression, ExpressionNode $targetExpression, string $property, EvaluationContext $context, EvaluatorInterface $evaluator): array
+    private function setProperty(Binary $expression, ExpressionNodeInterface $targetExpression, string $property, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
         $targets = $evaluator->evaluate($targetExpression, $context);
         $read    = $context->withDontAutoCreate(true);
         $fixed   = null;
-        if (BinaryOperator::Update !== $expression->operator) {
+        if (BinaryOperatorEnum::Update !== $expression->operator) {
             $values = $evaluator->evaluate($expression->right, $read);
             $fixed  = $values[0]->node ?? null;
         }
 
         foreach ($targets as $target) {
             $source = $fixed;
-            if (BinaryOperator::Update === $expression->operator) {
+            if (BinaryOperatorEnum::Update === $expression->operator) {
                 $values = $evaluator->evaluate($expression->right, $read->withMatches([$target]));
                 $source = $values[0]->node ?? null;
             }
@@ -150,7 +150,7 @@ final class AssignOperator implements BinaryOperatorInterface
                 continue;
             }
 
-            $value = NodeKind::Scalar === NodeOps::deref($source)->kind ? NodeOps::deref($source)->value : '';
+            $value = NodeKindEnum::Scalar === NodeOps::deref($source)->kind ? NodeOps::deref($source)->value : '';
             Detached::attach($target);
             self::apply($target, $property, $value);
         }
@@ -200,18 +200,18 @@ final class AssignOperator implements BinaryOperatorInterface
 
     private static function setStyle(Node $node, string $style): void
     {
-        $node->tagExplicit = 'tagged'          === $style;
-        $collection        = NodeKind::Mapping === $node->kind || NodeKind::Sequence === $node->kind;
+        $node->tagExplicit = 'tagged'              === $style;
+        $collection        = NodeKindEnum::Mapping === $node->kind || NodeKindEnum::Sequence === $node->kind;
         $new               = match ($style) {
-            'double'  => NodeStyle::DoubleQuoted,
-            'single'  => NodeStyle::SingleQuoted,
-            'literal' => NodeStyle::Literal,
-            'folded'  => NodeStyle::Folded,
-            'flow'    => NodeStyle::Flow,
-            default   => NodeStyle::Default,
+            'double'  => NodeStyleEnum::DoubleQuoted,
+            'single'  => NodeStyleEnum::SingleQuoted,
+            'literal' => NodeStyleEnum::Literal,
+            'folded'  => NodeStyleEnum::Folded,
+            'flow'    => NodeStyleEnum::Flow,
+            default   => NodeStyleEnum::Default,
         };
-        if ($collection && NodeStyle::Flow !== $new) {
-            $new = NodeStyle::Default;
+        if ($collection && NodeStyleEnum::Flow !== $new) {
+            $new = NodeStyleEnum::Default;
         }
 
         $node->style = $new;
@@ -225,16 +225,16 @@ final class AssignOperator implements BinaryOperatorInterface
 
         $root   = Cands::root($target);
         $anchor = Anchors::find(Cands::node($root), $name);
-        if (!$anchor instanceof Node && NodeKind::Document === $root->node->kind) {
+        if (!$anchor instanceof Node && NodeKindEnum::Document === $root->node->kind) {
             $anchor = Anchors::find($root->node, $name);
         }
 
         $node              = $target->node;
-        $node->kind        = NodeKind::Alias;
+        $node->kind        = NodeKindEnum::Alias;
         $node->value       = $name;
         $node->aliasTarget = $anchor;
         $node->content     = [];
-        $node->style       = NodeStyle::Default;
+        $node->style       = NodeStyleEnum::Default;
         $node->tag         = '';
         $node->anchor      = '';
         if (!$anchor instanceof Node) {

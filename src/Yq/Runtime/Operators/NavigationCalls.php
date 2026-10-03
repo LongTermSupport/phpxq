@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime\Operators;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yq\Expression\Ast\Call;
 use LTS\PhpXq\Yq\Expression\ExpressionSyntaxException;
 use LTS\PhpXq\Yq\Runtime\Args;
@@ -126,7 +126,7 @@ final class NavigationCalls implements CallOperatorInterface
     private function ancestors(Candidate $match): array
     {
         $chain = [];
-        for ($parent = $match->parent; $parent instanceof Candidate && NodeKind::Document !== $parent->node->kind; $parent = $parent->parent) {
+        for ($parent = $match->parent; $parent instanceof Candidate && NodeKindEnum::Document !== $parent->node->kind; $parent = $parent->parent) {
             $chain[] = $parent;
         }
 

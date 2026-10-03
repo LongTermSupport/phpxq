@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Cli;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use SplObjectStorage;
 
 /**
@@ -45,10 +45,10 @@ final class DocumentRegistry
 
         $root = $node->root();
 
-        return NodeKind::Scalar === $root->kind
-            && ''               === $root->value
-            && '!!null'         === $root->tag
-            && ''               === $node->headComment . $node->lineComment . $node->footComment
-            && ''               === $root->headComment . $root->lineComment . $root->footComment;
+        return NodeKindEnum::Scalar === $root->kind
+            && ''                   === $root->value
+            && '!!null'             === $root->tag
+            && ''                   === $node->headComment . $node->lineComment . $node->footComment
+            && ''                   === $root->headComment . $root->lineComment . $root->footComment;
     }
 }

@@ -6,7 +6,7 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Builtin\Core;
 
 use Closure;
 use LTS\PhpXq\Jq\Builtin\Core\PathStreamFunction;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Tests\Unit\Jq\Builtin\Core\Support\FakeContext;
 use PHPUnit\Framework\TestCase;
 
@@ -30,7 +30,7 @@ final class PathStreamFunctionTest extends TestCase
         $function = new PathStreamFunction(
             'f',
             0,
-            static function (RuntimeContext $c, mixed $input, array $args, Closure $emit): void {
+            static function (RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void {
                 $emit($input);
             },
             static function (): never {
@@ -54,7 +54,7 @@ final class PathStreamFunctionTest extends TestCase
             static function (): never {
                 self::fail('value mode must not run');
             },
-            static function (RuntimeContext $c, ?array $path, mixed $input, array $args, Closure $emit): void {
+            static function (RuntimeContextInterface $c, ?array $path, mixed $input, array $args, Closure $emit): void {
                 $emit($path, $input);
             },
         );

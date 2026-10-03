@@ -11,7 +11,7 @@ use Closure;
  *
  * @internal
  */
-final class VarBinder implements Binder
+final class VarBinder implements BinderInterface
 {
     public function bind(?Env $env, mixed $value, Closure $continue): void
     {

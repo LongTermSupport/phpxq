@@ -13,12 +13,12 @@ use LTS\PhpXq\Json\JsonObject;
  *
  * @internal
  */
-final readonly class SliceOp implements Op
+final readonly class SliceOp implements OpInterface
 {
     public function __construct(
-        private Op $target,
-        private ?Op $from,
-        private ?Op $to,
+        private OpInterface $target,
+        private ?OpInterface $from,
+        private ?OpInterface $to,
     ) {
     }
 
@@ -56,7 +56,7 @@ final readonly class SliceOp implements Op
     {
         $to         = $this->to;
         $evaluateTo = static function (mixed $from) use ($to, $env, $input, $each): void {
-            if (!$to instanceof Op) {
+            if (!$to instanceof OpInterface) {
                 $each($from, null);
 
                 return;
@@ -67,7 +67,7 @@ final readonly class SliceOp implements Op
             });
         };
 
-        if (!$this->from instanceof Op) {
+        if (!$this->from instanceof OpInterface) {
             $evaluateTo(null);
 
             return;

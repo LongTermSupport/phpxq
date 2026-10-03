@@ -9,12 +9,12 @@ use LTS\PhpXq\Jq\Runtime\BreakException;
 use LTS\PhpXq\Jq\Runtime\JqException;
 
 /**
- * A compiled AST node. Unlike {@see \LTS\PhpXq\Jq\Runtime\Filter} it is not bound to an environment: the
+ * A compiled AST node. Unlike {@see \LTS\PhpXq\Jq\Runtime\FilterInterface} it is not bound to an environment: the
  * environment is an argument, so one Op tree is shared by every activation of the function it belongs to.
  *
  * @internal
  */
-interface Op
+interface OpInterface
 {
     /**
      * @param Closure(mixed): void $emit

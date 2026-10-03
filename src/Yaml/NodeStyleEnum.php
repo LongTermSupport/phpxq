@@ -8,7 +8,7 @@ namespace LTS\PhpXq\Yaml;
  * How a node was written, or should be written. Collections use Default (block) or Flow; scalars use
  * Default (plain), SingleQuoted, DoubleQuoted, Literal (`|`) or Folded (`>`).
  */
-enum NodeStyle
+enum NodeStyleEnum
 {
     case Default;
 

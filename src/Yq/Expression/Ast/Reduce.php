@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Expression\Ast;
 
-use LTS\PhpXq\Yq\Expression\ExpressionNode;
+use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 
 /**
  * `reduce source as $name (initial; update)`.
  */
-final readonly class Reduce implements ExpressionNode
+final readonly class Reduce implements ExpressionNodeInterface
 {
     public function __construct(
-        public ExpressionNode $source,
+        public ExpressionNodeInterface $source,
         public string $name,
-        public ExpressionNode $initial,
-        public ExpressionNode $update,
+        public ExpressionNodeInterface $initial,
+        public ExpressionNodeInterface $update,
     ) {
     }
 }

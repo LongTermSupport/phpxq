@@ -10,11 +10,11 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class Index implements Node
+final readonly class Index implements NodeInterface
 {
     public function __construct(
-        public Node $target,
-        public Node $index,
+        public NodeInterface $target,
+        public NodeInterface $index,
     ) {
     }
 }

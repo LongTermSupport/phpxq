@@ -19,8 +19,8 @@ final class StringInterpOp extends AbstractOp
     private readonly array $expressions;
 
     /**
-     * @param list<string|Op>        $parts
-     * @param Closure(mixed): string $format
+     * @param list<string|OpInterface> $parts
+     * @param Closure(mixed): string   $format
      */
     public function __construct(
         private readonly array $parts,
@@ -28,7 +28,7 @@ final class StringInterpOp extends AbstractOp
     ) {
         $expressions = [];
         foreach ($parts as $index => $part) {
-            if ($part instanceof Op) {
+            if ($part instanceof OpInterface) {
                 $expressions[] = $index;
             }
         }
@@ -59,7 +59,7 @@ final class StringInterpOp extends AbstractOp
 
         $index = $this->expressions[$position];
         $part  = $this->parts[$index];
-        \assert($part instanceof Op);
+        \assert($part instanceof OpInterface);
         $format = $this->format;
         $part->run($env, $input, function (mixed $value) use ($format, $env, $input, $position, $index, $texts, $emit): void {
             $texts[$index] = $format($value);

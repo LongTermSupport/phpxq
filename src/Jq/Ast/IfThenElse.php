@@ -10,12 +10,12 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class IfThenElse implements Node
+final readonly class IfThenElse implements NodeInterface
 {
     public function __construct(
-        public Node $condition,
-        public Node $then,
-        public ?Node $else,
+        public NodeInterface $condition,
+        public NodeInterface $then,
+        public ?NodeInterface $else,
     ) {
     }
 }

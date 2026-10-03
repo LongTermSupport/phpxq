@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime\Operators;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Expression\Ast\Call;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use LTS\PhpXq\Yq\Runtime\Args;
@@ -84,7 +84,7 @@ final class StringCalls implements CallOperatorInterface
 
     private function text(Node $node, Call $call): string
     {
-        if (NodeKind::Scalar !== $node->kind) {
+        if (NodeKindEnum::Scalar !== $node->kind) {
             throw new EvaluationException(\sprintf('Cannot apply %s to %s', $call->name, '' === $node->tag ? NodeOps::kindName($node) : $node->tag));
         }
 
@@ -147,14 +147,14 @@ final class StringCalls implements CallOperatorInterface
     {
         Args::require($call, 1);
         $separator = Args::string($call, 0, $context, $evaluator, $match) ?? '';
-        if (NodeKind::Sequence !== $node->kind) {
+        if (NodeKindEnum::Sequence !== $node->kind) {
             throw new EvaluationException(\sprintf('Cannot join %s, join only works on arrays', '' === $node->tag ? NodeOps::kindName($node) : $node->tag));
         }
 
         $parts = [];
         foreach ($node->content as $item) {
             $item = NodeOps::deref($item);
-            if (NodeKind::Scalar !== $item->kind) {
+            if (NodeKindEnum::Scalar !== $item->kind) {
                 throw new EvaluationException('Cannot join a collection element');
             }
 
@@ -166,28 +166,28 @@ final class StringCalls implements CallOperatorInterface
 
     private function toString(Node $node, EvaluationContext $context): Node
     {
-        if (NodeKind::Scalar === $node->kind) {
+        if (NodeKindEnum::Scalar === $node->kind) {
             $out        = NodeOps::str($node->value);
-            $out->style = NodeStyle::Default;
+            $out->style = NodeStyleEnum::Default;
 
             return $out;
         }
 
         try {
-            $text = $context->services->formats->encoder(Format::Yaml)->encode($node, new FormatOptions(), 0);
+            $text = $context->services->formats->encoder(FormatEnum::Yaml)->encode($node, new FormatOptions(), 0);
         } catch (FormatException $formatException) {
             throw new EvaluationException($formatException->getMessage(), 0, $formatException);
         }
 
         $out        = NodeOps::str(rtrim($text, "\n"));
-        $out->style = NodeStyle::DoubleQuoted;
+        $out->style = NodeStyleEnum::DoubleQuoted;
 
         return $out;
     }
 
     private function toNumber(Node $node): Node
     {
-        if (NodeKind::Scalar !== $node->kind) {
+        if (NodeKindEnum::Scalar !== $node->kind) {
             throw new EvaluationException(\sprintf('Cannot convert %s to a number', NodeOps::kindName($node)));
         }
 
@@ -201,12 +201,12 @@ final class StringCalls implements CallOperatorInterface
             throw new EvaluationException(\sprintf('cannot convert %s to a number', $node->value));
         }
 
-        return new Node(NodeKind::Scalar, Numbers::tagOf($number), NodeStyle::Default, $node->value);
+        return new Node(NodeKindEnum::Scalar, Numbers::tagOf($number), NodeStyleEnum::Default, $node->value);
     }
 
     private function toBool(Node $node): Node
     {
-        if (NodeKind::Scalar !== $node->kind) {
+        if (NodeKindEnum::Scalar !== $node->kind) {
             throw new EvaluationException(\sprintf('Cannot convert %s to a boolean', NodeOps::kindName($node)));
         }
 

@@ -9,7 +9,7 @@ use LTS\PhpXq\Jq\Cli\JqApplication;
 use LTS\PhpXq\Jq\Cli\JqExitCode;
 use LTS\PhpXq\Jq\Runtime\HaltException;
 use LTS\PhpXq\Jq\Runtime\JqException;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Json\JsonObject;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -54,7 +54,7 @@ final class JqApplicationTest extends JqApplicationTestCase
     public function testNullInputRunsOnceWithNullAndReadsNothing(): void
     {
         $seen           = [];
-        [$status, $out] = $this->jq(['-n', '.'], '1 2 3', static function (RuntimeContext $context, mixed $input, Closure $emit) use (&$seen): void {
+        [$status, $out] = $this->jq(['-n', '.'], '1 2 3', static function (RuntimeContextInterface $context, mixed $input, Closure $emit) use (&$seen): void {
             $seen[] = $input;
             $emit(42);
         });
@@ -66,7 +66,7 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testRawOutputWritesStringsVerbatim(): void
     {
-        [, $out] = $this->jq(['-r', '.[]'], '["a\"b","c",1]', static function (RuntimeContext $context, mixed $input, Closure $emit): void {
+        [, $out] = $this->jq(['-r', '.[]'], '["a\"b","c",1]', static function (RuntimeContextInterface $context, mixed $input, Closure $emit): void {
             \assert(\is_array($input));
             foreach ($input as $item) {
                 $emit($item);
@@ -78,7 +78,7 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testJoinOutputWritesNoSeparator(): void
     {
-        [, $out] = $this->jq(['-j', '.[]'], '["a","b",1]', static function (RuntimeContext $context, mixed $input, Closure $emit): void {
+        [, $out] = $this->jq(['-j', '.[]'], '["a","b",1]', static function (RuntimeContextInterface $context, mixed $input, Closure $emit): void {
             \assert(\is_array($input));
             foreach ($input as $item) {
                 $emit($item);
@@ -90,7 +90,7 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testRawOutput0TerminatesWithNul(): void
     {
-        [$status, $out] = $this->jq(['--raw-output0', '.[]'], '["a","b"]', static function (RuntimeContext $context, mixed $input, Closure $emit): void {
+        [$status, $out] = $this->jq(['--raw-output0', '.[]'], '["a","b"]', static function (RuntimeContextInterface $context, mixed $input, Closure $emit): void {
             \assert(\is_array($input));
             foreach ($input as $item) {
                 $emit($item);
@@ -103,7 +103,7 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testRawOutput0RefusesAStringWithNul(): void
     {
-        [$status, $out, $err] = $this->jq(['--raw-output0', '.[]'], '["a","c","b"]', static function (RuntimeContext $context, mixed $input, Closure $emit): void {
+        [$status, $out, $err] = $this->jq(['--raw-output0', '.[]'], '["a","c","b"]', static function (RuntimeContextInterface $context, mixed $input, Closure $emit): void {
             $emit('a');
             $emit("c\0d");
             $emit('b');
@@ -131,7 +131,7 @@ final class JqApplicationTest extends JqApplicationTestCase
     public function testSlurpGivesTheProgramOneArray(): void
     {
         $seen = [];
-        $this->jq(['-s', '.'], '1 2 [3]', static function (RuntimeContext $context, mixed $input, Closure $emit) use (&$seen): void {
+        $this->jq(['-s', '.'], '1 2 [3]', static function (RuntimeContextInterface $context, mixed $input, Closure $emit) use (&$seen): void {
             $seen[] = $input;
             $emit($input);
         });
@@ -149,7 +149,7 @@ final class JqApplicationTest extends JqApplicationTestCase
     public function testRawInputGivesEachLine(): void
     {
         $seen = [];
-        $this->jq(['-R', '.'], "a\nb\n\nc", static function (RuntimeContext $context, mixed $input, Closure $emit) use (&$seen): void {
+        $this->jq(['-R', '.'], "a\nb\n\nc", static function (RuntimeContextInterface $context, mixed $input, Closure $emit) use (&$seen): void {
             $seen[] = $input;
         });
 
@@ -159,7 +159,7 @@ final class JqApplicationTest extends JqApplicationTestCase
     public function testRawSlurpGivesTheWholeText(): void
     {
         $seen = [];
-        $this->jq(['-Rs', '.'], "a\0b\nc\n", static function (RuntimeContext $context, mixed $input, Closure $emit) use (&$seen): void {
+        $this->jq(['-Rs', '.'], "a\0b\nc\n", static function (RuntimeContextInterface $context, mixed $input, Closure $emit) use (&$seen): void {
             $seen[] = $input;
         });
 
@@ -169,7 +169,7 @@ final class JqApplicationTest extends JqApplicationTestCase
     public function testInputsBuiltinsShareTheMainStream(): void
     {
         $collected = [];
-        $this->jq(['-n', '.'], '1 2 3', static function (RuntimeContext $context, mixed $input, Closure $emit) use (&$collected): void {
+        $this->jq(['-n', '.'], '1 2 3', static function (RuntimeContextInterface $context, mixed $input, Closure $emit) use (&$collected): void {
             $inputs = $context->inputs();
             while ($inputs->hasNext()) {
                 $collected[] = $inputs->next();
@@ -188,7 +188,7 @@ final class JqApplicationTest extends JqApplicationTestCase
     public function testInputInsideTheProgramConsumesFromTheMainLoop(): void
     {
         $calls = [];
-        $this->jq(['.'], '1 2 3 4', static function (RuntimeContext $context, mixed $input, Closure $emit) use (&$calls): void {
+        $this->jq(['.'], '1 2 3 4', static function (RuntimeContextInterface $context, mixed $input, Closure $emit) use (&$calls): void {
             $calls[] = $input;
             $context->inputs()->next();
         });
@@ -214,7 +214,7 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testExitStatusSkipsInputsWithoutOutput(): void
     {
-        [$status] = $this->jq(['-e', '.'], '1 2', static function (RuntimeContext $context, mixed $input, Closure $emit): void {
+        [$status] = $this->jq(['-e', '.'], '1 2', static function (RuntimeContextInterface $context, mixed $input, Closure $emit): void {
             if (1 === $input) {
                 $emit(false);
             }
@@ -225,7 +225,7 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testRuntimeErrorIsReportedWithThePositionAndExits5(): void
     {
-        [$status, $out, $err] = $this->jq(['.'], "1\n", static function (RuntimeContext $context, mixed $input, Closure $emit): never {
+        [$status, $out, $err] = $this->jq(['.'], "1\n", static function (RuntimeContextInterface $context, mixed $input, Closure $emit): never {
             $emit('before');
 
             throw JqException::fromMessage('boom');
@@ -266,7 +266,7 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testAnErrorOnOneInputDoesNotStopTheNext(): void
     {
-        [$status, $out, $err] = $this->jq(['-c', '.'], "1\n2\n", static function (RuntimeContext $context, mixed $input, Closure $emit): void {
+        [$status, $out, $err] = $this->jq(['-c', '.'], "1\n2\n", static function (RuntimeContextInterface $context, mixed $input, Closure $emit): void {
             if (1 === $input) {
                 throw JqException::fromMessage('first');
             }
@@ -282,7 +282,7 @@ final class JqApplicationTest extends JqApplicationTestCase
     public function testHaltStopsTheRunWithItsExitCode(): void
     {
         $seen                 = [];
-        [$status, $out, $err] = $this->jq(['.'], '1 2 3', static function (RuntimeContext $context, mixed $input, Closure $emit) use (&$seen): never {
+        [$status, $out, $err] = $this->jq(['.'], '1 2 3', static function (RuntimeContextInterface $context, mixed $input, Closure $emit) use (&$seen): never {
             $seen[] = $input;
             $emit($input);
 
@@ -370,7 +370,7 @@ final class JqApplicationTest extends JqApplicationTestCase
     public function testLibraryPathsReachTheCompilerAndTheContext(): void
     {
         $paths = null;
-        $this->jq(['-L', 'a', '-Lb', '--', '.'], '1', static function (RuntimeContext $context) use (&$paths): void {
+        $this->jq(['-L', 'a', '-Lb', '--', '.'], '1', static function (RuntimeContextInterface $context) use (&$paths): void {
             $paths = $context->libraryPaths();
         });
 
@@ -381,7 +381,7 @@ final class JqApplicationTest extends JqApplicationTestCase
     public function testNamedAndPositionalArgumentsBecomeGlobals(): void
     {
         $globals = [];
-        $this->jq(['-n', '--arg', 'a', '1', '--argjson', 'b', '[2]', '--args', '.', 'x', 'y'], '', static function (RuntimeContext $context) use (&$globals): void {
+        $this->jq(['-n', '--arg', 'a', '1', '--argjson', 'b', '[2]', '--args', '.', 'x', 'y'], '', static function (RuntimeContextInterface $context) use (&$globals): void {
             $globals = $context->globals();
         });
 
@@ -402,7 +402,7 @@ final class JqApplicationTest extends JqApplicationTestCase
         $first   = $this->tempFile("1\n");
         $second  = $this->tempFile('2');
         $names   = [];
-        [, $out] = $this->jq(['-c', '.', $first, $second], '', static function (RuntimeContext $context, mixed $input, Closure $emit) use (&$names): void {
+        [, $out] = $this->jq(['-c', '.', $first, $second], '', static function (RuntimeContextInterface $context, mixed $input, Closure $emit) use (&$names): void {
             $names[] = $context->inputFilename();
             $emit($input);
         });
@@ -414,7 +414,7 @@ final class JqApplicationTest extends JqApplicationTestCase
     public function testStdinHasNoFilename(): void
     {
         $name = 'unset';
-        $this->jq(['.'], '1', static function (RuntimeContext $context) use (&$name): void {
+        $this->jq(['.'], '1', static function (RuntimeContextInterface $context) use (&$name): void {
             $name = $context->inputFilename();
         });
 
@@ -606,7 +606,7 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testDebugAndStderrWriteToStandardError(): void
     {
-        [, $out, $err] = $this->jq(['-n', '.'], '', static function (RuntimeContext $context, mixed $input, Closure $emit): void {
+        [, $out, $err] = $this->jq(['-n', '.'], '', static function (RuntimeContextInterface $context, mixed $input, Closure $emit): void {
             $context->debug('x');
             $context->writeStderr('raw');
             $context->writeStderr([1]);
@@ -712,7 +712,7 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testDebugDumpDisasmPrintsTheBoundDefinitionsFirst(): void
     {
-        [$status, $out] = $this->jq(['-n', '--debug-dump-disasm', '.'], '', static function (RuntimeContext $context, mixed $input, Closure $emit): void {
+        [$status, $out] = $this->jq(['-n', '--debug-dump-disasm', '.'], '', static function (RuntimeContextInterface $context, mixed $input, Closure $emit): void {
             $emit(1);
         });
 
@@ -744,7 +744,7 @@ final class JqApplicationTest extends JqApplicationTestCase
         $first   = $this->tempFile('1');
         $second  = $this->tempFile('2');
         $name    = null;
-        [, $out] = $this->jq(['-s', '-c', '.', $first, $second], '', static function (RuntimeContext $context, mixed $input, Closure $emit) use (&$name): void {
+        [, $out] = $this->jq(['-s', '-c', '.', $first, $second], '', static function (RuntimeContextInterface $context, mixed $input, Closure $emit) use (&$name): void {
             $name = $context->inputFilename();
             $emit($input);
         });
@@ -772,7 +772,7 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     public function testNullInputWithAnUnreadableFileReadViaInputsExits2(): void
     {
-        [$status, , $err] = $this->jq(['-n', '.', '/nonexistent/x.json'], '', static function (RuntimeContext $context): void {
+        [$status, , $err] = $this->jq(['-n', '.', '/nonexistent/x.json'], '', static function (RuntimeContextInterface $context): void {
             $context->inputs()->hasNext();
         });
 

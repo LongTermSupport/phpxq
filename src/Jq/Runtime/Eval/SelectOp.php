@@ -11,18 +11,18 @@ use Closure;
  *
  * @internal
  */
-final readonly class SelectOp implements Op
+final readonly class SelectOp implements OpInterface
 {
-    private ?SingleOp $single;
+    private ?SingleOpInterface $single;
 
-    public function __construct(private Op $condition)
+    public function __construct(private OpInterface $condition)
     {
-        $this->single = $condition instanceof SingleOp ? $condition : null;
+        $this->single = $condition instanceof SingleOpInterface ? $condition : null;
     }
 
     public function run(?Env $env, mixed $input, Closure $emit): void
     {
-        if ($this->single instanceof SingleOp) {
+        if ($this->single instanceof SingleOpInterface) {
             $result = $this->single->value($env, $input);
             if (null !== $result && false !== $result) {
                 $emit($input);

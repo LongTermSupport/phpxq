@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\FormatException;
 
@@ -28,13 +28,13 @@ final class NodeTools
     public static function unwrap(Node $node): Node
     {
         for ($depth = 0; $depth < self::MAX_ALIAS_DEPTH; ++$depth) {
-            if (NodeKind::Document === $node->kind) {
-                $node = $node->content[0] ?? new Node(NodeKind::Scalar, CoreSchema::TAG_NULL);
+            if (NodeKindEnum::Document === $node->kind) {
+                $node = $node->content[0] ?? new Node(NodeKindEnum::Scalar, CoreSchema::TAG_NULL);
 
                 continue;
             }
 
-            if (NodeKind::Alias === $node->kind && $node->aliasTarget instanceof Node) {
+            if (NodeKindEnum::Alias === $node->kind && $node->aliasTarget instanceof Node) {
                 $node = $node->aliasTarget;
 
                 continue;
@@ -48,7 +48,7 @@ final class NodeTools
 
     public static function isMergeKey(Node $key): bool
     {
-        return '<<' === $key->value && NodeKind::Scalar === $key->kind && NodeStyle::Default === $key->style && (CoreSchema::TAG_STR === $key->tag || '!!merge' === $key->tag);
+        return '<<' === $key->value && NodeKindEnum::Scalar === $key->kind && NodeStyleEnum::Default === $key->style && (CoreSchema::TAG_STR === $key->tag || '!!merge' === $key->tag);
     }
 
     /**
@@ -140,7 +140,7 @@ final class NodeTools
     public static function keyText(Node $key): string
     {
         $key = self::unwrap($key);
-        if (NodeKind::Scalar !== $key->kind) {
+        if (NodeKindEnum::Scalar !== $key->kind) {
             throw new FormatException('mapping keys must be scalars for this format');
         }
 
@@ -149,7 +149,7 @@ final class NodeTools
 
     public static function isNull(Node $node): bool
     {
-        return NodeKind::Scalar === $node->kind && CoreSchema::TAG_NULL === $node->tag;
+        return NodeKindEnum::Scalar === $node->kind && CoreSchema::TAG_NULL === $node->tag;
     }
 
     /**
@@ -241,21 +241,21 @@ final class NodeTools
      */
     private static function mergeSources(Node $value): array
     {
-        if (NodeKind::Alias === $value->kind) {
+        if (NodeKindEnum::Alias === $value->kind) {
             $target = self::unwrap($value);
 
-            return NodeKind::Mapping === $target->kind ? [$target] : [];
+            return NodeKindEnum::Mapping === $target->kind ? [$target] : [];
         }
 
         $sources = [];
-        if (NodeKind::Sequence === $value->kind) {
+        if (NodeKindEnum::Sequence === $value->kind) {
             foreach ($value->content as $item) {
-                if (NodeKind::Alias !== $item->kind) {
+                if (NodeKindEnum::Alias !== $item->kind) {
                     continue;
                 }
 
                 $item = self::unwrap($item);
-                if (NodeKind::Mapping === $item->kind) {
+                if (NodeKindEnum::Mapping === $item->kind) {
                     $sources[] = $item;
                 }
             }
@@ -268,7 +268,7 @@ final class NodeTools
     {
         $key = self::unwrap($key);
 
-        return NodeKind::Scalar === $key->kind ? 's' . $key->value : 'o' . spl_object_id($key);
+        return NodeKindEnum::Scalar === $key->kind ? 's' . $key->value : 'o' . spl_object_id($key);
     }
 
     private static function baseToDecimal(string $digits, int $base): string

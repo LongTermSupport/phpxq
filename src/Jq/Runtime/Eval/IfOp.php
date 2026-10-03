@@ -12,27 +12,27 @@ use Closure;
  *
  * @internal
  */
-final readonly class IfOp implements Op
+final readonly class IfOp implements OpInterface
 {
-    private ?SingleOp $conditionSingle;
+    private ?SingleOpInterface $conditionSingle;
 
     public function __construct(
-        private Op $condition,
-        private Op $then,
-        private ?Op $else,
+        private OpInterface $condition,
+        private OpInterface $then,
+        private ?OpInterface $else,
     ) {
-        $this->conditionSingle = $condition instanceof SingleOp ? $condition : null;
+        $this->conditionSingle = $condition instanceof SingleOpInterface ? $condition : null;
     }
 
     public function run(?Env $env, mixed $input, Closure $emit): void
     {
         $then = $this->then;
         $else = $this->else;
-        if ($this->conditionSingle instanceof SingleOp) {
+        if ($this->conditionSingle instanceof SingleOpInterface) {
             $condition = $this->conditionSingle->value($env, $input);
             if (null !== $condition && false !== $condition) {
                 $then->run($env, $input, $emit);
-            } elseif (!$else instanceof Op) {
+            } elseif (!$else instanceof OpInterface) {
                 $emit($input);
             } else {
                 $else->run($env, $input, $emit);
@@ -44,7 +44,7 @@ final readonly class IfOp implements Op
         $this->condition->run($env, $input, static function (mixed $condition) use ($then, $else, $env, $input, $emit): void {
             if (null !== $condition && false !== $condition) {
                 $then->run($env, $input, $emit);
-            } elseif (!$else instanceof Op) {
+            } elseif (!$else instanceof OpInterface) {
                 $emit($input);
             } else {
                 $else->run($env, $input, $emit);
@@ -59,7 +59,7 @@ final readonly class IfOp implements Op
         $this->condition->run($env, $input, static function (mixed $condition) use ($then, $else, $env, $path, $input, $emit): void {
             if (null !== $condition && false !== $condition) {
                 $then->paths($env, $path, $input, $emit);
-            } elseif (!$else instanceof Op) {
+            } elseif (!$else instanceof OpInterface) {
                 $emit($path, $input);
             } else {
                 $else->paths($env, $path, $input, $emit);

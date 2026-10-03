@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval;
 
 use LTS\PhpXq\Jq\Runtime\Eval\ArrayBinder;
-use LTS\PhpXq\Jq\Runtime\Eval\Binder;
+use LTS\PhpXq\Jq\Runtime\Eval\BinderInterface;
 use LTS\PhpXq\Jq\Runtime\Eval\Env;
 use LTS\PhpXq\Jq\Runtime\Eval\ObjectBinder;
 use LTS\PhpXq\Jq\Runtime\Eval\VarBinder;
@@ -17,7 +17,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 /**
  * @internal
  */
-#[CoversClass(Binder::class)]
+#[CoversClass(BinderInterface::class)]
 #[CoversClass(VarBinder::class)]
 #[CoversClass(ArrayBinder::class)]
 #[CoversClass(ObjectBinder::class)]
@@ -105,7 +105,7 @@ final class BinderTest extends OpTestCase
     /**
      * @return list<?Env>
      */
-    private static function bindAll(Binder $binder, mixed $value, ?Env $base = null): array
+    private static function bindAll(BinderInterface $binder, mixed $value, ?Env $base = null): array
     {
         $results = [];
         $binder->bind($base, $value, static function (?Env $env) use (&$results): void {

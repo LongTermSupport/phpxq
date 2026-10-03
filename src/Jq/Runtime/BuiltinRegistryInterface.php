@@ -10,9 +10,9 @@ namespace LTS\PhpXq\Jq\Runtime;
  *
  * @api
  */
-interface BuiltinRegistry
+interface BuiltinRegistryInterface
 {
-    public function register(Builtin $builtin): void;
+    public function register(BuiltinInterface $builtin): void;
 
     /**
      * Append jq source (a sequence of `def`s with no main body) to the prelude. Provider preludes are
@@ -20,7 +20,7 @@ interface BuiltinRegistry
      */
     public function addPrelude(string $source): void;
 
-    public function lookup(string $name, int $arity): ?Builtin;
+    public function lookup(string $name, int $arity): ?BuiltinInterface;
 
     public function prelude(): string;
 }

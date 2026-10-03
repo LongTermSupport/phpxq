@@ -19,7 +19,7 @@ final readonly class ExpressionParser implements ExpressionParserInterface
         $this->lexer = $lexer ?? new ExpressionLexer();
     }
 
-    public function parse(string $expression): ExpressionNode
+    public function parse(string $expression): ExpressionNodeInterface
     {
         return new PrattParser($this->lexer->tokenize($expression))->parseAll();
     }

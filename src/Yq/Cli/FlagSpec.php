@@ -15,7 +15,7 @@ final readonly class FlagSpec
     public function __construct(
         public string $name,
         public string $short,
-        public FlagType $type,
+        public FlagTypeEnum $type,
         public bool|int|string $default,
         public string $usage,
         public string $valueName = '',

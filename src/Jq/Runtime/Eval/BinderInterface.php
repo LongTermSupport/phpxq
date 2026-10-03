@@ -13,7 +13,7 @@ use Closure;
  *
  * @internal
  */
-interface Binder
+interface BinderInterface
 {
     /**
      * @param Closure(?Env): void $continue

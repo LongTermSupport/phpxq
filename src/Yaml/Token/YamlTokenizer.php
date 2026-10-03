@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yaml\Token;
 
 use Generator;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 
 /**
  * Turns YAML text into the public {@see Token} stream by running the same {@see Scanner} the parser
@@ -53,7 +53,7 @@ final class YamlTokenizer implements YamlTokenizerInterface
 
             // a line comment records a 0-based column, head and foot blocks a 1-based one
             $column  = '' !== $comment->line ? $comment->startColumn + 1 : $comment->startColumn;
-            $items[] = [$comment->startIndex * 4 + 1, new Token(TokenType::Comment, $text, $comment->startLine + 1, $column)];
+            $items[] = [$comment->startIndex * 4 + 1, new Token(TokenTypeEnum::Comment, $text, $comment->startLine + 1, $column)];
         }
 
         usort($items, static fn (array $a, array $b): int => $a[0] <=> $b[0]);
@@ -69,37 +69,37 @@ final class YamlTokenizer implements YamlTokenizerInterface
         $column = $t->startColumn + 1;
 
         return match ($t->type) {
-            ScanToken::STREAM_START         => new Token(TokenType::StreamStart, '', $line, $column),
-            ScanToken::STREAM_END           => new Token(TokenType::StreamEnd, '', $line, $column),
-            ScanToken::VERSION_DIRECTIVE    => new Token(TokenType::Directive, 'YAML ' . $t->value, $line, $column),
-            ScanToken::TAG_DIRECTIVE        => new Token(TokenType::Directive, 'TAG ' . $t->value . ' ' . $t->suffix, $line, $column),
-            ScanToken::DOCUMENT_START       => new Token(TokenType::DocumentStart, '', $line, $column),
-            ScanToken::DOCUMENT_END         => new Token(TokenType::DocumentEnd, '', $line, $column),
-            ScanToken::BLOCK_SEQUENCE_START => new Token(TokenType::BlockSequenceStart, '', $line, $column),
-            ScanToken::BLOCK_MAPPING_START  => new Token(TokenType::BlockMappingStart, '', $line, $column),
-            ScanToken::BLOCK_END            => new Token(TokenType::BlockEnd, '', $line, $column),
-            ScanToken::FLOW_SEQUENCE_START  => new Token(TokenType::FlowSequenceStart, '', $line, $column),
-            ScanToken::FLOW_SEQUENCE_END    => new Token(TokenType::FlowSequenceEnd, '', $line, $column),
-            ScanToken::FLOW_MAPPING_START   => new Token(TokenType::FlowMappingStart, '', $line, $column),
-            ScanToken::FLOW_MAPPING_END     => new Token(TokenType::FlowMappingEnd, '', $line, $column),
-            ScanToken::BLOCK_ENTRY          => new Token(TokenType::BlockEntry, '', $line, $column),
-            ScanToken::FLOW_ENTRY           => new Token(TokenType::FlowEntry, '', $line, $column),
-            ScanToken::KEY                  => new Token(TokenType::Key, '', $line, $column),
-            ScanToken::VALUE                => new Token(TokenType::Value, '', $line, $column),
-            ScanToken::ALIAS                => new Token(TokenType::Alias, $t->value, $line, $column),
-            ScanToken::ANCHOR               => new Token(TokenType::Anchor, $t->value, $line, $column),
-            ScanToken::TAG                  => new Token(TokenType::Tag, $this->tagText($t), $line, $column),
+            ScanToken::STREAM_START         => new Token(TokenTypeEnum::StreamStart, '', $line, $column),
+            ScanToken::STREAM_END           => new Token(TokenTypeEnum::StreamEnd, '', $line, $column),
+            ScanToken::VERSION_DIRECTIVE    => new Token(TokenTypeEnum::Directive, 'YAML ' . $t->value, $line, $column),
+            ScanToken::TAG_DIRECTIVE        => new Token(TokenTypeEnum::Directive, 'TAG ' . $t->value . ' ' . $t->suffix, $line, $column),
+            ScanToken::DOCUMENT_START       => new Token(TokenTypeEnum::DocumentStart, '', $line, $column),
+            ScanToken::DOCUMENT_END         => new Token(TokenTypeEnum::DocumentEnd, '', $line, $column),
+            ScanToken::BLOCK_SEQUENCE_START => new Token(TokenTypeEnum::BlockSequenceStart, '', $line, $column),
+            ScanToken::BLOCK_MAPPING_START  => new Token(TokenTypeEnum::BlockMappingStart, '', $line, $column),
+            ScanToken::BLOCK_END            => new Token(TokenTypeEnum::BlockEnd, '', $line, $column),
+            ScanToken::FLOW_SEQUENCE_START  => new Token(TokenTypeEnum::FlowSequenceStart, '', $line, $column),
+            ScanToken::FLOW_SEQUENCE_END    => new Token(TokenTypeEnum::FlowSequenceEnd, '', $line, $column),
+            ScanToken::FLOW_MAPPING_START   => new Token(TokenTypeEnum::FlowMappingStart, '', $line, $column),
+            ScanToken::FLOW_MAPPING_END     => new Token(TokenTypeEnum::FlowMappingEnd, '', $line, $column),
+            ScanToken::BLOCK_ENTRY          => new Token(TokenTypeEnum::BlockEntry, '', $line, $column),
+            ScanToken::FLOW_ENTRY           => new Token(TokenTypeEnum::FlowEntry, '', $line, $column),
+            ScanToken::KEY                  => new Token(TokenTypeEnum::Key, '', $line, $column),
+            ScanToken::VALUE                => new Token(TokenTypeEnum::Value, '', $line, $column),
+            ScanToken::ALIAS                => new Token(TokenTypeEnum::Alias, $t->value, $line, $column),
+            ScanToken::ANCHOR               => new Token(TokenTypeEnum::Anchor, $t->value, $line, $column),
+            ScanToken::TAG                  => new Token(TokenTypeEnum::Tag, $this->tagText($t), $line, $column),
             default                         => new Token(
-                TokenType::Scalar,
+                TokenTypeEnum::Scalar,
                 $t->value,
                 $line,
                 $column,
                 match ($t->style) {
-                    ScanToken::SINGLE  => NodeStyle::SingleQuoted,
-                    ScanToken::DOUBLE  => NodeStyle::DoubleQuoted,
-                    ScanToken::LITERAL => NodeStyle::Literal,
-                    ScanToken::FOLDED  => NodeStyle::Folded,
-                    default            => NodeStyle::Default,
+                    ScanToken::SINGLE  => NodeStyleEnum::SingleQuoted,
+                    ScanToken::DOUBLE  => NodeStyleEnum::DoubleQuoted,
+                    ScanToken::LITERAL => NodeStyleEnum::Literal,
+                    ScanToken::FOLDED  => NodeStyleEnum::Folded,
+                    default            => NodeStyleEnum::Default,
                 },
             ),
         };

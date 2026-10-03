@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yaml\Parser\YamlParser;
 use LTS\PhpXq\Yq\Format\Codec\NodeTools;
 use LTS\PhpXq\Yq\Format\FormatException;
@@ -29,7 +29,7 @@ final class NodeToolsTest extends TestCase
 
     public function testUnwrapOfEmptyDocumentIsNull(): void
     {
-        $unwrapped = NodeTools::unwrap(new Node(NodeKind::Document));
+        $unwrapped = NodeTools::unwrap(new Node(NodeKindEnum::Document));
 
         self::assertSame('!!null', $unwrapped->tag);
     }
@@ -155,7 +155,7 @@ final class NodeToolsTest extends TestCase
         self::assertFalse(NodeTools::isNull(Node::scalar('x')));
         self::assertFalse(NodeTools::isNull(Node::sequence()));
         self::assertTrue(NodeTools::isMergeKey(Node::scalar('<<', '!!str')));
-        self::assertFalse(NodeTools::isMergeKey(Node::scalar('<<', '!!str', NodeStyle::DoubleQuoted)));
+        self::assertFalse(NodeTools::isMergeKey(Node::scalar('<<', '!!str', NodeStyleEnum::DoubleQuoted)));
         self::assertFalse(NodeTools::isMergeKey(Node::scalar('a')));
     }
 

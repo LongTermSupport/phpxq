@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Tests\Unit\Yq\Expression;
 use LTS\PhpXq\Yq\Expression\ExpressionLexer;
 use LTS\PhpXq\Yq\Expression\ExpressionSyntaxException;
 use LTS\PhpXq\Yq\Expression\ExpressionToken;
-use LTS\PhpXq\Yq\Expression\ExpressionTokenKind;
+use LTS\PhpXq\Yq\Expression\ExpressionTokenKindEnum;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -83,7 +83,7 @@ final class ExpressionLexerTest extends TestCase
     {
         $tokens = new ExpressionLexer()->tokenize('"I like \(.v) and \"q\""');
 
-        self::assertSame(ExpressionTokenKind::String, $tokens[0]->kind);
+        self::assertSame(ExpressionTokenKindEnum::String, $tokens[0]->kind);
         self::assertTrue($tokens[0]->raw);
         self::assertSame('I like \(.v) and \"q\"', $tokens[0]->text);
     }
@@ -100,7 +100,7 @@ final class ExpressionLexerTest extends TestCase
         $tokens = new ExpressionLexer()->tokenize('"a \(.b | "c") d" | .e');
 
         self::assertSame('a \(.b | "c") d', $tokens[0]->text);
-        self::assertSame(ExpressionTokenKind::Operator, $tokens[1]->kind);
+        self::assertSame(ExpressionTokenKindEnum::Operator, $tokens[1]->kind);
     }
 
     #[DataProvider('errorProvider')]

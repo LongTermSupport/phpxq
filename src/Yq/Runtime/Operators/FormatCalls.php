@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime\Operators;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yq\Expression\Ast\Call;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use LTS\PhpXq\Yq\Runtime\Args;
@@ -105,8 +105,8 @@ final class FormatCalls implements CallOperatorInterface
             return Cands::derive(NodeOps::str($this->delimited($node, 'csv' === $formatName ? ',' : "\t", 'tsv' === $formatName)), $match);
         }
 
-        $format = Format::fromName($formatName);
-        if (!$format instanceof Format || !$format->canEncode()) {
+        $format = FormatEnum::fromName($formatName);
+        if (!$format instanceof FormatEnum || !$format->canEncode()) {
             throw new EvaluationException(\sprintf('Unknown format %s', $formatName));
         }
 
@@ -116,7 +116,7 @@ final class FormatCalls implements CallOperatorInterface
             throw new EvaluationException($formatException->getMessage(), 0, $formatException);
         }
 
-        if (Format::Json === $format && 0 === $indent) {
+        if (FormatEnum::Json === $format && 0 === $indent) {
             $text = rtrim($text, "\n");
         }
 
@@ -125,12 +125,12 @@ final class FormatCalls implements CallOperatorInterface
 
     private function decode(string $formatName, Node $node, Candidate $match, EvaluationContext $context): Candidate
     {
-        $format = Format::fromName($formatName);
-        if (!$format instanceof Format || !$format->canDecode()) {
+        $format = FormatEnum::fromName($formatName);
+        if (!$format instanceof FormatEnum || !$format->canDecode()) {
             throw new EvaluationException(\sprintf('Unknown format %s', $formatName));
         }
 
-        if (NodeKind::Scalar !== $node->kind) {
+        if (NodeKindEnum::Scalar !== $node->kind) {
             throw new EvaluationException(\sprintf('Cannot decode a %s as %s', NodeOps::kindName($node), $formatName));
         }
 
@@ -147,12 +147,12 @@ final class FormatCalls implements CallOperatorInterface
 
     private function text(Node $node, EvaluationContext $context): string
     {
-        if (NodeKind::Scalar === $node->kind) {
+        if (NodeKindEnum::Scalar === $node->kind) {
             return NodeOps::isNull($node) && 'null' === $node->value ? '' : $node->value;
         }
 
         try {
-            return $context->services->formats->encoder(Format::Yaml)->encode($node, new FormatOptions(), 0);
+            return $context->services->formats->encoder(FormatEnum::Yaml)->encode($node, new FormatOptions(), 0);
         } catch (FormatException $formatException) {
             throw new EvaluationException($formatException->getMessage(), 0, $formatException);
         }
@@ -196,14 +196,14 @@ final class FormatCalls implements CallOperatorInterface
 
     private function delimited(Node $node, string $separator, bool $tabs): string
     {
-        if (NodeKind::Sequence !== $node->kind) {
+        if (NodeKindEnum::Sequence !== $node->kind) {
             throw new EvaluationException(\sprintf('Cannot encode %s as csv, it must be an array', NodeOps::kindName($node)));
         }
 
         $rows   = [];
         $nested = false;
         foreach ($node->content as $item) {
-            if (NodeKind::Sequence === NodeOps::deref($item)->kind) {
+            if (NodeKindEnum::Sequence === NodeOps::deref($item)->kind) {
                 $nested = true;
             }
         }
@@ -214,7 +214,7 @@ final class FormatCalls implements CallOperatorInterface
             $cells = [];
             foreach ($list->content as $cell) {
                 $cell = NodeOps::deref($cell);
-                if (NodeKind::Scalar !== $cell->kind) {
+                if (NodeKindEnum::Scalar !== $cell->kind) {
                     throw new EvaluationException('Cannot encode a collection as a csv cell');
                 }
 

@@ -46,7 +46,7 @@ final class ExpressionLexer implements ExpressionLexerInterface
             if ($index === $nameAt) {
                 $nameLength = $this->nameLength($expression, $index);
                 if ($nameLength > 0) {
-                    $tokens[] = new ExpressionToken(ExpressionTokenKind::Word, substr($expression, $index, $nameLength), $index);
+                    $tokens[] = new ExpressionToken(ExpressionTokenKindEnum::Word, substr($expression, $index, $nameLength), $index);
                     $index   += $nameLength;
 
                     continue;
@@ -69,13 +69,13 @@ final class ExpressionLexer implements ExpressionLexerInterface
             if ('.' === $char) {
                 if ('.' === ($expression[$index + 1] ?? '')) {
                     $three    = '.' === ($expression[$index + 2] ?? '');
-                    $tokens[] = new ExpressionToken($three ? ExpressionTokenKind::DotDotDot : ExpressionTokenKind::DotDot, $three ? '...' : '..', $index);
+                    $tokens[] = new ExpressionToken($three ? ExpressionTokenKindEnum::DotDotDot : ExpressionTokenKindEnum::DotDot, $three ? '...' : '..', $index);
                     $index   += $three ? 3 : 2;
 
                     continue;
                 }
 
-                $tokens[] = new ExpressionToken(ExpressionTokenKind::Dot, '.', $index);
+                $tokens[] = new ExpressionToken(ExpressionTokenKindEnum::Dot, '.', $index);
                 ++$index;
                 $nameAt = $index;
 
@@ -87,7 +87,7 @@ final class ExpressionLexer implements ExpressionLexerInterface
             $index    = $this->tokenEnd($token, $expression);
         }
 
-        $tokens[] = new ExpressionToken(ExpressionTokenKind::EndOfInput, '', $length);
+        $tokens[] = new ExpressionToken(ExpressionTokenKindEnum::EndOfInput, '', $length);
 
         return $tokens;
     }
@@ -97,7 +97,7 @@ final class ExpressionLexer implements ExpressionLexerInterface
      */
     private function tokenEnd(ExpressionToken $token, string $expression): int
     {
-        if (ExpressionTokenKind::String === $token->kind) {
+        if (ExpressionTokenKindEnum::String === $token->kind) {
             $close = '"' === $expression[$token->offset]
                 ? StringLiteral::scanDouble($expression, $token->offset + 1)
                 : (int)strpos($expression, "'", $token->offset + 1);
@@ -105,21 +105,21 @@ final class ExpressionLexer implements ExpressionLexerInterface
             return $close + 1;
         }
 
-        return $token->offset + (ExpressionTokenKind::Variable === $token->kind ? 1 : 0) + \strlen($token->text);
+        return $token->offset + (ExpressionTokenKindEnum::Variable === $token->kind ? 1 : 0) + \strlen($token->text);
     }
 
     private function scanToken(string $expression, int $index, string $char): ExpressionToken
     {
         $kind = match ($char) {
-            '['     => ExpressionTokenKind::LeftBracket,
-            ']'     => ExpressionTokenKind::RightBracket,
-            '('     => ExpressionTokenKind::LeftParen,
-            ')'     => ExpressionTokenKind::RightParen,
-            '{'     => ExpressionTokenKind::LeftBrace,
-            '}'     => ExpressionTokenKind::RightBrace,
-            ';'     => ExpressionTokenKind::Semicolon,
-            ':'     => ExpressionTokenKind::Colon,
-            '?'     => ExpressionTokenKind::Question,
+            '['     => ExpressionTokenKindEnum::LeftBracket,
+            ']'     => ExpressionTokenKindEnum::RightBracket,
+            '('     => ExpressionTokenKindEnum::LeftParen,
+            ')'     => ExpressionTokenKindEnum::RightParen,
+            '{'     => ExpressionTokenKindEnum::LeftBrace,
+            '}'     => ExpressionTokenKindEnum::RightBrace,
+            ';'     => ExpressionTokenKindEnum::Semicolon,
+            ':'     => ExpressionTokenKindEnum::Colon,
+            '?'     => ExpressionTokenKindEnum::Question,
             default => null,
         };
         if (null !== $kind) {
@@ -136,7 +136,7 @@ final class ExpressionLexer implements ExpressionLexerInterface
                 throw new ExpressionSyntaxException('Bad expression, unterminated string', $index);
             }
 
-            return new ExpressionToken(ExpressionTokenKind::String, substr($expression, $index + 1, $close - $index - 1), $index);
+            return new ExpressionToken(ExpressionTokenKindEnum::String, substr($expression, $index + 1, $close - $index - 1), $index);
         }
 
         if ($char >= '0' && $char <= '9') {
@@ -144,7 +144,7 @@ final class ExpressionLexer implements ExpressionLexerInterface
                 throw $this->unmatched($expression, $index);
             }
 
-            return new ExpressionToken(ExpressionTokenKind::Number, $match[0], $index);
+            return new ExpressionToken(ExpressionTokenKindEnum::Number, $match[0], $index);
         }
 
         if ('$' === $char) {
@@ -152,11 +152,11 @@ final class ExpressionLexer implements ExpressionLexerInterface
                 throw $this->unmatched($expression, $index);
             }
 
-            return new ExpressionToken(ExpressionTokenKind::Variable, $match[1], $index);
+            return new ExpressionToken(ExpressionTokenKindEnum::Variable, $match[1], $index);
         }
 
         if (1 === preg_match(self::WORD_START, $expression, $match, 0, $index)) {
-            return new ExpressionToken(ExpressionTokenKind::Word, $match[0], $index);
+            return new ExpressionToken(ExpressionTokenKindEnum::Word, $match[0], $index);
         }
 
         $operator = $this->operator($expression, $index, $char);
@@ -164,7 +164,7 @@ final class ExpressionLexer implements ExpressionLexerInterface
             throw $this->unmatched($expression, $index);
         }
 
-        return new ExpressionToken(ExpressionTokenKind::Operator, $operator, $index);
+        return new ExpressionToken(ExpressionTokenKindEnum::Operator, $operator, $index);
     }
 
     private function doubleQuoted(string $expression, int $index): ExpressionToken
@@ -172,10 +172,10 @@ final class ExpressionLexer implements ExpressionLexerInterface
         $close = StringLiteral::scanDouble($expression, $index + 1);
         $body  = substr($expression, $index + 1, $close - $index - 1);
         if (str_contains($body, '\(')) {
-            return new ExpressionToken(ExpressionTokenKind::String, $body, $index, true);
+            return new ExpressionToken(ExpressionTokenKindEnum::String, $body, $index, true);
         }
 
-        return new ExpressionToken(ExpressionTokenKind::String, StringLiteral::decode($body), $index);
+        return new ExpressionToken(ExpressionTokenKindEnum::String, StringLiteral::decode($body), $index);
     }
 
     private function operator(string $expression, int $index, string $char): ?string

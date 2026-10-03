@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Tests\Unit\Yq\Runtime\Support;
 use LTS\PhpXq\Yaml\Emitter\EmitOptions;
 use LTS\PhpXq\Yaml\Emitter\YamlEmitter;
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Parser\YamlParser;
 use LTS\PhpXq\Yq\Expression\ExpressionParser;
 use LTS\PhpXq\Yq\Runtime\Candidate;
@@ -59,7 +59,7 @@ final class YqHarness
                 }
 
                 $previous = $result->documentIndex;
-                if (NodeKind::Document === $result->node->kind) {
+                if (NodeKindEnum::Document === $result->node->kind) {
                     $result->node->explicitStart = false;
                 }
 

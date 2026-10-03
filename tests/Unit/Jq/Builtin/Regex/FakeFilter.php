@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Jq\Builtin\Regex;
 
 use Closure;
-use LTS\PhpXq\Jq\Runtime\Filter;
+use LTS\PhpXq\Jq\Runtime\FilterInterface;
 use LTS\PhpXq\Json\JsonObject;
 
 /**
- * A closure-backed {@see Filter} for builtin tests: the closure maps an input to the list of outputs.
+ * A closure-backed {@see FilterInterface} for builtin tests: the closure maps an input to the list of outputs.
  *
  * @internal
  */
-final readonly class FakeFilter implements Filter
+final readonly class FakeFilter implements FilterInterface
 {
     /**
      * @param Closure(mixed): list<mixed> $outputs

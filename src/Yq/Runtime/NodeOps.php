@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 
 /**
@@ -24,12 +24,12 @@ final class NodeOps
 
     public static function str(string $value): Node
     {
-        return new Node(NodeKind::Scalar, CoreSchema::TAG_STR, NodeStyle::Default, $value);
+        return new Node(NodeKindEnum::Scalar, CoreSchema::TAG_STR, NodeStyleEnum::Default, $value);
     }
 
     public static function int(int $value): Node
     {
-        return new Node(NodeKind::Scalar, CoreSchema::TAG_INT, NodeStyle::Default, (string)$value);
+        return new Node(NodeKindEnum::Scalar, CoreSchema::TAG_INT, NodeStyleEnum::Default, (string)$value);
     }
 
     /**
@@ -40,7 +40,7 @@ final class NodeOps
     {
         $text = Numbers::formatFloat($value);
 
-        return new Node(NodeKind::Scalar, CoreSchema::resolve($text), NodeStyle::Default, $text);
+        return new Node(NodeKindEnum::Scalar, CoreSchema::resolve($text), NodeStyleEnum::Default, $text);
     }
 
     /**
@@ -48,17 +48,17 @@ final class NodeOps
      */
     public static function emptyNull(): Node
     {
-        return new Node(NodeKind::Scalar, CoreSchema::TAG_NULL, NodeStyle::Default, '');
+        return new Node(NodeKindEnum::Scalar, CoreSchema::TAG_NULL, NodeStyleEnum::Default, '');
     }
 
     public static function bool(bool $value): Node
     {
-        return new Node(NodeKind::Scalar, CoreSchema::TAG_BOOL, NodeStyle::Default, $value ? 'true' : 'false');
+        return new Node(NodeKindEnum::Scalar, CoreSchema::TAG_BOOL, NodeStyleEnum::Default, $value ? 'true' : 'false');
     }
 
     public static function null(): Node
     {
-        return new Node(NodeKind::Scalar, CoreSchema::TAG_NULL, NodeStyle::Default, 'null');
+        return new Node(NodeKindEnum::Scalar, CoreSchema::TAG_NULL, NodeStyleEnum::Default, 'null');
     }
 
     /**
@@ -83,7 +83,7 @@ final class NodeOps
     public static function deref(Node $node): Node
     {
         $depth = 0;
-        while (NodeKind::Alias === $node->kind && $node->aliasTarget instanceof Node && $depth < self::MAX_ALIAS_DEPTH) {
+        while (NodeKindEnum::Alias === $node->kind && $node->aliasTarget instanceof Node && $depth < self::MAX_ALIAS_DEPTH) {
             $node = $node->aliasTarget;
             ++$depth;
         }
@@ -96,7 +96,7 @@ final class NodeOps
      */
     public static function unwrap(Node $node): Node
     {
-        if (NodeKind::Document === $node->kind && isset($node->content[0])) {
+        if (NodeKindEnum::Document === $node->kind && isset($node->content[0])) {
             return $node->content[0];
         }
 
@@ -105,12 +105,12 @@ final class NodeOps
 
     public static function isNull(Node $node): bool
     {
-        return NodeKind::Scalar === $node->kind && CoreSchema::TAG_NULL === $node->tag;
+        return NodeKindEnum::Scalar === $node->kind && CoreSchema::TAG_NULL === $node->tag;
     }
 
     public static function isScalar(Node $node): bool
     {
-        return NodeKind::Scalar === $node->kind;
+        return NodeKindEnum::Scalar === $node->kind;
     }
 
     /**
@@ -119,21 +119,21 @@ final class NodeOps
      */
     public static function effectiveTag(Node $node): string
     {
-        if (NodeKind::Scalar !== $node->kind) {
+        if (NodeKindEnum::Scalar !== $node->kind) {
             return match ($node->kind) {
-                NodeKind::Mapping  => CoreSchema::TAG_MAP,
-                NodeKind::Sequence => CoreSchema::TAG_SEQ,
-                default            => $node->tag,
+                NodeKindEnum::Mapping  => CoreSchema::TAG_MAP,
+                NodeKindEnum::Sequence => CoreSchema::TAG_SEQ,
+                default                => $node->tag,
             };
         }
 
         $tag = $node->tag;
         if ('' === $tag) {
-            return NodeStyle::Default === $node->style ? CoreSchema::resolve($node->value) : CoreSchema::TAG_STR;
+            return NodeStyleEnum::Default === $node->style ? CoreSchema::resolve($node->value) : CoreSchema::TAG_STR;
         }
 
         if ('!' === $tag[0] && !str_starts_with($tag, '!!')) {
-            return NodeStyle::Default === $node->style ? CoreSchema::resolve($node->value) : CoreSchema::TAG_STR;
+            return NodeStyleEnum::Default === $node->style ? CoreSchema::resolve($node->value) : CoreSchema::TAG_STR;
         }
 
         return $tag;
@@ -141,7 +141,7 @@ final class NodeOps
 
     public static function isTrue(Node $node): bool
     {
-        return NodeKind::Scalar === $node->kind && CoreSchema::TAG_BOOL === self::effectiveTag($node) && 'true' === strtolower($node->value);
+        return NodeKindEnum::Scalar === $node->kind && CoreSchema::TAG_BOOL === self::effectiveTag($node) && 'true' === strtolower($node->value);
     }
 
     /**
@@ -149,7 +149,7 @@ final class NodeOps
      */
     public static function truthy(Node $node): bool
     {
-        if (NodeKind::Scalar !== $node->kind) {
+        if (NodeKindEnum::Scalar !== $node->kind) {
             return true;
         }
 
@@ -167,10 +167,10 @@ final class NodeOps
     public static function kindName(Node $node): string
     {
         return match ($node->kind) {
-            NodeKind::Mapping  => 'map',
-            NodeKind::Sequence => 'seq',
-            NodeKind::Alias    => 'alias',
-            default            => 'scalar',
+            NodeKindEnum::Mapping  => 'map',
+            NodeKindEnum::Sequence => 'seq',
+            NodeKindEnum::Alias    => 'alias',
+            default                => 'scalar',
         };
     }
 
@@ -179,7 +179,7 @@ final class NodeOps
      */
     public static function isMergeKey(Node $key): bool
     {
-        return NodeKind::Scalar === $key->kind && '<<' === $key->value && NodeStyle::Default === $key->style;
+        return NodeKindEnum::Scalar === $key->kind && '<<' === $key->value && NodeStyleEnum::Default === $key->style;
     }
 
     /**
@@ -189,7 +189,7 @@ final class NodeOps
     {
         $node = self::deref($node);
 
-        return NodeKind::Scalar === $node->kind ? $node->value : '';
+        return NodeKindEnum::Scalar === $node->kind ? $node->value : '';
     }
 
     /**
@@ -208,7 +208,7 @@ final class NodeOps
 
         $copy = $adopt ? $source : $source->deepCopy();
 
-        if ((NodeKind::Scalar !== $target->kind && [] === $target->content) || (NodeKind::Scalar === $target->kind && '' === $target->value) || self::effectiveTag($target) !== self::effectiveTag($copy)) {
+        if ((NodeKindEnum::Scalar !== $target->kind && [] === $target->content) || (NodeKindEnum::Scalar === $target->kind && '' === $target->value) || self::effectiveTag($target) !== self::effectiveTag($copy)) {
             $target->style = $copy->style;
         }
 
@@ -222,8 +222,8 @@ final class NodeOps
         $target->content     = $copy->content;
         $target->aliasTarget = $copy->aliasTarget;
 
-        if (NodeKind::Alias === $copy->kind) {
-            $target->style = NodeStyle::Default;
+        if (NodeKindEnum::Alias === $copy->kind) {
+            $target->style = NodeStyleEnum::Default;
         }
 
         if ('' !== $copy->headComment) {
@@ -244,10 +244,10 @@ final class NodeOps
      */
     public static function becomeContainer(Node $node, bool $sequence): void
     {
-        $node->kind    = $sequence ? NodeKind::Sequence : NodeKind::Mapping;
+        $node->kind    = $sequence ? NodeKindEnum::Sequence : NodeKindEnum::Mapping;
         $node->tag     = $sequence ? CoreSchema::TAG_SEQ : CoreSchema::TAG_MAP;
         $node->value   = '';
-        $node->style   = NodeStyle::Default;
+        $node->style   = NodeStyleEnum::Default;
         $node->content = [];
     }
 }

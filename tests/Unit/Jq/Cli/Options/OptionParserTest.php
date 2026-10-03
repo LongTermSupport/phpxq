@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Jq\Cli\Options;
 
-use LTS\PhpXq\Jq\Cli\Options\CliAction;
+use LTS\PhpXq\Jq\Cli\Options\CliActionEnum;
 use LTS\PhpXq\Jq\Cli\Options\CliOptions;
 use LTS\PhpXq\Jq\Cli\Options\OptionParser;
 use LTS\PhpXq\Jq\Cli\Options\UsageException;
@@ -36,7 +36,7 @@ final class OptionParserTest extends TestCase
     {
         $options = $this->parse(['.a', 'one.json', 'two.json']);
 
-        self::assertSame(CliAction::Run, $options->action);
+        self::assertSame(CliActionEnum::Run, $options->action);
         self::assertSame('.a', $options->program);
         self::assertSame(['one.json', 'two.json'], $options->files);
         self::assertSame([], $options->positional);
@@ -275,16 +275,16 @@ final class OptionParserTest extends TestCase
 
     public function testHelpAndVersionEndParsingImmediately(): void
     {
-        self::assertSame(CliAction::Help, $this->parse(['-h'])->action);
-        self::assertSame(CliAction::Help, $this->parse(['--help'])->action);
-        self::assertSame(CliAction::Version, $this->parse(['-V'])->action);
-        self::assertSame(CliAction::Version, $this->parse(['--version'])->action);
-        self::assertSame(CliAction::BuildConfiguration, $this->parse(['--build-configuration'])->action);
-        self::assertSame(CliAction::Help, $this->parse(['-hV'])->action);
-        self::assertSame(CliAction::Version, $this->parse(['-Vh'])->action);
-        self::assertSame(CliAction::Help, $this->parse(['-h', '-V'])->action);
-        self::assertSame(CliAction::Version, $this->parse(['-V', '-h'])->action);
-        self::assertSame(CliAction::Help, $this->parse(['-n', '-h', '--bogus'])->action);
+        self::assertSame(CliActionEnum::Help, $this->parse(['-h'])->action);
+        self::assertSame(CliActionEnum::Help, $this->parse(['--help'])->action);
+        self::assertSame(CliActionEnum::Version, $this->parse(['-V'])->action);
+        self::assertSame(CliActionEnum::Version, $this->parse(['--version'])->action);
+        self::assertSame(CliActionEnum::BuildConfiguration, $this->parse(['--build-configuration'])->action);
+        self::assertSame(CliActionEnum::Help, $this->parse(['-hV'])->action);
+        self::assertSame(CliActionEnum::Version, $this->parse(['-Vh'])->action);
+        self::assertSame(CliActionEnum::Help, $this->parse(['-h', '-V'])->action);
+        self::assertSame(CliActionEnum::Version, $this->parse(['-V', '-h'])->action);
+        self::assertSame(CliActionEnum::Help, $this->parse(['-n', '-h', '--bogus'])->action);
     }
 
     public function testUnknownOptionsAreRefused(): void

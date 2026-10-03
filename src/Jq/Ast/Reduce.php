@@ -9,13 +9,13 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class Reduce implements Node
+final readonly class Reduce implements NodeInterface
 {
     public function __construct(
-        public Node $source,
-        public Pattern $pattern,
-        public Node $init,
-        public Node $update,
+        public NodeInterface $source,
+        public PatternInterface $pattern,
+        public NodeInterface $init,
+        public NodeInterface $update,
     ) {
     }
 }

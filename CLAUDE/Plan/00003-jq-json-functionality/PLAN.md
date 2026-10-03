@@ -61,8 +61,8 @@ Full reasoning and the file ownership map for parallel workers: [architecture.md
   derived from the pinned suite, not from the jq 1.6 on developer machines.
 - **Errors**: `JqException` carries a jq value; `JqCompileException` (exit 3); `BreakException` for
   `label`/`break` and native early stop; `HaltException` for `halt`.
-- **Builtins**: natives registered by name/arity (`ValueBuiltin` for pure functions with cartesian-product
-  arguments, `StreamBuiltin`/`PathStreamBuiltin` for closure parameters and generators), plus a jq-source
+- **Builtins**: natives registered by name/arity (`ValueBuiltinInterface` for pure functions with cartesian-product
+  arguments, `StreamBuiltinInterface`/`PathStreamBuiltinInterface` for closure parameters and generators), plus a jq-source
   prelude for definitions that are short in jq; three providers (core, regex, date) so owners never share a file.
 - **Modules**: `ModuleLoaderInterface` with jq's search rules; the compiler compiles each module in its own
   scope and exposes defs under the import alias.

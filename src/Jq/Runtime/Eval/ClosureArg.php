@@ -12,7 +12,7 @@ namespace LTS\PhpXq\Jq\Runtime\Eval;
 final readonly class ClosureArg
 {
     public function __construct(
-        public Op $op,
+        public OpInterface $op,
         public ?Env $env,
     ) {
     }

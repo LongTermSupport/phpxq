@@ -14,8 +14,8 @@ use LTS\PhpXq\Jq\Builtin\Core\Prelude;
 use LTS\PhpXq\Jq\Builtin\Core\RecordingRegistry;
 use LTS\PhpXq\Jq\Builtin\Core\StringFunctions;
 use LTS\PhpXq\Jq\Builtin\Core\TypeFunctions;
-use LTS\PhpXq\Jq\Runtime\BuiltinProvider;
-use LTS\PhpXq\Jq\Runtime\BuiltinRegistry;
+use LTS\PhpXq\Jq\Runtime\BuiltinProviderInterface;
+use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
 
 /**
  * Everything that is not regex or date/time: type, length, keys, paths, math, strings, formats, SQL-style,
@@ -24,7 +24,7 @@ use LTS\PhpXq\Jq\Runtime\BuiltinRegistry;
  *
  * @api
  */
-final class CoreBuiltins implements BuiltinProvider
+final class CoreBuiltins implements BuiltinProviderInterface
 {
     /**
      * Builtins the regex and date providers register, so that `builtins` lists them too.
@@ -36,7 +36,7 @@ final class CoreBuiltins implements BuiltinProvider
         'todate/0', 'fromdate/0', 'date/0', 'dateadd/2', 'datesub/2', 'fromdateiso8601/0', 'todateiso8601/0',
     ];
 
-    public function registerInto(BuiltinRegistry $registry): void
+    public function registerInto(BuiltinRegistryInterface $registry): void
     {
         $recorder = new RecordingRegistry($registry);
         $catalog  = static function () use ($recorder): array {

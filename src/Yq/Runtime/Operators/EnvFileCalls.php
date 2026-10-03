@@ -7,9 +7,9 @@ namespace LTS\PhpXq\Yq\Runtime\Operators;
 use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yq\Expression\Ast\Binary;
-use LTS\PhpXq\Yq\Expression\Ast\BinaryOperator;
+use LTS\PhpXq\Yq\Expression\Ast\BinaryOperatorEnum;
 use LTS\PhpXq\Yq\Expression\Ast\Call;
-use LTS\PhpXq\Yq\Expression\ExpressionNode;
+use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 use LTS\PhpXq\Yq\Runtime\Args;
 use LTS\PhpXq\Yq\Runtime\CallOperatorInterface;
 use LTS\PhpXq\Yq\Runtime\Candidate;
@@ -138,11 +138,11 @@ final class EnvFileCalls implements CallOperatorInterface
     /**
      * @param list<string> $flags
      */
-    private static function collectFlags(ExpressionNode $node, array &$flags): void
+    private static function collectFlags(ExpressionNodeInterface $node, array &$flags): void
     {
         if ($node instanceof Call) {
             $flags[] = $node->name;
-        } elseif ($node instanceof Binary && BinaryOperator::Union === $node->operator) {
+        } elseif ($node instanceof Binary && BinaryOperatorEnum::Union === $node->operator) {
             self::collectFlags($node->left, $flags);
             self::collectFlags($node->right, $flags);
         }

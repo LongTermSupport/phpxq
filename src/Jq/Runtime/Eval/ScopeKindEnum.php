@@ -9,7 +9,7 @@ namespace LTS\PhpXq\Jq\Runtime\Eval;
  *
  * @internal
  */
-enum ScopeKind
+enum ScopeKindEnum
 {
     case Variable;
     case Param;

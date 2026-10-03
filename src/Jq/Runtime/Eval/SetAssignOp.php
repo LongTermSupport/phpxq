@@ -15,8 +15,8 @@ use Closure;
 final class SetAssignOp extends AbstractOp
 {
     public function __construct(
-        private readonly Op $left,
-        private readonly Op $right,
+        private readonly OpInterface $left,
+        private readonly OpInterface $right,
     ) {
     }
 

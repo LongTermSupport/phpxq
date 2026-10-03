@@ -13,11 +13,11 @@ use LTS\PhpXq\Jq\Runtime\JqException;
  *
  * @internal
  */
-final readonly class TryOp implements Op
+final readonly class TryOp implements OpInterface
 {
     public function __construct(
-        private Op $body,
-        private ?Op $handler,
+        private OpInterface $body,
+        private ?OpInterface $handler,
     ) {
     }
 

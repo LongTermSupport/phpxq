@@ -15,10 +15,10 @@ interface FormatRegistryInterface
     /**
      * @throws FormatException when the format cannot be read
      */
-    public function decoder(Format $format): DecoderInterface;
+    public function decoder(FormatEnum $format): DecoderInterface;
 
     /**
      * @throws FormatException when the format cannot be written
      */
-    public function encoder(Format $format): EncoderInterface;
+    public function encoder(FormatEnum $format): EncoderInterface;
 }

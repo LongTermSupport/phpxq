@@ -7,12 +7,12 @@ namespace LTS\PhpXq\Jq\Runtime\Eval;
 use LTS\PhpXq\Jq\Runtime\JqException;
 
 /**
- * An {@see Op} that produces exactly one output or throws. Parents use {@see self::value()} to avoid a
+ * An {@see OpInterface} that produces exactly one output or throws. Parents use {@see self::value()} to avoid a
  * closure per output.
  *
  * @internal
  */
-interface SingleOp extends Op
+interface SingleOpInterface extends OpInterface
 {
     /**
      * @throws JqException

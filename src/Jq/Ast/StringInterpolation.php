@@ -14,11 +14,11 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class StringInterpolation implements Node
+final readonly class StringInterpolation implements NodeInterface
 {
     /**
-     * @param ?string           $format format name without the `@`, or null for plain tostring
-     * @param list<string|Node> $parts
+     * @param ?string                    $format format name without the `@`, or null for plain tostring
+     * @param list<string|NodeInterface> $parts
      */
     public function __construct(
         public ?string $format,

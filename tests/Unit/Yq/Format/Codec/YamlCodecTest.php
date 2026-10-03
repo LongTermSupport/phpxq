@@ -10,7 +10,7 @@ use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\Parser\YamlParserInterface;
 use LTS\PhpXq\Yq\Format\Codec\YamlDecoder;
 use LTS\PhpXq\Yq\Format\Codec\YamlEncoder;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use PHPUnit\Framework\TestCase;
@@ -25,7 +25,7 @@ final class YamlCodecTest extends TestCase
         $docs = [...new YamlDecoder()->decode("a: 1\n---\nb: 2\n", new FormatOptions())];
 
         self::assertCount(2, $docs);
-        self::assertSame(Format::Yaml, new YamlDecoder()->format());
+        self::assertSame(FormatEnum::Yaml, new YamlDecoder()->format());
     }
 
     public function testDecoderReportsSyntaxErrorsAsFormatErrors(): void
@@ -42,7 +42,7 @@ final class YamlCodecTest extends TestCase
         self::assertSame("a: 1\n", $encoder->encode($node, new FormatOptions(), 0));
         self::assertSame("---\na: 1\n", $encoder->encode($node, new FormatOptions(), 1));
         self::assertSame("a: 1\n", $encoder->encode($node, new FormatOptions(noDocSeparator: true), 1));
-        self::assertSame(Format::Yaml, $encoder->format());
+        self::assertSame(FormatEnum::Yaml, $encoder->format());
     }
 
     public function testEncoderPassesOptionsToTheEmitter(): void

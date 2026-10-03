@@ -8,9 +8,9 @@ use InvalidArgumentException;
 use LTS\PhpXq\Jq\Builtin\Core\Prelude;
 use LTS\PhpXq\Jq\Builtin\CoreBuiltins;
 use LTS\PhpXq\Jq\Runtime\DefaultBuiltinRegistry;
-use LTS\PhpXq\Jq\Runtime\PathStreamBuiltin;
-use LTS\PhpXq\Jq\Runtime\StreamBuiltin;
-use LTS\PhpXq\Jq\Runtime\ValueBuiltin;
+use LTS\PhpXq\Jq\Runtime\PathStreamBuiltinInterface;
+use LTS\PhpXq\Jq\Runtime\StreamBuiltinInterface;
+use LTS\PhpXq\Jq\Runtime\ValueBuiltinInterface;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -23,10 +23,10 @@ final class CoreBuiltinsTest extends TestCase
         $registry = new DefaultBuiltinRegistry();
         new CoreBuiltins()->registerInto($registry);
 
-        self::assertInstanceOf(ValueBuiltin::class, $registry->lookup('length', 0));
-        self::assertInstanceOf(ValueBuiltin::class, $registry->lookup('format', 1));
-        self::assertInstanceOf(StreamBuiltin::class, $registry->lookup('range', 3));
-        self::assertInstanceOf(PathStreamBuiltin::class, $registry->lookup('select', 1));
+        self::assertInstanceOf(ValueBuiltinInterface::class, $registry->lookup('length', 0));
+        self::assertInstanceOf(ValueBuiltinInterface::class, $registry->lookup('format', 1));
+        self::assertInstanceOf(StreamBuiltinInterface::class, $registry->lookup('range', 3));
+        self::assertInstanceOf(PathStreamBuiltinInterface::class, $registry->lookup('select', 1));
         self::assertNull($registry->lookup('length', 1));
         self::assertNull($registry->lookup('no_such_builtin', 0));
         self::assertStringContainsString('def walk(f):', $registry->prelude());

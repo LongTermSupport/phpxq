@@ -11,11 +11,11 @@ use Closure;
  *
  * @internal
  */
-final readonly class PipeOp implements Op
+final readonly class PipeOp implements OpInterface
 {
     public function __construct(
-        private Op $left,
-        private Op $right,
+        private OpInterface $left,
+        private OpInterface $right,
     ) {
     }
 

@@ -13,7 +13,7 @@ use Closure;
  */
 final class PathOp extends AbstractOp
 {
-    public function __construct(private readonly Op $expression)
+    public function __construct(private readonly OpInterface $expression)
     {
     }
 

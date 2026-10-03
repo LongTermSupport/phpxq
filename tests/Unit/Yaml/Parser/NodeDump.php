@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Yaml\Parser;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 
 /**
  * Renders a node tree as one compact line so a test can state the expected tree as text:
@@ -37,11 +37,11 @@ final class NodeDump
         }
 
         $out .= match ($node->kind) {
-            NodeKind::Alias    => '*' . $node->value,
-            NodeKind::Scalar   => $node->tag . self::style($node->style) . '=' . $node->value,
-            NodeKind::Mapping  => self::collection($node, true),
-            NodeKind::Sequence => self::collection($node, false),
-            NodeKind::Document => self::dump($node->content[0]),
+            NodeKindEnum::Alias    => '*' . $node->value,
+            NodeKindEnum::Scalar   => $node->tag . self::style($node->style) . '=' . $node->value,
+            NodeKindEnum::Mapping  => self::collection($node, true),
+            NodeKindEnum::Sequence => self::collection($node, false),
+            NodeKindEnum::Document => self::dump($node->content[0]),
         };
 
         foreach (['h' => $node->headComment, 'l' => $node->lineComment, 'f' => $node->footComment] as $kind => $text) {
@@ -53,14 +53,14 @@ final class NodeDump
         return $out;
     }
 
-    private static function style(NodeStyle $style): string
+    private static function style(NodeStyleEnum $style): string
     {
         return match ($style) {
-            NodeStyle::SingleQuoted => '/single',
-            NodeStyle::DoubleQuoted => '/double',
-            NodeStyle::Literal      => '/literal',
-            NodeStyle::Folded       => '/folded',
-            default                 => '',
+            NodeStyleEnum::SingleQuoted => '/single',
+            NodeStyleEnum::DoubleQuoted => '/double',
+            NodeStyleEnum::Literal      => '/literal',
+            NodeStyleEnum::Folded       => '/folded',
+            default                     => '',
         };
     }
 
@@ -78,7 +78,7 @@ final class NodeDump
             }
         }
 
-        $flow = NodeStyle::Flow === $node->style ? 'flow' : '';
+        $flow = NodeStyleEnum::Flow === $node->style ? 'flow' : '';
         $body = implode('; ', $parts);
 
         return $mapping ? $flow . '{' . $body . '}' : $flow . '[' . $body . ']';

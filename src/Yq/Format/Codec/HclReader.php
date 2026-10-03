@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\FormatException;
 
@@ -151,7 +151,7 @@ final class HclReader
             }
 
             $existing = $body->content[$at + 1];
-            if (NodeKind::Sequence === $existing->kind) {
+            if (NodeKindEnum::Sequence === $existing->kind) {
                 $existing->content[] = $inner;
             } else {
                 NodeTools::replaceAt($body, $at + 1, Node::sequence([$existing, $inner]));
@@ -176,7 +176,7 @@ final class HclReader
     private function labelLevel(Node $parent, string $key, string $head): Node
     {
         $at = $this->find($parent, $key);
-        if (null !== $at && NodeKind::Mapping === $parent->content[$at + 1]->kind && $parent->content[$at + 1]->explicitEnd) {
+        if (null !== $at && NodeKindEnum::Mapping === $parent->content[$at + 1]->kind && $parent->content[$at + 1]->explicitEnd) {
             return $parent->content[$at + 1];
         }
 
@@ -248,7 +248,7 @@ final class HclReader
 
         $length = \strlen($text);
         if ('"' === $text[0] && HclScanner::skipString($text, 0) === $length) {
-            return Node::scalar($this->unescape(substr($text, 1, -1)), CoreSchema::TAG_STR, NodeStyle::DoubleQuoted);
+            return Node::scalar($this->unescape(substr($text, 1, -1)), CoreSchema::TAG_STR, NodeStyleEnum::DoubleQuoted);
         }
 
         if (('[' === $text[0] || '{' === $text[0]) && $this->closesAtEnd($text) && !HclScanner::hasComment($text) && 1 !== preg_match('/^.\s*for\s/s', $text)) {

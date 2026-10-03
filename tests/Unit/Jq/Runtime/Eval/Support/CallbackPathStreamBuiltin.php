@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support;
 
 use Closure;
-use LTS\PhpXq\Jq\Runtime\PathStreamBuiltin;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
+use LTS\PhpXq\Jq\Runtime\PathStreamBuiltinInterface;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 
 /**
- * A {@see PathStreamBuiltin} that emits its input once, in both modes, after calling its first argument for
+ * A {@see PathStreamBuiltinInterface} that emits its input once, in both modes, after calling its first argument for
  * its side effects (so tests can observe how the closure parameter was bound).
  */
-final readonly class CallbackPathStreamBuiltin implements PathStreamBuiltin
+final readonly class CallbackPathStreamBuiltin implements PathStreamBuiltinInterface
 {
     public function __construct(
         private string $name,
@@ -30,12 +30,12 @@ final readonly class CallbackPathStreamBuiltin implements PathStreamBuiltin
         return $this->arity;
     }
 
-    public function run(RuntimeContext $context, mixed $input, array $args, Closure $emit): void
+    public function run(RuntimeContextInterface $context, mixed $input, array $args, Closure $emit): void
     {
         $emit($input);
     }
 
-    public function runPaths(RuntimeContext $context, ?array $path, mixed $input, array $args, Closure $emit): void
+    public function runPaths(RuntimeContextInterface $context, ?array $path, mixed $input, array $args, Closure $emit): void
     {
         $emit($path, $input);
         $emit([...($path ?? []), 'extra'], 'extra-value');

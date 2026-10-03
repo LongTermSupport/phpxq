@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Yq\Format;
 
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use LTS\PhpXq\Yq\Format\FormatRegistry;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -20,10 +20,10 @@ use PHPUnit\Framework\TestCase;
 final class DocumentedExamplesTest extends TestCase
 {
     private const array NATIVE_FORMATS = [
-        'usage/xml.md'  => Format::Xml,
-        'usage/toml.md' => Format::Toml,
-        'usage/hcl.md'  => Format::Hcl,
-        'usage/lua.md'  => Format::Lua,
+        'usage/xml.md'  => FormatEnum::Xml,
+        'usage/toml.md' => FormatEnum::Toml,
+        'usage/hcl.md'  => FormatEnum::Hcl,
+        'usage/lua.md'  => FormatEnum::Lua,
     ];
 
     /** Cases whose expected text in the fixture is damaged by the documentation extraction. */
@@ -108,7 +108,7 @@ final class DocumentedExamplesTest extends TestCase
     /**
      * @param list<string> $flags
      *
-     * @return array{Format, Format, FormatOptions}
+     * @return array{FormatEnum, FormatEnum, FormatOptions}
      */
     private function configure(string $source, array $flags): array
     {
@@ -128,9 +128,9 @@ final class DocumentedExamplesTest extends TestCase
 
         foreach ($merged as $flag) {
             if (1 === preg_match('/^(?:-p|--input-format)[= ](.*)$/s', $flag, $m)) {
-                $input = Format::fromName($m[1]);
+                $input = FormatEnum::fromName($m[1]);
             } elseif (1 === preg_match('/^(?:-o|--output-format)[= ]?(.*)$/s', $flag, $m)) {
-                $output = Format::fromName($m[1]);
+                $output = FormatEnum::fromName($m[1]);
             } elseif (1 === preg_match('/^(?:-I|--indent)[= ]?(\d+)$/', $flag, $m)) {
                 $values['indent'] = (int)$m[1];
             } elseif (1 === preg_match('/^--([a-zA-Z-]+)=(.*)$/s', $flag, $m)) {
@@ -140,13 +140,13 @@ final class DocumentedExamplesTest extends TestCase
             }
         }
 
-        $native = self::NATIVE_FORMATS[$source] ?? Format::Yaml;
-        if (!$input instanceof Format && !$output instanceof Format) {
+        $native = self::NATIVE_FORMATS[$source] ?? FormatEnum::Yaml;
+        if (!$input instanceof FormatEnum && !$output instanceof FormatEnum) {
             $input  = $native;
             $output = $native;
         } else {
-            $output ??= Format::Yaml;
-            $input  ??= $output === $native ? Format::Yaml : $native;
+            $output ??= FormatEnum::Yaml;
+            $input  ??= $output === $native ? FormatEnum::Yaml : $native;
         }
 
         $truthy = static fn (string $key, bool $default): bool => isset($values[$key]) ? !\in_array($values[$key], ['false', 'f', '0'], true) : $default;

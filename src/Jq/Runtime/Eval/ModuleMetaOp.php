@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Jq\Runtime\Eval;
 
-use LTS\PhpXq\Jq\Ast\ImportKind;
+use LTS\PhpXq\Jq\Ast\ImportKindEnum;
 use LTS\PhpXq\Jq\Runtime\JqCompileException;
 use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Jq\Runtime\ModuleLoaderInterface;
@@ -46,7 +46,7 @@ final class ModuleMetaOp extends AbstractSingleOp
             }
 
             $dependencies[] = $dependency
-                ->with('is_data', ImportKind::Data === $import->kind)
+                ->with('is_data', ImportKindEnum::Data === $import->kind)
                 ->with('relpath', $import->path)
             ;
         }

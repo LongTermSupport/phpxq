@@ -6,7 +6,7 @@ namespace LTS\PhpXq\Yq\Runtime\Operators;
 
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yq\Expression\Ast\Binary;
-use LTS\PhpXq\Yq\Expression\Ast\BinaryOperator;
+use LTS\PhpXq\Yq\Expression\Ast\BinaryOperatorEnum;
 use LTS\PhpXq\Yq\Runtime\BinaryOperatorInterface;
 use LTS\PhpXq\Yq\Runtime\Candidate;
 use LTS\PhpXq\Yq\Runtime\Cands;
@@ -24,12 +24,12 @@ final class ComparisonOperator implements BinaryOperatorInterface
     public function operators(): array
     {
         return [
-            BinaryOperator::Equal,
-            BinaryOperator::NotEqual,
-            BinaryOperator::Less,
-            BinaryOperator::LessOrEqual,
-            BinaryOperator::Greater,
-            BinaryOperator::GreaterOrEqual,
+            BinaryOperatorEnum::Equal,
+            BinaryOperatorEnum::NotEqual,
+            BinaryOperatorEnum::Less,
+            BinaryOperatorEnum::LessOrEqual,
+            BinaryOperatorEnum::Greater,
+            BinaryOperatorEnum::GreaterOrEqual,
         ];
     }
 
@@ -52,23 +52,23 @@ final class ComparisonOperator implements BinaryOperatorInterface
         );
     }
 
-    private static function decide(BinaryOperator $operator, Node $left, Node $right, ?string $layout): bool
+    private static function decide(BinaryOperatorEnum $operator, Node $left, Node $right, ?string $layout): bool
     {
         switch ($operator) {
-            case BinaryOperator::Equal:
+            case BinaryOperatorEnum::Equal:
                 return Compare::equals($left, $right);
 
-            case BinaryOperator::NotEqual:
+            case BinaryOperatorEnum::NotEqual:
                 return !Compare::equals($left, $right);
 
             default:
                 $order = Compare::order($left, $right, $layout);
 
                 return match ($operator) {
-                    BinaryOperator::Less           => $order < 0,
-                    BinaryOperator::LessOrEqual    => $order <= 0,
-                    BinaryOperator::Greater        => $order > 0,
-                    default                        => $order >= 0,
+                    BinaryOperatorEnum::Less           => $order < 0,
+                    BinaryOperatorEnum::LessOrEqual    => $order <= 0,
+                    BinaryOperatorEnum::Greater        => $order > 0,
+                    default                            => $order >= 0,
                 };
         }
     }

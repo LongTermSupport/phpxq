@@ -10,7 +10,7 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class Literal implements Node
+final readonly class Literal implements NodeInterface
 {
     public function __construct(public mixed $value)
     {

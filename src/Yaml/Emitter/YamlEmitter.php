@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yaml\Emitter;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 
 /**
  * Renders nodes as YAML text the way the reference yq (go-yaml v3) does.
@@ -35,8 +35,8 @@ final class YamlEmitter implements YamlEmitterInterface
 
     private function renderDocument(Node $node, EmitOptions $options, int $index): string
     {
-        $isDocument = NodeKind::Document === $node->kind;
-        $root       = $isDocument && []  === $node->content ? new Node(NodeKind::Scalar, '!!null') : $node->root();
+        $isDocument = NodeKindEnum::Document === $node->kind;
+        $root       = $isDocument && []      === $node->content ? new Node(NodeKindEnum::Scalar, '!!null') : $node->root();
         $directives = $isDocument && '' !== $node->directives ? rtrim($node->directives, "\n") . "\n" : '';
         $markers    = !$options->noDocSeparator;
 
@@ -45,7 +45,7 @@ final class YamlEmitter implements YamlEmitterInterface
             $out .= '' !== $directives ? "...\n" : "---\n";
         }
 
-        if ($options->unwrapScalar && NodeKind::Scalar === $root->kind && !$this->hasComments($node, $root)) {
+        if ($options->unwrapScalar && NodeKindEnum::Scalar === $root->kind && !$this->hasComments($node, $root)) {
             return $out . $root->value . "\n";
         }
 
@@ -87,6 +87,6 @@ final class YamlEmitter implements YamlEmitterInterface
     private function hasComments(Node $node, Node $root): bool
     {
         return '' !== $root->headComment || '' !== $root->lineComment || '' !== $root->footComment
-                                         || (NodeKind::Document === $node->kind && ('' !== $node->headComment || '' !== $node->footComment));
+                                         || (NodeKindEnum::Document === $node->kind && ('' !== $node->headComment || '' !== $node->footComment));
     }
 }

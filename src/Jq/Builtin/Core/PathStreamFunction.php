@@ -5,20 +5,20 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Jq\Builtin\Core;
 
 use Closure;
-use LTS\PhpXq\Jq\Runtime\Filter;
-use LTS\PhpXq\Jq\Runtime\PathStreamBuiltin;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
+use LTS\PhpXq\Jq\Runtime\FilterInterface;
+use LTS\PhpXq\Jq\Runtime\PathStreamBuiltinInterface;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 
 /**
- * A {@see PathStreamBuiltin} backed by two closures, one for value mode and one for path mode.
+ * A {@see PathStreamBuiltinInterface} backed by two closures, one for value mode and one for path mode.
  *
  * @internal
  */
-final readonly class PathStreamFunction implements PathStreamBuiltin
+final readonly class PathStreamFunction implements PathStreamBuiltinInterface
 {
     /**
-     * @param Closure(RuntimeContext, mixed, list<Filter>, Closure(mixed): void): void                             $values
-     * @param Closure(RuntimeContext, ?list<mixed>, mixed, list<Filter>, Closure(?list<mixed>, mixed): void): void $paths
+     * @param Closure(RuntimeContextInterface, mixed, list<FilterInterface>, Closure(mixed): void): void                             $values
+     * @param Closure(RuntimeContextInterface, ?list<mixed>, mixed, list<FilterInterface>, Closure(?list<mixed>, mixed): void): void $paths
      */
     public function __construct(
         private string $name,
@@ -38,12 +38,12 @@ final readonly class PathStreamFunction implements PathStreamBuiltin
         return $this->arity;
     }
 
-    public function run(RuntimeContext $context, mixed $input, array $args, Closure $emit): void
+    public function run(RuntimeContextInterface $context, mixed $input, array $args, Closure $emit): void
     {
         ($this->values)($context, $input, $args, $emit);
     }
 
-    public function runPaths(RuntimeContext $context, ?array $path, mixed $input, array $args, Closure $emit): void
+    public function runPaths(RuntimeContextInterface $context, ?array $path, mixed $input, array $args, Closure $emit): void
     {
         ($this->paths)($context, $path, $input, $args, $emit);
     }

@@ -9,7 +9,7 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-enum BinaryOp: string
+enum BinaryOpEnum: string
 {
     case Add = '+';
     case Sub = '-';

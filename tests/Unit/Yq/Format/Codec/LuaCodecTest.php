@@ -9,7 +9,7 @@ use LTS\PhpXq\Yaml\Parser\YamlParser;
 use LTS\PhpXq\Yq\Format\Codec\JsonEncoder;
 use LTS\PhpXq\Yq\Format\Codec\LuaDecoder;
 use LTS\PhpXq\Yq\Format\Codec\LuaEncoder;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -163,8 +163,8 @@ final class LuaCodecTest extends TestCase
     public function testEmptyInputHasNoDocuments(): void
     {
         self::assertSame([], [...new LuaDecoder()->decode(" \n", new FormatOptions())]);
-        self::assertSame(Format::Lua, new LuaDecoder()->format());
-        self::assertSame(Format::Lua, new LuaEncoder()->format());
+        self::assertSame(FormatEnum::Lua, new LuaDecoder()->format());
+        self::assertSame(FormatEnum::Lua, new LuaEncoder()->format());
     }
 
     private function decode(string $lua): Node

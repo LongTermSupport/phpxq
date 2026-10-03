@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Jq\Builtin\Regex;
 
 use Closure;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
-use LTS\PhpXq\Jq\Runtime\ValueBuiltin;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
+use LTS\PhpXq\Jq\Runtime\ValueBuiltinInterface;
 
 /**
- * A {@see ValueBuiltin} defined by a closure, so a provider can declare its natives without one class each.
+ * A {@see ValueBuiltinInterface} defined by a closure, so a provider can declare its natives without one class each.
  *
  * @internal
  */
-final readonly class NativeValue implements ValueBuiltin
+final readonly class NativeValue implements ValueBuiltinInterface
 {
     /**
-     * @param Closure(mixed, list<mixed>, RuntimeContext): mixed $function receives the input, the argument values and the context
+     * @param Closure(mixed, list<mixed>, RuntimeContextInterface): mixed $function receives the input, the argument values and the context
      */
     public function __construct(
         private string $name,
@@ -35,7 +35,7 @@ final readonly class NativeValue implements ValueBuiltin
         return $this->arity;
     }
 
-    public function call(RuntimeContext $context, mixed $input, array $args): mixed
+    public function call(RuntimeContextInterface $context, mixed $input, array $args): mixed
     {
         return ($this->function)($input, $args, $context);
     }

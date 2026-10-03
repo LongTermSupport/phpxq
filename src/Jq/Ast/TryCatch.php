@@ -10,11 +10,11 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class TryCatch implements Node
+final readonly class TryCatch implements NodeInterface
 {
     public function __construct(
-        public Node $body,
-        public ?Node $handler,
+        public NodeInterface $body,
+        public ?NodeInterface $handler,
     ) {
     }
 }

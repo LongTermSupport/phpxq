@@ -5,19 +5,19 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Jq\Builtin\Core;
 
 use Closure;
-use LTS\PhpXq\Jq\Runtime\Filter;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
-use LTS\PhpXq\Jq\Runtime\StreamBuiltin;
+use LTS\PhpXq\Jq\Runtime\FilterInterface;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
+use LTS\PhpXq\Jq\Runtime\StreamBuiltinInterface;
 
 /**
- * A {@see StreamBuiltin} backed by a closure: `(context, input, filters, emit) => void`.
+ * A {@see StreamBuiltinInterface} backed by a closure: `(context, input, filters, emit) => void`.
  *
  * @internal
  */
-final readonly class StreamFunction implements StreamBuiltin
+final readonly class StreamFunction implements StreamBuiltinInterface
 {
     /**
-     * @param Closure(RuntimeContext, mixed, list<Filter>, Closure(mixed): void): void $function
+     * @param Closure(RuntimeContextInterface, mixed, list<FilterInterface>, Closure(mixed): void): void $function
      */
     public function __construct(
         private string $name,
@@ -36,7 +36,7 @@ final readonly class StreamFunction implements StreamBuiltin
         return $this->arity;
     }
 
-    public function run(RuntimeContext $context, mixed $input, array $args, Closure $emit): void
+    public function run(RuntimeContextInterface $context, mixed $input, array $args, Closure $emit): void
     {
         ($this->function)($context, $input, $args, $emit);
     }

@@ -12,10 +12,10 @@ use Closure;
  *
  * @internal
  */
-final readonly class CallOp implements Op
+final readonly class CallOp implements OpInterface
 {
     /**
-     * @param list<Op> $arguments
+     * @param list<OpInterface> $arguments
      */
     public function __construct(
         private FuncInfo $function,

@@ -11,7 +11,7 @@ use Closure;
  *
  * @internal
  */
-abstract class AbstractOp implements Op
+abstract class AbstractOp implements OpInterface
 {
     public function paths(?Env $env, ?array $path, mixed $input, Closure $emit): void
     {

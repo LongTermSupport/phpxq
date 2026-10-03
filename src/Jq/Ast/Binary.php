@@ -10,12 +10,12 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class Binary implements Node
+final readonly class Binary implements NodeInterface
 {
     public function __construct(
-        public BinaryOp $op,
-        public Node $left,
-        public Node $right,
+        public BinaryOpEnum $op,
+        public NodeInterface $left,
+        public NodeInterface $right,
     ) {
     }
 }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Jq\Ast;
 
-use LTS\PhpXq\Jq\Ast\BinaryOp;
+use LTS\PhpXq\Jq\Ast\BinaryOpEnum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -14,18 +14,18 @@ use PHPUnit\Framework\TestCase;
 final class BinaryOpTest extends TestCase
 {
     #[DataProvider('provideSpellings')]
-    public function testValuesAreSourceSpellings(string $spelling, BinaryOp $expected): void
+    public function testValuesAreSourceSpellings(string $spelling, BinaryOpEnum $expected): void
     {
-        self::assertSame($expected, BinaryOp::from($spelling));
+        self::assertSame($expected, BinaryOpEnum::from($spelling));
     }
 
     /**
-     * @return iterable<string, array{string, BinaryOp}>
+     * @return iterable<string, array{string, BinaryOpEnum}>
      */
     public static function provideSpellings(): iterable
     {
-        yield 'alternative' => ['//', BinaryOp::Alt];
-        yield 'and' => ['and', BinaryOp::And];
-        yield 'not equal' => ['!=', BinaryOp::Neq];
+        yield 'alternative' => ['//', BinaryOpEnum::Alt];
+        yield 'and' => ['and', BinaryOpEnum::And];
+        yield 'not equal' => ['!=', BinaryOpEnum::Neq];
     }
 }

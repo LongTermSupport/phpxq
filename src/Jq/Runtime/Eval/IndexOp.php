@@ -12,11 +12,11 @@ use Closure;
  *
  * @internal
  */
-final readonly class IndexOp implements Op
+final readonly class IndexOp implements OpInterface
 {
     public function __construct(
-        private Op $target,
-        private Op $index,
+        private OpInterface $target,
+        private OpInterface $index,
     ) {
     }
 

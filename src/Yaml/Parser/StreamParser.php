@@ -7,8 +7,8 @@ namespace LTS\PhpXq\Yaml\Parser;
 use Generator;
 use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yaml\Token\Scanner;
 use LTS\PhpXq\Yaml\Token\ScanToken;
@@ -59,7 +59,7 @@ final class StreamParser
             $doc = $this->document($implicit);
             if (!$doc instanceof Node) {
                 if (!$any && ('' !== $this->endHead || '' !== $this->endFoot)) {
-                    $root              = new Node(NodeKind::Scalar, CoreSchema::TAG_NULL);
+                    $root              = new Node(NodeKindEnum::Scalar, CoreSchema::TAG_NULL);
                     $root->headComment = $this->endHead;
                     $root->footComment = $this->endFoot;
                     yield Node::document($root);
@@ -88,7 +88,7 @@ final class StreamParser
         }
 
         $type = $t->type;
-        $doc  = new Node(NodeKind::Document);
+        $doc  = new Node(NodeKindEnum::Document);
         if (
             $implicit
             && ScanToken::VERSION_DIRECTIVE !== $type
@@ -222,7 +222,7 @@ final class StreamParser
         $sc = $this->sc;
         $t  = $sc->peek();
         if (ScanToken::ALIAS === $t->type) {
-            $node         = new Node(NodeKind::Alias, '', NodeStyle::Default, $t->value);
+            $node         = new Node(NodeKindEnum::Alias, '', NodeStyleEnum::Default, $t->value);
             $node->line   = $t->startLine   + 1;
             $node->column = $t->startColumn + 1;
             $target       = $this->anchors[$t->value] ?? null;
@@ -264,7 +264,7 @@ final class StreamParser
         switch ($t->type) {
             case ScanToken::BLOCK_ENTRY:
                 if ($indentless) {
-                    $node = $this->collection(NodeKind::Sequence, false, CoreSchema::TAG_SEQ, $tag, $anchor, $startLine, $startCol);
+                    $node = $this->collection(NodeKindEnum::Sequence, false, CoreSchema::TAG_SEQ, $tag, $anchor, $startLine, $startCol);
                     $this->parseIndentlessSequence($node);
 
                     return $node;
@@ -281,14 +281,14 @@ final class StreamParser
                 return $node;
 
             case ScanToken::FLOW_SEQUENCE_START:
-                $node = $this->collection(NodeKind::Sequence, true, CoreSchema::TAG_SEQ, $tag, $anchor, $startLine, $startCol);
+                $node = $this->collection(NodeKindEnum::Sequence, true, CoreSchema::TAG_SEQ, $tag, $anchor, $startLine, $startCol);
                 $this->takeComments($node);
                 $this->parseFlowSequence($node);
 
                 return $node;
 
             case ScanToken::FLOW_MAPPING_START:
-                $node = $this->collection(NodeKind::Mapping, true, CoreSchema::TAG_MAP, $tag, $anchor, $startLine, $startCol);
+                $node = $this->collection(NodeKindEnum::Mapping, true, CoreSchema::TAG_MAP, $tag, $anchor, $startLine, $startCol);
                 $this->takeComments($node);
                 $this->parseFlowMapping($node);
 
@@ -296,7 +296,7 @@ final class StreamParser
 
             case ScanToken::BLOCK_SEQUENCE_START:
                 if ($block) {
-                    $node = $this->collection(NodeKind::Sequence, false, CoreSchema::TAG_SEQ, $tag, $anchor, $startLine, $startCol);
+                    $node = $this->collection(NodeKindEnum::Sequence, false, CoreSchema::TAG_SEQ, $tag, $anchor, $startLine, $startCol);
                     $this->takeStem($node);
                     $this->parseBlockSequence($node);
 
@@ -307,7 +307,7 @@ final class StreamParser
 
             case ScanToken::BLOCK_MAPPING_START:
                 if ($block) {
-                    $node = $this->collection(NodeKind::Mapping, false, CoreSchema::TAG_MAP, $tag, $anchor, $startLine, $startCol);
+                    $node = $this->collection(NodeKindEnum::Mapping, false, CoreSchema::TAG_MAP, $tag, $anchor, $startLine, $startCol);
                     $this->takeStem($node);
                     $this->parseBlockMapping($node);
 
@@ -353,9 +353,9 @@ final class StreamParser
         }
     }
 
-    private function collection(NodeKind $kind, bool $flow, string $defaultTag, string $tag, string $anchor, int $line, int $column): Node
+    private function collection(NodeKindEnum $kind, bool $flow, string $defaultTag, string $tag, string $anchor, int $line, int $column): Node
     {
-        $node         = new Node($kind, $defaultTag, $flow ? NodeStyle::Flow : NodeStyle::Default);
+        $node         = new Node($kind, $defaultTag, $flow ? NodeStyleEnum::Flow : NodeStyleEnum::Default);
         $node->line   = $line;
         $node->column = $column;
         if ('' !== $tag && '!' !== $tag) {
@@ -371,11 +371,11 @@ final class StreamParser
     private function scalarNode(string $value, int $style, string $tag, int $line, int $column): Node
     {
         $nodeStyle = match ($style) {
-            ScanToken::SINGLE  => NodeStyle::SingleQuoted,
-            ScanToken::DOUBLE  => NodeStyle::DoubleQuoted,
-            ScanToken::LITERAL => NodeStyle::Literal,
-            ScanToken::FOLDED  => NodeStyle::Folded,
-            default            => NodeStyle::Default,
+            ScanToken::SINGLE  => NodeStyleEnum::SingleQuoted,
+            ScanToken::DOUBLE  => NodeStyleEnum::DoubleQuoted,
+            ScanToken::LITERAL => NodeStyleEnum::Literal,
+            ScanToken::FOLDED  => NodeStyleEnum::Folded,
+            default            => NodeStyleEnum::Default,
         };
 
         $explicit = false;
@@ -384,13 +384,13 @@ final class StreamParser
             $explicit = true;
         } elseif ('!' === $tag) {
             $resolved = '!';
-        } elseif (NodeStyle::Default !== $nodeStyle) {
+        } elseif (NodeStyleEnum::Default !== $nodeStyle) {
             $resolved = CoreSchema::TAG_STR;
         } else {
             $resolved = ScalarResolver::resolve($value);
         }
 
-        $node              = new Node(NodeKind::Scalar, $resolved, $nodeStyle, $value);
+        $node              = new Node(NodeKindEnum::Scalar, $resolved, $nodeStyle, $value);
         $node->line        = $line;
         $node->column      = $column;
         $node->tagExplicit = $explicit;
@@ -412,7 +412,7 @@ final class StreamParser
      */
     private function emptyScalar(int $line, int $column): Node
     {
-        $node         = new Node(NodeKind::Scalar, CoreSchema::TAG_NULL);
+        $node         = new Node(NodeKindEnum::Scalar, CoreSchema::TAG_NULL);
         $node->line   = $line   + 1;
         $node->column = $column + 1;
 
@@ -636,7 +636,7 @@ final class StreamParser
     private function flowSinglePair(ScanToken $keyToken): Node
     {
         $sc                = $this->sc;
-        $pair              = new Node(NodeKind::Mapping, CoreSchema::TAG_MAP, NodeStyle::Flow);
+        $pair              = new Node(NodeKindEnum::Mapping, CoreSchema::TAG_MAP, NodeStyleEnum::Flow);
         $pair->line        = $keyToken->startLine   + 1;
         $pair->column      = $keyToken->startColumn + 1;
 

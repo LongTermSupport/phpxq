@@ -6,7 +6,7 @@ namespace LTS\PhpXq\Tests\Unit\Yq\Runtime\Support;
 
 use LTS\PhpXq\Yq\Format\DecoderInterface;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatRegistryInterface;
 
 /**
@@ -18,12 +18,12 @@ final readonly class YamlOnlyRegistry implements FormatRegistryInterface
     {
     }
 
-    public function decoder(Format $format): DecoderInterface
+    public function decoder(FormatEnum $format): DecoderInterface
     {
         return $this->codec;
     }
 
-    public function encoder(Format $format): EncoderInterface
+    public function encoder(FormatEnum $format): EncoderInterface
     {
         return $this->codec;
     }

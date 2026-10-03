@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yaml\Emitter;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 
 /**
@@ -128,12 +128,12 @@ final class YamlWriter
     // nodes
 
     /**
-     * @param array{tag: string, style: NodeStyle, value: string, analysis: ScalarAnalysis}|null $plan
+     * @param array{tag: string, style: NodeStyleEnum, value: string, analysis: ScalarAnalysis}|null $plan
      */
     private function emitNode(Node $node, bool $simpleKey, ?array $plan, ?int $color, string $headerComment): void
     {
         switch ($node->kind) {
-            case NodeKind::Alias:
+            case NodeKindEnum::Alias:
                 $this->writeAnchor('*', $node->value);
                 if ($simpleKey) {
                     $this->put(' ');
@@ -141,12 +141,12 @@ final class YamlWriter
 
                 return;
 
-            case NodeKind::Scalar:
+            case NodeKindEnum::Scalar:
                 $this->emitScalar($node, $plan ?? $this->planScalar($node), $simpleKey, $color);
 
                 return;
 
-            case NodeKind::Document:
+            case NodeKindEnum::Document:
                 $this->emitNode($node->root(), $simpleKey, null, $color, $headerComment);
 
                 return;
@@ -158,15 +158,15 @@ final class YamlWriter
 
     private function isBlockCollection(Node $node): bool
     {
-        return (NodeKind::Mapping === $node->kind || NodeKind::Sequence === $node->kind)
+        return (NodeKindEnum::Mapping === $node->kind || NodeKindEnum::Sequence === $node->kind)
             && [] !== $node->content
             && 0 === $this->flowLevel
-            && NodeStyle::Flow !== $this->effectiveStyle($node);
+            && NodeStyleEnum::Flow !== $this->effectiveStyle($node);
     }
 
-    private function effectiveStyle(Node $node): NodeStyle
+    private function effectiveStyle(Node $node): NodeStyleEnum
     {
-        return $this->options->prettyPrint ? NodeStyle::Default : $node->style;
+        return $this->options->prettyPrint ? NodeStyleEnum::Default : $node->style;
     }
 
     private function emitCollection(Node $node, string $headerComment): void
@@ -174,7 +174,7 @@ final class YamlWriter
         $this->emitAnchorAndCollectionTag($node);
 
         if (!$this->isBlockCollection($node)) {
-            if (NodeKind::Mapping === $node->kind) {
+            if (NodeKindEnum::Mapping === $node->kind) {
                 $this->emitFlowMapping($node);
             } else {
                 $this->emitFlowSequence($node);
@@ -187,7 +187,7 @@ final class YamlWriter
             $this->writeLineComment($headerComment);
         }
 
-        if (NodeKind::Mapping === $node->kind) {
+        if (NodeKindEnum::Mapping === $node->kind) {
             $this->emitBlockMapping($node);
         } else {
             $this->emitBlockSequence($node);
@@ -206,7 +206,7 @@ final class YamlWriter
         }
 
         if (!$node->tagExplicit) {
-            $implicit = NodeKind::Mapping === $node->kind ? '!!map' : '!!seq';
+            $implicit = NodeKindEnum::Mapping === $node->kind ? '!!map' : '!!seq';
             if ($this->shortTag($tag) === $implicit) {
                 return;
             }
@@ -224,7 +224,7 @@ final class YamlWriter
         $count = \count($mapping->content);
         for ($i = 0; $i < $count; $i += 2) {
             $key   = $mapping->content[$i];
-            $value = $mapping->content[$i + 1] ?? new Node(NodeKind::Scalar, '!!null');
+            $value = $mapping->content[$i + 1] ?? new Node(NodeKindEnum::Scalar, '!!null');
 
             $valueBlock = $this->isBlockCollection($value);
             $heads      = [$head, $key->headComment];
@@ -236,7 +236,7 @@ final class YamlWriter
             $this->writeHeadComments($heads);
 
             $this->writeIndent();
-            $plan = NodeKind::Scalar === $key->kind ? $this->planScalar($key) : null;
+            $plan = NodeKindEnum::Scalar === $key->kind ? $this->planScalar($key) : null;
             if ($this->checkSimpleKey($key, $plan)) {
                 $this->emitNode($key, true, $plan, self::COLOR_KEY, '');
                 $this->indicator(':', false, false, false);
@@ -307,12 +307,12 @@ final class YamlWriter
         $count = \count($mapping->content);
         for ($i = 0; $i < $count; $i += 2) {
             $key   = $mapping->content[$i];
-            $value = $mapping->content[$i + 1] ?? new Node(NodeKind::Scalar, '!!null');
+            $value = $mapping->content[$i + 1] ?? new Node(NodeKindEnum::Scalar, '!!null');
             if ($i > 0) {
                 $this->indicator(',', false, false, false);
             }
 
-            $plan = NodeKind::Scalar === $key->kind ? $this->planScalar($key) : null;
+            $plan = NodeKindEnum::Scalar === $key->kind ? $this->planScalar($key) : null;
             if ($this->checkSimpleKey($key, $plan)) {
                 $this->emitNode($key, true, $plan, self::COLOR_KEY, '');
                 $this->indicator(':', false, false, false);
@@ -330,17 +330,17 @@ final class YamlWriter
     }
 
     /**
-     * @param array{tag: string, style: NodeStyle, value: string, analysis: ScalarAnalysis}|null $plan
+     * @param array{tag: string, style: NodeStyleEnum, value: string, analysis: ScalarAnalysis}|null $plan
      */
     private function checkSimpleKey(Node $key, ?array $plan): bool
     {
         switch ($key->kind) {
-            case NodeKind::Alias:
+            case NodeKindEnum::Alias:
                 $length = \strlen($key->value);
 
                 break;
 
-            case NodeKind::Scalar:
+            case NodeKindEnum::Scalar:
                 $plan ??= $this->planScalar($key);
                 if ($plan['analysis']->multiline) {
                     return false;
@@ -350,8 +350,8 @@ final class YamlWriter
 
                 break;
 
-            case NodeKind::Sequence:
-            case NodeKind::Mapping:
+            case NodeKindEnum::Sequence:
+            case NodeKindEnum::Mapping:
                 if ([] !== $key->content) {
                     return false;
                 }
@@ -373,7 +373,7 @@ final class YamlWriter
     /**
      * Decides the tag to print (empty when implicit), the requested style and the text to write.
      *
-     * @return array{tag: string, style: NodeStyle, value: string, analysis: ScalarAnalysis}
+     * @return array{tag: string, style: NodeStyleEnum, value: string, analysis: ScalarAnalysis}
      */
     private function planScalar(Node $node): array
     {
@@ -382,8 +382,8 @@ final class YamlWriter
         $stag  = $this->shortTag($node->tag);
         $tag   = $stag;
 
-        if ($this->options->prettyPrint && (NodeStyle::DoubleQuoted === $style || NodeStyle::SingleQuoted === $style)) {
-            $style = isset(self::OLD_BOOLS[$value]) ? NodeStyle::DoubleQuoted : NodeStyle::Default;
+        if ($this->options->prettyPrint && (NodeStyleEnum::DoubleQuoted === $style || NodeStyleEnum::SingleQuoted === $style)) {
+            $style = isset(self::OLD_BOOLS[$value]) ? NodeStyleEnum::DoubleQuoted : NodeStyleEnum::Default;
         }
 
         if ('' !== $value && !mb_check_encoding($value, 'UTF-8')) {
@@ -391,11 +391,11 @@ final class YamlWriter
             $value   = implode("\n", str_split($encoded, 70));
             $stag    = '!!binary';
             $tag     = $stag;
-            $style   = NodeStyle::Default;
+            $style   = NodeStyleEnum::Default;
         }
 
-        $quoted = NodeStyle::DoubleQuoted                                                                                   === $style || NodeStyle::SingleQuoted === $style
-                                                                                                                                       || NodeStyle::Literal         === $style || NodeStyle::Folded === $style;
+        $quoted = NodeStyleEnum::DoubleQuoted                                                                                                                                === $style || NodeStyleEnum::SingleQuoted === $style
+                                                                                                                                           || NodeStyleEnum::Literal         === $style || NodeStyleEnum::Folded === $style;
 
         $force = false;
         if ('' !== $tag && !$node->tagExplicit) {
@@ -417,11 +417,11 @@ final class YamlWriter
         if ($quoted) {
             $final = $style;
         } elseif (str_contains($value, "\n")) {
-            $final = $this->flowLevel > 0 ? NodeStyle::DoubleQuoted : NodeStyle::Literal;
+            $final = $this->flowLevel > 0 ? NodeStyleEnum::DoubleQuoted : NodeStyleEnum::Literal;
         } elseif ($force) {
-            $final = NodeStyle::DoubleQuoted;
+            $final = NodeStyleEnum::DoubleQuoted;
         } else {
-            $final = NodeStyle::Default;
+            $final = NodeStyleEnum::Default;
         }
 
         return [
@@ -468,7 +468,7 @@ final class YamlWriter
     }
 
     /**
-     * @param array{tag: string, style: NodeStyle, value: string, analysis: ScalarAnalysis} $plan
+     * @param array{tag: string, style: NodeStyleEnum, value: string, analysis: ScalarAnalysis} $plan
      */
     private function emitScalar(Node $node, array $plan, bool $simpleKey, ?int $color): void
     {
@@ -476,22 +476,22 @@ final class YamlWriter
         $value    = $plan['value'];
         $style    = $plan['style'];
 
-        if (NodeStyle::Default === $style) {
+        if (NodeStyleEnum::Default === $style) {
             if (($this->flowLevel > 0 && !$analysis->flowPlainAllowed) || (0 === $this->flowLevel && !$analysis->blockPlainAllowed)) {
-                $style = NodeStyle::SingleQuoted;
+                $style = NodeStyleEnum::SingleQuoted;
             }
 
             if ('' === $value && ($this->flowLevel > 0 || $simpleKey)) {
-                $style = NodeStyle::SingleQuoted;
+                $style = NodeStyleEnum::SingleQuoted;
             }
         }
 
-        if (NodeStyle::SingleQuoted === $style && !$analysis->singleQuotedAllowed) {
-            $style = NodeStyle::DoubleQuoted;
+        if (NodeStyleEnum::SingleQuoted === $style && !$analysis->singleQuotedAllowed) {
+            $style = NodeStyleEnum::DoubleQuoted;
         }
 
-        if ((NodeStyle::Literal === $style || NodeStyle::Folded === $style) && (!$analysis->blockAllowed || $this->flowLevel > 0 || $simpleKey)) {
-            $style = NodeStyle::DoubleQuoted;
+        if ((NodeStyleEnum::Literal === $style || NodeStyleEnum::Folded === $style) && (!$analysis->blockAllowed || $this->flowLevel > 0 || $simpleKey)) {
+            $style = NodeStyleEnum::DoubleQuoted;
         }
 
         if ('' !== $node->anchor) {
@@ -509,23 +509,23 @@ final class YamlWriter
         $saved = $this->indent;
         $this->increaseIndent();
         switch ($style) {
-            case NodeStyle::SingleQuoted:
+            case NodeStyleEnum::SingleQuoted:
                 $this->writeSingleQuoted($value, $color);
 
                 break;
 
-            case NodeStyle::DoubleQuoted:
+            case NodeStyleEnum::DoubleQuoted:
                 $this->writeDoubleQuoted($value, $color);
 
                 break;
 
-            case NodeStyle::Literal:
-            case NodeStyle::Folded:
+            case NodeStyleEnum::Literal:
+            case NodeStyleEnum::Folded:
                 if ($saved < 0) {
                     $this->indent = $this->options->indent;
                 }
 
-                if (NodeStyle::Literal === $style) {
+                if (NodeStyleEnum::Literal === $style) {
                     $this->writeLiteral($value, $color);
                 } else {
                     $this->writeFolded($value, $color);

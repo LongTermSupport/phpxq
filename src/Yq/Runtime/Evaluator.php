@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yq\Expression\Ast\Binary;
 use LTS\PhpXq\Yq\Expression\Ast\Bind;
 use LTS\PhpXq\Yq\Expression\Ast\Call;
@@ -22,8 +22,8 @@ use LTS\PhpXq\Yq\Expression\Ast\RecursiveDescent;
 use LTS\PhpXq\Yq\Expression\Ast\Reduce;
 use LTS\PhpXq\Yq\Expression\Ast\Slice;
 use LTS\PhpXq\Yq\Expression\Ast\VariableRef;
-use LTS\PhpXq\Yq\Expression\ExpressionNode;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -42,7 +42,7 @@ final readonly class Evaluator implements EvaluatorInterface
     ) {
     }
 
-    public function evaluate(ExpressionNode $expression, EvaluationContext $context): array
+    public function evaluate(ExpressionNodeInterface $expression, EvaluationContext $context): array
     {
         if ($expression instanceof Field) {
             return $this->field($expression, $context);
@@ -161,7 +161,7 @@ final readonly class Evaluator implements EvaluatorInterface
     /**
      * @return list<Node> the scalar keys a key expression stands for
      */
-    private function keys(ExpressionNode $key, EvaluationContext $context): array
+    private function keys(ExpressionNodeInterface $key, EvaluationContext $context): array
     {
         if ($key instanceof Literal) {
             return [$key->value];
@@ -170,7 +170,7 @@ final readonly class Evaluator implements EvaluatorInterface
         $keys = [];
         foreach ($this->evaluate($key, $context->withDontAutoCreate(true)) as $match) {
             $node = NodeOps::deref(Cands::node($match));
-            if (NodeKind::Scalar === $node->kind) {
+            if (NodeKindEnum::Scalar === $node->kind) {
                 $keys[] = $node;
             }
         }
@@ -202,12 +202,12 @@ final readonly class Evaluator implements EvaluatorInterface
     {
         $bases = $this->evaluate($slice->base, $context);
         $read  = $context->withDontAutoCreate(true);
-        $from  = $slice->from instanceof ExpressionNode ? $this->firstInt($slice->from, $read) : null;
-        $to    = $slice->to instanceof ExpressionNode ? $this->firstInt($slice->to, $read) : null;
+        $from  = $slice->from instanceof ExpressionNodeInterface ? $this->firstInt($slice->from, $read) : null;
+        $to    = $slice->to instanceof ExpressionNodeInterface ? $this->firstInt($slice->to, $read) : null;
         $out   = [];
         foreach ($bases as $base) {
             $node = NodeOps::deref(Cands::node($base));
-            if (NodeKind::Sequence === $node->kind) {
+            if (NodeKindEnum::Sequence === $node->kind) {
                 [$start, $end] = $this->bounds($from, $to, \count($node->content));
                 $items         = [];
                 for ($i = $start; $i < $end; ++$i) {
@@ -219,7 +219,7 @@ final readonly class Evaluator implements EvaluatorInterface
                 continue;
             }
 
-            if (NodeKind::Scalar === $node->kind && !NodeOps::isNull($node)) {
+            if (NodeKindEnum::Scalar === $node->kind && !NodeOps::isNull($node)) {
                 $chars         = mb_str_split($node->value);
                 [$start, $end] = $this->bounds($from, $to, \count($chars));
                 $out[]         = Cands::derive(NodeOps::str(implode('', \array_slice($chars, $start, max(0, $end - $start)))), $base);
@@ -256,7 +256,7 @@ final readonly class Evaluator implements EvaluatorInterface
         return [$start, $end];
     }
 
-    private function firstInt(ExpressionNode $expression, EvaluationContext $context): ?int
+    private function firstInt(ExpressionNodeInterface $expression, EvaluationContext $context): ?int
     {
         foreach ($this->evaluate($expression, $context) as $match) {
             $number = Numbers::of(Cands::node($match));
@@ -281,7 +281,7 @@ final readonly class Evaluator implements EvaluatorInterface
         $out  = [];
         foreach ($context->matches as $match) {
             $items = [];
-            if ($collect->inner instanceof ExpressionNode) {
+            if ($collect->inner instanceof ExpressionNodeInterface) {
                 foreach ($this->evaluate($collect->inner, $read->withMatches([$match])) as $found) {
                     $items[] = $found->node->deepCopy();
                 }
@@ -312,7 +312,7 @@ final readonly class Evaluator implements EvaluatorInterface
                     foreach ($this->evaluate($conditional->then, $single) as $found) {
                         $out[] = $found;
                     }
-                } elseif ($conditional->otherwise instanceof ExpressionNode) {
+                } elseif ($conditional->otherwise instanceof ExpressionNodeInterface) {
                     foreach ($this->evaluate($conditional->otherwise, $single) as $found) {
                         $out[] = $found;
                     }
@@ -381,7 +381,7 @@ final readonly class Evaluator implements EvaluatorInterface
                 $flat = [];
                 foreach ($combo as [$key, $value]) {
                     $key    = NodeOps::deref(NodeOps::unwrap($key));
-                    $flat[] = new Node(NodeKind::Scalar, '' === $key->tag ? '!!str' : $key->tag, NodeStyle::Default, $key->value);
+                    $flat[] = new Node(NodeKindEnum::Scalar, '' === $key->tag ? '!!str' : $key->tag, NodeStyleEnum::Default, $key->value);
                     $flat[] = $value->deepCopy();
                 }
 
@@ -439,12 +439,12 @@ final readonly class Evaluator implements EvaluatorInterface
     private function render(Node $node, EvaluationContext $context): string
     {
         $node = NodeOps::deref(NodeOps::unwrap($node));
-        if (NodeKind::Scalar === $node->kind) {
+        if (NodeKindEnum::Scalar === $node->kind) {
             return $node->value;
         }
 
         try {
-            return rtrim($context->services->formats->encoder(Format::Yaml)->encode($node, new FormatOptions(), 0), "\n");
+            return rtrim($context->services->formats->encoder(FormatEnum::Yaml)->encode($node, new FormatOptions(), 0), "\n");
         } catch (FormatException $formatException) {
             throw new EvaluationException($formatException->getMessage(), 0, $formatException);
         }

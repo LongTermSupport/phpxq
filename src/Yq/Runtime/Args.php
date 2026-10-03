@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yq\Expression\Ast\Binary;
-use LTS\PhpXq\Yq\Expression\Ast\BinaryOperator;
+use LTS\PhpXq\Yq\Expression\Ast\BinaryOperatorEnum;
 use LTS\PhpXq\Yq\Expression\Ast\Call;
-use LTS\PhpXq\Yq\Expression\ExpressionNode;
+use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 
 /**
  * Evaluation of an operator's arguments against one match.
@@ -53,7 +53,7 @@ final class Args
     {
         $node = self::node($call, $index, $context, $evaluator, $match);
 
-        return $node instanceof Node && NodeKind::Scalar === $node->kind ? $node->value : null;
+        return $node instanceof Node && NodeKindEnum::Scalar === $node->kind ? $node->value : null;
     }
 
     public static function int(Call $call, int $index, EvaluationContext $context, EvaluatorInterface $evaluator, ?Candidate $match): ?int
@@ -78,7 +78,7 @@ final class Args
         $out = [];
         foreach (self::results($call, $index, $context, $evaluator, $match) as $result) {
             $node = NodeOps::deref(Cands::node($result));
-            if (NodeKind::Scalar === $node->kind) {
+            if (NodeKindEnum::Scalar === $node->kind) {
                 $out[] = $node->value;
             }
         }
@@ -98,7 +98,7 @@ final class Args
         }
 
         $only = $call->arguments[0];
-        if (!$only instanceof Binary || BinaryOperator::Union !== $only->operator) {
+        if (!$only instanceof Binary || BinaryOperatorEnum::Union !== $only->operator) {
             return $call;
         }
 
@@ -121,11 +121,11 @@ final class Args
     }
 
     /**
-     * @param list<ExpressionNode> $parts
+     * @param list<ExpressionNodeInterface> $parts
      */
-    private static function unionParts(ExpressionNode $node, array &$parts): void
+    private static function unionParts(ExpressionNodeInterface $node, array &$parts): void
     {
-        if ($node instanceof Binary && BinaryOperator::Union === $node->operator) {
+        if ($node instanceof Binary && BinaryOperatorEnum::Union === $node->operator) {
             self::unionParts($node->left, $parts);
             self::unionParts($node->right, $parts);
 

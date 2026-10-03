@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Jq\Cli\Options;
 
-use LTS\PhpXq\Jq\Cli\Options\CliAction;
+use LTS\PhpXq\Jq\Cli\Options\CliActionEnum;
 use LTS\PhpXq\Jq\Cli\Options\CliOptions;
 use LTS\PhpXq\Json\ColorScheme;
 use PHPUnit\Framework\TestCase;
@@ -18,7 +18,7 @@ final class CliOptionsTest extends TestCase
     {
         $options = new CliOptions();
 
-        self::assertSame(CliAction::Run, $options->action);
+        self::assertSame(CliActionEnum::Run, $options->action);
         self::assertTrue($options->pretty);
         self::assertSame(2, $options->indent);
         self::assertFalse($options->isFlatPretty());

@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Jq\Runtime\Eval;
 
 use Closure;
-use LTS\PhpXq\Jq\Runtime\Filter;
+use LTS\PhpXq\Jq\Runtime\FilterInterface;
 
 /**
- * An {@see Op} together with its environment: the {@see Filter} handed to native builtins.
+ * An {@see OpInterface} together with its environment: the {@see FilterInterface} handed to native builtins.
  *
  * @internal
  */
-final readonly class BoundFilter implements Filter
+final readonly class BoundFilter implements FilterInterface
 {
     public function __construct(
-        private Op $op,
+        private OpInterface $op,
         private ?Env $env,
     ) {
     }

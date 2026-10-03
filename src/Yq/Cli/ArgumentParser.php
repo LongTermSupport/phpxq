@@ -106,7 +106,7 @@ final class ArgumentParser
 
             $spec = FlagCatalog::byName(substr($arg, 2));
 
-            return $spec instanceof FlagSpec && FlagType::Bool !== $spec->type;
+            return $spec instanceof FlagSpec && FlagTypeEnum::Bool !== $spec->type;
         }
 
         $length = \strlen($arg);
@@ -116,7 +116,7 @@ final class ArgumentParser
                 return false;
             }
 
-            if (FlagType::Bool !== $spec->type) {
+            if (FlagTypeEnum::Bool !== $spec->type) {
                 return $j === $length - 1;
             }
 
@@ -144,7 +144,7 @@ final class ArgumentParser
             throw new UsageException('unknown flag: --' . $name);
         }
 
-        if (FlagType::Bool === $spec->type) {
+        if (FlagTypeEnum::Bool === $spec->type) {
             $values[$spec->name] = null === $inline ? true : $this->parseBool($spec, $inline);
             $given[$spec->name]  = true;
 
@@ -181,7 +181,7 @@ final class ArgumentParser
             }
 
             $given[$spec->name] = true;
-            if (FlagType::Bool === $spec->type) {
+            if (FlagTypeEnum::Bool === $spec->type) {
                 if ($j + 1 < $length && '=' === $cluster[$j + 1]) {
                     $values[$spec->name] = $this->parseBool($spec, substr($cluster, $j + 2));
 
@@ -214,7 +214,7 @@ final class ArgumentParser
 
     private function convert(FlagSpec $spec, string $raw): int|string
     {
-        if (FlagType::Int !== $spec->type) {
+        if (FlagTypeEnum::Int !== $spec->type) {
             return $raw;
         }
 

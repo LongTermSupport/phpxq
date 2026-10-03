@@ -14,8 +14,8 @@ use Closure;
 final class SingleStringInterpOp extends AbstractSingleOp
 {
     /**
-     * @param list<string|SingleOp>  $parts
-     * @param Closure(mixed): string $format
+     * @param list<string|SingleOpInterface> $parts
+     * @param Closure(mixed): string         $format
      */
     public function __construct(
         private readonly array $parts,
@@ -27,7 +27,7 @@ final class SingleStringInterpOp extends AbstractSingleOp
     {
         $values = [];
         foreach ($this->parts as $index => $part) {
-            if ($part instanceof SingleOp) {
+            if ($part instanceof SingleOpInterface) {
                 $values[$index] = $part->value($env, $input);
             }
         }

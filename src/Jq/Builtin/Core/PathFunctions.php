@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Jq\Builtin\Core;
 
 use Closure;
-use LTS\PhpXq\Jq\Runtime\BuiltinRegistry;
-use LTS\PhpXq\Jq\Runtime\Filter;
+use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
+use LTS\PhpXq\Jq\Runtime\FilterInterface;
 use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Jq\Runtime\PathOps;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Json\JsonObject;
 
 /**
@@ -26,12 +26,12 @@ final class PathFunctions
     {
     }
 
-    public static function register(BuiltinRegistry $registry): void
+    public static function register(BuiltinRegistryInterface $registry): void
     {
         $registry->register(new PathStreamFunction('path', 1, self::path(...), self::pathOfPath(...)));
         $registry->register(new PathStreamFunction('getpath', 1, self::getPath(...), self::getPathPaths(...)));
-        $registry->register(new ValueFunction('setpath', 2, static fn (RuntimeContext $c, mixed $v, array $a): mixed => PathOps::setPath($v, self::pathArgument($a[0]), $a[1])));
-        $registry->register(new ValueFunction('delpaths', 1, static fn (RuntimeContext $c, mixed $v, array $a): mixed => PathOps::deletePaths($v, self::pathList($a[0]))));
+        $registry->register(new ValueFunction('setpath', 2, static fn (RuntimeContextInterface $c, mixed $v, array $a): mixed => PathOps::setPath($v, self::pathArgument($a[0]), $a[1])));
+        $registry->register(new ValueFunction('delpaths', 1, static fn (RuntimeContextInterface $c, mixed $v, array $a): mixed => PathOps::deletePaths($v, self::pathList($a[0]))));
         $registry->register(new StreamFunction('paths', 0, self::paths(...)));
         $registry->register(new StreamFunction('tostream', 0, self::toStream(...)));
         $registry->register(new StreamFunction('fromstream', 1, self::fromStream(...)));
@@ -71,10 +71,10 @@ final class PathFunctions
     }
 
     /**
-     * @param list<Filter>         $args
-     * @param Closure(mixed): void $emit
+     * @param list<FilterInterface> $args
+     * @param Closure(mixed): void  $emit
      */
-    private static function path(RuntimeContext $c, mixed $input, array $args, Closure $emit): void
+    private static function path(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
     {
         $args[0]->paths([], $input, static function (?array $path, mixed $value) use ($emit): void {
             if (null === $path) {
@@ -87,10 +87,10 @@ final class PathFunctions
 
     /**
      * @param ?list<mixed>                       $path
-     * @param list<Filter>                       $args
+     * @param list<FilterInterface>              $args
      * @param Closure(?list<mixed>, mixed): void $emit
      */
-    private static function pathOfPath(RuntimeContext $c, ?array $path, mixed $input, array $args, Closure $emit): void
+    private static function pathOfPath(RuntimeContextInterface $c, ?array $path, mixed $input, array $args, Closure $emit): void
     {
         self::path($c, $input, $args, static function (mixed $found) use ($emit): void {
             $emit(null, $found);
@@ -98,10 +98,10 @@ final class PathFunctions
     }
 
     /**
-     * @param list<Filter>         $args
-     * @param Closure(mixed): void $emit
+     * @param list<FilterInterface> $args
+     * @param Closure(mixed): void  $emit
      */
-    private static function getPath(RuntimeContext $c, mixed $input, array $args, Closure $emit): void
+    private static function getPath(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
     {
         $args[0]->run($input, static function (mixed $path) use ($input, $emit): void {
             $emit(PathOps::getPath($input, self::pathArgument($path)));
@@ -110,10 +110,10 @@ final class PathFunctions
 
     /**
      * @param ?list<mixed>                       $path
-     * @param list<Filter>                       $args
+     * @param list<FilterInterface>              $args
      * @param Closure(?list<mixed>, mixed): void $emit
      */
-    private static function getPathPaths(RuntimeContext $c, ?array $path, mixed $input, array $args, Closure $emit): void
+    private static function getPathPaths(RuntimeContextInterface $c, ?array $path, mixed $input, array $args, Closure $emit): void
     {
         $args[0]->run($input, static function (mixed $extra) use ($path, $input, $emit): void {
             $steps = self::pathArgument($extra);
@@ -124,10 +124,10 @@ final class PathFunctions
     /**
      * Every path below the root, in document order.
      *
-     * @param list<Filter>         $args
-     * @param Closure(mixed): void $emit
+     * @param list<FilterInterface> $args
+     * @param Closure(mixed): void  $emit
      */
-    private static function paths(RuntimeContext $c, mixed $input, array $args, Closure $emit): void
+    private static function paths(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
     {
         self::walkPaths([], $input, $emit);
     }
@@ -154,10 +154,10 @@ final class PathFunctions
     }
 
     /**
-     * @param list<Filter>         $args
-     * @param Closure(mixed): void $emit
+     * @param list<FilterInterface> $args
+     * @param Closure(mixed): void  $emit
      */
-    private static function toStream(RuntimeContext $c, mixed $input, array $args, Closure $emit): void
+    private static function toStream(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
     {
         self::streamEvents([], $input, $emit);
     }
@@ -191,10 +191,10 @@ final class PathFunctions
     }
 
     /**
-     * @param list<Filter>         $args
-     * @param Closure(mixed): void $emit
+     * @param list<FilterInterface> $args
+     * @param Closure(mixed): void  $emit
      */
-    private static function fromStream(RuntimeContext $c, mixed $input, array $args, Closure $emit): void
+    private static function fromStream(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
     {
         $value = null;
         $done  = false;

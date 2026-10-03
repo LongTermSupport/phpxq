@@ -9,7 +9,7 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class Location implements Node
+final readonly class Location implements NodeInterface
 {
     public function __construct(
         public string $file,

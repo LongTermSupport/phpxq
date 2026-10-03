@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Yq\Format\Codec;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\DecoderInterface;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
 /**
@@ -16,11 +16,11 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  */
 final readonly class Base64Decoder implements DecoderInterface
 {
-    public function __construct(private Format $format = Format::Base64)
+    public function __construct(private FormatEnum $format = FormatEnum::Base64)
     {
     }
 
-    public function format(): Format
+    public function format(): FormatEnum
     {
         return $this->format;
     }
@@ -30,7 +30,7 @@ final readonly class Base64Decoder implements DecoderInterface
      */
     public function decode(string $input, FormatOptions $options): iterable
     {
-        $text = Format::Base64Url === $this->format ? StringFormats::base64UrlDecode($input) : StringFormats::base64Decode($input);
+        $text = FormatEnum::Base64Url === $this->format ? StringFormats::base64UrlDecode($input) : StringFormats::base64Decode($input);
 
         yield Node::document(Node::scalar($text, CoreSchema::TAG_STR));
     }

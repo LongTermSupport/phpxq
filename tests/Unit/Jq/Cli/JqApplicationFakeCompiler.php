@@ -7,9 +7,9 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Cli;
 use Closure;
 use LTS\PhpXq\Jq\Ast\Program;
 use LTS\PhpXq\Jq\Cli\CompilerFactoryInterface;
-use LTS\PhpXq\Jq\Runtime\CompiledProgram;
+use LTS\PhpXq\Jq\Runtime\CompiledProgramInterface;
 use LTS\PhpXq\Jq\Runtime\CompilerInterface;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 
 /**
  * Compiler factory and compiler in one: every program compiles to the same closure, and what the CLI
@@ -28,7 +28,7 @@ final class JqApplicationFakeCompiler implements CompilerFactoryInterface, Compi
     public ?Program $program = null;
 
     /**
-     * @param Closure(RuntimeContext, mixed, Closure(mixed): void): void $behaviour
+     * @param Closure(RuntimeContextInterface, mixed, Closure(mixed): void): void $behaviour
      */
     public function __construct(
         private readonly Closure $behaviour,
@@ -42,7 +42,7 @@ final class JqApplicationFakeCompiler implements CompilerFactoryInterface, Compi
         return $this;
     }
 
-    public function compile(Program $program, array $globalVariables = []): CompiledProgram
+    public function compile(Program $program, array $globalVariables = []): CompiledProgramInterface
     {
         $this->program     = $program;
         $this->globalNames = $globalVariables;

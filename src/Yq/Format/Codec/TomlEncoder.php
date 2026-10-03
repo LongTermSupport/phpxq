@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -23,19 +23,19 @@ final class TomlEncoder implements EncoderInterface
 {
     private const int MAX_DEPTH = 500;
 
-    public function format(): Format
+    public function format(): FormatEnum
     {
-        return Format::Toml;
+        return FormatEnum::Toml;
     }
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
         $root = NodeTools::unwrap($node);
-        if (NodeKind::Scalar === $root->kind) {
+        if (NodeKindEnum::Scalar === $root->kind) {
             return $root->value . "\n";
         }
 
-        if (NodeKind::Mapping !== $root->kind) {
+        if (NodeKindEnum::Mapping !== $root->kind) {
             throw new FormatException('toml: only a map can be written as a TOML document');
         }
 
@@ -75,7 +75,7 @@ final class TomlEncoder implements EncoderInterface
 
         foreach ($tables as [$key, $value]) {
             $childPath = [...$path, $this->name($key)];
-            if (NodeKind::Mapping === $value->kind) {
+            if (NodeKindEnum::Mapping === $value->kind) {
                 $this->table($out, $key, $value, $childPath, $depth);
 
                 continue;
@@ -119,12 +119,12 @@ final class TomlEncoder implements EncoderInterface
 
     private function isTable(Node $node): bool
     {
-        return NodeKind::Mapping === $node->kind && NodeStyle::Flow !== $node->style && !$node->explicitStart;
+        return NodeKindEnum::Mapping === $node->kind && NodeStyleEnum::Flow !== $node->style && !$node->explicitStart;
     }
 
     private function isArrayOfTables(Node $node): bool
     {
-        if (NodeKind::Sequence !== $node->kind || [] === $node->content || NodeStyle::Flow === $node->style) {
+        if (NodeKindEnum::Sequence !== $node->kind || [] === $node->content || NodeStyleEnum::Flow === $node->style) {
             return false;
         }
 
@@ -138,7 +138,7 @@ final class TomlEncoder implements EncoderInterface
         }
 
         $node = NodeTools::unwrap($node);
-        if (NodeKind::Sequence === $node->kind) {
+        if (NodeKindEnum::Sequence === $node->kind) {
             $items = [];
             foreach ($node->content as $item) {
                 $items[] = $this->inline($item, $depth + 1);
@@ -147,7 +147,7 @@ final class TomlEncoder implements EncoderInterface
             return '[' . implode(', ', $items) . ']';
         }
 
-        if (NodeKind::Mapping === $node->kind) {
+        if (NodeKindEnum::Mapping === $node->kind) {
             $entries = [];
             foreach (NodeTools::pairs($node) as [$key, $value]) {
                 $entries[] = $this->name($key) . ' = ' . $this->inline($value, $depth + 1);

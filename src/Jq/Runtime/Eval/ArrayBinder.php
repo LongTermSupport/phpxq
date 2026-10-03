@@ -11,10 +11,10 @@ use Closure;
  *
  * @internal
  */
-final readonly class ArrayBinder implements Binder
+final readonly class ArrayBinder implements BinderInterface
 {
     /**
-     * @param non-empty-list<Binder> $elements
+     * @param non-empty-list<BinderInterface> $elements
      */
     public function __construct(private array $elements)
     {

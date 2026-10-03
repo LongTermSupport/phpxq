@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Yq\Expression;
 /**
  * Lexical token kinds of the yq expression language.
  */
-enum ExpressionTokenKind
+enum ExpressionTokenKindEnum
 {
     /** An integer, float, hex or octal literal; `text` is the source text. */
     case Number;

@@ -18,23 +18,23 @@ use LTS\PhpXq\Jq\Runtime\JqCompileException;
 final class Lexer implements LexerInterface
 {
     private const array KEYWORDS = [
-        'def'     => TokenType::KwDef,
-        'if'      => TokenType::KwIf,
-        'then'    => TokenType::KwThen,
-        'elif'    => TokenType::KwElif,
-        'else'    => TokenType::KwElse,
-        'end'     => TokenType::KwEnd,
-        'as'      => TokenType::KwAs,
-        'reduce'  => TokenType::KwReduce,
-        'foreach' => TokenType::KwForeach,
-        'try'     => TokenType::KwTry,
-        'catch'   => TokenType::KwCatch,
-        'label'   => TokenType::KwLabel,
-        'import'  => TokenType::KwImport,
-        'include' => TokenType::KwInclude,
-        'module'  => TokenType::KwModule,
-        'and'     => TokenType::KwAnd,
-        'or'      => TokenType::KwOr,
+        'def'     => TokenTypeEnum::KwDef,
+        'if'      => TokenTypeEnum::KwIf,
+        'then'    => TokenTypeEnum::KwThen,
+        'elif'    => TokenTypeEnum::KwElif,
+        'else'    => TokenTypeEnum::KwElse,
+        'end'     => TokenTypeEnum::KwEnd,
+        'as'      => TokenTypeEnum::KwAs,
+        'reduce'  => TokenTypeEnum::KwReduce,
+        'foreach' => TokenTypeEnum::KwForeach,
+        'try'     => TokenTypeEnum::KwTry,
+        'catch'   => TokenTypeEnum::KwCatch,
+        'label'   => TokenTypeEnum::KwLabel,
+        'import'  => TokenTypeEnum::KwImport,
+        'include' => TokenTypeEnum::KwInclude,
+        'module'  => TokenTypeEnum::KwModule,
+        'and'     => TokenTypeEnum::KwAnd,
+        'or'      => TokenTypeEnum::KwOr,
     ];
 
     private const string IDENT_START = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_';
@@ -112,7 +112,7 @@ final class Lexer implements LexerInterface
 
             switch ($c) {
                 case '"':
-                    $this->tokens[] = new Token(TokenType::StringStart, '"', $line, $column);
+                    $this->tokens[] = new Token(TokenTypeEnum::StringStart, '"', $line, $column);
                     $this->pos      = $pos + 1;
                     if ($this->scanString()) {
                         $saved[] = $depth;
@@ -123,29 +123,29 @@ final class Lexer implements LexerInterface
 
                 case '.':
                     if ('.' === $next) {
-                        $this->emit(TokenType::DotDot, '..', $line, $column);
+                        $this->emit(TokenTypeEnum::DotDot, '..', $line, $column);
                     } elseif ('' !== $next && str_contains(self::DIGITS, $next)) {
                         $this->scanNumber($pos, $line, $column);
                     } elseif ('' !== $next && str_contains(self::IDENT_START, $next)) {
                         $end            = $pos + 1 + strspn($src, self::IDENT_CHARS, $pos + 1);
-                        $this->tokens[] = new Token(TokenType::Field, substr($src, $pos + 1, $end - $pos - 1), $line, $column);
+                        $this->tokens[] = new Token(TokenTypeEnum::Field, substr($src, $pos + 1, $end - $pos - 1), $line, $column);
                         $this->pos      = $end;
                     } else {
-                        $this->emit(TokenType::Dot, '.', $line, $column);
+                        $this->emit(TokenTypeEnum::Dot, '.', $line, $column);
                     }
 
                     break;
 
                 case '(':
                     ++$depth;
-                    $this->emit(TokenType::LParen, '(', $line, $column);
+                    $this->emit(TokenTypeEnum::LParen, '(', $line, $column);
 
                     break;
 
                 case ')':
                     if (0 === $depth && [] !== $saved) {
                         $depth          = array_pop($saved);
-                        $this->tokens[] = new Token(TokenType::InterpEnd, ')', $line, $column);
+                        $this->tokens[] = new Token(TokenTypeEnum::InterpEnd, ')', $line, $column);
                         $this->pos      = $pos + 1;
                         if ($this->scanString()) {
                             $saved[] = $depth;
@@ -156,55 +156,55 @@ final class Lexer implements LexerInterface
                             --$depth;
                         }
 
-                        $this->emit(TokenType::RParen, ')', $line, $column);
+                        $this->emit(TokenTypeEnum::RParen, ')', $line, $column);
                     }
 
                     break;
 
                 case '|':
                     if ('=' === $next) {
-                        $this->emit(TokenType::UpdateAssign, '|=', $line, $column);
+                        $this->emit(TokenTypeEnum::UpdateAssign, '|=', $line, $column);
                     } else {
-                        $this->emit(TokenType::Pipe, '|', $line, $column);
+                        $this->emit(TokenTypeEnum::Pipe, '|', $line, $column);
                     }
 
                     break;
 
                 case '+':
-                    $this->operatorWithEquals(TokenType::Plus, TokenType::PlusAssign, '+', $next, $line, $column);
+                    $this->operatorWithEquals(TokenTypeEnum::Plus, TokenTypeEnum::PlusAssign, '+', $next, $line, $column);
 
                     break;
 
                 case '-':
-                    $this->operatorWithEquals(TokenType::Minus, TokenType::MinusAssign, '-', $next, $line, $column);
+                    $this->operatorWithEquals(TokenTypeEnum::Minus, TokenTypeEnum::MinusAssign, '-', $next, $line, $column);
 
                     break;
 
                 case '*':
-                    $this->operatorWithEquals(TokenType::Star, TokenType::StarAssign, '*', $next, $line, $column);
+                    $this->operatorWithEquals(TokenTypeEnum::Star, TokenTypeEnum::StarAssign, '*', $next, $line, $column);
 
                     break;
 
                 case '%':
-                    $this->operatorWithEquals(TokenType::Percent, TokenType::PercentAssign, '%', $next, $line, $column);
+                    $this->operatorWithEquals(TokenTypeEnum::Percent, TokenTypeEnum::PercentAssign, '%', $next, $line, $column);
 
                     break;
 
                 case '/':
                     if ('/' === $next) {
                         if ($pos + 2 < $len && '=' === $src[$pos + 2]) {
-                            $this->emit(TokenType::AltAssign, '//=', $line, $column);
+                            $this->emit(TokenTypeEnum::AltAssign, '//=', $line, $column);
                         } else {
-                            $this->emit(TokenType::Alt, '//', $line, $column);
+                            $this->emit(TokenTypeEnum::Alt, '//', $line, $column);
                         }
                     } else {
-                        $this->operatorWithEquals(TokenType::Slash, TokenType::SlashAssign, '/', $next, $line, $column);
+                        $this->operatorWithEquals(TokenTypeEnum::Slash, TokenTypeEnum::SlashAssign, '/', $next, $line, $column);
                     }
 
                     break;
 
                 case '=':
-                    $this->operatorWithEquals(TokenType::Assign, TokenType::Eq, '=', $next, $line, $column);
+                    $this->operatorWithEquals(TokenTypeEnum::Assign, TokenTypeEnum::Eq, '=', $next, $line, $column);
 
                     break;
 
@@ -213,61 +213,61 @@ final class Lexer implements LexerInterface
                         $this->invalidCharacter($line, $column);
                     }
 
-                    $this->emit(TokenType::Neq, '!=', $line, $column);
+                    $this->emit(TokenTypeEnum::Neq, '!=', $line, $column);
 
                     break;
 
                 case '<':
-                    $this->operatorWithEquals(TokenType::Lt, TokenType::Le, '<', $next, $line, $column);
+                    $this->operatorWithEquals(TokenTypeEnum::Lt, TokenTypeEnum::Le, '<', $next, $line, $column);
 
                     break;
 
                 case '>':
-                    $this->operatorWithEquals(TokenType::Gt, TokenType::Ge, '>', $next, $line, $column);
+                    $this->operatorWithEquals(TokenTypeEnum::Gt, TokenTypeEnum::Ge, '>', $next, $line, $column);
 
                     break;
 
                 case '?':
                     if ('/' === $next && $pos + 2 < $len && '/' === $src[$pos + 2]) {
-                        $this->emit(TokenType::DestructAlt, '?//', $line, $column);
+                        $this->emit(TokenTypeEnum::DestructAlt, '?//', $line, $column);
                     } else {
-                        $this->emit(TokenType::Question, '?', $line, $column);
+                        $this->emit(TokenTypeEnum::Question, '?', $line, $column);
                     }
 
                     break;
 
                 case ',':
-                    $this->emit(TokenType::Comma, ',', $line, $column);
+                    $this->emit(TokenTypeEnum::Comma, ',', $line, $column);
 
                     break;
 
                 case ':':
-                    $this->emit(TokenType::Colon, ':', $line, $column);
+                    $this->emit(TokenTypeEnum::Colon, ':', $line, $column);
 
                     break;
 
                 case ';':
-                    $this->emit(TokenType::Semicolon, ';', $line, $column);
+                    $this->emit(TokenTypeEnum::Semicolon, ';', $line, $column);
 
                     break;
 
                 case '[':
-                    $this->emit(TokenType::LBracket, '[', $line, $column);
+                    $this->emit(TokenTypeEnum::LBracket, '[', $line, $column);
 
                     break;
 
                 case ']':
-                    $this->emit(TokenType::RBracket, ']', $line, $column);
+                    $this->emit(TokenTypeEnum::RBracket, ']', $line, $column);
 
                     break;
 
                 case '{':
-                    $this->emit(TokenType::LBrace, '{', $line, $column);
+                    $this->emit(TokenTypeEnum::LBrace, '{', $line, $column);
 
                     break;
 
                 case '}':
-                    $this->emit(TokenType::RBrace, '}', $line, $column);
+                    $this->emit(TokenTypeEnum::RBrace, '}', $line, $column);
 
                     break;
 
@@ -277,7 +277,7 @@ final class Lexer implements LexerInterface
                     }
 
                     $end            = $this->identEnd($pos + 1);
-                    $this->tokens[] = new Token(TokenType::Variable, substr($src, $pos + 1, $end - $pos - 1), $line, $column);
+                    $this->tokens[] = new Token(TokenTypeEnum::Variable, substr($src, $pos + 1, $end - $pos - 1), $line, $column);
                     $this->pos      = $end;
 
                     break;
@@ -288,7 +288,7 @@ final class Lexer implements LexerInterface
                         $this->invalidCharacter($line, $column);
                     }
 
-                    $this->tokens[] = new Token(TokenType::Format, substr($src, $pos + 1, $end - $pos - 1), $line, $column);
+                    $this->tokens[] = new Token(TokenTypeEnum::Format, substr($src, $pos + 1, $end - $pos - 1), $line, $column);
                     $this->pos      = $end;
 
                     break;
@@ -299,7 +299,7 @@ final class Lexer implements LexerInterface
                     } elseif (str_contains(self::IDENT_START, $c)) {
                         $end            = $this->identEnd($pos);
                         $text           = substr($src, $pos, $end - $pos);
-                        $this->tokens[] = new Token(self::KEYWORDS[$text] ?? TokenType::Ident, $text, $line, $column);
+                        $this->tokens[] = new Token(self::KEYWORDS[$text] ?? TokenTypeEnum::Ident, $text, $line, $column);
                         $this->pos      = $end;
                     } else {
                         $this->invalidCharacter($line, $column);
@@ -312,7 +312,7 @@ final class Lexer implements LexerInterface
             $this->unexpectedEnd();
         }
 
-        return new Token(TokenType::Eof, '', $this->line, $len - $this->lineStart + 1);
+        return new Token(TokenTypeEnum::Eof, '', $this->line, $len - $this->lineStart + 1);
     }
 
     /**
@@ -379,13 +379,13 @@ final class Lexer implements LexerInterface
         }
     }
 
-    private function emit(TokenType $type, string $text, int $line, int $column): void
+    private function emit(TokenTypeEnum $type, string $text, int $line, int $column): void
     {
         $this->tokens[] = new Token($type, $text, $line, $column);
         $this->pos += \strlen($text);
     }
 
-    private function operatorWithEquals(TokenType $plain, TokenType $withEquals, string $text, string $next, int $line, int $column): void
+    private function operatorWithEquals(TokenTypeEnum $plain, TokenTypeEnum $withEquals, string $text, string $next, int $line, int $column): void
     {
         if ('=' === $next) {
             $this->emit($withEquals, $text . '=', $line, $column);
@@ -431,7 +431,7 @@ final class Lexer implements LexerInterface
             }
         }
 
-        $this->tokens[] = new Token(TokenType::Number, substr($src, $pos, $end - $pos), $line, $column);
+        $this->tokens[] = new Token(TokenTypeEnum::Number, substr($src, $pos, $end - $pos), $line, $column);
         $this->pos      = $end;
     }
 
@@ -464,10 +464,10 @@ final class Lexer implements LexerInterface
 
             if ('"' === $src[$pos]) {
                 if ('' !== $fragment) {
-                    $this->tokens[] = new Token(TokenType::StringFragment, $fragment, $fragLine, $fragColumn);
+                    $this->tokens[] = new Token(TokenTypeEnum::StringFragment, $fragment, $fragLine, $fragColumn);
                 }
 
-                $this->tokens[] = new Token(TokenType::StringEnd, '"', $this->line, $pos - $this->lineStart + 1);
+                $this->tokens[] = new Token(TokenTypeEnum::StringEnd, '"', $this->line, $pos - $this->lineStart + 1);
                 $this->pos      = $pos + 1;
 
                 return false;
@@ -489,10 +489,10 @@ final class Lexer implements LexerInterface
 
             if ('(' === $e) {
                 if ('' !== $fragment) {
-                    $this->tokens[] = new Token(TokenType::StringFragment, $fragment, $fragLine, $fragColumn);
+                    $this->tokens[] = new Token(TokenTypeEnum::StringFragment, $fragment, $fragLine, $fragColumn);
                 }
 
-                $this->tokens[] = new Token(TokenType::InterpStart, '\(', $this->line, $pos - $this->lineStart + 1);
+                $this->tokens[] = new Token(TokenTypeEnum::InterpStart, '\(', $this->line, $pos - $this->lineStart + 1);
                 $this->pos      = $pos + 2;
 
                 return true;

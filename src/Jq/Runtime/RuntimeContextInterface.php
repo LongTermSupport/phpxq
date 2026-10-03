@@ -10,7 +10,7 @@ namespace LTS\PhpXq\Jq\Runtime;
  *
  * @api
  */
-interface RuntimeContext
+interface RuntimeContextInterface
 {
     public function inputs(): InputProviderInterface;
 

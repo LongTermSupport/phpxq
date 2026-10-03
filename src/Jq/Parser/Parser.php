@@ -7,9 +7,9 @@ namespace LTS\PhpXq\Jq\Parser;
 use LTS\PhpXq\Jq\Ast\ArrayConstruct;
 use LTS\PhpXq\Jq\Ast\ArrayPattern;
 use LTS\PhpXq\Jq\Ast\Assign;
-use LTS\PhpXq\Jq\Ast\AssignOp;
+use LTS\PhpXq\Jq\Ast\AssignOpEnum;
 use LTS\PhpXq\Jq\Ast\Binary;
-use LTS\PhpXq\Jq\Ast\BinaryOp;
+use LTS\PhpXq\Jq\Ast\BinaryOpEnum;
 use LTS\PhpXq\Jq\Ast\Bind;
 use LTS\PhpXq\Jq\Ast\BreakOut;
 use LTS\PhpXq\Jq\Ast\Comma;
@@ -21,7 +21,7 @@ use LTS\PhpXq\Jq\Ast\FunctionCall;
 use LTS\PhpXq\Jq\Ast\Identity;
 use LTS\PhpXq\Jq\Ast\IfThenElse;
 use LTS\PhpXq\Jq\Ast\ImportDirective;
-use LTS\PhpXq\Jq\Ast\ImportKind;
+use LTS\PhpXq\Jq\Ast\ImportKindEnum;
 use LTS\PhpXq\Jq\Ast\Index;
 use LTS\PhpXq\Jq\Ast\Iterate;
 use LTS\PhpXq\Jq\Ast\Label;
@@ -29,13 +29,13 @@ use LTS\PhpXq\Jq\Ast\Literal;
 use LTS\PhpXq\Jq\Ast\Location;
 use LTS\PhpXq\Jq\Ast\ModuleDirective;
 use LTS\PhpXq\Jq\Ast\Negate;
-use LTS\PhpXq\Jq\Ast\Node;
+use LTS\PhpXq\Jq\Ast\NodeInterface;
 use LTS\PhpXq\Jq\Ast\NumberLiteral;
 use LTS\PhpXq\Jq\Ast\ObjectConstruct;
 use LTS\PhpXq\Jq\Ast\ObjectEntry;
 use LTS\PhpXq\Jq\Ast\ObjectPattern;
 use LTS\PhpXq\Jq\Ast\ObjectPatternEntry;
-use LTS\PhpXq\Jq\Ast\Pattern;
+use LTS\PhpXq\Jq\Ast\PatternInterface;
 use LTS\PhpXq\Jq\Ast\Pipe;
 use LTS\PhpXq\Jq\Ast\Program;
 use LTS\PhpXq\Jq\Ast\Reduce;
@@ -164,29 +164,29 @@ final class Parser implements ParserInterface
     private function parseProgram(): Program
     {
         $module = null;
-        if (TokenType::KwModule === $this->tokens[$this->pos]->type) {
+        if (TokenTypeEnum::KwModule === $this->tokens[$this->pos]->type) {
             ++$this->pos;
             $metaTok = $this->current();
             $meta    = $this->parsePipe();
-            $this->expect(TokenType::Semicolon);
+            $this->expect(TokenTypeEnum::Semicolon);
             $module = new ModuleDirective($this->metadata($meta, $metaTok));
         }
 
         $imports = [];
-        while (TokenType::KwImport === $this->tokens[$this->pos]->type || TokenType::KwInclude === $this->tokens[$this->pos]->type) {
+        while (TokenTypeEnum::KwImport === $this->tokens[$this->pos]->type || TokenTypeEnum::KwInclude === $this->tokens[$this->pos]->type) {
             $imports[] = $this->parseImport();
         }
 
         $defs = [];
-        while (TokenType::KwDef === $this->tokens[$this->pos]->type) {
+        while (TokenTypeEnum::KwDef === $this->tokens[$this->pos]->type) {
             $defs[] = $this->parseDef();
         }
 
         $body = null;
-        if (TokenType::Eof !== $this->tokens[$this->pos]->type) {
+        if (TokenTypeEnum::Eof !== $this->tokens[$this->pos]->type) {
             $body = $this->parsePipe();
             $tail = $this->tokens[$this->pos];
-            if (TokenType::Eof !== $tail->type) {
+            if (TokenTypeEnum::Eof !== $tail->type) {
                 throw $this->unexpected($tail);
             }
         }
@@ -198,7 +198,7 @@ final class Parser implements ParserInterface
     {
         $keyword = $this->advance();
         $pathTok = $this->current();
-        if (TokenType::StringStart !== $pathTok->type) {
+        if (TokenTypeEnum::StringStart !== $pathTok->type) {
             throw $this->unexpected($pathTok);
         }
 
@@ -207,15 +207,15 @@ final class Parser implements ParserInterface
             throw $this->compileError('Import path must be constant', $pathTok);
         }
 
-        $kind  = ImportKind::Include;
+        $kind  = ImportKindEnum::Include;
         $alias = null;
-        if (TokenType::KwImport === $keyword->type) {
-            $this->expect(TokenType::KwAs);
+        if (TokenTypeEnum::KwImport === $keyword->type) {
+            $this->expect(TokenTypeEnum::KwAs);
             $name = $this->current();
-            if (TokenType::Variable === $name->type) {
-                $kind = ImportKind::Data;
-            } elseif (TokenType::Ident === $name->type) {
-                $kind = ImportKind::Import;
+            if (TokenTypeEnum::Variable === $name->type) {
+                $kind = ImportKindEnum::Data;
+            } elseif (TokenTypeEnum::Ident === $name->type) {
+                $kind = ImportKindEnum::Import;
             } else {
                 throw $this->unexpected($name);
             }
@@ -225,12 +225,12 @@ final class Parser implements ParserInterface
         }
 
         $metadata = null;
-        if (TokenType::Semicolon !== $this->tokens[$this->pos]->type) {
+        if (TokenTypeEnum::Semicolon !== $this->tokens[$this->pos]->type) {
             $metaTok  = $this->current();
             $metadata = $this->metadata($this->parsePipe(), $metaTok);
         }
 
-        $this->expect(TokenType::Semicolon);
+        $this->expect(TokenTypeEnum::Semicolon);
 
         return new ImportDirective($path->value, $alias, $kind, $metadata);
     }
@@ -238,7 +238,7 @@ final class Parser implements ParserInterface
     /**
      * Fold a constant object expression (module and import metadata) into the value model.
      */
-    private function metadata(Node $node, Token $at): JsonObject
+    private function metadata(NodeInterface $node, Token $at): JsonObject
     {
         $folded = $this->fold($node, $at);
         if (!$folded instanceof JsonObject) {
@@ -248,7 +248,7 @@ final class Parser implements ParserInterface
         return $folded;
     }
 
-    private function fold(Node $node, Token $at): mixed
+    private function fold(NodeInterface $node, Token $at): mixed
     {
         if ($node instanceof Literal) {
             return $node->value;
@@ -285,11 +285,11 @@ final class Parser implements ParserInterface
     }
 
     /**
-     * @return list<Node>
+     * @return list<NodeInterface>
      */
-    private function flattenComma(?Node $node): array
+    private function flattenComma(?NodeInterface $node): array
     {
-        if (!$node instanceof Node) {
+        if (!$node instanceof NodeInterface) {
             return [];
         }
 
@@ -304,45 +304,45 @@ final class Parser implements ParserInterface
     {
         $def  = $this->advance();
         $name = $this->current();
-        if (TokenType::Ident !== $name->type) {
+        if (TokenTypeEnum::Ident !== $name->type) {
             throw $this->unexpected($name);
         }
 
         ++$this->pos;
         $params = [];
-        if (TokenType::LParen === $this->tokens[$this->pos]->type) {
+        if (TokenTypeEnum::LParen === $this->tokens[$this->pos]->type) {
             ++$this->pos;
             while (true) {
                 $param = $this->current();
-                if (TokenType::Variable === $param->type) {
+                if (TokenTypeEnum::Variable === $param->type) {
                     $params[] = '$' . $param->text;
-                } elseif (TokenType::Ident === $param->type) {
+                } elseif (TokenTypeEnum::Ident === $param->type) {
                     $params[] = $param->text;
                 } else {
                     throw $this->unexpected($param);
                 }
 
                 ++$this->pos;
-                if (TokenType::Semicolon === $this->tokens[$this->pos]->type) {
+                if (TokenTypeEnum::Semicolon === $this->tokens[$this->pos]->type) {
                     ++$this->pos;
 
                     continue;
                 }
 
-                $this->expect(TokenType::RParen);
+                $this->expect(TokenTypeEnum::RParen);
 
                 break;
             }
         }
 
-        $this->expect(TokenType::Colon);
+        $this->expect(TokenTypeEnum::Colon);
         $body = $this->parsePipe();
-        $this->expect(TokenType::Semicolon);
+        $this->expect(TokenTypeEnum::Semicolon);
 
         return new FuncDef($name->text, $params, $body, $def->line);
     }
 
-    private function parsePipe(): Node
+    private function parsePipe(): NodeInterface
     {
         $saved                = $this->bindingAllowed;
         $this->bindingAllowed = true;
@@ -357,7 +357,7 @@ final class Parser implements ParserInterface
      * The source of `reduce`/`foreach`: an expression above the comma level in which `as` ends the source
      * instead of starting a binding.
      */
-    private function parseLoopSource(): Node
+    private function parseLoopSource(): NodeInterface
     {
         $saved                = $this->bindingAllowed;
         $this->bindingAllowed = false;
@@ -368,7 +368,7 @@ final class Parser implements ParserInterface
         }
     }
 
-    private function parseExpr(int $min): Node
+    private function parseExpr(int $min): NodeInterface
     {
         $left = $this->parseUnary();
         while (true) {
@@ -391,7 +391,7 @@ final class Parser implements ParserInterface
                     break;
 
                 case self::LEVEL_ALT:
-                    $left = new Binary(BinaryOp::Alt, $left, $this->parseExpr(self::LEVEL_ALT));
+                    $left = new Binary(BinaryOpEnum::Alt, $left, $this->parseExpr(self::LEVEL_ALT));
 
                     break;
 
@@ -413,36 +413,36 @@ final class Parser implements ParserInterface
         }
     }
 
-    private function assignOp(TokenType $type): AssignOp
+    private function assignOp(TokenTypeEnum $type): AssignOpEnum
     {
         return match ($type) {
-            TokenType::Assign        => AssignOp::Set,
-            TokenType::UpdateAssign  => AssignOp::Update,
-            TokenType::PlusAssign    => AssignOp::Add,
-            TokenType::MinusAssign   => AssignOp::Sub,
-            TokenType::StarAssign    => AssignOp::Mul,
-            TokenType::SlashAssign   => AssignOp::Div,
-            TokenType::PercentAssign => AssignOp::Mod,
-            default                  => AssignOp::Alt,
+            TokenTypeEnum::Assign        => AssignOpEnum::Set,
+            TokenTypeEnum::UpdateAssign  => AssignOpEnum::Update,
+            TokenTypeEnum::PlusAssign    => AssignOpEnum::Add,
+            TokenTypeEnum::MinusAssign   => AssignOpEnum::Sub,
+            TokenTypeEnum::StarAssign    => AssignOpEnum::Mul,
+            TokenTypeEnum::SlashAssign   => AssignOpEnum::Div,
+            TokenTypeEnum::PercentAssign => AssignOpEnum::Mod,
+            default                      => AssignOpEnum::Alt,
         };
     }
 
-    private function binaryOp(TokenType $type): BinaryOp
+    private function binaryOp(TokenTypeEnum $type): BinaryOpEnum
     {
         return match ($type) {
-            TokenType::KwOr    => BinaryOp::Or,
-            TokenType::KwAnd   => BinaryOp::And,
-            TokenType::Eq      => BinaryOp::Eq,
-            TokenType::Neq     => BinaryOp::Neq,
-            TokenType::Lt      => BinaryOp::Lt,
-            TokenType::Le      => BinaryOp::Le,
-            TokenType::Gt      => BinaryOp::Gt,
-            TokenType::Ge      => BinaryOp::Ge,
-            TokenType::Plus    => BinaryOp::Add,
-            TokenType::Minus   => BinaryOp::Sub,
-            TokenType::Star    => BinaryOp::Mul,
-            TokenType::Slash   => BinaryOp::Div,
-            default            => BinaryOp::Mod,
+            TokenTypeEnum::KwOr    => BinaryOpEnum::Or,
+            TokenTypeEnum::KwAnd   => BinaryOpEnum::And,
+            TokenTypeEnum::Eq      => BinaryOpEnum::Eq,
+            TokenTypeEnum::Neq     => BinaryOpEnum::Neq,
+            TokenTypeEnum::Lt      => BinaryOpEnum::Lt,
+            TokenTypeEnum::Le      => BinaryOpEnum::Le,
+            TokenTypeEnum::Gt      => BinaryOpEnum::Gt,
+            TokenTypeEnum::Ge      => BinaryOpEnum::Ge,
+            TokenTypeEnum::Plus    => BinaryOpEnum::Add,
+            TokenTypeEnum::Minus   => BinaryOpEnum::Sub,
+            TokenTypeEnum::Star    => BinaryOpEnum::Mul,
+            TokenTypeEnum::Slash   => BinaryOpEnum::Div,
+            default                => BinaryOpEnum::Mod,
         };
     }
 
@@ -457,67 +457,67 @@ final class Parser implements ParserInterface
         }
     }
 
-    private function parseUnary(): Node
+    private function parseUnary(): NodeInterface
     {
         $tok = $this->tokens[$this->pos];
         switch ($tok->type) {
-            case TokenType::Minus:
+            case TokenTypeEnum::Minus:
                 ++$this->pos;
 
                 return new Negate($this->parseExpr(self::LEVEL_MUL));
 
-            case TokenType::KwDef:
+            case TokenTypeEnum::KwDef:
                 $def = $this->parseDef();
 
                 return new FuncDefScope($def, $this->parsePipe());
 
-            case TokenType::KwLabel:
+            case TokenTypeEnum::KwLabel:
                 ++$this->pos;
-                $name = $this->expect(TokenType::Variable);
-                $this->expect(TokenType::Pipe);
+                $name = $this->expect(TokenTypeEnum::Variable);
+                $this->expect(TokenTypeEnum::Pipe);
 
                 return new Label($name->text, $this->parsePipe());
 
             default:
                 $term = $this->parsePostfix();
-                if (!$this->bindingAllowed || TokenType::KwAs !== $this->tokens[$this->pos]->type) {
+                if (!$this->bindingAllowed || TokenTypeEnum::KwAs !== $this->tokens[$this->pos]->type) {
                     return $term;
                 }
 
                 ++$this->pos;
                 $patterns = $this->parsePatterns();
-                $this->expect(TokenType::Pipe);
+                $this->expect(TokenTypeEnum::Pipe);
 
                 return new Bind($term, $patterns, $this->parsePipe());
         }
     }
 
-    private function parsePostfix(): Node
+    private function parsePostfix(): NodeInterface
     {
         $term = $this->parsePrimary();
         while (true) {
             $tok = $this->tokens[$this->pos];
             switch ($tok->type) {
-                case TokenType::Field:
+                case TokenTypeEnum::Field:
                     ++$this->pos;
                     $term = new Index($term, new Literal($tok->text));
 
                     break;
 
-                case TokenType::Dot:
+                case TokenTypeEnum::Dot:
                     $next = $this->tokens[$this->pos + 1] ?? null;
                     if (null === $next) {
                         return $term;
                     }
 
-                    if (TokenType::StringStart === $next->type) {
+                    if (TokenTypeEnum::StringStart === $next->type) {
                         ++$this->pos;
                         $term = new Index($term, $this->parseString(null));
 
                         break;
                     }
 
-                    if (TokenType::LBracket === $next->type) {
+                    if (TokenTypeEnum::LBracket === $next->type) {
                         $this->pos += 2;
                         $term = $this->parseBracket($term);
 
@@ -526,13 +526,13 @@ final class Parser implements ParserInterface
 
                     return $term;
 
-                case TokenType::LBracket:
+                case TokenTypeEnum::LBracket:
                     ++$this->pos;
                     $term = $this->parseBracket($term);
 
                     break;
 
-                case TokenType::Question:
+                case TokenTypeEnum::Question:
                     ++$this->pos;
                     $term = new TryCatch($term, null);
 
@@ -547,80 +547,80 @@ final class Parser implements ParserInterface
     /**
      * After `[`: `]`, `e]`, `e:]`, `e:e]`, `:e]`.
      */
-    private function parseBracket(Node $target): Node
+    private function parseBracket(NodeInterface $target): NodeInterface
     {
         $type = $this->tokens[$this->pos]->type;
-        if (TokenType::RBracket === $type) {
+        if (TokenTypeEnum::RBracket === $type) {
             ++$this->pos;
 
             return new Iterate($target);
         }
 
-        if (TokenType::Colon === $type) {
+        if (TokenTypeEnum::Colon === $type) {
             ++$this->pos;
             $to = $this->parsePipe();
-            $this->expect(TokenType::RBracket);
+            $this->expect(TokenTypeEnum::RBracket);
 
             return new Slice($target, null, $to);
         }
 
         $from = $this->parsePipe();
-        if (TokenType::Colon === $this->tokens[$this->pos]->type) {
+        if (TokenTypeEnum::Colon === $this->tokens[$this->pos]->type) {
             ++$this->pos;
             $to = null;
-            if (TokenType::RBracket !== $this->tokens[$this->pos]->type) {
+            if (TokenTypeEnum::RBracket !== $this->tokens[$this->pos]->type) {
                 $to = $this->parsePipe();
             }
 
-            $this->expect(TokenType::RBracket);
+            $this->expect(TokenTypeEnum::RBracket);
 
             return new Slice($target, $from, $to);
         }
 
-        $this->expect(TokenType::RBracket);
+        $this->expect(TokenTypeEnum::RBracket);
 
         return new Index($target, $from);
     }
 
-    private function parsePrimary(): Node
+    private function parsePrimary(): NodeInterface
     {
         $tok = $this->tokens[$this->pos];
         switch ($tok->type) {
-            case TokenType::Dot:
+            case TokenTypeEnum::Dot:
                 ++$this->pos;
-                if (TokenType::StringStart === $this->tokens[$this->pos]->type) {
+                if (TokenTypeEnum::StringStart === $this->tokens[$this->pos]->type) {
                     return new Index(new Identity(), $this->parseString(null));
                 }
 
                 return new Identity();
 
-            case TokenType::DotDot:
+            case TokenTypeEnum::DotDot:
                 ++$this->pos;
 
                 return new FunctionCall('recurse', [], $tok->line);
 
-            case TokenType::Field:
+            case TokenTypeEnum::Field:
                 ++$this->pos;
 
                 return new Index(new Identity(), new Literal($tok->text));
 
-            case TokenType::Number:
+            case TokenTypeEnum::Number:
                 ++$this->pos;
 
                 return new NumberLiteral($tok->text);
 
-            case TokenType::StringStart:
+            case TokenTypeEnum::StringStart:
                 return $this->parseString(null);
 
-            case TokenType::Format:
+            case TokenTypeEnum::Format:
                 ++$this->pos;
-                if (TokenType::StringStart === $this->tokens[$this->pos]->type) {
+                if (TokenTypeEnum::StringStart === $this->tokens[$this->pos]->type) {
                     return $this->parseString($tok->text);
                 }
 
                 return new Format($tok->text);
 
-            case TokenType::Variable:
+            case TokenTypeEnum::Variable:
                 ++$this->pos;
                 if ('__loc__' === $tok->text) {
                     return new Location(self::TOP_LEVEL_FILE, $tok->line);
@@ -628,50 +628,50 @@ final class Parser implements ParserInterface
 
                 return new Variable($tok->text, $tok->line);
 
-            case TokenType::LParen:
+            case TokenTypeEnum::LParen:
                 ++$this->pos;
                 $inner = $this->parsePipe();
-                $this->expect(TokenType::RParen);
+                $this->expect(TokenTypeEnum::RParen);
 
                 return $inner;
 
-            case TokenType::LBracket:
+            case TokenTypeEnum::LBracket:
                 ++$this->pos;
-                if (TokenType::RBracket === $this->tokens[$this->pos]->type) {
+                if (TokenTypeEnum::RBracket === $this->tokens[$this->pos]->type) {
                     ++$this->pos;
 
                     return new ArrayConstruct(null);
                 }
 
                 $body = $this->parsePipe();
-                $this->expect(TokenType::RBracket);
+                $this->expect(TokenTypeEnum::RBracket);
 
                 return new ArrayConstruct($body);
 
-            case TokenType::LBrace:
+            case TokenTypeEnum::LBrace:
                 ++$this->pos;
 
                 return $this->parseObject();
 
-            case TokenType::Ident:
+            case TokenTypeEnum::Ident:
                 return $this->parseIdent($tok);
 
-            case TokenType::KwIf:
+            case TokenTypeEnum::KwIf:
                 ++$this->pos;
 
                 return $this->parseIfRest();
 
-            case TokenType::KwReduce:
+            case TokenTypeEnum::KwReduce:
                 return $this->parseReduce();
 
-            case TokenType::KwForeach:
+            case TokenTypeEnum::KwForeach:
                 return $this->parseForeach();
 
-            case TokenType::KwTry:
+            case TokenTypeEnum::KwTry:
                 ++$this->pos;
                 $body    = $this->parseTryOperand();
                 $handler = null;
-                if (TokenType::KwCatch === $this->tokens[$this->pos]->type) {
+                if (TokenTypeEnum::KwCatch === $this->tokens[$this->pos]->type) {
                     ++$this->pos;
                     $handler = $this->parseTryOperand();
                 }
@@ -687,9 +687,9 @@ final class Parser implements ParserInterface
      * The body and handler of `try` are postfix terms (the grammar gives `try` the highest precedence), or a
      * negated one.
      */
-    private function parseTryOperand(): Node
+    private function parseTryOperand(): NodeInterface
     {
-        if (TokenType::Minus === $this->tokens[$this->pos]->type) {
+        if (TokenTypeEnum::Minus === $this->tokens[$this->pos]->type) {
             ++$this->pos;
 
             return new Negate($this->parseTryOperand());
@@ -698,20 +698,20 @@ final class Parser implements ParserInterface
         return $this->parsePostfix();
     }
 
-    private function parseIdent(Token $tok): Node
+    private function parseIdent(Token $tok): NodeInterface
     {
         ++$this->pos;
         $name = $tok->text;
         $next = $this->tokens[$this->pos];
-        if (TokenType::LParen === $next->type) {
+        if (TokenTypeEnum::LParen === $next->type) {
             ++$this->pos;
             $args = [$this->parsePipe()];
-            while (TokenType::Semicolon === $this->tokens[$this->pos]->type) {
+            while (TokenTypeEnum::Semicolon === $this->tokens[$this->pos]->type) {
                 ++$this->pos;
                 $args[] = $this->parsePipe();
             }
 
-            $this->expect(TokenType::RParen);
+            $this->expect(TokenTypeEnum::RParen);
 
             return new FunctionCall($name, $args, $tok->line);
         }
@@ -727,7 +727,7 @@ final class Parser implements ParserInterface
                 return new Literal(null);
 
             case 'break':
-                if (TokenType::Variable !== $next->type) {
+                if (TokenTypeEnum::Variable !== $next->type) {
                     throw $this->unexpected($next);
                 }
 
@@ -743,59 +743,59 @@ final class Parser implements ParserInterface
     /**
      * After `if` or `elif`: condition, then-branch and the else chain up to `end`.
      */
-    private function parseIfRest(): Node
+    private function parseIfRest(): NodeInterface
     {
         $condition = $this->parsePipe();
-        $this->expect(TokenType::KwThen);
+        $this->expect(TokenTypeEnum::KwThen);
         $then = $this->parsePipe();
         $else = null;
         $tok  = $this->current();
-        if (TokenType::KwElif === $tok->type) {
+        if (TokenTypeEnum::KwElif === $tok->type) {
             ++$this->pos;
 
             return new IfThenElse($condition, $then, $this->parseIfRest());
         }
 
-        if (TokenType::KwElse === $tok->type) {
+        if (TokenTypeEnum::KwElse === $tok->type) {
             ++$this->pos;
             $else = $this->parsePipe();
         }
 
-        $this->expect(TokenType::KwEnd);
+        $this->expect(TokenTypeEnum::KwEnd);
 
         return new IfThenElse($condition, $then, $else);
     }
 
-    private function parseReduce(): Node
+    private function parseReduce(): NodeInterface
     {
         ++$this->pos;
         $source  = $this->parseLoopSource();
         $pattern = $this->parseSinglePattern();
-        $this->expect(TokenType::LParen);
+        $this->expect(TokenTypeEnum::LParen);
         $init = $this->parsePipe();
-        $this->expect(TokenType::Semicolon);
+        $this->expect(TokenTypeEnum::Semicolon);
         $update = $this->parsePipe();
-        $this->expect(TokenType::RParen);
+        $this->expect(TokenTypeEnum::RParen);
 
         return new Reduce($source, $pattern, $init, $update);
     }
 
-    private function parseForeach(): Node
+    private function parseForeach(): NodeInterface
     {
         ++$this->pos;
         $source  = $this->parseLoopSource();
         $pattern = $this->parseSinglePattern();
-        $this->expect(TokenType::LParen);
+        $this->expect(TokenTypeEnum::LParen);
         $init = $this->parsePipe();
-        $this->expect(TokenType::Semicolon);
+        $this->expect(TokenTypeEnum::Semicolon);
         $update  = $this->parsePipe();
         $extract = null;
-        if (TokenType::Semicolon === $this->tokens[$this->pos]->type) {
+        if (TokenTypeEnum::Semicolon === $this->tokens[$this->pos]->type) {
             ++$this->pos;
             $extract = $this->parsePipe();
         }
 
-        $this->expect(TokenType::RParen);
+        $this->expect(TokenTypeEnum::RParen);
 
         return new ForeachLoop($source, $pattern, $init, $update, $extract);
     }
@@ -803,20 +803,20 @@ final class Parser implements ParserInterface
     /**
      * `as pattern` of reduce/foreach; destructuring alternatives are not valid here.
      */
-    private function parseSinglePattern(): Pattern
+    private function parseSinglePattern(): PatternInterface
     {
-        $this->expect(TokenType::KwAs);
+        $this->expect(TokenTypeEnum::KwAs);
 
         return $this->parsePattern();
     }
 
     /**
-     * @return non-empty-list<Pattern>
+     * @return non-empty-list<PatternInterface>
      */
     private function parsePatterns(): array
     {
         $patterns = [$this->parsePattern()];
-        while (TokenType::DestructAlt === $this->tokens[$this->pos]->type) {
+        while (TokenTypeEnum::DestructAlt === $this->tokens[$this->pos]->type) {
             ++$this->pos;
             $patterns[] = $this->parsePattern();
         }
@@ -824,36 +824,36 @@ final class Parser implements ParserInterface
         return $patterns;
     }
 
-    private function parsePattern(): Pattern
+    private function parsePattern(): PatternInterface
     {
         $tok = $this->tokens[$this->pos];
         switch ($tok->type) {
-            case TokenType::Variable:
+            case TokenTypeEnum::Variable:
                 ++$this->pos;
 
                 return new VariablePattern($tok->text);
 
-            case TokenType::LBracket:
+            case TokenTypeEnum::LBracket:
                 ++$this->pos;
                 $elements = [$this->parsePattern()];
-                while (TokenType::Comma === $this->tokens[$this->pos]->type) {
+                while (TokenTypeEnum::Comma === $this->tokens[$this->pos]->type) {
                     ++$this->pos;
                     $elements[] = $this->parsePattern();
                 }
 
-                $this->expect(TokenType::RBracket);
+                $this->expect(TokenTypeEnum::RBracket);
 
                 return new ArrayPattern($elements);
 
-            case TokenType::LBrace:
+            case TokenTypeEnum::LBrace:
                 ++$this->pos;
                 $entries = [$this->parseObjectPatternEntry()];
-                while (TokenType::Comma === $this->tokens[$this->pos]->type) {
+                while (TokenTypeEnum::Comma === $this->tokens[$this->pos]->type) {
                     ++$this->pos;
                     $entries[] = $this->parseObjectPatternEntry();
                 }
 
-                $this->expect(TokenType::RBrace);
+                $this->expect(TokenTypeEnum::RBrace);
 
                 return new ObjectPattern($entries);
 
@@ -865,9 +865,9 @@ final class Parser implements ParserInterface
     private function parseObjectPatternEntry(): ObjectPatternEntry
     {
         $tok = $this->tokens[$this->pos];
-        if (TokenType::Variable === $tok->type) {
+        if (TokenTypeEnum::Variable === $tok->type) {
             ++$this->pos;
-            if (TokenType::Colon !== $this->tokens[$this->pos]->type) {
+            if (TokenTypeEnum::Colon !== $this->tokens[$this->pos]->type) {
                 return new ObjectPatternEntry($tok->text, null, null);
             }
 
@@ -876,20 +876,20 @@ final class Parser implements ParserInterface
             return new ObjectPatternEntry($tok->text, null, $this->parsePattern());
         }
 
-        if (TokenType::Ident === $tok->type || $this->isKeyword($tok)) {
+        if (TokenTypeEnum::Ident === $tok->type || $this->isKeyword($tok)) {
             ++$this->pos;
             $key = new Literal($tok->text);
-        } elseif (TokenType::StringStart === $tok->type || TokenType::Format === $tok->type) {
+        } elseif (TokenTypeEnum::StringStart === $tok->type || TokenTypeEnum::Format === $tok->type) {
             $key = $this->parseKeyString();
-        } elseif (TokenType::LParen === $tok->type) {
+        } elseif (TokenTypeEnum::LParen === $tok->type) {
             ++$this->pos;
             $key = $this->parsePipe();
-            $this->expect(TokenType::RParen);
+            $this->expect(TokenTypeEnum::RParen);
         } else {
             throw $this->unexpected($tok);
         }
 
-        $this->expect(TokenType::Colon);
+        $this->expect(TokenTypeEnum::Colon);
 
         return new ObjectPatternEntry(null, $key, $this->parsePattern());
     }
@@ -897,12 +897,12 @@ final class Parser implements ParserInterface
     /**
      * A string or `@format "string"` used as an object (pattern) key.
      */
-    private function parseKeyString(): Node
+    private function parseKeyString(): NodeInterface
     {
         $tok = $this->tokens[$this->pos];
-        if (TokenType::Format === $tok->type) {
+        if (TokenTypeEnum::Format === $tok->type) {
             ++$this->pos;
-            if (TokenType::StringStart !== $this->tokens[$this->pos]->type) {
+            if (TokenTypeEnum::StringStart !== $this->tokens[$this->pos]->type) {
                 throw $this->unexpected($this->current());
             }
 
@@ -912,9 +912,9 @@ final class Parser implements ParserInterface
         return $this->parseString(null);
     }
 
-    private function parseObject(): Node
+    private function parseObject(): NodeInterface
     {
-        if (TokenType::RBrace === $this->tokens[$this->pos]->type) {
+        if (TokenTypeEnum::RBrace === $this->tokens[$this->pos]->type) {
             ++$this->pos;
 
             return new ObjectConstruct([]);
@@ -924,9 +924,9 @@ final class Parser implements ParserInterface
         while (true) {
             $entries[] = $this->parseObjectEntry();
             $tok       = $this->current();
-            if (TokenType::Comma === $tok->type) {
+            if (TokenTypeEnum::Comma === $tok->type) {
                 ++$this->pos;
-                if (TokenType::RBrace === $this->tokens[$this->pos]->type) {
+                if (TokenTypeEnum::RBrace === $this->tokens[$this->pos]->type) {
                     ++$this->pos;
 
                     break;
@@ -935,7 +935,7 @@ final class Parser implements ParserInterface
                 continue;
             }
 
-            if (TokenType::RBrace === $tok->type) {
+            if (TokenTypeEnum::RBrace === $tok->type) {
                 ++$this->pos;
 
                 break;
@@ -951,9 +951,9 @@ final class Parser implements ParserInterface
     {
         $tok = $this->tokens[$this->pos];
         switch (true) {
-            case TokenType::Variable === $tok->type:
+            case TokenTypeEnum::Variable === $tok->type:
                 ++$this->pos;
-                if (TokenType::Colon === $this->tokens[$this->pos]->type) {
+                if (TokenTypeEnum::Colon === $this->tokens[$this->pos]->type) {
                     ++$this->pos;
 
                     return new ObjectEntry(new Variable($tok->text, $tok->line), $this->parseObjectValue());
@@ -965,9 +965,9 @@ final class Parser implements ParserInterface
 
                 return new ObjectEntry(new Literal($tok->text), new Variable($tok->text, $tok->line));
 
-            case TokenType::Ident === $tok->type || $this->isKeyword($tok):
+            case TokenTypeEnum::Ident === $tok->type || $this->isKeyword($tok):
                 ++$this->pos;
-                if (TokenType::Colon === $this->tokens[$this->pos]->type) {
+                if (TokenTypeEnum::Colon === $this->tokens[$this->pos]->type) {
                     ++$this->pos;
 
                     return new ObjectEntry(new Literal($tok->text), $this->parseObjectValue());
@@ -975,9 +975,9 @@ final class Parser implements ParserInterface
 
                 return new ObjectEntry(new Literal($tok->text), new Index(new Identity(), new Literal($tok->text)));
 
-            case TokenType::StringStart === $tok->type || TokenType::Format === $tok->type:
+            case TokenTypeEnum::StringStart === $tok->type || TokenTypeEnum::Format === $tok->type:
                 $key = $this->parseKeyString();
-                if (TokenType::Colon === $this->tokens[$this->pos]->type) {
+                if (TokenTypeEnum::Colon === $this->tokens[$this->pos]->type) {
                     ++$this->pos;
 
                     return new ObjectEntry($key, $this->parseObjectValue());
@@ -985,11 +985,11 @@ final class Parser implements ParserInterface
 
                 return new ObjectEntry($key, new Index(new Identity(), $key));
 
-            case TokenType::LParen === $tok->type:
+            case TokenTypeEnum::LParen === $tok->type:
                 ++$this->pos;
                 $key = $this->parsePipe();
-                $this->expect(TokenType::RParen);
-                $this->expect(TokenType::Colon);
+                $this->expect(TokenTypeEnum::RParen);
+                $this->expect(TokenTypeEnum::Colon);
 
                 return new ObjectEntry($key, $this->parseObjectValue());
 
@@ -1010,16 +1010,16 @@ final class Parser implements ParserInterface
         $depth = 0;
         for ($i = $this->pos, $n = \count($this->tokens); $i < $n; ++$i) {
             switch ($this->tokens[$i]->type) {
-                case TokenType::LParen:
-                case TokenType::LBracket:
-                case TokenType::LBrace:
+                case TokenTypeEnum::LParen:
+                case TokenTypeEnum::LBracket:
+                case TokenTypeEnum::LBrace:
                     ++$depth;
 
                     break;
 
-                case TokenType::RParen:
-                case TokenType::RBracket:
-                case TokenType::RBrace:
+                case TokenTypeEnum::RParen:
+                case TokenTypeEnum::RBracket:
+                case TokenTypeEnum::RBrace:
                     if (0 === $depth) {
                         return false;
                     }
@@ -1028,21 +1028,21 @@ final class Parser implements ParserInterface
 
                     break;
 
-                case TokenType::Colon:
+                case TokenTypeEnum::Colon:
                     if (0 === $depth) {
                         return true;
                     }
 
                     break;
 
-                case TokenType::Comma:
+                case TokenTypeEnum::Comma:
                     if (0 === $depth) {
                         return false;
                     }
 
                     break;
 
-                case TokenType::Eof:
+                case TokenTypeEnum::Eof:
                     return false;
 
                 default:
@@ -1055,16 +1055,16 @@ final class Parser implements ParserInterface
     /**
      * An object value: postfix terms, optionally negated, joined with `|` (no other binary operators).
      */
-    private function parseObjectValue(): Node
+    private function parseObjectValue(): NodeInterface
     {
-        if (TokenType::Minus === $this->tokens[$this->pos]->type) {
+        if (TokenTypeEnum::Minus === $this->tokens[$this->pos]->type) {
             ++$this->pos;
             $value = new Negate($this->parseObjectValue());
         } else {
             $value = $this->parseExpr(self::LEVEL_ALT);
         }
 
-        if (TokenType::Pipe === $this->tokens[$this->pos]->type) {
+        if (TokenTypeEnum::Pipe === $this->tokens[$this->pos]->type) {
             ++$this->pos;
 
             return new Pipe($value, $this->parseObjectValue());
@@ -1076,7 +1076,7 @@ final class Parser implements ParserInterface
     /**
      * A string literal starting at StringStart. Without interpolation it is a Literal.
      */
-    private function parseString(?string $format): Node
+    private function parseString(?string $format): NodeInterface
     {
         ++$this->pos;
         $parts        = [];
@@ -1085,22 +1085,22 @@ final class Parser implements ParserInterface
         while (true) {
             $tok = $this->tokens[$this->pos];
             switch ($tok->type) {
-                case TokenType::StringFragment:
+                case TokenTypeEnum::StringFragment:
                     ++$this->pos;
                     $parts[] = $tok->text;
                     $text .= $tok->text;
 
                     break;
 
-                case TokenType::InterpStart:
+                case TokenTypeEnum::InterpStart:
                     ++$this->pos;
                     $parts[]      = $this->parsePipe();
                     $interpolated = true;
-                    $this->expect(TokenType::InterpEnd);
+                    $this->expect(TokenTypeEnum::InterpEnd);
 
                     break;
 
-                case TokenType::StringEnd:
+                case TokenTypeEnum::StringEnd:
                     ++$this->pos;
                     if (!$interpolated) {
                         return new Literal($text);
@@ -1117,11 +1117,11 @@ final class Parser implements ParserInterface
     private function isKeyword(Token $tok): bool
     {
         return match ($tok->type) {
-            TokenType::KwDef, TokenType::KwIf, TokenType::KwThen, TokenType::KwElif, TokenType::KwElse,
-            TokenType::KwEnd, TokenType::KwAs, TokenType::KwReduce, TokenType::KwForeach, TokenType::KwTry,
-            TokenType::KwCatch, TokenType::KwLabel, TokenType::KwImport, TokenType::KwInclude,
-            TokenType::KwModule, TokenType::KwAnd, TokenType::KwOr => true,
-            default                                                => false,
+            TokenTypeEnum::KwDef, TokenTypeEnum::KwIf, TokenTypeEnum::KwThen, TokenTypeEnum::KwElif, TokenTypeEnum::KwElse,
+            TokenTypeEnum::KwEnd, TokenTypeEnum::KwAs, TokenTypeEnum::KwReduce, TokenTypeEnum::KwForeach, TokenTypeEnum::KwTry,
+            TokenTypeEnum::KwCatch, TokenTypeEnum::KwLabel, TokenTypeEnum::KwImport, TokenTypeEnum::KwInclude,
+            TokenTypeEnum::KwModule, TokenTypeEnum::KwAnd, TokenTypeEnum::KwOr => true,
+            default                                                            => false,
         };
     }
 
@@ -1135,7 +1135,7 @@ final class Parser implements ParserInterface
         return $this->tokens[$this->pos++];
     }
 
-    private function expect(TokenType $type): Token
+    private function expect(TokenTypeEnum $type): Token
     {
         $tok = $this->tokens[$this->pos];
         if ($tok->type !== $type) {
@@ -1149,7 +1149,7 @@ final class Parser implements ParserInterface
 
     private function unexpected(Token $tok, ?string $expecting = null): JqCompileException
     {
-        if (null === $expecting && 0 === $this->pos && TokenType::Eof !== $tok->type) {
+        if (null === $expecting && 0 === $this->pos && TokenTypeEnum::Eof !== $tok->type) {
             $expecting = 'end of file';
         }
 

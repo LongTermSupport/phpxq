@@ -11,7 +11,7 @@ use LTS\PhpXq\Jq\Runtime\Eval\NativeValueOp;
 use LTS\PhpXq\Jq\Runtime\Eval\RunState;
 use LTS\PhpXq\Jq\Runtime\Eval\SingleNativeOp;
 use LTS\PhpXq\Jq\Runtime\Eval\VarOp;
-use LTS\PhpXq\Jq\Runtime\Filter;
+use LTS\PhpXq\Jq\Runtime\FilterInterface;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\CallbackPathStreamBuiltin;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\CallbackStreamBuiltin;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\CallbackValueBuiltin;
@@ -64,10 +64,10 @@ final class NativeOpsTest extends OpTestCase
     public function testStreamNativeReceivesBoundFilters(): void
     {
         $seen = [];
-        /** @param list<Filter> $filters */
+        /** @param list<FilterInterface> $filters */
         $callback = static function (mixed $input, array $filters, Closure $emit) use (&$seen): void {
             $filter = $filters[0];
-            self::assertInstanceOf(Filter::class, $filter);
+            self::assertInstanceOf(FilterInterface::class, $filter);
             $filter->run($input, static function (mixed $value) use ($emit, &$seen): void {
                 $seen[] = $value;
                 $emit($value);

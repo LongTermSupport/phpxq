@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 
 /**
  * Helpers for building and inspecting {@see Candidate}s.
@@ -83,7 +83,7 @@ final class Cands
      */
     public static function rooted(Candidate $candidate): Candidate
     {
-        if (NodeKind::Document === $candidate->node->kind && isset($candidate->node->content[0])) {
+        if (NodeKindEnum::Document === $candidate->node->kind && isset($candidate->node->content[0])) {
             return new Candidate($candidate->node->content[0], $candidate, null, $candidate->documentIndex, $candidate->fileIndex, $candidate->filename);
         }
 
@@ -96,7 +96,7 @@ final class Cands
     public static function root(Candidate $candidate): Candidate
     {
         $current = $candidate;
-        while ($current->parent instanceof Candidate && NodeKind::Document !== $current->parent->node->kind) {
+        while ($current->parent instanceof Candidate && NodeKindEnum::Document !== $current->parent->node->kind) {
             $current = $current->parent;
         }
 
@@ -105,7 +105,7 @@ final class Cands
 
     public static function isRoot(Candidate $candidate): bool
     {
-        return !$candidate->parent instanceof Candidate || NodeKind::Document === $candidate->parent->node->kind;
+        return !$candidate->parent instanceof Candidate || NodeKindEnum::Document === $candidate->parent->node->kind;
     }
 
     /**
@@ -117,7 +117,7 @@ final class Cands
     {
         $keys    = [];
         $current = $candidate;
-        while ($current->parent instanceof Candidate && NodeKind::Document !== $current->parent->node->kind) {
+        while ($current->parent instanceof Candidate && NodeKindEnum::Document !== $current->parent->node->kind) {
             if ($current->key instanceof Node) {
                 $keys[] = $current->key;
             }

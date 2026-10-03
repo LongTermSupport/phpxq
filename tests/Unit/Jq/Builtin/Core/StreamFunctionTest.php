@@ -6,7 +6,7 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Builtin\Core;
 
 use Closure;
 use LTS\PhpXq\Jq\Builtin\Core\StreamFunction;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Tests\Unit\Jq\Builtin\Core\Support\ClosureFilter;
 use LTS\PhpXq\Tests\Unit\Jq\Builtin\Core\Support\FakeContext;
 use PHPUnit\Framework\TestCase;
@@ -27,7 +27,7 @@ final class StreamFunctionTest extends TestCase
 
     public function testItRunsTheClosureAndPassesTheEmitter(): void
     {
-        $function = new StreamFunction('twice', 1, static function (RuntimeContext $c, mixed $input, array $args, Closure $emit): void {
+        $function = new StreamFunction('twice', 1, static function (RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void {
             $emit($input);
             $emit(\count($args));
         });

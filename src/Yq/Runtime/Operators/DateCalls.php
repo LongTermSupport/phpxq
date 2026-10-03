@@ -8,8 +8,8 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Exception;
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Expression\Ast\Call;
 use LTS\PhpXq\Yq\Runtime\Args;
@@ -94,12 +94,12 @@ final class DateCalls implements CallOperatorInterface
 
     private function textNode(string $text): Node
     {
-        return new Node(NodeKind::Scalar, GoTime::looksLikeTimestamp($text) ? CoreSchema::TAG_TIMESTAMP : CoreSchema::TAG_STR, NodeStyle::Default, $text);
+        return new Node(NodeKindEnum::Scalar, GoTime::looksLikeTimestamp($text) ? CoreSchema::TAG_TIMESTAMP : CoreSchema::TAG_STR, NodeStyleEnum::Default, $text);
     }
 
     private function parse(Node $node, ?string $layout): DateTimeImmutable
     {
-        if (NodeKind::Scalar !== $node->kind) {
+        if (NodeKindEnum::Scalar !== $node->kind) {
             throw new EvaluationException('Cannot parse a collection as a datetime');
         }
 

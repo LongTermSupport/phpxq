@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Tests\Unit\Yq\Cli;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yq\Format\DecoderInterface;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use LTS\PhpXq\Yq\Format\FormatRegistryInterface;
 
@@ -20,14 +20,14 @@ final class FakeFormats implements FormatRegistryInterface
     /** @var list<FormatOptions> */
     public array $seenOptions = [];
 
-    public function decoder(Format $format): DecoderInterface
+    public function decoder(FormatEnum $format): DecoderInterface
     {
         return new readonly class($format, $this) implements DecoderInterface {
-            public function __construct(private Format $format, private FakeFormats $owner)
+            public function __construct(private FormatEnum $format, private FakeFormats $owner)
             {
             }
 
-            public function format(): Format
+            public function format(): FormatEnum
             {
                 return $this->format;
             }
@@ -41,14 +41,14 @@ final class FakeFormats implements FormatRegistryInterface
         };
     }
 
-    public function encoder(Format $format): EncoderInterface
+    public function encoder(FormatEnum $format): EncoderInterface
     {
         return new readonly class($format, $this) implements EncoderInterface {
-            public function __construct(private Format $format, private FakeFormats $owner)
+            public function __construct(private FormatEnum $format, private FakeFormats $owner)
             {
             }
 
-            public function format(): Format
+            public function format(): FormatEnum
             {
                 return $this->format;
             }

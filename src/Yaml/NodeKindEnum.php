@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Yaml;
 /**
  * The structural kind of a {@see Node}; mirrors the node kinds of the reference yq (go-yaml v3).
  */
-enum NodeKind
+enum NodeKindEnum
 {
     /** One YAML document; `content` holds exactly one root node. */
     case Document;

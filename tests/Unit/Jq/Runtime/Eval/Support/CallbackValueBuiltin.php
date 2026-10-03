@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support;
 
 use Closure;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
-use LTS\PhpXq\Jq\Runtime\ValueBuiltin;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
+use LTS\PhpXq\Jq\Runtime\ValueBuiltinInterface;
 
 /**
- * A {@see ValueBuiltin} backed by a closure `(input, ...args) => value`.
+ * A {@see ValueBuiltinInterface} backed by a closure `(input, ...args) => value`.
  */
-final readonly class CallbackValueBuiltin implements ValueBuiltin
+final readonly class CallbackValueBuiltin implements ValueBuiltinInterface
 {
     /**
      * @param Closure(mixed, mixed, mixed): mixed $callback
@@ -33,7 +33,7 @@ final readonly class CallbackValueBuiltin implements ValueBuiltin
         return $this->arity;
     }
 
-    public function call(RuntimeContext $context, mixed $input, array $args): mixed
+    public function call(RuntimeContextInterface $context, mixed $input, array $args): mixed
     {
         return ($this->callback)($input, ...$args);
     }

@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\DecoderInterface;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
 /**
@@ -19,9 +19,9 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  */
 final class XmlDecoder implements DecoderInterface
 {
-    public function format(): Format
+    public function format(): FormatEnum
     {
-        return Format::Xml;
+        return FormatEnum::Xml;
     }
 
     /**
@@ -110,7 +110,7 @@ final class XmlDecoder implements DecoderInterface
         $key->headComment  = NodeTools::joinComments($key->headComment, $node->headComment);
         $node->headComment = '';
         $node->footComment = '';
-        if (NodeKind::Mapping === $node->kind) {
+        if (NodeKindEnum::Mapping === $node->kind) {
             $node->lineComment = '';
         }
 
@@ -126,7 +126,7 @@ final class XmlDecoder implements DecoderInterface
         $last  = \count($group) - 1;
         foreach ($group as $position => $child) {
             $item = $this->value($child, $options);
-            if (NodeKind::Mapping === $item->kind) {
+            if (NodeKindEnum::Mapping === $item->kind) {
                 $item->footComment = $this->comment($child->footComment);
             }
 

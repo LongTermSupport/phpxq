@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yq\Format\Codec\JsonDecoder;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -20,7 +20,7 @@ final class JsonDecoderTest extends TestCase
 {
     public function testFormat(): void
     {
-        self::assertSame(Format::Json, new JsonDecoder()->format());
+        self::assertSame(FormatEnum::Json, new JsonDecoder()->format());
     }
 
     public function testObjectKeepsOrderAndTagsScalars(): void
@@ -28,9 +28,9 @@ final class JsonDecoderTest extends TestCase
         $docs = $this->decode('{"b": 1, "a": [true, null, 1.50, "x"], "c": {"d": -2e3}}');
 
         self::assertCount(1, $docs);
-        self::assertSame(NodeKind::Document, $docs[0]->kind);
+        self::assertSame(NodeKindEnum::Document, $docs[0]->kind);
         $root = $docs[0]->root();
-        self::assertSame(NodeKind::Mapping, $root->kind);
+        self::assertSame(NodeKindEnum::Mapping, $root->kind);
         self::assertSame(['b', 'a', 'c'], [$root->content[0]->value, $root->content[2]->value, $root->content[4]->value]);
         self::assertSame(['!!int', '1'], [$root->content[1]->tag, $root->content[1]->value]);
 
@@ -56,7 +56,7 @@ final class JsonDecoderTest extends TestCase
         $docs = $this->decode("{\"a\": 1}\n{\"b\": 2}  [3]\n\n");
 
         self::assertCount(3, $docs);
-        self::assertSame(NodeKind::Sequence, $docs[2]->root()->kind);
+        self::assertSame(NodeKindEnum::Sequence, $docs[2]->root()->kind);
     }
 
     public function testEmptyInputHasNoDocuments(): void

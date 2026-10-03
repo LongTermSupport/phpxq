@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime;
 
 use LTS\PhpXq\Yq\Expression\Ast\Binary;
-use LTS\PhpXq\Yq\Expression\Ast\BinaryOperator;
+use LTS\PhpXq\Yq\Expression\Ast\BinaryOperatorEnum;
 
 /**
  * An infix operator: pipe, union, the assignment family, alternative, boolean, comparison, arithmetic.
@@ -15,7 +15,7 @@ use LTS\PhpXq\Yq\Expression\Ast\BinaryOperator;
 interface BinaryOperatorInterface
 {
     /**
-     * @return list<BinaryOperator> every operator this class implements
+     * @return list<BinaryOperatorEnum> every operator this class implements
      */
     public function operators(): array;
 

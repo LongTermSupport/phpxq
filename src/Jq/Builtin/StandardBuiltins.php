@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Jq\Builtin;
 
-use LTS\PhpXq\Jq\Runtime\BuiltinRegistry;
+use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
 use LTS\PhpXq\Jq\Runtime\DefaultBuiltinRegistry;
 
 /**
@@ -19,7 +19,7 @@ final class StandardBuiltins
     {
     }
 
-    public static function create(): BuiltinRegistry
+    public static function create(): BuiltinRegistryInterface
     {
         $registry = new DefaultBuiltinRegistry();
         foreach ([new CoreBuiltins(), new RegexBuiltins(), new DateBuiltins()] as $provider) {

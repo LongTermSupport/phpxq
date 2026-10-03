@@ -9,9 +9,9 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class Negate implements Node
+final readonly class Negate implements NodeInterface
 {
-    public function __construct(public Node $operand)
+    public function __construct(public NodeInterface $operand)
     {
     }
 }

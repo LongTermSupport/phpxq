@@ -19,5 +19,5 @@ interface ExpressionParserInterface
     /**
      * @throws ExpressionSyntaxException
      */
-    public function parse(string $expression): ExpressionNode;
+    public function parse(string $expression): ExpressionNodeInterface;
 }

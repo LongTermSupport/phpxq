@@ -6,7 +6,7 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Cli;
 
 use Closure;
 use LTS\PhpXq\Jq\Cli\JqApplication;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Json\JsonDecoder;
 use LTS\PhpXq\Json\JsonEncoder;
 use PHPUnit\Framework\TestCase;
@@ -39,14 +39,14 @@ abstract class JqApplicationTestCase extends TestCase
     }
 
     /**
-     * @param list<string>                                                $args
-     * @param ?Closure(RuntimeContext, mixed, Closure(mixed): void): void $behaviour defaults to the identity filter
+     * @param list<string>                                                         $args
+     * @param ?Closure(RuntimeContextInterface, mixed, Closure(mixed): void): void $behaviour defaults to the identity filter
      *
      * @return array{int, string, string} exit status, stdout, stderr
      */
     protected function jq(array $args, string $stdin = '', ?Closure $behaviour = null): array
     {
-        $this->compiler = new JqApplicationFakeCompiler($behaviour ?? static function (RuntimeContext $context, mixed $input, Closure $emit): void {
+        $this->compiler = new JqApplicationFakeCompiler($behaviour ?? static function (RuntimeContextInterface $context, mixed $input, Closure $emit): void {
             $emit($input);
         });
         $this->parser  = new JqApplicationFakeParser();

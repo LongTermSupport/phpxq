@@ -10,11 +10,11 @@ namespace LTS\PhpXq\Jq\Runtime;
  *
  * @api
  */
-interface BuiltinProvider
+interface BuiltinProviderInterface
 {
     /**
-     * Register natives with {@see BuiltinRegistry::register()} and jq-defined builtins with
-     * {@see BuiltinRegistry::addPrelude()}.
+     * Register natives with {@see BuiltinRegistryInterface::register()} and jq-defined builtins with
+     * {@see BuiltinRegistryInterface::addPrelude()}.
      */
-    public function registerInto(BuiltinRegistry $registry): void;
+    public function registerInto(BuiltinRegistryInterface $registry): void;
 }

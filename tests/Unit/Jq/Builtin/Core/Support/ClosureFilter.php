@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Jq\Builtin\Core\Support;
 
 use Closure;
-use LTS\PhpXq\Jq\Runtime\Filter;
+use LTS\PhpXq\Jq\Runtime\FilterInterface;
 use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Json\Values;
 use RuntimeException;
 
 /**
- * A {@see Filter} built from closures, so builtins taking filter arguments can be exercised without the
+ * A {@see FilterInterface} built from closures, so builtins taking filter arguments can be exercised without the
  * evaluator.
  *
  * @internal
  */
-final readonly class ClosureFilter implements Filter
+final readonly class ClosureFilter implements FilterInterface
 {
     /**
      * @param Closure(mixed, Closure(mixed): void): void                              $values

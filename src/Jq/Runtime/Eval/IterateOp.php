@@ -12,15 +12,15 @@ use LTS\PhpXq\Json\JsonObject;
  *
  * @internal
  */
-final readonly class IterateOp implements Op
+final readonly class IterateOp implements OpInterface
 {
-    public function __construct(private ?Op $target)
+    public function __construct(private ?OpInterface $target)
     {
     }
 
     public function run(?Env $env, mixed $input, Closure $emit): void
     {
-        if (!$this->target instanceof Op) {
+        if (!$this->target instanceof OpInterface) {
             self::each($input, $emit);
 
             return;
@@ -33,7 +33,7 @@ final readonly class IterateOp implements Op
 
     public function paths(?Env $env, ?array $path, mixed $input, Closure $emit): void
     {
-        if (!$this->target instanceof Op) {
+        if (!$this->target instanceof OpInterface) {
             self::eachPath($path, $input, $emit);
 
             return;

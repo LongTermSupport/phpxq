@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Jq\Parser;
 
-use LTS\PhpXq\Jq\Parser\TokenType;
+use LTS\PhpXq\Jq\Parser\TokenTypeEnum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -15,23 +15,23 @@ final class TokenTypeTest extends TestCase
 {
     public function testValuesAreUnique(): void
     {
-        $values = array_map(static fn (TokenType $type): string => $type->value, TokenType::cases());
+        $values = array_map(static fn (TokenTypeEnum $type): string => $type->value, TokenTypeEnum::cases());
 
         self::assertSame($values, array_values(array_unique($values)));
     }
 
     #[DataProvider('provideKeywords')]
-    public function testKeywordsResolveFromTheirSpelling(string $spelling, TokenType $expected): void
+    public function testKeywordsResolveFromTheirSpelling(string $spelling, TokenTypeEnum $expected): void
     {
-        self::assertSame($expected, TokenType::from($spelling));
+        self::assertSame($expected, TokenTypeEnum::from($spelling));
     }
 
     /**
-     * @return iterable<string, array{string, TokenType}>
+     * @return iterable<string, array{string, TokenTypeEnum}>
      */
     public static function provideKeywords(): iterable
     {
-        yield 'reduce' => ['reduce', TokenType::KwReduce];
-        yield 'foreach' => ['foreach', TokenType::KwForeach];
+        yield 'reduce' => ['reduce', TokenTypeEnum::KwReduce];
+        yield 'foreach' => ['foreach', TokenTypeEnum::KwForeach];
     }
 }

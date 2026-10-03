@@ -9,11 +9,11 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class Comma implements Node
+final readonly class Comma implements NodeInterface
 {
     public function __construct(
-        public Node $left,
-        public Node $right,
+        public NodeInterface $left,
+        public NodeInterface $right,
     ) {
     }
 }

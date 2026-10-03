@@ -20,8 +20,8 @@ final readonly class ObjectPatternEntry
 {
     public function __construct(
         public ?string $variable,
-        public ?Node $key,
-        public ?Pattern $value,
+        public ?NodeInterface $key,
+        public ?PatternInterface $value,
     ) {
     }
 }

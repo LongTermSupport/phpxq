@@ -6,7 +6,7 @@ namespace LTS\PhpXq\Tests\Unit\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Parser\YamlParser;
 use LTS\PhpXq\Yq\Format\Codec\ShellEncoder;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -58,6 +58,6 @@ final class ShellCodecTest extends TestCase
 
     public function testFormat(): void
     {
-        self::assertSame(Format::Shell, new ShellEncoder()->format());
+        self::assertSame(FormatEnum::Shell, new ShellEncoder()->format());
     }
 }

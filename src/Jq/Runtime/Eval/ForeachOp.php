@@ -12,14 +12,14 @@ use Closure;
  *
  * @internal
  */
-final readonly class ForeachOp implements Op
+final readonly class ForeachOp implements OpInterface
 {
     public function __construct(
-        private Op $source,
-        private Binder $binder,
-        private Op $init,
-        private Op $update,
-        private ?Op $extract,
+        private OpInterface $source,
+        private BinderInterface $binder,
+        private OpInterface $init,
+        private OpInterface $update,
+        private ?OpInterface $extract,
     ) {
     }
 
@@ -35,7 +35,7 @@ final readonly class ForeachOp implements Op
                     $state   = null;
                     $update->run($bound, $current, static function (mixed $value) use (&$state, $extract, $bound, $emit): void {
                         $state = $value;
-                        if (!$extract instanceof Op) {
+                        if (!$extract instanceof OpInterface) {
                             $emit($value);
 
                             return;
@@ -64,7 +64,7 @@ final readonly class ForeachOp implements Op
                     $update->paths($bound, $currentPath, $current, static function (?array $valuePath, mixed $value) use (&$statePath, &$state, $extract, $bound, $emit): void {
                         $statePath = $valuePath;
                         $state     = $value;
-                        if (!$extract instanceof Op) {
+                        if (!$extract instanceof OpInterface) {
                             $emit($valuePath, $value);
 
                             return;

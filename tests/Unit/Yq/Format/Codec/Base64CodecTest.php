@@ -9,7 +9,7 @@ use LTS\PhpXq\Yq\Format\Codec\Base64Decoder;
 use LTS\PhpXq\Yq\Format\Codec\Base64Encoder;
 use LTS\PhpXq\Yq\Format\Codec\UriDecoder;
 use LTS\PhpXq\Yq\Format\Codec\UriEncoder;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use PHPUnit\Framework\TestCase;
@@ -21,7 +21,7 @@ final class Base64CodecTest extends TestCase
 {
     public function testDecodesBase64WithSurroundingWhitespace(): void
     {
-        $docs = [...new Base64Decoder(Format::Base64)->decode("\n YSBzcGVjaWFsIHN0cmluZw==  \n\n", new FormatOptions())];
+        $docs = [...new Base64Decoder(FormatEnum::Base64)->decode("\n YSBzcGVjaWFsIHN0cmluZw==  \n\n", new FormatOptions())];
 
         self::assertCount(1, $docs);
         self::assertSame('a special string', $docs[0]->root()->value);
@@ -30,7 +30,7 @@ final class Base64CodecTest extends TestCase
 
     public function testDecodesBase64Url(): void
     {
-        $docs = [...new Base64Decoder(Format::Base64Url)->decode('V29ya3Mgd2l0aCBVVEYtMTYg8J-Yig==', new FormatOptions())];
+        $docs = [...new Base64Decoder(FormatEnum::Base64Url)->decode('V29ya3Mgd2l0aCBVVEYtMTYg8J-Yig==', new FormatOptions())];
 
         self::assertSame('Works with UTF-16 😊', $docs[0]->root()->value);
     }
@@ -38,27 +38,27 @@ final class Base64CodecTest extends TestCase
     public function testDecodeRejectsGarbage(): void
     {
         $this->expectException(FormatException::class);
-        [...new Base64Decoder(Format::Base64)->decode('***', new FormatOptions())];
+        [...new Base64Decoder(FormatEnum::Base64)->decode('***', new FormatOptions())];
     }
 
     public function testEncodes(): void
     {
         $node = Node::scalar('a special string');
 
-        self::assertSame("YSBzcGVjaWFsIHN0cmluZw==\n", new Base64Encoder(Format::Base64)->encode($node, new FormatOptions(), 0));
-        self::assertSame("Pj4tPz8_\n", new Base64Encoder(Format::Base64Url)->encode(Node::scalar('>>-???'), new FormatOptions(), 0));
+        self::assertSame("YSBzcGVjaWFsIHN0cmluZw==\n", new Base64Encoder(FormatEnum::Base64)->encode($node, new FormatOptions(), 0));
+        self::assertSame("Pj4tPz8_\n", new Base64Encoder(FormatEnum::Base64Url)->encode(Node::scalar('>>-???'), new FormatOptions(), 0));
     }
 
     public function testEncodeOnlyAcceptsStrings(): void
     {
         $this->expectException(FormatException::class);
-        new Base64Encoder(Format::Base64)->encode(Node::scalar('12'), new FormatOptions(), 0);
+        new Base64Encoder(FormatEnum::Base64)->encode(Node::scalar('12'), new FormatOptions(), 0);
     }
 
     public function testEncodeRejectsCollections(): void
     {
         $this->expectException(FormatException::class);
-        new Base64Encoder(Format::Base64)->encode(Node::sequence(), new FormatOptions(), 0);
+        new Base64Encoder(FormatEnum::Base64)->encode(Node::sequence(), new FormatOptions(), 0);
     }
 
     public function testUriRoundTrip(): void
@@ -72,10 +72,10 @@ final class Base64CodecTest extends TestCase
 
     public function testFormats(): void
     {
-        self::assertSame(Format::Uri, new UriDecoder()->format());
-        self::assertSame(Format::Uri, new UriEncoder()->format());
-        self::assertSame(Format::Base64Url, new Base64Decoder(Format::Base64Url)->format());
-        self::assertSame(Format::Base64, new Base64Encoder()->format());
+        self::assertSame(FormatEnum::Uri, new UriDecoder()->format());
+        self::assertSame(FormatEnum::Uri, new UriEncoder()->format());
+        self::assertSame(FormatEnum::Base64Url, new Base64Decoder(FormatEnum::Base64Url)->format());
+        self::assertSame(FormatEnum::Base64, new Base64Encoder()->format());
     }
 
     public function testUriEncoderRejectsCollections(): void

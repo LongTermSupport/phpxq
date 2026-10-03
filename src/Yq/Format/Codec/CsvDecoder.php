@@ -6,12 +6,12 @@ namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Parser\YamlParser;
 use LTS\PhpXq\Yaml\Parser\YamlParserInterface;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\DecoderInterface;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -24,11 +24,11 @@ final readonly class CsvDecoder implements DecoderInterface
 {
     private const string SIMPLE_FIELD = '/^(?!---|\.\.\.)(?:[A-Za-z0-9_.+\/]|-[A-Za-z0-9_.+\/])[A-Za-z0-9_.+\/ -]*(?<! )$/D';
 
-    public function __construct(private Format $format = Format::Csv, private YamlParserInterface $parser = new YamlParser())
+    public function __construct(private FormatEnum $format = FormatEnum::Csv, private YamlParserInterface $parser = new YamlParser())
     {
     }
 
-    public function format(): Format
+    public function format(): FormatEnum
     {
         return $this->format;
     }
@@ -38,7 +38,7 @@ final readonly class CsvDecoder implements DecoderInterface
      */
     public function decode(string $input, FormatOptions $options): iterable
     {
-        $separator = Format::Tsv === $this->format ? $options->tsvSeparator : $options->csvSeparator;
+        $separator = FormatEnum::Tsv === $this->format ? $options->tsvSeparator : $options->csvSeparator;
         $records   = $this->records($input, '' === $separator ? ',' : $separator);
         if ([] === $records) {
             yield Node::document(Node::scalar('', CoreSchema::TAG_NULL));
@@ -87,7 +87,7 @@ final readonly class CsvDecoder implements DecoderInterface
 
         $root = $documents[0]->root();
 
-        return NodeKind::Alias === $root->kind ? Node::scalar($text, CoreSchema::TAG_STR) : $root;
+        return NodeKindEnum::Alias === $root->kind ? Node::scalar($text, CoreSchema::TAG_STR) : $root;
     }
 
     /**

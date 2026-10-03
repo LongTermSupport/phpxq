@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval;
 use LTS\PhpXq\Jq\Ast\FuncDef;
 use LTS\PhpXq\Jq\Ast\Identity;
 use LTS\PhpXq\Jq\Ast\ImportDirective;
-use LTS\PhpXq\Jq\Ast\ImportKind;
+use LTS\PhpXq\Jq\Ast\ImportKindEnum;
 use LTS\PhpXq\Jq\Ast\ModuleDirective;
 use LTS\PhpXq\Jq\Ast\Program;
 use LTS\PhpXq\Jq\Runtime\Eval\ModuleMetaOp;
@@ -32,10 +32,10 @@ final class ModuleMetaOpTest extends OpTestCase
     {
         $program = new Program(
             [
-                new ImportDirective('a', 'foo', ImportKind::Import),
-                new ImportDirective('d', 'd', ImportKind::Import, new JsonObject(['search' => './'])),
-                new ImportDirective('data', 'data', ImportKind::Data),
-                new ImportDirective('inc', null, ImportKind::Include),
+                new ImportDirective('a', 'foo', ImportKindEnum::Import),
+                new ImportDirective('d', 'd', ImportKindEnum::Import, new JsonObject(['search' => './'])),
+                new ImportDirective('data', 'data', ImportKindEnum::Data),
+                new ImportDirective('inc', null, ImportKindEnum::Include),
             ],
             new ModuleDirective(new JsonObject(['whatever' => null])),
             [new FuncDef('a', [], new Identity()), new FuncDef('c', ['x'], new Identity())],

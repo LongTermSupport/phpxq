@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Cli;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yq\Expression\ExpressionNode;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Runtime\Candidate;
 use LTS\PhpXq\Yq\Runtime\EvaluationContext;
 use LTS\PhpXq\Yq\Runtime\EvaluatorInterface;
@@ -23,10 +23,10 @@ final class SplitFileWriter
     private mixed $handle = null;
 
     public function __construct(
-        private readonly ExpressionNode $nameExpression,
+        private readonly ExpressionNodeInterface $nameExpression,
         private readonly EvaluatorInterface $evaluator,
         private readonly RuntimeServices $services,
-        private readonly Format $format,
+        private readonly FormatEnum $format,
     ) {
     }
 
@@ -69,13 +69,13 @@ final class SplitFileWriter
         }
     }
 
-    private function extension(Format $format): string
+    private function extension(FormatEnum $format): string
     {
         return match ($format) {
-            Format::Yaml  => 'yml',
-            Format::Props => 'properties',
-            Format::Shell => 'sh',
-            default       => $format->value,
+            FormatEnum::Yaml  => 'yml',
+            FormatEnum::Props => 'properties',
+            FormatEnum::Shell => 'sh',
+            default           => $format->value,
         };
     }
 }

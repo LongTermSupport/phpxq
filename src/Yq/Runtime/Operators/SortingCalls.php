@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime\Operators;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yq\Expression\Ast\Call;
 use LTS\PhpXq\Yq\Runtime\Args;
 use LTS\PhpXq\Yq\Runtime\CallOperatorInterface;
@@ -51,7 +51,7 @@ final class SortingCalls implements CallOperatorInterface
             return [$match];
         }
 
-        if (NodeKind::Sequence !== $node->kind && NodeKind::Mapping !== $node->kind) {
+        if (NodeKindEnum::Sequence !== $node->kind && NodeKindEnum::Mapping !== $node->kind) {
             if (NodeOps::isNull($node)) {
                 return [];
             }
@@ -102,7 +102,7 @@ final class SortingCalls implements CallOperatorInterface
                 return $best instanceof Candidate ? [$best] : [];
 
             case 'reverse':
-                if (NodeKind::Sequence !== $node->kind) {
+                if (NodeKindEnum::Sequence !== $node->kind) {
                     return [$match];
                 }
 
@@ -129,8 +129,8 @@ final class SortingCalls implements CallOperatorInterface
     }
 
     /**
-     * @param list<Candidate>                               $items
-     * @param list<\LTS\PhpXq\Yq\Expression\ExpressionNode> $keyExpressions
+     * @param list<Candidate>                                        $items
+     * @param list<\LTS\PhpXq\Yq\Expression\ExpressionNodeInterface> $keyExpressions
      *
      * @return list<Candidate>
      */
@@ -175,7 +175,7 @@ final class SortingCalls implements CallOperatorInterface
      */
     private function rebuild(Node $node, array $ordered): Node
     {
-        if (NodeKind::Mapping === $node->kind) {
+        if (NodeKindEnum::Mapping === $node->kind) {
             $flat = [];
             foreach ($ordered as $item) {
                 $key = $item->key;

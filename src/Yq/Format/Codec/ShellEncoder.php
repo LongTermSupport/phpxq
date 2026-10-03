@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -26,15 +26,15 @@ final class ShellEncoder implements EncoderInterface
     /** @var array<string, string>|null */
     private static ?array $folding = null;
 
-    public function format(): Format
+    public function format(): FormatEnum
     {
-        return Format::Shell;
+        return FormatEnum::Shell;
     }
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
         $root = NodeTools::unwrap($node);
-        if (NodeKind::Scalar === $root->kind) {
+        if (NodeKindEnum::Scalar === $root->kind) {
             return $this->value($root) . "\n";
         }
 
@@ -54,13 +54,13 @@ final class ShellEncoder implements EncoderInterface
         }
 
         $node = NodeTools::unwrap($node);
-        if (NodeKind::Scalar === $node->kind) {
+        if (NodeKindEnum::Scalar === $node->kind) {
             $out .= implode($separator, $parts) . '=' . $this->value($node) . "\n";
 
             return;
         }
 
-        if (NodeKind::Sequence === $node->kind) {
+        if (NodeKindEnum::Sequence === $node->kind) {
             foreach ($node->content as $position => $item) {
                 $this->walk($out, $item, [...$parts, (string)$position], $separator, $depth + 1);
             }

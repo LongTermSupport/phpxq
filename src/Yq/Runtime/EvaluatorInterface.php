@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Runtime;
 
-use LTS\PhpXq\Yq\Expression\ExpressionNode;
+use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 
 /**
  * Interprets an expression AST. Structural nodes (Identity, Field, Index-style traversal, Slice,
@@ -20,5 +20,5 @@ interface EvaluatorInterface
      *
      * @throws EvaluationException
      */
-    public function evaluate(ExpressionNode $expression, EvaluationContext $context): array;
+    public function evaluate(ExpressionNodeInterface $expression, EvaluationContext $context): array;
 }

@@ -8,7 +8,7 @@ namespace LTS\PhpXq\Yaml\Token;
  * Token types of the YAML scanner. The set follows libyaml's scanner (the basis of go-yaml, which the
  * reference yq uses) plus Comment, so that comments reach the parser instead of being dropped.
  */
-enum TokenType
+enum TokenTypeEnum
 {
     case StreamStart;
 

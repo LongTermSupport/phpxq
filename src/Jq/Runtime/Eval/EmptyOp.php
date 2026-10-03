@@ -11,7 +11,7 @@ use Closure;
  *
  * @internal
  */
-final class EmptyOp implements Op
+final class EmptyOp implements OpInterface
 {
     public function run(?Env $env, mixed $input, Closure $emit): void
     {

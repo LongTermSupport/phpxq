@@ -10,11 +10,11 @@ use LTS\PhpXq\Jq\Parser\Lexer;
 use LTS\PhpXq\Jq\Parser\Parser;
 use LTS\PhpXq\Jq\Runtime\Arithmetic;
 use LTS\PhpXq\Jq\Runtime\BreakException;
-use LTS\PhpXq\Jq\Runtime\BuiltinRegistry;
+use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
 use LTS\PhpXq\Jq\Runtime\Compiler;
 use LTS\PhpXq\Jq\Runtime\DefaultBuiltinRegistry;
 use LTS\PhpXq\Jq\Runtime\FileModuleLoader;
-use LTS\PhpXq\Jq\Runtime\Filter;
+use LTS\PhpXq\Jq\Runtime\FilterInterface;
 use LTS\PhpXq\Jq\Runtime\JqCompileException;
 use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Jq\Runtime\ModuleLoaderInterface;
@@ -108,7 +108,7 @@ final class ProgramHarness
         return '(no error)';
     }
 
-    public static function registry(): BuiltinRegistry
+    public static function registry(): BuiltinRegistryInterface
     {
         $encoder  = new JsonEncoder();
         $registry = new DefaultBuiltinRegistry();
@@ -150,7 +150,7 @@ final class ProgramHarness
             default  => \is_string($input) ? $input : $encoder->encode($input, EncodeOptions::compact()),
         });
         $value('pair', 2, static fn (mixed $input, mixed $first, mixed $second): array => [$first, $second]);
-        /** @param list<Filter> $filters */
+        /** @param list<FilterInterface> $filters */
         $stream('range', 1, static function (mixed $input, array $filters, Closure $emit): void {
             self::filter($filters, 0)->run($input, static function (mixed $limit) use ($emit): void {
                 for ($i = 0; \is_int($limit) && $i < $limit; ++$i) {
@@ -158,7 +158,7 @@ final class ProgramHarness
                 }
             });
         });
-        /** @param list<Filter> $filters */
+        /** @param list<FilterInterface> $filters */
         $stream('range', 2, static function (mixed $input, array $filters, Closure $emit): void {
             self::filter($filters, 0)->run($input, static function (mixed $from) use ($input, $filters, $emit): void {
                 self::filter($filters, 1)->run($input, static function (mixed $to) use ($from, $emit): void {
@@ -172,7 +172,7 @@ final class ProgramHarness
                 });
             });
         });
-        /** @param list<Filter> $filters */
+        /** @param list<FilterInterface> $filters */
         $stream('first', 1, static function (mixed $input, array $filters, Closure $emit): void {
             $token = new stdClass();
             try {
@@ -196,10 +196,10 @@ final class ProgramHarness
     /**
      * @param array<mixed> $filters
      */
-    private static function filter(array $filters, int $index): Filter
+    private static function filter(array $filters, int $index): FilterInterface
     {
         $filter = $filters[$index] ?? null;
-        if (!$filter instanceof Filter) {
+        if (!$filter instanceof FilterInterface) {
             throw new LogicException('Missing filter argument ' . $index);
         }
 

@@ -7,8 +7,8 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support;
 use LTS\PhpXq\Jq\Runtime\Eval\ConstOp;
 use LTS\PhpXq\Jq\Runtime\Eval\Env;
 use LTS\PhpXq\Jq\Runtime\Eval\IdentityOp;
-use LTS\PhpXq\Jq\Runtime\Eval\Op;
-use LTS\PhpXq\Jq\Runtime\Eval\SingleOp;
+use LTS\PhpXq\Jq\Runtime\Eval\OpInterface;
+use LTS\PhpXq\Jq\Runtime\Eval\SingleOpInterface;
 use LTS\PhpXq\Json\JsonObject;
 use PHPUnit\Framework\TestCase;
 
@@ -21,7 +21,7 @@ abstract class OpTestCase extends TestCase
     /**
      * @return list<mixed>
      */
-    protected static function outputs(Op $op, mixed $input = null, ?Env $env = null): array
+    protected static function outputs(OpInterface $op, mixed $input = null, ?Env $env = null): array
     {
         $outputs = [];
         $op->run($env, $input, static function (mixed $value) use (&$outputs): void {
@@ -36,7 +36,7 @@ abstract class OpTestCase extends TestCase
      *
      * @return list<array{?list<mixed>, mixed}>
      */
-    protected static function pathOutputs(Op $op, mixed $input = null, ?array $path = [], ?Env $env = null): array
+    protected static function pathOutputs(OpInterface $op, mixed $input = null, ?array $path = [], ?Env $env = null): array
     {
         $outputs = [];
         $op->paths($env, $path, $input, static function (?array $valuePath, mixed $value) use (&$outputs): void {
@@ -57,11 +57,11 @@ abstract class OpTestCase extends TestCase
     }
 
     /**
-     * An op that emits each of $values, in order (a generator that is not a {@see SingleOp}).
+     * An op that emits each of $values, in order (a generator that is not a {@see SingleOpInterface}).
      *
      * @param list<mixed> $values
      */
-    protected static function generator(array $values): Op
+    protected static function generator(array $values): OpInterface
     {
         return new GeneratorOp($values);
     }

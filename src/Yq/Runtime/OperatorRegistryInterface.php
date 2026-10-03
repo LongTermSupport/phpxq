@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Runtime;
 
-use LTS\PhpXq\Yq\Expression\Ast\BinaryOperator;
+use LTS\PhpXq\Yq\Expression\Ast\BinaryOperatorEnum;
 
 /**
  * The lookup table the evaluator uses for Call and Binary nodes. The evaluator worker owns every
@@ -17,7 +17,7 @@ interface OperatorRegistryInterface
 {
     public function call(string $name): ?CallOperatorInterface;
 
-    public function binary(BinaryOperator $operator): ?BinaryOperatorInterface;
+    public function binary(BinaryOperatorEnum $operator): ?BinaryOperatorInterface;
 
     public function registerCall(CallOperatorInterface $operator): void;
 

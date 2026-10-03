@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -21,23 +21,23 @@ final class XmlEncoder implements EncoderInterface
 {
     private const int MAX_DEPTH = 1000;
 
-    public function format(): Format
+    public function format(): FormatEnum
     {
-        return Format::Xml;
+        return FormatEnum::Xml;
     }
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
         $root = NodeTools::unwrap($node);
-        if (NodeKind::Scalar === $root->kind) {
+        if (NodeKindEnum::Scalar === $root->kind) {
             return $this->escapeText($root->value) . "\n";
         }
 
         $writer = new XmlWriter($options->indent > 0 ? str_repeat(' ', $options->indent) : '');
-        $roots  = NodeKind::Sequence === $root->kind ? $root->content : [$root];
+        $roots  = NodeKindEnum::Sequence === $root->kind ? $root->content : [$root];
         foreach ($roots as $item) {
             $item = NodeTools::unwrap($item);
-            if (NodeKind::Mapping !== $item->kind) {
+            if (NodeKindEnum::Mapping !== $item->kind) {
                 throw new FormatException('xml: the top level must be a map or an array of maps');
             }
 
@@ -80,13 +80,13 @@ final class XmlEncoder implements EncoderInterface
 
         $value = NodeTools::unwrap($value);
         switch ($value->kind) {
-            case NodeKind::Sequence:
+            case NodeKindEnum::Sequence:
                 foreach ($value->content as $item) {
                     $this->element($writer, $item, $name, $options, $depth + 1);
                 }
 
                 return;
-            case NodeKind::Mapping:
+            case NodeKindEnum::Mapping:
                 $this->mapping($writer, $value, $name, $options, $depth);
 
                 return;
@@ -111,7 +111,7 @@ final class XmlEncoder implements EncoderInterface
             }
 
             $attribute = NodeTools::unwrap($value);
-            if (NodeKind::Scalar !== $attribute->kind) {
+            if (NodeKindEnum::Scalar !== $attribute->kind) {
                 throw new FormatException('xml: cannot use ' . $attribute->tag . ' as attribute, only scalars are supported');
             }
 
@@ -134,7 +134,7 @@ final class XmlEncoder implements EncoderInterface
                 $writer->raw($this->directive($value));
             } elseif ($keyName === $options->xmlContentName) {
                 $content = NodeTools::unwrap($value);
-                if (NodeKind::Scalar !== $content->kind) {
+                if (NodeKindEnum::Scalar !== $content->kind) {
                     throw new FormatException('xml: ' . $keyName . ' must be a scalar');
                 }
 

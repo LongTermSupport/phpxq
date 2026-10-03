@@ -9,11 +9,11 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class Pipe implements Node
+final readonly class Pipe implements NodeInterface
 {
     public function __construct(
-        public Node $left,
-        public Node $right,
+        public NodeInterface $left,
+        public NodeInterface $right,
     ) {
     }
 }

@@ -10,6 +10,6 @@ namespace LTS\PhpXq\Yq\Expression;
  *
  * @api
  */
-interface ExpressionNode
+interface ExpressionNodeInterface
 {
 }

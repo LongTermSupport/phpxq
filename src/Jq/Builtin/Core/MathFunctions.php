@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Jq\Builtin\Core;
 
 use Closure;
-use LTS\PhpXq\Jq\Runtime\BuiltinRegistry;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
+use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use RoundingMode;
 
 /**
@@ -37,10 +37,10 @@ final class MathFunctions
     {
     }
 
-    public static function register(BuiltinRegistry $registry): void
+    public static function register(BuiltinRegistryInterface $registry): void
     {
         foreach (self::unaryTable() as $name => $function) {
-            $registry->register(new ValueFunction($name, 0, static fn (RuntimeContext $c, mixed $v): mixed => Num::of($function(self::arg($v)))));
+            $registry->register(new ValueFunction($name, 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => Num::of($function(self::arg($v)))));
         }
 
         $binary = [
@@ -59,20 +59,20 @@ final class MathFunctions
             'scalb'      => self::scalb(...),
         ];
         foreach ($binary as $name => $function) {
-            $registry->register(new ValueFunction($name, 2, static fn (RuntimeContext $c, mixed $v, array $a): mixed => Num::of($function(self::arg($a[0]), self::arg($a[1])))));
+            $registry->register(new ValueFunction($name, 2, static fn (RuntimeContextInterface $c, mixed $v, array $a): mixed => Num::of($function(self::arg($a[0]), self::arg($a[1])))));
         }
 
-        $registry->register(new ValueFunction('ldexp', 2, static fn (RuntimeContext $c, mixed $v, array $a): mixed => Num::of(self::scalb(self::arg($a[0]), (float)Num::toInt(self::arg($a[1]))))));
-        $registry->register(new ValueFunction('scalbln', 2, static fn (RuntimeContext $c, mixed $v, array $a): mixed => Num::of(self::scalb(self::arg($a[0]), (float)Num::toInt(self::arg($a[1]))))));
-        $registry->register(new ValueFunction('fma', 3, static fn (RuntimeContext $c, mixed $v, array $a): mixed => Num::of(self::arg($a[0]) * self::arg($a[1]) + self::arg($a[2]))));
-        $registry->register(new ValueFunction('jn', 2, static fn (RuntimeContext $c, mixed $v, array $a): mixed => Num::of(self::jn(Num::toInt(self::arg($a[0])), self::arg($a[1])))));
-        $registry->register(new ValueFunction('yn', 2, static fn (RuntimeContext $c, mixed $v, array $a): mixed => Num::of(self::yn(Num::toInt(self::arg($a[0])), self::arg($a[1])))));
-        $registry->register(new ValueFunction('frexp', 0, static function (RuntimeContext $c, mixed $v): mixed {
+        $registry->register(new ValueFunction('ldexp', 2, static fn (RuntimeContextInterface $c, mixed $v, array $a): mixed => Num::of(self::scalb(self::arg($a[0]), (float)Num::toInt(self::arg($a[1]))))));
+        $registry->register(new ValueFunction('scalbln', 2, static fn (RuntimeContextInterface $c, mixed $v, array $a): mixed => Num::of(self::scalb(self::arg($a[0]), (float)Num::toInt(self::arg($a[1]))))));
+        $registry->register(new ValueFunction('fma', 3, static fn (RuntimeContextInterface $c, mixed $v, array $a): mixed => Num::of(self::arg($a[0]) * self::arg($a[1]) + self::arg($a[2]))));
+        $registry->register(new ValueFunction('jn', 2, static fn (RuntimeContextInterface $c, mixed $v, array $a): mixed => Num::of(self::jn(Num::toInt(self::arg($a[0])), self::arg($a[1])))));
+        $registry->register(new ValueFunction('yn', 2, static fn (RuntimeContextInterface $c, mixed $v, array $a): mixed => Num::of(self::yn(Num::toInt(self::arg($a[0])), self::arg($a[1])))));
+        $registry->register(new ValueFunction('frexp', 0, static function (RuntimeContextInterface $c, mixed $v): mixed {
             [$mantissa, $exponent] = self::frexp(self::arg($v));
 
             return [Num::of($mantissa), $exponent];
         }));
-        $registry->register(new ValueFunction('modf', 0, static function (RuntimeContext $c, mixed $v): mixed {
+        $registry->register(new ValueFunction('modf', 0, static function (RuntimeContextInterface $c, mixed $v): mixed {
             $x = self::arg($v);
             if (is_infinite($x)) {
                 return [Num::of(self::copysign(0.0, $x)), Num::of($x)];
@@ -82,7 +82,7 @@ final class MathFunctions
 
             return [Num::of($x - $whole), Num::of($whole)];
         }));
-        $registry->register(new ValueFunction('lgamma_r', 0, static function (RuntimeContext $c, mixed $v): mixed {
+        $registry->register(new ValueFunction('lgamma_r', 0, static function (RuntimeContextInterface $c, mixed $v): mixed {
             $x = self::arg($v);
 
             return [Num::of(self::lgamma($x)), self::gammaSign($x)];

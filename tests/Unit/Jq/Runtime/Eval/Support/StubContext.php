@@ -6,12 +6,12 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support;
 
 use LTS\PhpXq\Jq\Runtime\InputProviderInterface;
 use LTS\PhpXq\Jq\Runtime\JqException;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 
 /**
- * A plain {@see RuntimeContext} for tests.
+ * A plain {@see RuntimeContextInterface} for tests.
  */
-final readonly class StubContext implements RuntimeContext
+final readonly class StubContext implements RuntimeContextInterface
 {
     /**
      * @param array<string, mixed> $globals

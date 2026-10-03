@@ -16,12 +16,12 @@ namespace LTS\PhpXq\Jq\Runtime;
  *
  * @api
  */
-interface ValueBuiltin extends Builtin
+interface ValueBuiltinInterface extends BuiltinInterface
 {
     /**
      * @param list<mixed> $args one value per declared parameter
      *
      * @throws JqException
      */
-    public function call(RuntimeContext $context, mixed $input, array $args): mixed;
+    public function call(RuntimeContextInterface $context, mixed $input, array $args): mixed;
 }

@@ -16,8 +16,8 @@ namespace LTS\PhpXq\Jq\Ast;
 final readonly class ObjectEntry
 {
     public function __construct(
-        public Node $key,
-        public Node $value,
+        public NodeInterface $key,
+        public NodeInterface $value,
     ) {
     }
 }

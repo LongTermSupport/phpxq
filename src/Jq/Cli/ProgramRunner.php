@@ -6,10 +6,10 @@ namespace LTS\PhpXq\Jq\Cli;
 
 use Closure;
 use LTS\PhpXq\Jq\Cli\Options\CliOptions;
-use LTS\PhpXq\Jq\Runtime\CompiledProgram;
+use LTS\PhpXq\Jq\Runtime\CompiledProgramInterface;
 use LTS\PhpXq\Jq\Runtime\HaltException;
 use LTS\PhpXq\Jq\Runtime\JqException;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Json\EncodeOptions;
 use LTS\PhpXq\Json\JsonEncoderInterface;
 
@@ -46,8 +46,8 @@ final class ProgramRunner
     private readonly Closure $emit;
 
     public function __construct(
-        private readonly CompiledProgram $program,
-        private readonly RuntimeContext $context,
+        private readonly CompiledProgramInterface $program,
+        private readonly RuntimeContextInterface $context,
         private readonly InputSource $input,
         private readonly Console $console,
         private readonly JsonEncoderInterface $encoder,

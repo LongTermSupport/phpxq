@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime\Operators;
 
 use LTS\PhpXq\Yq\Expression\Ast\Binary;
-use LTS\PhpXq\Yq\Expression\Ast\BinaryOperator;
+use LTS\PhpXq\Yq\Expression\Ast\BinaryOperatorEnum;
 use LTS\PhpXq\Yq\Runtime\BinaryOperatorInterface;
 use LTS\PhpXq\Yq\Runtime\Candidate;
 use LTS\PhpXq\Yq\Runtime\Cands;
@@ -21,12 +21,12 @@ final class BooleanOperator implements BinaryOperatorInterface
 {
     public function operators(): array
     {
-        return [BinaryOperator::And, BinaryOperator::Or];
+        return [BinaryOperatorEnum::And, BinaryOperatorEnum::Or];
     }
 
     public function evaluate(Binary $expression, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
-        $isAnd = BinaryOperator::And === $expression->operator;
+        $isAnd = BinaryOperatorEnum::And === $expression->operator;
 
         return Cross::run(
             $expression->left,

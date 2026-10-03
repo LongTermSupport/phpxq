@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\FormatException;
 
@@ -59,7 +59,7 @@ final class JsonReader
         return match (true) {
             '{' === $char                                   => $this->object($depth),
             '[' === $char                                   => $this->array($depth),
-            '"' === $char                                   => new Node(NodeKind::Scalar, CoreSchema::TAG_STR, NodeStyle::Default, $this->string()),
+            '"' === $char                                   => new Node(NodeKindEnum::Scalar, CoreSchema::TAG_STR, NodeStyleEnum::Default, $this->string()),
             '-' === $char || ($char >= '0' && $char <= '9') => $this->number(),
             default                                         => $this->literal(),
         };
@@ -96,7 +96,7 @@ final class JsonReader
             }
 
             $value    = $this->value($depth + 1);
-            $keys[]   = new Node(NodeKind::Scalar, CoreSchema::TAG_STR, NodeStyle::Default, $key);
+            $keys[]   = new Node(NodeKindEnum::Scalar, CoreSchema::TAG_STR, NodeStyleEnum::Default, $key);
             $values[] = $value;
 
             $this->skipWhitespace();
@@ -222,13 +222,13 @@ final class JsonReader
             }
 
             if (\strlen($text) <= 18 || (string)(int)$text === $text) {
-                return new Node(NodeKind::Scalar, CoreSchema::TAG_INT, NodeStyle::Default, $text);
+                return new Node(NodeKindEnum::Scalar, CoreSchema::TAG_INT, NodeStyleEnum::Default, $text);
             }
         }
 
         $text = $this->goFloat((float)$text);
 
-        return new Node(NodeKind::Scalar, 1 === preg_match('/^-?\d+$/D', $text) ? CoreSchema::TAG_INT : CoreSchema::TAG_FLOAT, NodeStyle::Default, $text);
+        return new Node(NodeKindEnum::Scalar, 1 === preg_match('/^-?\d+$/D', $text) ? CoreSchema::TAG_INT : CoreSchema::TAG_FLOAT, NodeStyleEnum::Default, $text);
     }
 
     /**

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime\Operators;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
-use LTS\PhpXq\Yq\Expression\Ast\BinaryOperator;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
+use LTS\PhpXq\Yq\Expression\Ast\BinaryOperatorEnum;
 use LTS\PhpXq\Yq\Expression\Ast\Call;
 use LTS\PhpXq\Yq\Runtime\Args;
 use LTS\PhpXq\Yq\Runtime\CallOperatorInterface;
@@ -74,7 +74,7 @@ final class CollectionCalls implements CallOperatorInterface
 
             case 'flatten':
                 $depth = [] === $call->arguments ? -1 : (Args::int($call, 0, $context, $evaluator, $match) ?? -1);
-                if (NodeKind::Sequence !== $node->kind) {
+                if (NodeKindEnum::Sequence !== $node->kind) {
                     throw new EvaluationException('Cannot flatten ' . $node->tag);
                 }
 
@@ -102,25 +102,25 @@ final class CollectionCalls implements CallOperatorInterface
     private function length(Node $node): int
     {
         return match ($node->kind) {
-            NodeKind::Mapping  => intdiv(\count($node->content), 2),
-            NodeKind::Sequence => \count($node->content),
-            default            => NodeOps::isNull($node) ? 0 : mb_strlen($node->value),
+            NodeKindEnum::Mapping  => intdiv(\count($node->content), 2),
+            NodeKindEnum::Sequence => \count($node->content),
+            default                => NodeOps::isNull($node) ? 0 : mb_strlen($node->value),
         };
     }
 
     private function keys(Node $node): Node
     {
-        if (NodeKind::Mapping === $node->kind) {
+        if (NodeKindEnum::Mapping === $node->kind) {
             $keys = [];
             for ($i = 0, $n = \count($node->content); $i < $n; $i += 2) {
                 $key    = $node->content[$i];
-                $keys[] = new Node(NodeKind::Scalar, $key->tag, NodeStyle::Default, $key->value);
+                $keys[] = new Node(NodeKindEnum::Scalar, $key->tag, NodeStyleEnum::Default, $key->value);
             }
 
             return NodeOps::seq($keys);
         }
 
-        if (NodeKind::Sequence === $node->kind) {
+        if (NodeKindEnum::Sequence === $node->kind) {
             $keys = [];
             foreach (array_keys($node->content) as $index) {
                 $keys[] = NodeOps::int($index);
@@ -137,11 +137,11 @@ final class CollectionCalls implements CallOperatorInterface
         $entries = [];
         foreach (Traversal::values($match, false) as $child) {
             $key       = $child->key;
-            $keyCopy   = $key instanceof Node ? new Node(NodeKind::Scalar, $key->tag, NodeStyle::Default, $key->value) : NodeOps::null();
+            $keyCopy   = $key instanceof Node ? new Node(NodeKindEnum::Scalar, $key->tag, NodeStyleEnum::Default, $key->value) : NodeOps::null();
             $entries[] = NodeOps::map([NodeOps::str('key'), $keyCopy, NodeOps::str('value'), $child->node]);
         }
 
-        if (NodeKind::Mapping !== $node->kind && NodeKind::Sequence !== $node->kind) {
+        if (NodeKindEnum::Mapping !== $node->kind && NodeKindEnum::Sequence !== $node->kind) {
             throw new EvaluationException('Cannot get entries of ' . $node->tag);
         }
 
@@ -150,14 +150,14 @@ final class CollectionCalls implements CallOperatorInterface
 
     private function fromEntries(Node $node): Node
     {
-        if (NodeKind::Sequence !== $node->kind) {
+        if (NodeKindEnum::Sequence !== $node->kind) {
             throw new EvaluationException('Cannot convert ' . $node->tag . ' from entries');
         }
 
         $flat = [];
         foreach ($node->content as $entry) {
             $entry = NodeOps::deref($entry);
-            if (NodeKind::Mapping !== $entry->kind) {
+            if (NodeKindEnum::Mapping !== $entry->kind) {
                 continue;
             }
 
@@ -176,7 +176,7 @@ final class CollectionCalls implements CallOperatorInterface
             }
 
             $key    = NodeOps::deref($key);
-            $flat[] = new Node(NodeKind::Scalar, $key->tag, NodeStyle::Default, $key->value);
+            $flat[] = new Node(NodeKindEnum::Scalar, $key->tag, NodeStyleEnum::Default, $key->value);
             $flat[] = $value instanceof Node ? $value : NodeOps::null();
         }
 
@@ -212,7 +212,7 @@ final class CollectionCalls implements CallOperatorInterface
     private function map(Call $call, Candidate $match, Node $node, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
         Args::require($call, 1);
-        if (NodeKind::Mapping !== $node->kind && NodeKind::Sequence !== $node->kind) {
+        if (NodeKindEnum::Mapping !== $node->kind && NodeKindEnum::Sequence !== $node->kind) {
             return [];
         }
 
@@ -225,7 +225,7 @@ final class CollectionCalls implements CallOperatorInterface
         }
 
         $new = NodeOps::seq($items);
-        if (NodeKind::Sequence === $node->kind) {
+        if (NodeKindEnum::Sequence === $node->kind) {
             $new->style = $node->style;
         }
 
@@ -259,7 +259,7 @@ final class CollectionCalls implements CallOperatorInterface
     {
         foreach ($seq->content as $item) {
             $target = NodeOps::deref($item);
-            if (NodeKind::Sequence === $target->kind && 0 !== $depth) {
+            if (NodeKindEnum::Sequence === $target->kind && 0 !== $depth) {
                 self::flatten($target, $depth - 1, $out);
             } else {
                 $out[] = $item->deepCopy();
@@ -277,9 +277,9 @@ final class CollectionCalls implements CallOperatorInterface
             foreach (Args::results($call, 0, $context, $evaluator, $match) as $result) {
                 $items[] = $result->node;
             }
-        } elseif (NodeKind::Sequence === $node->kind) {
+        } elseif (NodeKindEnum::Sequence === $node->kind) {
             $items = $node->content;
-        } elseif (NodeKind::Mapping === $node->kind) {
+        } elseif (NodeKindEnum::Mapping === $node->kind) {
             for ($i = 1, $n = \count($node->content); $i < $n; $i += 2) {
                 $items[] = $node->content[$i];
             }
@@ -292,7 +292,7 @@ final class CollectionCalls implements CallOperatorInterface
         $total  = null;
         $layout = Cands::dateLayout($context);
         foreach ($items as $item) {
-            $total = ArithmeticOperator::apply(BinaryOperator::Add, $total, $item, '', $layout);
+            $total = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $total, $item, '', $layout);
         }
 
         return $total instanceof Node ? [Cands::derive($total, $match)] : [];
@@ -300,7 +300,7 @@ final class CollectionCalls implements CallOperatorInterface
 
     private function pivot(Node $node): Node
     {
-        if (NodeKind::Sequence !== $node->kind) {
+        if (NodeKindEnum::Sequence !== $node->kind) {
             throw new EvaluationException('Cannot pivot ' . $node->tag);
         }
 
@@ -309,7 +309,7 @@ final class CollectionCalls implements CallOperatorInterface
             $rows[] = NodeOps::deref($row);
         }
 
-        if ([] !== $rows && NodeKind::Mapping === $rows[0]->kind) {
+        if ([] !== $rows && NodeKindEnum::Mapping === $rows[0]->kind) {
             $columns = [];
             $order   = [];
             foreach ($rows as $index => $mappingRow) {
@@ -358,7 +358,7 @@ final class CollectionCalls implements CallOperatorInterface
 
     private function arrayToMap(Node $node): Node
     {
-        if (NodeKind::Sequence !== $node->kind) {
+        if (NodeKindEnum::Sequence !== $node->kind) {
             throw new EvaluationException('Cannot convert ' . $node->tag . ' to a map');
         }
 

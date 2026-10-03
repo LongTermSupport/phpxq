@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -22,19 +22,19 @@ final class HclEncoder implements EncoderInterface
 {
     private const int MAX_DEPTH = 500;
 
-    public function format(): Format
+    public function format(): FormatEnum
     {
-        return Format::Hcl;
+        return FormatEnum::Hcl;
     }
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
         $root = NodeTools::unwrap($node);
-        if (NodeKind::Scalar === $root->kind) {
+        if (NodeKindEnum::Scalar === $root->kind) {
             return $root->value . "\n";
         }
 
-        if (NodeKind::Mapping !== $root->kind) {
+        if (NodeKindEnum::Mapping !== $root->kind) {
             throw new FormatException('hcl: only a map can be written as an HCL document');
         }
 
@@ -57,7 +57,7 @@ final class HclEncoder implements EncoderInterface
             $resolved = NodeTools::unwrap($value);
             $out     .= $this->comment($key->headComment, $indent);
 
-            if (NodeKind::Mapping === $resolved->kind && !$resolved->explicitStart) {
+            if (NodeKindEnum::Mapping === $resolved->kind && !$resolved->explicitStart) {
                 $this->block($out, $name, $resolved, [], $level, $depth);
             } elseif ($this->isBlockList($resolved)) {
                 foreach ($resolved->content as $item) {
@@ -80,7 +80,7 @@ final class HclEncoder implements EncoderInterface
         if ($map->explicitEnd) {
             foreach (NodeTools::pairs($map) as [$labelKey, $labelValue]) {
                 $inner = NodeTools::unwrap($labelValue);
-                if (NodeKind::Mapping !== $inner->kind) {
+                if (NodeKindEnum::Mapping !== $inner->kind) {
                     throw new FormatException('hcl: a block label must hold a map');
                 }
 
@@ -102,13 +102,13 @@ final class HclEncoder implements EncoderInterface
 
     private function isBlockList(Node $node): bool
     {
-        if (NodeKind::Sequence !== $node->kind || [] === $node->content) {
+        if (NodeKindEnum::Sequence !== $node->kind || [] === $node->content) {
             return false;
         }
 
         foreach ($node->content as $item) {
             $item = NodeTools::unwrap($item);
-            if (NodeKind::Mapping !== $item->kind || $item->explicitStart) {
+            if (NodeKindEnum::Mapping !== $item->kind || $item->explicitStart) {
                 return false;
             }
         }
@@ -123,11 +123,11 @@ final class HclEncoder implements EncoderInterface
         }
 
         $node = NodeTools::unwrap($node);
-        if (NodeKind::Scalar === $node->kind) {
+        if (NodeKindEnum::Scalar === $node->kind) {
             return $this->scalar($node);
         }
 
-        if (NodeKind::Sequence === $node->kind) {
+        if (NodeKindEnum::Sequence === $node->kind) {
             $items = [];
             foreach ($node->content as $item) {
                 $items[] = $this->value($item, $level, true, $depth + 1);

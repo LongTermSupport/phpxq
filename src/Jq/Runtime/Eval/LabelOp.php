@@ -14,9 +14,9 @@ use stdClass;
  *
  * @internal
  */
-final readonly class LabelOp implements Op
+final readonly class LabelOp implements OpInterface
 {
-    public function __construct(private Op $body)
+    public function __construct(private OpInterface $body)
     {
     }
 

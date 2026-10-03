@@ -14,13 +14,13 @@ use LTS\PhpXq\Jq\Runtime\JqException;
  */
 final class ErrorOp extends AbstractOp
 {
-    public function __construct(private readonly ?Op $message)
+    public function __construct(private readonly ?OpInterface $message)
     {
     }
 
     public function run(?Env $env, mixed $input, Closure $emit): void
     {
-        if (!$this->message instanceof Op) {
+        if (!$this->message instanceof OpInterface) {
             throw new JqException($input);
         }
 

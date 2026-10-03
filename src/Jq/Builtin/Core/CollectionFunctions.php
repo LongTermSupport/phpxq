@@ -6,9 +6,9 @@ namespace LTS\PhpXq\Jq\Builtin\Core;
 
 use Closure;
 use LTS\PhpXq\Jq\Runtime\Arithmetic;
-use LTS\PhpXq\Jq\Runtime\BuiltinRegistry;
+use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
 use LTS\PhpXq\Jq\Runtime\JqException;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Json\PreciseNumber;
 use LTS\PhpXq\Json\Values;
@@ -27,25 +27,25 @@ final class CollectionFunctions
     {
     }
 
-    public static function register(BuiltinRegistry $registry): void
+    public static function register(BuiltinRegistryInterface $registry): void
     {
-        self::add($registry, 'sort', 0, static fn (RuntimeContext $c, mixed $v): mixed => self::sort($v));
-        self::add($registry, 'unique', 0, static fn (RuntimeContext $c, mixed $v): mixed => self::unique($v));
-        self::add($registry, 'min', 0, static fn (RuntimeContext $c, mixed $v): mixed => self::extreme($v, $v, true));
-        self::add($registry, 'max', 0, static fn (RuntimeContext $c, mixed $v): mixed => self::extreme($v, $v, false));
-        self::add($registry, '_sort_by_impl', 1, static fn (RuntimeContext $c, mixed $v, array $a): mixed => self::sortBy($v, $a[0]));
-        self::add($registry, '_group_by_impl', 1, static fn (RuntimeContext $c, mixed $v, array $a): mixed => self::groupBy($v, $a[0], false));
-        self::add($registry, '_unique_by_impl', 1, static fn (RuntimeContext $c, mixed $v, array $a): mixed => self::groupBy($v, $a[0], true));
-        self::add($registry, '_min_by_impl', 1, static fn (RuntimeContext $c, mixed $v, array $a): mixed => self::extreme($v, $a[0], true));
-        self::add($registry, '_max_by_impl', 1, static fn (RuntimeContext $c, mixed $v, array $a): mixed => self::extreme($v, $a[0], false));
-        self::add($registry, 'reverse', 0, static fn (RuntimeContext $c, mixed $v): mixed => self::reverse($v));
-        self::add($registry, 'flatten', 0, static fn (RuntimeContext $c, mixed $v): mixed => self::flatten($v, \PHP_INT_MAX));
-        self::add($registry, 'flatten', 1, static fn (RuntimeContext $c, mixed $v, array $a): mixed => self::flatten($v, self::depth($a[0])));
-        self::add($registry, 'add', 0, static fn (RuntimeContext $c, mixed $v): mixed => self::add0($v));
-        self::add($registry, 'transpose', 0, static fn (RuntimeContext $c, mixed $v): mixed => self::transpose($v));
-        self::add($registry, 'bsearch', 1, static fn (RuntimeContext $c, mixed $v, array $a): mixed => self::bsearch($v, $a[0]));
-        self::add($registry, 'to_entries', 0, static fn (RuntimeContext $c, mixed $v): mixed => self::toEntries($v));
-        self::add($registry, 'from_entries', 0, static fn (RuntimeContext $c, mixed $v): mixed => self::fromEntries($v));
+        self::add($registry, 'sort', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => self::sort($v));
+        self::add($registry, 'unique', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => self::unique($v));
+        self::add($registry, 'min', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => self::extreme($v, $v, true));
+        self::add($registry, 'max', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => self::extreme($v, $v, false));
+        self::add($registry, '_sort_by_impl', 1, static fn (RuntimeContextInterface $c, mixed $v, array $a): mixed => self::sortBy($v, $a[0]));
+        self::add($registry, '_group_by_impl', 1, static fn (RuntimeContextInterface $c, mixed $v, array $a): mixed => self::groupBy($v, $a[0], false));
+        self::add($registry, '_unique_by_impl', 1, static fn (RuntimeContextInterface $c, mixed $v, array $a): mixed => self::groupBy($v, $a[0], true));
+        self::add($registry, '_min_by_impl', 1, static fn (RuntimeContextInterface $c, mixed $v, array $a): mixed => self::extreme($v, $a[0], true));
+        self::add($registry, '_max_by_impl', 1, static fn (RuntimeContextInterface $c, mixed $v, array $a): mixed => self::extreme($v, $a[0], false));
+        self::add($registry, 'reverse', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => self::reverse($v));
+        self::add($registry, 'flatten', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => self::flatten($v, \PHP_INT_MAX));
+        self::add($registry, 'flatten', 1, static fn (RuntimeContextInterface $c, mixed $v, array $a): mixed => self::flatten($v, self::depth($a[0])));
+        self::add($registry, 'add', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => self::add0($v));
+        self::add($registry, 'transpose', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => self::transpose($v));
+        self::add($registry, 'bsearch', 1, static fn (RuntimeContextInterface $c, mixed $v, array $a): mixed => self::bsearch($v, $a[0]));
+        self::add($registry, 'to_entries', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => self::toEntries($v));
+        self::add($registry, 'from_entries', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => self::fromEntries($v));
     }
 
     /**
@@ -545,9 +545,9 @@ final class CollectionFunctions
     }
 
     /**
-     * @param Closure(RuntimeContext, mixed, list<mixed>): mixed $function
+     * @param Closure(RuntimeContextInterface, mixed, list<mixed>): mixed $function
      */
-    private static function add(BuiltinRegistry $registry, string $name, int $arity, Closure $function): void
+    private static function add(BuiltinRegistryInterface $registry, string $name, int $arity, Closure $function): void
     {
         $registry->register(new ValueFunction($name, $arity, $function));
     }

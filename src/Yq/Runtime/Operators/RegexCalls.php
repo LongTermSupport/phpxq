@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime\Operators;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yq\Expression\Ast\Call;
 use LTS\PhpXq\Yq\Runtime\Args;
 use LTS\PhpXq\Yq\Runtime\CallOperatorInterface;
@@ -34,7 +34,7 @@ final class RegexCalls implements CallOperatorInterface
         $out = [];
         foreach ($context->matches as $match) {
             $node = NodeOps::deref(Cands::node($match));
-            if (NodeKind::Scalar !== $node->kind) {
+            if (NodeKindEnum::Scalar !== $node->kind) {
                 throw new EvaluationException(\sprintf('cannot use %s on a %s', $call->name, NodeOps::kindName($node)));
             }
 

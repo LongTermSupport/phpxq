@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Jq\Builtin\Regex;
 
 use Closure;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
-use LTS\PhpXq\Jq\Runtime\StreamBuiltin;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
+use LTS\PhpXq\Jq\Runtime\StreamBuiltinInterface;
 
 /**
- * A {@see StreamBuiltin} defined by a closure.
+ * A {@see StreamBuiltinInterface} defined by a closure.
  *
  * @internal
  */
-final readonly class NativeStream implements StreamBuiltin
+final readonly class NativeStream implements StreamBuiltinInterface
 {
     /**
-     * @param Closure(mixed, list<\LTS\PhpXq\Jq\Runtime\Filter>, Closure(mixed): void): void $function receives the input, the closure parameters and the emitter
+     * @param Closure(mixed, list<\LTS\PhpXq\Jq\Runtime\FilterInterface>, Closure(mixed): void): void $function receives the input, the closure parameters and the emitter
      */
     public function __construct(
         private string $name,
@@ -35,7 +35,7 @@ final readonly class NativeStream implements StreamBuiltin
         return $this->arity;
     }
 
-    public function run(RuntimeContext $context, mixed $input, array $args, Closure $emit): void
+    public function run(RuntimeContextInterface $context, mixed $input, array $args, Closure $emit): void
     {
         ($this->function)($input, $args, $emit);
     }

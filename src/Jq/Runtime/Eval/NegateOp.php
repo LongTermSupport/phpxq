@@ -14,7 +14,7 @@ use LTS\PhpXq\Jq\Runtime\Arithmetic;
  */
 final class NegateOp extends AbstractOp
 {
-    public function __construct(private readonly Op $operand)
+    public function __construct(private readonly OpInterface $operand)
     {
     }
 

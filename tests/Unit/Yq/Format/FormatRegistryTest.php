@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Yq\Format;
 
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatRegistry;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
 final class FormatRegistryTest extends TestCase
 {
     #[DataProvider('everyFormat')]
-    public function testEveryFormatHasAnEncoder(Format $format): void
+    public function testEveryFormatHasAnEncoder(FormatEnum $format): void
     {
         $registry = new FormatRegistry();
 
@@ -25,10 +25,10 @@ final class FormatRegistryTest extends TestCase
     }
 
     #[DataProvider('everyFormat')]
-    public function testReadableFormatsHaveADecoder(Format $format): void
+    public function testReadableFormatsHaveADecoder(FormatEnum $format): void
     {
         $registry = new FormatRegistry();
-        if (Format::Shell === $format || Format::Kyaml === $format) {
+        if (FormatEnum::Shell === $format || FormatEnum::Kyaml === $format) {
             $this->expectException(FormatException::class);
         }
 
@@ -36,55 +36,55 @@ final class FormatRegistryTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{Format}>
+     * @return iterable<string, array{FormatEnum}>
      */
     public static function everyFormat(): iterable
     {
-        foreach (Format::cases() as $format) {
+        foreach (FormatEnum::cases() as $format) {
             yield $format->value => [$format];
         }
     }
 
     public function testLuaIsReadableEvenThoughTheFormatEnumSaysOtherwise(): void
     {
-        self::assertFalse(Format::Lua->canDecode());
-        self::assertSame(Format::Lua, new FormatRegistry()->decoder(Format::Lua)->format());
+        self::assertFalse(FormatEnum::Lua->canDecode());
+        self::assertSame(FormatEnum::Lua, new FormatRegistry()->decoder(FormatEnum::Lua)->format());
     }
 
     #[DataProvider('filenames')]
-    public function testFormatFromFilename(string $filename, ?Format $expected): void
+    public function testFormatFromFilename(string $filename, ?FormatEnum $expected): void
     {
         self::assertSame($expected, FormatRegistry::fromFilename($filename));
     }
 
     /**
-     * @return iterable<string, array{string, ?Format}>
+     * @return iterable<string, array{string, ?FormatEnum}>
      */
     public static function filenames(): iterable
     {
-        yield 'yaml' => ['a.yaml', Format::Yaml];
+        yield 'yaml' => ['a.yaml', FormatEnum::Yaml];
 
-        yield 'yml' => ['dir/a.YML', Format::Yaml];
+        yield 'yml' => ['dir/a.YML', FormatEnum::Yaml];
 
-        yield 'json' => ['a.json', Format::Json];
+        yield 'json' => ['a.json', FormatEnum::Json];
 
-        yield 'xml' => ['a.xml', Format::Xml];
+        yield 'xml' => ['a.xml', FormatEnum::Xml];
 
-        yield 'properties' => ['a.properties', Format::Props];
+        yield 'properties' => ['a.properties', FormatEnum::Props];
 
-        yield 'props' => ['a.props', Format::Props];
+        yield 'props' => ['a.props', FormatEnum::Props];
 
-        yield 'csv' => ['a.csv', Format::Csv];
+        yield 'csv' => ['a.csv', FormatEnum::Csv];
 
-        yield 'tsv' => ['a.tsv', Format::Tsv];
+        yield 'tsv' => ['a.tsv', FormatEnum::Tsv];
 
-        yield 'toml' => ['a.toml', Format::Toml];
+        yield 'toml' => ['a.toml', FormatEnum::Toml];
 
-        yield 'hcl' => ['main.tf', Format::Hcl];
+        yield 'hcl' => ['main.tf', FormatEnum::Hcl];
 
-        yield 'tfvars' => ['a.tfvars', Format::Hcl];
+        yield 'tfvars' => ['a.tfvars', FormatEnum::Hcl];
 
-        yield 'lua' => ['a.lua', Format::Lua];
+        yield 'lua' => ['a.lua', FormatEnum::Lua];
 
         yield 'unknown extension' => ['a.txt', null];
 

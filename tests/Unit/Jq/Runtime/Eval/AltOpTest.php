@@ -65,7 +65,7 @@ final class AltOpTest extends OpTestCase
         self::assertSame([[['a'], 1]], self::pathOutputs($op, self::object(['a' => 1, 'b' => 2])));
     }
 
-    private function generatorThenError(): \LTS\PhpXq\Jq\Runtime\Eval\Op
+    private function generatorThenError(): \LTS\PhpXq\Jq\Runtime\Eval\OpInterface
     {
         return new \LTS\PhpXq\Jq\Runtime\Eval\CommaOp(self::constant(1), new ErrorOp(self::constant('late')));
     }

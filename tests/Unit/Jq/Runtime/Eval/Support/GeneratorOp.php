@@ -6,12 +6,12 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support;
 
 use Closure;
 use LTS\PhpXq\Jq\Runtime\Eval\Env;
-use LTS\PhpXq\Jq\Runtime\Eval\Op;
+use LTS\PhpXq\Jq\Runtime\Eval\OpInterface;
 
 /**
  * An op emitting a fixed list of values in value mode and in path mode (as computed, path-less values).
  */
-final readonly class GeneratorOp implements Op
+final readonly class GeneratorOp implements OpInterface
 {
     /**
      * @param list<mixed> $values

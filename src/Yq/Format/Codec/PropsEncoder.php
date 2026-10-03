@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -22,15 +22,15 @@ final class PropsEncoder implements EncoderInterface
 {
     private const int MAX_DEPTH = 1000;
 
-    public function format(): Format
+    public function format(): FormatEnum
     {
-        return Format::Props;
+        return FormatEnum::Props;
     }
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
         $root = NodeTools::unwrap($node);
-        if (NodeKind::Scalar === $root->kind) {
+        if (NodeKindEnum::Scalar === $root->kind) {
             return $root->value . "\n";
         }
 
@@ -60,14 +60,14 @@ final class PropsEncoder implements EncoderInterface
         }
 
         $node = NodeTools::unwrap($node);
-        if (NodeKind::Scalar === $node->kind) {
+        if (NodeKindEnum::Scalar === $node->kind) {
             $lines[] = [$this->commentBlock($pending, $node->headComment, $node->lineComment), $path, $this->value($node, $options)];
 
             return;
         }
 
         $pending = $this->join($pending, $node->headComment);
-        if (NodeKind::Sequence === $node->kind) {
+        if (NodeKindEnum::Sequence === $node->kind) {
             foreach ($node->content as $position => $item) {
                 $this->walk($item, $this->appendIndex($path, $position, $options), $pending, $options, $lines, $depth + 1);
                 $pending = '';
@@ -79,7 +79,7 @@ final class PropsEncoder implements EncoderInterface
         foreach (NodeTools::pairs($node) as [$key, $value]) {
             $name         = NodeTools::keyText($key);
             $unwrapped    = NodeTools::unwrap($value);
-            $keyComments  = NodeKind::Scalar === $unwrapped->kind ? $this->join($key->headComment, $key->lineComment) : $key->headComment;
+            $keyComments  = NodeKindEnum::Scalar === $unwrapped->kind ? $this->join($key->headComment, $key->lineComment) : $key->headComment;
             $childPending = $this->join($pending, $keyComments);
             $this->walk($value, '' === $path ? $name : $path . '.' . $name, $childPending, $options, $lines, $depth + 1);
             $pending = '';

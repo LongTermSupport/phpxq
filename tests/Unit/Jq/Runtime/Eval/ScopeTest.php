@@ -8,7 +8,7 @@ use LTS\PhpXq\Jq\Ast\FuncDef;
 use LTS\PhpXq\Jq\Ast\Identity;
 use LTS\PhpXq\Jq\Runtime\Eval\FuncInfo;
 use LTS\PhpXq\Jq\Runtime\Eval\Scope;
-use LTS\PhpXq\Jq\Runtime\Eval\ScopeKind;
+use LTS\PhpXq\Jq\Runtime\Eval\ScopeKindEnum;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
  * @internal
  */
 #[CoversClass(Scope::class)]
-#[CoversClass(ScopeKind::class)]
+#[CoversClass(ScopeKindEnum::class)]
 final class ScopeTest extends TestCase
 {
     public function testVariableDepthCountsEveryEntry(): void
@@ -50,12 +50,12 @@ final class ScopeTest extends TestCase
         $info  = new FuncInfo(new FuncDef('f', ['a', 'b'], new Identity()), null, 0);
         $scope = Scope::func(null, $info);
 
-        self::assertSame(ScopeKind::Func, $scope->kind);
+        self::assertSame(ScopeKindEnum::Func, $scope->kind);
         self::assertSame('f', $scope->name);
         self::assertSame(2, $scope->arity);
         self::assertSame($info, $scope->function);
-        self::assertSame(ScopeKind::Param, Scope::param(null, 'p')->kind);
-        self::assertSame(ScopeKind::Variable, Scope::variable(null, 'v')->kind);
-        self::assertSame(ScopeKind::Label, Scope::label(null, 'l')->kind);
+        self::assertSame(ScopeKindEnum::Param, Scope::param(null, 'p')->kind);
+        self::assertSame(ScopeKindEnum::Variable, Scope::variable(null, 'v')->kind);
+        self::assertSame(ScopeKindEnum::Label, Scope::label(null, 'l')->kind);
     }
 }

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use WeakMap;
 
@@ -55,22 +55,22 @@ final class Detached
         self::attach($parentCandidate);
 
         $parent = NodeOps::deref(NodeOps::unwrap($parentCandidate->node));
-        if (NodeKind::Scalar === $parent->kind && (CoreSchema::TAG_NULL === $parent->tag || '' === $parent->value)) {
+        if (NodeKindEnum::Scalar === $parent->kind && (CoreSchema::TAG_NULL === $parent->tag || '' === $parent->value)) {
             NodeOps::becomeContainer($parent, CoreSchema::TAG_INT === $key->tag);
         }
 
         if ([] === $parent->content) {
-            $parent->style = NodeStyle::Default;
+            $parent->style = NodeStyleEnum::Default;
         }
 
-        if (NodeKind::Sequence === $parent->kind) {
+        if (NodeKindEnum::Sequence === $parent->kind) {
             $index = (int)$key->value;
             while (\count($parent->content) < $index) {
                 $parent->content[] = NodeOps::null();
             }
 
             $parent->content[] = $candidate->node;
-        } elseif (NodeKind::Mapping === $parent->kind) {
+        } elseif (NodeKindEnum::Mapping === $parent->kind) {
             $parent->content[] = $key;
             $parent->content[] = $candidate->node;
         }

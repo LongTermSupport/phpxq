@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Jq\Runtime\Eval;
 
 use Closure;
-use LTS\PhpXq\Jq\Runtime\CompiledProgram;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
+use LTS\PhpXq\Jq\Runtime\CompiledProgramInterface;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 
 /**
  * The runnable result of compiling a program. Running installs the context in the shared {@see RunState} for
@@ -15,15 +15,15 @@ use LTS\PhpXq\Jq\Runtime\RuntimeContext;
  *
  * @internal
  */
-final readonly class CompiledJq implements CompiledProgram
+final readonly class CompiledJq implements CompiledProgramInterface
 {
     public function __construct(
-        private Op $body,
+        private OpInterface $body,
         private RunState $state,
     ) {
     }
 
-    public function run(RuntimeContext $context, mixed $input, Closure $emit): void
+    public function run(RuntimeContextInterface $context, mixed $input, Closure $emit): void
     {
         $previous = $this->state->snapshot();
         $this->state->enter($context, $context->globals());

@@ -7,18 +7,18 @@ namespace LTS\PhpXq\Jq\Runtime;
 use InvalidArgumentException;
 
 /**
- * Array backed {@see BuiltinRegistry}. Registering the same name/arity twice is a programming error.
+ * Array backed {@see BuiltinRegistryInterface}. Registering the same name/arity twice is a programming error.
  *
  * @api
  */
-final class DefaultBuiltinRegistry implements BuiltinRegistry
+final class DefaultBuiltinRegistry implements BuiltinRegistryInterface
 {
-    /** @var array<string, Builtin> */
+    /** @var array<string, BuiltinInterface> */
     private array $builtins = [];
 
     private string $prelude = '';
 
-    public function register(Builtin $builtin): void
+    public function register(BuiltinInterface $builtin): void
     {
         $key = $builtin->name() . '/' . $builtin->arity();
         if (isset($this->builtins[$key])) {
@@ -33,7 +33,7 @@ final class DefaultBuiltinRegistry implements BuiltinRegistry
         $this->prelude .= $source . "\n";
     }
 
-    public function lookup(string $name, int $arity): ?Builtin
+    public function lookup(string $name, int $arity): ?BuiltinInterface
     {
         return $this->builtins[$name . '/' . $arity] ?? null;
     }

@@ -31,7 +31,7 @@ final class ProgramDump
             $definitions[$definition->signature()] = $definition;
         }
 
-        $pending = $program->body instanceof \LTS\PhpXq\Jq\Ast\Node ? self::calls($program->body) : [];
+        $pending = $program->body instanceof \LTS\PhpXq\Jq\Ast\NodeInterface ? self::calls($program->body) : [];
         $reached = [];
         while ([] !== $pending) {
             $signature = array_shift($pending);

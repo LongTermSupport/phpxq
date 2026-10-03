@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Jq\Builtin\Core;
 
-use LTS\PhpXq\Jq\Runtime\Builtin;
-use LTS\PhpXq\Jq\Runtime\BuiltinRegistry;
+use LTS\PhpXq\Jq\Runtime\BuiltinInterface;
+use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
 
 /**
  * A registry decorator that remembers the `name/arity` of every native registered through it, which is how
@@ -13,16 +13,16 @@ use LTS\PhpXq\Jq\Runtime\BuiltinRegistry;
  *
  * @internal
  */
-final class RecordingRegistry implements BuiltinRegistry
+final class RecordingRegistry implements BuiltinRegistryInterface
 {
     /** @var list<string> */
     private array $signatures = [];
 
-    public function __construct(private readonly BuiltinRegistry $inner)
+    public function __construct(private readonly BuiltinRegistryInterface $inner)
     {
     }
 
-    public function register(Builtin $builtin): void
+    public function register(BuiltinInterface $builtin): void
     {
         $this->inner->register($builtin);
         $this->signatures[] = $builtin->name() . '/' . $builtin->arity();
@@ -33,7 +33,7 @@ final class RecordingRegistry implements BuiltinRegistry
         $this->inner->addPrelude($source);
     }
 
-    public function lookup(string $name, int $arity): ?Builtin
+    public function lookup(string $name, int $arity): ?BuiltinInterface
     {
         return $this->inner->lookup($name, $arity);
     }

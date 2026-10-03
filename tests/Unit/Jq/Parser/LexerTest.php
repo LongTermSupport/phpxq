@@ -6,7 +6,7 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Parser;
 
 use LTS\PhpXq\Jq\Parser\Lexer;
 use LTS\PhpXq\Jq\Parser\Token;
-use LTS\PhpXq\Jq\Parser\TokenType;
+use LTS\PhpXq\Jq\Parser\TokenTypeEnum;
 use LTS\PhpXq\Jq\Runtime\JqCompileException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -195,8 +195,8 @@ final class LexerTest extends TestCase
         $out = [];
         foreach (new Lexer()->tokenize($source) as $token) {
             $carriesText = \in_array($token->type, [
-                TokenType::Number, TokenType::Ident, TokenType::Field, TokenType::Variable,
-                TokenType::Format, TokenType::StringFragment,
+                TokenTypeEnum::Number, TokenTypeEnum::Ident, TokenTypeEnum::Field, TokenTypeEnum::Variable,
+                TokenTypeEnum::Format, TokenTypeEnum::StringFragment,
             ], true);
             $out[] = $carriesText ? $token->type->value . ':' . $token->text : $token->type->value;
         }

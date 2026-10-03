@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Jq\Builtin\Core;
 
 use Closure;
-use LTS\PhpXq\Jq\Runtime\BuiltinRegistry;
+use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
 use LTS\PhpXq\Jq\Runtime\JqException;
-use LTS\PhpXq\Jq\Runtime\RuntimeContext;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Json\JsonDecoder;
 use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Json\JsonSyntaxException;
@@ -33,31 +33,31 @@ final class TypeFunctions
     {
     }
 
-    public static function register(BuiltinRegistry $registry): void
+    public static function register(BuiltinRegistryInterface $registry): void
     {
-        self::add($registry, 'type', 0, static fn (RuntimeContext $c, mixed $v): mixed => Values::typeName($v));
-        self::add($registry, 'not', 0, static fn (RuntimeContext $c, mixed $v): mixed => !Values::isTruthy($v));
-        self::add($registry, 'length', 0, static fn (RuntimeContext $c, mixed $v): mixed => self::length($v));
-        self::add($registry, 'utf8bytelength', 0, static fn (RuntimeContext $c, mixed $v): mixed => \is_string($v)
+        self::add($registry, 'type', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => Values::typeName($v));
+        self::add($registry, 'not', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => !Values::isTruthy($v));
+        self::add($registry, 'length', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => self::length($v));
+        self::add($registry, 'utf8bytelength', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => \is_string($v)
             ? \strlen($v)
             : throw Problems::type($v, 'only strings have UTF-8 byte length'));
-        self::add($registry, 'keys', 0, static fn (RuntimeContext $c, mixed $v): mixed => self::keys($v, true));
-        self::add($registry, 'keys_unsorted', 0, static fn (RuntimeContext $c, mixed $v): mixed => self::keys($v, false));
-        self::add($registry, 'has', 1, static fn (RuntimeContext $c, mixed $v, array $a): mixed => self::has($v, $a[0]));
-        self::add($registry, 'contains', 1, static fn (RuntimeContext $c, mixed $v, array $a): mixed => self::containsChecked($v, $a[0]));
-        self::add($registry, 'tojson', 0, static fn (RuntimeContext $c, mixed $v): mixed => Problems::json($v));
-        self::add($registry, 'tostring', 0, static fn (RuntimeContext $c, mixed $v): mixed => \is_string($v) ? $v : Problems::json($v));
-        self::add($registry, 'fromjson', 0, static fn (RuntimeContext $c, mixed $v): mixed => self::fromJson($v));
-        self::add($registry, 'tonumber', 0, static fn (RuntimeContext $c, mixed $v): mixed => self::toNumber($v));
-        self::add($registry, 'toboolean', 0, static fn (RuntimeContext $c, mixed $v): mixed => self::toBoolean($v));
-        self::add($registry, 'toarray', 0, static fn (RuntimeContext $c, mixed $v): mixed => \is_array($v) ? $v : [$v]);
-        self::add($registry, 'abs', 0, static fn (RuntimeContext $c, mixed $v): mixed => self::abs($v));
-        self::add($registry, 'ascii', 0, static fn (RuntimeContext $c, mixed $v): mixed => self::ascii($v));
+        self::add($registry, 'keys', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => self::keys($v, true));
+        self::add($registry, 'keys_unsorted', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => self::keys($v, false));
+        self::add($registry, 'has', 1, static fn (RuntimeContextInterface $c, mixed $v, array $a): mixed => self::has($v, $a[0]));
+        self::add($registry, 'contains', 1, static fn (RuntimeContextInterface $c, mixed $v, array $a): mixed => self::containsChecked($v, $a[0]));
+        self::add($registry, 'tojson', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => Problems::json($v));
+        self::add($registry, 'tostring', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => \is_string($v) ? $v : Problems::json($v));
+        self::add($registry, 'fromjson', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => self::fromJson($v));
+        self::add($registry, 'tonumber', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => self::toNumber($v));
+        self::add($registry, 'toboolean', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => self::toBoolean($v));
+        self::add($registry, 'toarray', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => \is_array($v) ? $v : [$v]);
+        self::add($registry, 'abs', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => self::abs($v));
+        self::add($registry, 'ascii', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => self::ascii($v));
         self::add($registry, 'infinite', 0, static fn (): mixed => \INF);
         self::add($registry, 'nan', 0, static fn (): mixed => \NAN);
-        self::add($registry, 'isinfinite', 0, static fn (RuntimeContext $c, mixed $v): mixed => is_infinite(self::number($v)));
-        self::add($registry, 'isnan', 0, static fn (RuntimeContext $c, mixed $v): mixed => is_nan(self::number($v)));
-        self::add($registry, 'isnormal', 0, static fn (RuntimeContext $c, mixed $v): mixed => self::isNormal(self::number($v)));
+        self::add($registry, 'isinfinite', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => is_infinite(self::number($v)));
+        self::add($registry, 'isnan', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => is_nan(self::number($v)));
+        self::add($registry, 'isnormal', 0, static fn (RuntimeContextInterface $c, mixed $v): mixed => self::isNormal(self::number($v)));
         self::add($registry, 'have_literal_numbers', 0, static fn (): mixed => true);
         self::add($registry, 'have_decnum', 0, static fn (): mixed => true);
     }
@@ -257,9 +257,9 @@ final class TypeFunctions
     }
 
     /**
-     * @param Closure(RuntimeContext, mixed, list<mixed>): mixed $function
+     * @param Closure(RuntimeContextInterface, mixed, list<mixed>): mixed $function
      */
-    private static function add(BuiltinRegistry $registry, string $name, int $arity, Closure $function): void
+    private static function add(BuiltinRegistryInterface $registry, string $name, int $arity, Closure $function): void
     {
         $registry->register(new ValueFunction($name, $arity, $function));
     }

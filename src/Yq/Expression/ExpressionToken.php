@@ -10,7 +10,7 @@ namespace LTS\PhpXq\Yq\Expression;
 final readonly class ExpressionToken
 {
     public function __construct(
-        public ExpressionTokenKind $kind,
+        public ExpressionTokenKindEnum $kind,
         public string $text,
         public int $offset,
         public bool $raw = false,

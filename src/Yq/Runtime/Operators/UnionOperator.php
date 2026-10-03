@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime\Operators;
 
 use LTS\PhpXq\Yq\Expression\Ast\Binary;
-use LTS\PhpXq\Yq\Expression\Ast\BinaryOperator;
+use LTS\PhpXq\Yq\Expression\Ast\BinaryOperatorEnum;
 use LTS\PhpXq\Yq\Runtime\BinaryOperatorInterface;
 use LTS\PhpXq\Yq\Runtime\EvaluationContext;
 use LTS\PhpXq\Yq\Runtime\EvaluatorInterface;
@@ -17,7 +17,7 @@ final class UnionOperator implements BinaryOperatorInterface
 {
     public function operators(): array
     {
-        return [BinaryOperator::Union];
+        return [BinaryOperatorEnum::Union];
     }
 
     public function evaluate(Binary $expression, EvaluationContext $context, EvaluatorInterface $evaluator): array

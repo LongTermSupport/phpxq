@@ -11,10 +11,10 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class FunctionCall implements Node
+final readonly class FunctionCall implements NodeInterface
 {
     /**
-     * @param list<Node> $args
+     * @param list<NodeInterface> $args
      */
     public function __construct(
         public string $name,

@@ -8,7 +8,7 @@ namespace LTS\PhpXq\Yq\Expression\Ast;
  * The infix operators of the expression language, valued with their surface token. Listed loosest-binding
  * first, which is the precedence order the parser applies (see architecture.md for associativity).
  */
-enum BinaryOperator: string
+enum BinaryOperatorEnum: string
 {
     case Pipe = '|';
 

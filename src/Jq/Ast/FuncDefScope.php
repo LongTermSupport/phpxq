@@ -9,11 +9,11 @@ namespace LTS\PhpXq\Jq\Ast;
  *
  * @api
  */
-final readonly class FuncDefScope implements Node
+final readonly class FuncDefScope implements NodeInterface
 {
     public function __construct(
         public FuncDef $def,
-        public Node $rest,
+        public NodeInterface $rest,
     ) {
     }
 }

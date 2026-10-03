@@ -12,7 +12,7 @@ use LTS\PhpXq\Json\JsonObject;
  *
  * @internal
  */
-final readonly class FieldOp implements SingleOp
+final readonly class FieldOp implements SingleOpInterface
 {
     public function __construct(private string $key)
     {

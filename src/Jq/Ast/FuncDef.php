@@ -21,7 +21,7 @@ final readonly class FuncDef
     public function __construct(
         public string $name,
         public array $params,
-        public Node $body,
+        public NodeInterface $body,
         public int $line = 1,
     ) {
     }

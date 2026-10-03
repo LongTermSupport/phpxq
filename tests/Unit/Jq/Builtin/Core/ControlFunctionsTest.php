@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Builtin\Core;
 use Closure;
 use LTS\PhpXq\Jq\Runtime\BreakException;
 use LTS\PhpXq\Jq\Runtime\JqException;
-use LTS\PhpXq\Jq\Runtime\StreamBuiltin;
+use LTS\PhpXq\Jq\Runtime\StreamBuiltinInterface;
 use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Tests\Unit\Jq\Builtin\Core\Support\ClosureFilter;
 use LTS\PhpXq\Tests\Unit\Jq\Builtin\Core\Support\Collector;
@@ -153,7 +153,7 @@ final class ControlFunctionsTest extends TestCase
     {
         $foreign = new stdClass();
         $builtin = Harness::registry()->lookup('first', 1);
-        self::assertInstanceOf(StreamBuiltin::class, $builtin);
+        self::assertInstanceOf(StreamBuiltinInterface::class, $builtin);
 
         try {
             $builtin->run(new FakeContext(), null, [ClosureFilter::constants(1)], static function () use ($foreign): never {
@@ -442,7 +442,7 @@ final class ControlFunctionsTest extends TestCase
     public function testRepeatApplesTheFilterToTheSameInputAgainAndAgain(): void
     {
         $builtin = Harness::registry()->lookup('repeat', 1);
-        self::assertInstanceOf(StreamBuiltin::class, $builtin);
+        self::assertInstanceOf(StreamBuiltinInterface::class, $builtin);
         $label = new stdClass();
         $out   = new Collector();
 
@@ -469,7 +469,7 @@ final class ControlFunctionsTest extends TestCase
             throw new JqException($input);
         });
         $builtin = Harness::registry()->lookup('repeat', 1);
-        self::assertInstanceOf(StreamBuiltin::class, $builtin);
+        self::assertInstanceOf(StreamBuiltinInterface::class, $builtin);
         $out = new Collector();
 
         try {

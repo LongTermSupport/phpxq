@@ -12,8 +12,8 @@ namespace LTS\PhpXq\Jq\Runtime\Eval;
 final class SingleLogicOp extends AbstractSingleOp
 {
     public function __construct(
-        private readonly SingleOp $left,
-        private readonly SingleOp $right,
+        private readonly SingleOpInterface $left,
+        private readonly SingleOpInterface $right,
         private readonly bool $isAnd,
     ) {
     }

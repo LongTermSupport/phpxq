@@ -13,11 +13,11 @@ use LTS\PhpXq\Jq\Runtime\JqException;
  *
  * @internal
  */
-final readonly class AltOp implements Op
+final readonly class AltOp implements OpInterface
 {
     public function __construct(
-        private Op $left,
-        private Op $right,
+        private OpInterface $left,
+        private OpInterface $right,
     ) {
     }
 

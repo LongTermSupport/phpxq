@@ -21,13 +21,13 @@ final class Compiler implements CompilerInterface
     private ?Core $core = null;
 
     public function __construct(
-        private readonly BuiltinRegistry $builtins,
+        private readonly BuiltinRegistryInterface $builtins,
         private readonly ParserInterface $parser,
         private readonly ModuleLoaderInterface $modules,
     ) {
     }
 
-    public function compile(Program $program, array $globalVariables = []): CompiledProgram
+    public function compile(Program $program, array $globalVariables = []): CompiledProgramInterface
     {
         $core = $this->core ??= new Core($this->builtins, $this->parser, $this->modules);
 

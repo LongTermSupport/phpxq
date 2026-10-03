@@ -15,7 +15,7 @@ use LTS\PhpXq\Jq\Ast\FuncDef;
  */
 final class FuncInfo
 {
-    public ?Op $op = null;
+    public ?OpInterface $op = null;
 
     public bool $compiling = false;
 
@@ -31,7 +31,7 @@ final class FuncInfo
     ) {
     }
 
-    public function body(): Op
+    public function body(): OpInterface
     {
         return $this->op ?? throw new LogicException('Function ' . $this->definition->signature() . ' is not compiled yet');
     }

@@ -6,7 +6,7 @@ namespace LTS\PhpXq\Yq\Runtime;
 
 use DateTimeImmutable;
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 
 /**
@@ -56,7 +56,7 @@ final class Compare
     {
         $left  = NodeOps::deref($left);
         $right = NodeOps::deref($right);
-        if (NodeKind::Scalar === $left->kind && NodeKind::Scalar === $right->kind) {
+        if (NodeKindEnum::Scalar === $left->kind && NodeKindEnum::Scalar === $right->kind) {
             $leftNull  = CoreSchema::TAG_NULL === $left->tag;
             $rightNull = CoreSchema::TAG_NULL === $right->tag;
             if ($leftNull || $rightNull) {
@@ -87,7 +87,7 @@ final class Compare
         }
 
         switch ($left->kind) {
-            case NodeKind::Scalar:
+            case NodeKindEnum::Scalar:
                 if (CoreSchema::TAG_NULL === $left->tag || CoreSchema::TAG_NULL === $right->tag) {
                     return $left->tag === $right->tag;
                 }
@@ -100,14 +100,14 @@ final class Compare
 
                 return $left->value === $right->value;
 
-            case NodeKind::Sequence:
+            case NodeKindEnum::Sequence:
                 if (\count($left->content) !== \count($right->content)) {
                     return false;
                 }
 
                 return array_all($left->content, static fn (Node $item, $i): bool => self::deepEquals($item, $right->content[$i]));
 
-            case NodeKind::Mapping:
+            case NodeKindEnum::Mapping:
                 if (\count($left->content) !== \count($right->content)) {
                     return false;
                 }
@@ -138,12 +138,12 @@ final class Compare
     public static function canonical(Node $node): string
     {
         $node = NodeOps::deref($node);
-        if (NodeKind::Scalar === $node->kind) {
+        if (NodeKindEnum::Scalar === $node->kind) {
             return $node->value;
         }
 
         $parts = [];
-        if (NodeKind::Sequence === $node->kind) {
+        if (NodeKindEnum::Sequence === $node->kind) {
             foreach ($node->content as $item) {
                 $parts[] = self::canonical($item);
             }
@@ -203,7 +203,7 @@ final class Compare
 
     private static function rank(Node $node): int
     {
-        if (NodeKind::Scalar !== $node->kind) {
+        if (NodeKindEnum::Scalar !== $node->kind) {
             return 4;
         }
 

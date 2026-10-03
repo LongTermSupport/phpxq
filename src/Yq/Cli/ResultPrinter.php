@@ -7,8 +7,8 @@ namespace LTS\PhpXq\Yq\Cli;
 use LTS\PhpXq\Yaml\Emitter\EmitOptions;
 use LTS\PhpXq\Yaml\Emitter\YamlEmitterInterface;
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yq\Format\Format;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use LTS\PhpXq\Yq\Format\FormatRegistryInterface;
@@ -34,7 +34,7 @@ final class ResultPrinter
      */
     public function __construct(
         private readonly mixed $out,
-        private readonly Format $format,
+        private readonly FormatEnum $format,
         private readonly EmitOptions $emitOptions,
         private readonly FormatOptions $formatOptions,
         private readonly YamlEmitterInterface $emitter,
@@ -83,7 +83,7 @@ final class ResultPrinter
         $sink      = $this->split instanceof SplitFileWriter ? $this->split->open($result, $this->index) : $this->out;
         $separator = 0 !== $this->index && $key !== $this->previousKey;
 
-        $text = Format::Yaml === $this->format
+        $text = FormatEnum::Yaml === $this->format
             ? $this->renderYaml($node, $separator)
             : $this->renderOther($node);
 
@@ -103,7 +103,7 @@ final class ResultPrinter
     private function renderYaml(Node $node, bool $separator): string
     {
         $text     = '';
-        $document = NodeKind::Document === $node->kind;
+        $document = NodeKindEnum::Document === $node->kind;
         $header   = $document ? $this->registry->headerFor($node) : '';
 
         if ($separator && !$this->emitOptions->noDocSeparator && !str_starts_with($header, HeaderSplitter::SEPARATOR_MARKER)) {
@@ -159,7 +159,7 @@ final class ResultPrinter
     private function guardNul(Node $node): void
     {
         $root = $node->root();
-        if ($this->nulSeparated && $this->emitOptions->unwrapScalar && NodeKind::Scalar === $root->kind && str_contains($root->value, "\0")) {
+        if ($this->nulSeparated && $this->emitOptions->unwrapScalar && NodeKindEnum::Scalar === $root->kind && str_contains($root->value, "\0")) {
             throw new CliException("Can't serialize value because it contains NUL char and you are using NUL separated output");
         }
     }
@@ -168,6 +168,6 @@ final class ResultPrinter
     {
         $root = $node->root();
 
-        return NodeKind::Scalar === $root->kind && ('!!null' === $root->tag || ('!!bool' === $root->tag && 'false' === $root->value));
+        return NodeKindEnum::Scalar === $root->kind && ('!!null' === $root->tag || ('!!bool' === $root->tag && 'false' === $root->value));
     }
 }

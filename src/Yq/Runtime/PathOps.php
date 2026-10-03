@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
 use SplObjectStorage;
 
 /**
@@ -26,7 +26,7 @@ final class PathOps
     {
         $items = [];
         foreach (Cands::pathKeys($candidate) as $key) {
-            $items[] = new Node(NodeKind::Scalar, $key->tag, NodeStyle::Default, $key->value);
+            $items[] = new Node(NodeKindEnum::Scalar, $key->tag, NodeStyleEnum::Default, $key->value);
         }
 
         return NodeOps::seq($items);
@@ -76,7 +76,7 @@ final class PathOps
     public static function elements(Node $path): array
     {
         $path = NodeOps::deref(NodeOps::unwrap($path));
-        if (NodeKind::Sequence === $path->kind) {
+        if (NodeKindEnum::Sequence === $path->kind) {
             return $path->content;
         }
 
@@ -98,7 +98,7 @@ final class PathOps
             }
 
             $container = NodeOps::deref(NodeOps::unwrap($candidate->parent->node));
-            if (NodeKind::Mapping !== $container->kind && NodeKind::Sequence !== $container->kind) {
+            if (NodeKindEnum::Mapping !== $container->kind && NodeKindEnum::Sequence !== $container->kind) {
                 continue;
             }
 
@@ -114,7 +114,7 @@ final class PathOps
 
         foreach ($groups as $container) {
             $set = $groups[$container];
-            if (NodeKind::Sequence === $container->kind) {
+            if (NodeKindEnum::Sequence === $container->kind) {
                 $kept = [];
                 foreach ($container->content as $item) {
                     if (!isset($set[$item])) {

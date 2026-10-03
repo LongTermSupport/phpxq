@@ -11,7 +11,7 @@ use Closure;
  *
  * @internal
  */
-abstract class AbstractSingleOp implements SingleOp
+abstract class AbstractSingleOp implements SingleOpInterface
 {
     public function run(?Env $env, mixed $input, Closure $emit): void
     {
