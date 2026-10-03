@@ -33,7 +33,7 @@ final class JsonDecoder implements JsonDecoderInterface
     /**
      * Number shapes the native path must not see (outside strings, which are skipped).
      */
-    private const string DANGER = '/"(?:[^"\\\\]++|\\\\.)*+"(*SKIP)(*FAIL)|\d[\d.]{15}|\d[eE]|\.\d*0(?!\d)|\.0000|-0(?![\d.])/s';
+    private const string DANGER = '/"(?:[^"\\\]++|\\\.)*+"(*SKIP)(*FAIL)|\d[\d.]{15}|\d[eE]|\.\d*0(?!\d)|\.0000|-0(?![\d.])/s';
 
     private const string DELIMITERS = " \t\r\n[]{},:\"";
 
@@ -45,7 +45,7 @@ final class JsonDecoder implements JsonDecoderInterface
 
     private const string CONTROL_MESSAGE = 'Invalid string: control characters from U+0000 through U+001F must be escaped';
 
-    private const string PAIR_MESSAGE = 'Invalid \\uXXXX\\uXXXX surrogate pair escape';
+    private const string PAIR_MESSAGE = 'Invalid \uXXXX\uXXXX surrogate pair escape';
 
     private const string RS = "\x1e";
 
@@ -79,8 +79,8 @@ final class JsonDecoder implements JsonDecoderInterface
             if ($values->valid()) {
                 throw new JsonSyntaxException('Unexpected extra JSON values');
             }
-        } catch (JsonSyntaxException $exception) {
-            throw new JsonSyntaxException($exception->getMessage() . " (while parsing '" . $text . "')", 0, $exception);
+        } catch (JsonSyntaxException $jsonSyntaxException) {
+            throw new JsonSyntaxException($jsonSyntaxException->getMessage() . " (while parsing '" . $text . "')", 0, $jsonSyntaxException);
         }
 
         return $first;
@@ -246,13 +246,13 @@ final class JsonDecoder implements JsonDecoderInterface
                     if ($seq && self::RS === $c) {
                         $topNumber = 0 === $sp && (null !== $pending
                             ? \is_int($number = NumberParser::tryParse($pending)) || \is_float($number) || $number instanceof PreciseNumber
-                            : ($hasNext && self::isNumber($next)));
-                        if (!$lastWs && ($sp > 0 || null !== $pending || ($hasNext && self::isNumber($next)))) {
+                            : ($hasNext && $this->isNumber($next)));
+                        if (!$lastWs && ($sp > 0 || null !== $pending || ($hasNext && $this->isNumber($next)))) {
                             throw new ParseFailure($topNumber ? 'Potentially truncated top-level numeric value' : 'Truncated value', $i + 1, false, true);
                         }
 
                         if (null !== $pending) {
-                            $value = self::literal($pending, $i + 1, false, true);
+                            $value = $this->literal($pending, $i + 1, false, true);
                             if ($hasNext) {
                                 throw new ParseFailure('Expected separator between values', $i + 1, false, true);
                             }
@@ -278,7 +278,7 @@ final class JsonDecoder implements JsonDecoderInterface
                     }
 
                     if (null !== $pending) {
-                        $value = self::literal($pending, $i + 1, false, false);
+                        $value = $this->literal($pending, $i + 1, false, false);
                         if ($hasNext) {
                             throw new ParseFailure('Expected separator between values', $i + 1);
                         }
@@ -316,7 +316,7 @@ final class JsonDecoder implements JsonDecoderInterface
                             yield $emit;
                         }
 
-                        $start = $i + 1;
+                        $start = $i     + 1;
                         $end   = $start + strcspn($text, '"\\', $start);
                         while ($end < $n && '\\' === $text[$end]) {
                             $end += 2;
@@ -352,7 +352,7 @@ final class JsonDecoder implements JsonDecoderInterface
                             throw new ParseFailure('Unfinished string', $n, true);
                         }
 
-                        $string = self::string($raw, $end + 1);
+                        $string = $this->string($raw, $end + 1);
                         if ($hasNext) {
                             throw new ParseFailure('Expected separator between values', $end + 1);
                         }
@@ -381,7 +381,7 @@ final class JsonDecoder implements JsonDecoderInterface
                         $next    = null;
                         ++$i;
                     } elseif ('[' === $c || '{' === $c) {
-                        if (self::tooDeep($sp)) {
+                        if ($this->tooDeep($sp)) {
                             throw new ParseFailure('Exceeds depth limit for parsing', $i + 1);
                         }
 
@@ -461,7 +461,7 @@ final class JsonDecoder implements JsonDecoderInterface
                 }
 
                 if (null !== $pending) {
-                    $value = self::literal($pending, $n, true, false);
+                    $value = $this->literal($pending, $n, true, false);
                     if ($hasNext) {
                         throw new ParseFailure('Expected separator between values', $n, true);
                     }
@@ -475,7 +475,7 @@ final class JsonDecoder implements JsonDecoderInterface
                     throw new ParseFailure('Unfinished JSON term', $n, true);
                 }
 
-                if ($seq && $hasNext && !$lastWs && self::isNumber($next)) {
+                if ($seq && $hasNext && !$lastWs && $this->isNumber($next)) {
                     throw new ParseFailure('Potentially truncated top-level numeric value', $n, true);
                 }
 
@@ -487,7 +487,7 @@ final class JsonDecoder implements JsonDecoderInterface
             } catch (ParseFailure $failure) {
                 $message = $failure->describe($text, $base);
                 if (!$seq) {
-                    throw new JsonSyntaxException($message);
+                    throw new JsonSyntaxException($message, $failure->getCode(), $failure);
                 }
 
                 $kinds   = [];
@@ -515,12 +515,12 @@ final class JsonDecoder implements JsonDecoderInterface
         }
     }
 
-    private static function tooDeep(int $depth): bool
+    private function tooDeep(int $depth): bool
     {
         return $depth >= self::MAX_DEPTH;
     }
 
-    private static function isNumber(mixed $value): bool
+    private function isNumber(mixed $value): bool
     {
         return \is_int($value) || \is_float($value) || $value instanceof PreciseNumber;
     }
@@ -528,7 +528,7 @@ final class JsonDecoder implements JsonDecoderInterface
     /**
      * jq's check_literal for one token: true, false, null, or a number.
      */
-    private static function literal(string $token, int $consumed, bool $eof, bool $onRs): mixed
+    private function literal(string $token, int $consumed, bool $eof, bool $onRs): mixed
     {
         $first = $token[0];
         if ('t' === $first) {
@@ -553,7 +553,7 @@ final class JsonDecoder implements JsonDecoderInterface
     /**
      * jq's found_string: resolve escapes, reject raw control characters, replace invalid UTF-8.
      */
-    private static function string(string $raw, int $consumed): string
+    private function string(string $raw, int $consumed): string
     {
         $length = \strlen($raw);
         if (!str_contains($raw, '\\')) {
@@ -623,12 +623,12 @@ final class JsonDecoder implements JsonDecoderInterface
 
                 case 'u':
                     if ($p + 4 > $length) {
-                        throw new ParseFailure('Invalid \\uXXXX escape', $consumed);
+                        throw new ParseFailure('Invalid \uXXXX escape', $consumed);
                     }
 
                     $hex = substr($raw, $p, 4);
                     if (!ctype_xdigit($hex)) {
-                        throw new ParseFailure('Invalid characters in \\uXXXX escape', $consumed);
+                        throw new ParseFailure('Invalid characters in \uXXXX escape', $consumed);
                     }
 
                     $codepoint = (int)hexdec($hex);

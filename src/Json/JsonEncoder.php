@@ -75,7 +75,7 @@ final class JsonEncoder implements JsonEncoderInterface
         }
 
         $newline = '' === $unit ? '' : "\n";
-        if (null !== $options->colors) {
+        if ($options->colors instanceof \LTS\PhpXq\Json\ColorScheme) {
             return $this->colored($value, $newline, $unit, $options->sortKeys, $options->ascii, $options->colors);
         }
 
@@ -89,7 +89,7 @@ final class JsonEncoder implements JsonEncoderInterface
     private function plain(mixed $value, string $newline, string $unit, bool $sortKeys, bool $ascii): string
     {
         if (\is_string($value)) {
-            return self::quote($value, $ascii);
+            return $this->quote($value, $ascii);
         }
 
         if (\is_int($value)) {
@@ -105,7 +105,7 @@ final class JsonEncoder implements JsonEncoderInterface
             $parts = [];
             foreach ($value as $item) {
                 if (\is_string($item)) {
-                    $parts[] = self::quote($item, $ascii);
+                    $parts[] = $this->quote($item, $ascii);
 
                     continue;
                 }
@@ -130,14 +130,14 @@ final class JsonEncoder implements JsonEncoderInterface
             $child = $newline . $unit;
             $colon = '' === $unit ? ':' : ': ';
             $parts = [];
-            foreach (self::members($value, $sortKeys) as $key => $member) {
-                $parts[] = self::quote((string)$key, $ascii) . $colon . $this->plain($member, $child, $unit, $sortKeys, $ascii);
+            foreach ($this->members($value, $sortKeys) as $key => $member) {
+                $parts[] = $this->quote((string)$key, $ascii) . $colon . $this->plain($member, $child, $unit, $sortKeys, $ascii);
             }
 
             return '{' . $child . implode(',' . $child, $parts) . $newline . '}';
         }
 
-        return self::scalar($value);
+        return $this->scalar($value);
     }
 
     private function colored(mixed $value, string $newline, string $unit, bool $sortKeys, bool $ascii, ColorScheme $colors): string
@@ -171,9 +171,9 @@ final class JsonEncoder implements JsonEncoderInterface
             $colon = $colors->object . ':' . self::RESET . ('' === $unit ? '' : ' ');
             $out   = $open;
             $first = true;
-            foreach (self::members($value, $sortKeys) as $key => $member) {
+            foreach ($this->members($value, $sortKeys) as $key => $member) {
                 $out .= ($first ? '' : $comma) . $child
-                    . $colors->objectKey . self::quote((string)$key, $ascii) . self::RESET
+                    . $colors->objectKey . $this->quote((string)$key, $ascii) . self::RESET
                     . $colon
                     . $this->colored($member, $child, $unit, $sortKeys, $ascii, $colors);
                 $first = false;
@@ -183,22 +183,22 @@ final class JsonEncoder implements JsonEncoderInterface
         }
 
         $color = match (true) {
-            null === $value        => $colors->null,
-            false === $value       => $colors->false,
-            true === $value        => $colors->true,
-            \is_string($value)     => $colors->string,
-            default                => $colors->number,
+            null  === $value        => $colors->null,
+            false === $value        => $colors->false,
+            true  === $value        => $colors->true,
+            \is_string($value)      => $colors->string,
+            default                 => $colors->number,
         };
 
-        $text = \is_string($value) ? self::quote($value, $ascii) : self::scalar($value);
+        $text = \is_string($value) ? $this->quote($value, $ascii) : $this->scalar($value);
 
         return $color . $text . self::RESET;
     }
 
     /**
-     * @return iterable<string, mixed>
+     * @return iterable<array-key, mixed> keys are strings or, for numeric looking names, ints
      */
-    private static function members(JsonObject $object, bool $sortKeys): iterable
+    private function members(JsonObject $object, bool $sortKeys): iterable
     {
         if (!$sortKeys) {
             return $object->entries();
@@ -215,7 +215,7 @@ final class JsonEncoder implements JsonEncoderInterface
     /**
      * null, booleans and numbers.
      */
-    private static function scalar(mixed $value): string
+    private function scalar(mixed $value): string
     {
         if (null === $value) {
             return 'null';
@@ -244,7 +244,7 @@ final class JsonEncoder implements JsonEncoderInterface
         throw new InvalidArgumentException('Not a JSON value: ' . get_debug_type($value));
     }
 
-    private static function quote(string $text, bool $ascii): string
+    private function quote(string $text, bool $ascii): string
     {
         if (1 !== preg_match(self::NOT_PLAIN_ASCII, $text)) {
             return '"' . $text . '"';
@@ -256,24 +256,24 @@ final class JsonEncoder implements JsonEncoderInterface
 
         $escaped = strtr(Utf8::sanitize($text), self::ESCAPES);
         if ($ascii) {
-            $escaped = (string)preg_replace_callback('/[\x{80}-\x{10FFFF}]/u', self::escapeCodepoint(...), $escaped);
+            $escaped = (string)preg_replace_callback('/[\x{80}-\x{10FFFF}]/u', $this->escapeCodepoint(...), $escaped);
         }
 
         return '"' . $escaped . '"';
     }
 
     /**
-     * @param array<int, string> $match
+     * @param array<string> $match
      */
-    private static function escapeCodepoint(array $match): string
+    private function escapeCodepoint(array $match): string
     {
         $codepoint = Utf8::codepoint($match[0]);
         if ($codepoint < 0x10000) {
-            return \sprintf('\\u%04x', $codepoint);
+            return \sprintf('\u%04x', $codepoint);
         }
 
         $offset = $codepoint - 0x10000;
 
-        return \sprintf('\\u%04x\\u%04x', 0xD800 + ($offset >> 10), 0xDC00 + ($offset & 0x3FF));
+        return \sprintf('\u%04x\u%04x', 0xD800 + ($offset >> 10), 0xDC00 + ($offset & 0x3FF));
     }
 }

@@ -116,7 +116,7 @@ final class DecimalLiteral
 
     private static function compareMagnitude(string $leftDigits, int $leftExponent, string $rightDigits, int $rightExponent): int
     {
-        $leftAdjusted  = $leftExponent + \strlen($leftDigits);
+        $leftAdjusted  = $leftExponent  + \strlen($leftDigits);
         $rightAdjusted = $rightExponent + \strlen($rightDigits);
         if ($leftAdjusted !== $rightAdjusted) {
             return $leftAdjusted <=> $rightAdjusted;
