@@ -1,0 +1,181 @@
+<?php
+
+declare(strict_types=1);
+
+namespace LTS\PhpXq\Yq\Runtime\Operators;
+
+use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
+use LTS\PhpXq\Yaml\Node;
+use LTS\PhpXq\Yq\Expression\Ast\Binary;
+use LTS\PhpXq\Yq\Expression\Ast\BinaryOperator;
+use LTS\PhpXq\Yq\Expression\Ast\Call;
+use LTS\PhpXq\Yq\Expression\ExpressionNode;
+use LTS\PhpXq\Yq\Runtime\Args;
+use LTS\PhpXq\Yq\Runtime\CallOperatorInterface;
+use LTS\PhpXq\Yq\Runtime\Candidate;
+use LTS\PhpXq\Yq\Runtime\Cands;
+use LTS\PhpXq\Yq\Runtime\EnvSubst;
+use LTS\PhpXq\Yq\Runtime\EvaluationContext;
+use LTS\PhpXq\Yq\Runtime\EvaluationException;
+use LTS\PhpXq\Yq\Runtime\EvaluatorInterface;
+use LTS\PhpXq\Yq\Runtime\NodeOps;
+
+/**
+ * Environment, file and process operators: `env`, `strenv`, `envsubst`, `load`, `load_str`, `system`. They
+ * honour the `--security-*` switches.
+ */
+final class EnvFileCalls implements CallOperatorInterface
+{
+    public function names(): array
+    {
+        return ['env', 'strenv', 'envsubst', 'load', 'load_str', 'strload', 'system'];
+    }
+
+    public function evaluate(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
+    {
+        $security = $context->services->security;
+        if (('env' === $call->name || 'strenv' === $call->name || 'envsubst' === $call->name) && $security->disableEnvOperators) {
+            throw new EvaluationException('Environment variable operations have been disabled');
+        }
+
+        if (('load' === $call->name || 'load_str' === $call->name || 'strload' === $call->name) && $security->disableFileOperators) {
+            throw new EvaluationException('File operations have been disabled');
+        }
+
+        if ('system' === $call->name && !$security->enableSystemOperator) {
+            throw new EvaluationException('System operations are disabled, use --security-enable-system-operator to enable them');
+        }
+
+        $out = [];
+        foreach ($context->matches as $match) {
+            $result = $this->one($call, $match, $context, $evaluator);
+            if ($result instanceof Candidate) {
+                $out[] = $result;
+            }
+        }
+
+        return $out;
+    }
+
+    private function one(Call $call, Candidate $match, EvaluationContext $context, EvaluatorInterface $evaluator): ?Candidate
+    {
+        switch ($call->name) {
+            case 'env':
+                Args::require($call, 1);
+                $name  = Args::string($call, 0, $context, $evaluator, $match) ?? '';
+                $value = getenv($name);
+                if (false === $value) {
+                    return Cands::derive(NodeOps::null(), $match);
+                }
+
+                return Cands::derive($this->parseValue($value, $context), $match);
+
+            case 'strenv':
+                Args::require($call, 1);
+                $name  = Args::string($call, 0, $context, $evaluator, $match) ?? '';
+                $value = getenv($name);
+                if (false === $value) {
+                    throw new EvaluationException(\sprintf("Value for env variable '%s' not provided in env()", $name));
+                }
+
+                return Cands::derive(NodeOps::str($value), $match);
+
+            case 'envsubst':
+                $node = NodeOps::deref(Cands::node($match));
+                if (!NodeOps::isScalar($node)) {
+                    throw new EvaluationException('Cannot envsubst a collection');
+                }
+
+                $flags = [];
+                foreach ($call->arguments as $argument) {
+                    self::collectFlags($argument, $flags);
+                }
+
+                $out        = $node->deepCopy();
+                $out->value = EnvSubst::substitute($node->value, \in_array('nu', $flags, true), \in_array('ne', $flags, true));
+
+                return Cands::derive($out, $match);
+
+            case 'load':
+            case 'load_str':
+            case 'strload':
+                Args::require($call, 1);
+                $file = Args::string($call, 0, $context, $evaluator, $match) ?? '';
+                if (!is_file($file) || !is_readable($file)) {
+                    throw new EvaluationException(\sprintf('Failed to load %s: no such file or directory', $file));
+                }
+
+                $content = (string) file_get_contents($file);
+                if ('load' !== $call->name) {
+                    return Cands::derive(NodeOps::str($content), $match);
+                }
+
+                try {
+                    foreach ($context->services->yamlParser->parse($content) as $document) {
+                        return Cands::derive(NodeOps::unwrap($document), $match);
+                    }
+                } catch (YamlSyntaxException $exception) {
+                    throw new EvaluationException($exception->getMessage(), 0, $exception);
+                }
+
+                return Cands::derive(NodeOps::null(), $match);
+
+            default:
+                return $this->system($call, $match, $context, $evaluator);
+        }
+    }
+
+    private function parseValue(string $value, EvaluationContext $context): Node
+    {
+        try {
+            foreach ($context->services->yamlParser->parse($value) as $document) {
+                return NodeOps::unwrap($document);
+            }
+        } catch (YamlSyntaxException) {
+            return NodeOps::str($value);
+        }
+
+        return NodeOps::str($value);
+    }
+
+    /**
+     * @param list<string> $flags
+     */
+    private static function collectFlags(ExpressionNode $node, array &$flags): void
+    {
+        if ($node instanceof Call) {
+            $flags[] = $node->name;
+        } elseif ($node instanceof Binary && BinaryOperator::Union === $node->operator) {
+            self::collectFlags($node->left, $flags);
+            self::collectFlags($node->right, $flags);
+        }
+    }
+
+    private function system(Call $call, Candidate $match, EvaluationContext $context, EvaluatorInterface $evaluator): Candidate
+    {
+        Args::require($call, 1);
+        $command = [Args::string($call, 0, $context, $evaluator, $match) ?? ''];
+        $count   = \count($call->arguments);
+        for ($i = 1; $i < $count; ++$i) {
+            foreach (Args::strings($call, $i, $context, $evaluator, $match) as $argument) {
+                $command[] = $argument;
+            }
+        }
+
+        $process = proc_open($command, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+        if (!\is_resource($process)) {
+            throw new EvaluationException(\sprintf('Failed to run %s', $command[0]));
+        }
+
+        $output = stream_get_contents($pipes[1]);
+        $error  = stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        $status = proc_close($process);
+        if (0 !== $status) {
+            throw new EvaluationException(\sprintf('system command %s failed: %s', $command[0], trim((string) $error)));
+        }
+
+        return Cands::derive(NodeOps::str(rtrim((string) $output, "\n")), $match);
+    }
+}
