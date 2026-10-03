@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * PHPUnit Bootstrap File
+ * PHPUnit Bootstrap File.
  *
  * This is a placeholder bootstrap file created by PHP-QA-CI.
  *
@@ -35,7 +35,7 @@ declare(strict_types=1);
  */
 
 // Load composer autoloader
-require dirname(__DIR__) . '/vendor/autoload.php';
+require \dirname(__DIR__) . '/vendor/autoload.php';
 
 // Uncomment and add your project-specific bootstrap logic here:
 // (static function (): void {
