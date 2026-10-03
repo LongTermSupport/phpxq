@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# Smoke-tests a built phpxq artefact (the PHAR or a static binary) exactly as a user would run it.
+#
+# Usage: scripts/smoke-test.bash [--static] [--expect-version X.Y.Z] <artefact>
+#   --static                 the artefact must run with an empty environment (no PATH, no php.ini) and,
+#                            on Linux, must not be a dynamically linked executable
+#   --expect-version X.Y.Z   the version it must report (default: the VERSION file)
+#
+# Checks: `--version` reports the release; no arguments is a usage error; the busybox-style names `jq`
+# and `yq` dispatch to their tool; no PHP error ever reaches the user. While a tool is still the stub
+# (exit 70, "not implemented") its functional check is reported as skipped; once implemented it must
+# produce real output.
+set -euo pipefail
+
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=lib/packaging.bash
+source "$(dirname "${BASH_SOURCE[0]}")/lib/packaging.bash"
+
+static=0
+expect_version=""
+artefact=""
+while (($# > 0)); do
+    case "$1" in
+        --static) static=1 ;;
+        --expect-version)
+            [[ -n "${2:-}" ]] || die "--expect-version needs a value"
+            expect_version="$2"
+            shift
+            ;;
+        -h | --help)
+            awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "${BASH_SOURCE[0]}"
+            exit 0
+            ;;
+        -*) die "unknown argument: $1" ;;
+        *) artefact="$1" ;;
+    esac
+    shift
+done
+
+[[ -n "$artefact" ]] || die "usage: smoke-test.bash [--static] [--expect-version X.Y.Z] <artefact>"
+[[ -f "$artefact" ]] || die "artefact not found: $artefact"
+artefact="$(cd "$(dirname "$artefact")" && pwd)/$(basename "$artefact")"
+[[ -x "$artefact" ]] || die "artefact is not executable: $artefact"
+[[ -n "$expect_version" ]] || expect_version="$(release_version)"
+
+work="$(mktemp -d "${TMPDIR:-/tmp}/phpxq-smoke.XXXXXX")"
+trap 'rm -rf "$work"' EXIT
+ln -s "$artefact" "$work/jq"
+ln -s "$artefact" "$work/yq"
+
+failures=0
+fail() {
+    echo "  FAIL  $*" >&2
+    failures=$((failures + 1))
+}
+pass() { echo "  ok    $*"; }
+
+# run_case <program> <stdin> <args...>: sets rc, out, err. Static artefacts get an empty environment.
+run_case() {
+    local program="$1" input="$2"
+    shift 2
+    rc=0
+    if ((static)); then
+        env -i "$program" "$@" <<<"$input" >"$work/out" 2>"$work/err" || rc=$?
+    else
+        "$program" "$@" <<<"$input" >"$work/out" 2>"$work/err" || rc=$?
+    fi
+    out="$(cat "$work/out")"
+    err="$(cat "$work/err")"
+}
+
+no_php_error() {
+    if [[ "$out$err" == *"Fatal error"* || "$out$err" == *"PHP Warning"* || "$out$err" == *"Parse error"* || "$out$err" == *"Stack trace"* ]]; then
+        fail "$1: a PHP error reached the user: $err"
+        return 1
+    fi
+}
+
+echo "Smoke-testing $artefact (expecting version $expect_version)"
+
+run_case "$artefact" "" --version
+if ((rc == 0)) && [[ "$out" == "phpxq $expect_version" ]]; then pass "--version prints 'phpxq $expect_version'"; else fail "--version: rc=$rc out='$out' err='$err'"; fi
+
+run_case "$artefact" ""
+if ((rc == 2)) && [[ "$err" == *usage* ]]; then pass "no arguments is a usage error (exit 2)"; else fail "no arguments: rc=$rc err='$err'"; fi
+
+run_case "$artefact" '{"a":1}' jq .a
+if no_php_error "phpxq jq"; then
+    if ((rc == 70)); then
+        pass "phpxq jq reaches the jq tool (stub: functional check skipped)"
+    elif ((rc == 0)) && [[ "$out" == "1" ]]; then
+        pass "phpxq jq .a evaluates"
+    else fail "phpxq jq .a: rc=$rc out='$out' err='$err'"; fi
+fi
+
+run_case "$artefact" 'a: 1' yq .a
+if no_php_error "phpxq yq"; then
+    if ((rc == 70)); then
+        pass "phpxq yq reaches the yq tool (stub: functional check skipped)"
+    elif ((rc == 0)) && [[ "$out" == "1" ]]; then
+        pass "phpxq yq .a evaluates"
+    else fail "phpxq yq .a: rc=$rc out='$out' err='$err'"; fi
+fi
+
+for tool in jq yq; do
+    run_case "$work/$tool" '{"a":1}' .a
+    if no_php_error "argv0 $tool"; then
+        if ((rc == 70)) && [[ "$err" == "$tool:"* ]]; then
+            pass "a program named '$tool' dispatches to $tool (busybox style)"
+        elif ((rc == 0)); then
+            pass "a program named '$tool' dispatches to $tool and succeeds"
+        else fail "argv0 $tool: rc=$rc out='$out' err='$err'"; fi
+    fi
+done
+
+if ((static)) && [[ "$(uname -s)" == Linux ]] && command -v ldd >/dev/null; then
+    if ldd "$artefact" 2>&1 | grep -qE 'not a dynamic executable|statically linked'; then
+        pass "statically linked"
+    else fail "binary is dynamically linked: $(ldd "$artefact" 2>&1)"; fi
+fi
+
+if ((failures > 0)); then
+    die "$failures smoke check(s) failed for $artefact"
+fi
+echo "Smoke test passed: $artefact"

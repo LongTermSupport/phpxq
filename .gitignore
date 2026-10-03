@@ -9,6 +9,10 @@
 # Composer dependencies
 /vendor/
 
+# Packaging output (PHAR, static binaries, static-php-cli workspace)
+/dist/
+/build/
+
 # BEGIN php-qa-ci managed QA runtime excludes — do not edit
 # These patterns ensure QA tool runtime caches are never committed,
 # regardless of where they happen to appear in the project tree.
