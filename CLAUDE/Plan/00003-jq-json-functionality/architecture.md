@@ -140,6 +140,36 @@ literal value", "decnum to double conversion", `1E+1000`, `abs`, `length`, `tojs
 6. `tostring`, `tojson`, string interpolation, `@text`, `@json` and the output stage all go through the single
    encoder so there is one formatting implementation.
 
+### Codec rules pinned against the 1.8.2 suites
+
+- **Canonical literal** is decNumber's to-scientific-string of the token: `1.000` stays `1.000`, `100e-2` is
+  `1.00`, `1e2` is `1E+2`, `1e-5` is `0.00001`, `1E+1000` is `1E+1000`, leading zeros and a `+` sign drop.
+  `NumberParser::tryParse` returns a plain `int`/`float` only when printing that value gives the same text
+  (so `1.5`, `300`, `-0.25` stay fast); everything else, and every integer beyond 2^53, is a
+  `PreciseNumber`. Exponents beyond +-999999999 lose the literal (infinity or zero). `NumberParser::negate`
+  and `abs` keep the digits for `-.`, `abs` and `length`.
+- **Ordering**: two `PreciseNumber`s compare as exact decimals (`Codec\DecimalLiteral`, called from
+  `Values::compare`); any other pair compares as doubles, which is what makes
+  `13911860366432393 == 13911860366432392` false while `$n + 0 == $n` stays true.
+- **Double layout** (`Codec\NumberFormatter`): shortest round-trip digits; exponent form when the decimal
+  point position is `<= -4` or beyond the digit count plus 15, written `e-05`, `e+17`, `e+300`; `nan` is
+  `null`; infinities clamp to `+-1.7976931348623157e+308`.
+- **Decoder**: tokens, errors and positions follow `jv_parse.c` (line and column count every consumed byte,
+  the column restarts at 0 after a newline; for example `Invalid numeric literal at line 1, column 3`,
+  `Unfinished JSON term at EOF at line 2, column 0`). Accepted extensions: `nan`/`NaN`/`-NaN` (no payload),
+  `Infinity`/`-Infinity`, leading `+`, leading zeros, `.5`, `5.`, a UTF-8 BOM. Depth limit 10000 counts an
+  object member as two levels (key and value) like jq's parser stack. `decodeOne` appends
+  ` (while parsing '<text>')` to its errors (jq's `fromjson`), so the `fromjson` builtin must not add it
+  again. With `$seq` the generator yields `JsonSyntaxException` objects in place of throwing (jq's
+  "ignoring parse error" resynchronisation on RS), and text before the first RS is skipped.
+- **Native fast path**: `json_decode` is used only for text the pre-check proves identical (no preserved
+  number shapes, no nan, no invalid UTF-8, shallow); NDJSON is decoded line by line natively and only odd lines
+  go through the scanner.
+- **Encoder**: `JsonObject::toArray()` (additive accessor) feeds the object loop. Colour output follows the
+  1.8.2 shell tests: every punctuation token is wrapped separately, an object key uses the key colour and
+  the default key colour is `1;34`. `Codec\JqColors::parse` turns `JQ_COLORS` into a `ColorScheme` (null when
+  invalid, so the caller prints `Failed to set $JQ_COLORS`).
+
 ## Evaluator model
 
 ### Decision: compile the AST to PHP closures in continuation-passing (push) style
