@@ -51,8 +51,10 @@ final class TomlEncoder implements EncoderInterface
 
     /**
      * @param list<string> $path
+     * @param bool         $inItem whether `$map` is an item of an array of tables, which keeps nested
+     *                             `[[arrays]]` snug against its header without a blank line
      */
-    private function section(string &$out, Node $map, array $path, int $depth): void
+    private function section(string &$out, Node $map, array $path, int $depth, bool $inItem = false): void
     {
         if ($depth > self::MAX_DEPTH) {
             throw new FormatException('toml: exceeded max depth (alias cycle?)');
@@ -79,11 +81,15 @@ final class TomlEncoder implements EncoderInterface
                 continue;
             }
 
-            foreach ($value->content as $item) {
+            foreach ($value->content as $position => $item) {
                 $item = NodeTools::unwrap($item);
+                if (0 === $position && !$inItem && '' !== $out) {
+                    $out .= "\n";
+                }
+
                 $out .= $this->comments($item->headComment);
                 $out .= '[[' . implode('.', $childPath) . "]]\n";
-                $this->section($out, $item, $childPath, $depth + 1);
+                $this->section($out, $item, $childPath, $depth + 1, true);
             }
         }
     }
@@ -122,13 +128,7 @@ final class TomlEncoder implements EncoderInterface
             return false;
         }
 
-        foreach ($node->content as $item) {
-            if (!$this->isTable(NodeTools::unwrap($item))) {
-                return false;
-            }
-        }
-
-        return true;
+        return array_all($node->content, fn (Node $item): bool => $this->isTable(NodeTools::unwrap($item)));
     }
 
     private function inline(Node $node, int $depth): string
@@ -161,25 +161,19 @@ final class TomlEncoder implements EncoderInterface
 
     private function scalar(Node $node): string
     {
-        switch ($node->tag) {
-            case CoreSchema::TAG_INT:
-                return $node->value;
-            case CoreSchema::TAG_FLOAT:
-                return match ($node->value) {
-                    '.inf', '.Inf', '.INF', '+.inf' => 'inf',
-                    '-.inf', '-.Inf', '-.INF'       => '-inf',
-                    '.nan', '.NaN', '.NAN'          => 'nan',
-                    default                         => $node->value,
-                };
-            case CoreSchema::TAG_BOOL:
-                return 'true' === strtolower($node->value) ? 'true' : 'false';
-            case CoreSchema::TAG_TIMESTAMP:
-                return $node->value;
-            case CoreSchema::TAG_NULL:
-                return '""';
-            default:
-                return $this->quote($node->value);
-        }
+        return match ($node->tag) {
+            CoreSchema::TAG_INT       => $node->value,
+            CoreSchema::TAG_FLOAT     => match ($node->value) {
+                '.inf', '.Inf', '.INF', '+.inf' => 'inf',
+                '-.inf', '-.Inf', '-.INF'       => '-inf',
+                '.nan', '.NaN', '.NAN'          => 'nan',
+                default                         => $node->value,
+            },
+            CoreSchema::TAG_BOOL      => 'true' === strtolower($node->value) ? 'true' : 'false',
+            CoreSchema::TAG_TIMESTAMP => $node->value,
+            CoreSchema::TAG_NULL      => '""',
+            default                   => $this->quote($node->value),
+        };
     }
 
     private function name(Node $key): string
@@ -196,14 +190,14 @@ final class TomlEncoder implements EncoderInterface
     {
         $escaped = strtr($text, [
             '\\'   => '\\\\',
-            '"'    => '\\"',
-            "\n"   => '\\n',
-            "\t"   => '\\t',
-            "\r"   => '\\r',
-            "\x08" => '\\b',
-            "\x0c" => '\\f',
+            '"'    => '\"',
+            "\n"   => '\n',
+            "\t"   => '\t',
+            "\r"   => '\r',
+            "\x08" => '\b',
+            "\x0c" => '\f',
         ]);
-        $escaped = preg_replace_callback('/[\x00-\x1f\x7f]/', static fn (array $m): string => \sprintf('\\u%04X', \ord($m[0])), $escaped) ?? $escaped;
+        $escaped = preg_replace_callback('/[\x00-\x1f\x7f]/', static fn (array $m): string => \sprintf('\u%04X', \ord($m[0])), $escaped) ?? $escaped;
 
         return '"' . $escaped . '"';
     }

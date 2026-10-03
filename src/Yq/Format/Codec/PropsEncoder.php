@@ -44,7 +44,7 @@ final class PropsEncoder implements EncoderInterface
                 $out .= $comment . "\n";
             }
 
-            $out .= $this->escape($key, " :=") . $options->propertiesSeparator . $this->escape($value, '') . "\n";
+            $out .= $this->escape($key, ' :=') . $options->propertiesSeparator . $this->escape($value, '') . "\n";
         }
 
         return $out;
@@ -92,13 +92,13 @@ final class PropsEncoder implements EncoderInterface
             return $path . '[' . $position . ']';
         }
 
-        return '' === $path ? (string) $position : $path . '.' . $position;
+        return '' === $path ? (string)$position : $path . '.' . $position;
     }
 
     private function value(Node $node, FormatOptions $options): string
     {
         if (!$options->unwrapScalar && CoreSchema::TAG_STR === $node->tag && ('' === $node->value || 1 === preg_match('/[\s"]/', $node->value))) {
-            return '"' . addcslashes($node->value, "\"\\") . '"';
+            return '"' . addcslashes($node->value, '"\\') . '"';
         }
 
         return $node->value;
@@ -131,10 +131,10 @@ final class PropsEncoder implements EncoderInterface
         for ($i = 0; $i < $length; ++$i) {
             $char = $text[$i];
             $out .= match ($char) {
-                "\f"    => '\\f',
-                "\n"    => '\\n',
-                "\r"    => '\\r',
-                "\t"    => '\\t',
+                "\f"    => '\f',
+                "\n"    => '\n',
+                "\r"    => '\r',
+                "\t"    => '\t',
                 default => '' !== $special && str_contains($special, $char) ? '\\' . $char : $char,
             };
         }

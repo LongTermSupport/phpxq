@@ -6,7 +6,6 @@ namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKind;
-use LTS\PhpXq\Yaml\NodeStyle;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\FormatException;
 
@@ -36,6 +35,9 @@ final class TomlParser
 
     /** @var array<int, true> mappings created by dotted keys, which a `[table]` header may not reopen */
     private array $dotted = [];
+
+    /** @var array<int, true> tables already opened by a `[table]` header, which may not be opened again */
+    private array $headers = [];
 
     /** @var array<int, true> inline tables and plain arrays, which nothing may extend */
     private array $sealed = [];
@@ -146,22 +148,25 @@ final class TomlParser
     {
         $at = $this->find($parent, $part);
         if (null === $at) {
-            $child = Node::mapping();
-            $key   = Node::scalar($part, CoreSchema::TAG_STR);
+            $child            = Node::mapping();
+            $key              = Node::scalar($part, CoreSchema::TAG_STR);
             $key->headComment = $comment;
             $this->put($parent, $key, $child);
+            $this->headers[spl_object_id($child)] = true;
 
             return $child;
         }
 
         $child = $parent->content[$at + 1];
-        if (NodeKind::Mapping !== $child->kind || isset($this->sealed[spl_object_id($child)]) || isset($this->dotted[spl_object_id($child)])) {
+        if (NodeKind::Mapping !== $child->kind || isset($this->sealed[spl_object_id($child)]) || isset($this->dotted[spl_object_id($child)]) || isset($this->headers[spl_object_id($child)])) {
             throw $this->error('table ' . $part . ' is already defined');
         }
 
         if ('' !== $comment) {
             $parent->content[$at]->headComment = $comment;
         }
+
+        $this->headers[spl_object_id($child)] = true;
 
         return $child;
     }
@@ -170,6 +175,7 @@ final class TomlParser
     {
         $item              = Node::mapping();
         $item->headComment = $comment;
+
         $at                = $this->find($parent, $part);
         if (null === $at) {
             $this->put($parent, Node::scalar($part, CoreSchema::TAG_STR), Node::sequence([$item]));
@@ -232,7 +238,7 @@ final class TomlParser
             }
 
             if (null === $at) {
-                $child = Node::mapping();
+                $child                               = Node::mapping();
                 $this->dotted[spl_object_id($child)] = true;
                 $this->put($node, Node::scalar($part, CoreSchema::TAG_STR), $child);
                 $node = $child;
@@ -327,7 +333,7 @@ final class TomlParser
             if (']' === $this->source[$this->pos]) {
                 ++$this->pos;
 
-                $array = Node::sequence($items);
+                $array                               = Node::sequence($items);
                 $this->sealed[spl_object_id($array)] = true;
 
                 return $array;
@@ -351,8 +357,8 @@ final class TomlParser
     private function inlineTable(int $depth): Node
     {
         ++$this->pos;
-        $table = Node::mapping();
-        $table->explicitStart = true;
+        $table                               = Node::mapping();
+        $table->explicitStart                = true;
         $this->sealed[spl_object_id($table)] = true;
         $this->skipBlanks();
         if ('}' === ($this->source[$this->pos] ?? '')) {
@@ -423,7 +429,7 @@ final class TomlParser
         }
 
         if (1 === preg_match('/^0b[01](?:_?[01])*$/D', $token) && 1 === preg_match('/^0b([01]+)$/D', $clean, $m)) {
-            return Node::scalar((string) NodeTools::integerText('0o' . self::binaryToOctal($m[1])), CoreSchema::TAG_INT);
+            return Node::scalar((string)NodeTools::integerText('0o' . $this->binaryToOctal($m[1])), CoreSchema::TAG_INT);
         }
 
         if (1 === preg_match('/^[+-]?(?:0|[1-9](?:_?[0-9])*)(?:\.[0-9](?:_?[0-9])*)?(?:[eE][+-]?[0-9](?:_?[0-9])*)?$/D', $token) && 1 === preg_match('/[.eE]/', $token)) {
@@ -433,12 +439,12 @@ final class TomlParser
         throw $this->error('invalid value ' . $token);
     }
 
-    private static function binaryToOctal(string $bits): string
+    private function binaryToOctal(string $bits): string
     {
-        $bits = str_pad($bits, (int) (3 * ceil(\strlen($bits) / 3)), '0', \STR_PAD_LEFT);
+        $bits = str_pad($bits, (int)(3 * ceil(\strlen($bits) / 3)), '0', \STR_PAD_LEFT);
         $out  = '';
         foreach (str_split($bits, 3) as $group) {
-            $out .= (string) bindec($group);
+            $out .= (string)bindec($group);
         }
 
         return $out;
@@ -514,7 +520,7 @@ final class TomlParser
 
                 if ('"""' === substr($this->source, $this->pos, 3)) {
                     $this->pos += 3;
-                    while ('"' === ($this->source[$this->pos] ?? '') && '""' !== substr($out, -2)) {
+                    while ('"' === ($this->source[$this->pos] ?? '') && !str_ends_with($out, '""')) {
                         $out .= '"';
                         ++$this->pos;
                     }
@@ -586,7 +592,7 @@ final class TomlParser
         }
 
         $this->pos += $digits;
-        $code       = (int) hexdec($hex);
+        $code       = (int)hexdec($hex);
         if ($code > 0x10FFFF || ($code >= 0xD800 && $code <= 0xDFFF)) {
             throw $this->error('invalid unicode scalar value');
         }
@@ -596,8 +602,8 @@ final class TomlParser
 
     private function readComment(): string
     {
-        $end  = $this->pos + strcspn($this->source, "\r\n", $this->pos);
-        $text = rtrim(substr($this->source, $this->pos, $end - $this->pos));
+        $end       = $this->pos + strcspn($this->source, "\r\n", $this->pos);
+        $text      = rtrim(substr($this->source, $this->pos, $end - $this->pos));
         $this->pos = $end;
 
         return $text;
@@ -645,7 +651,8 @@ final class TomlParser
         $id = spl_object_id($map);
         if (!isset($this->index[$id])) {
             $this->index[$id] = [];
-            for ($i = 0; $i + 1 < \count($map->content); $i += 2) {
+            $counter          = \count($map->content);
+            for ($i = 0; $i + 1 < $counter; $i += 2) {
                 $this->index[$id][$map->content[$i]->value] = $i;
             }
         }

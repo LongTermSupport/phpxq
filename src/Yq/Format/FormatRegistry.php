@@ -62,34 +62,34 @@ final class FormatRegistry implements FormatRegistryInterface
         }
 
         return match (strtolower(substr($filename, $dot + 1))) {
-            'yaml', 'yml'        => Format::Yaml,
-            'json'               => Format::Json,
-            'xml'                => Format::Xml,
+            'yaml', 'yml'         => Format::Yaml,
+            'json'                => Format::Json,
+            'xml'                 => Format::Xml,
             'properties', 'props' => Format::Props,
-            'csv'                => Format::Csv,
-            'tsv'                => Format::Tsv,
-            'toml'               => Format::Toml,
+            'csv'                 => Format::Csv,
+            'tsv'                 => Format::Tsv,
+            'toml'                => Format::Toml,
             'hcl', 'tf', 'tfvars' => Format::Hcl,
-            'lua'                => Format::Lua,
-            default              => null,
+            'lua'                 => Format::Lua,
+            default               => null,
         };
     }
 
     public function decoder(Format $format): DecoderInterface
     {
         return $this->decoders[$format->value] ??= match ($format) {
-            Format::Yaml      => new YamlDecoder($this->yamlParser),
-            Format::Json      => new JsonDecoder(),
-            Format::Props     => new PropsDecoder(),
-            Format::Csv       => new CsvDecoder(Format::Csv, $this->yamlParser),
-            Format::Tsv       => new CsvDecoder(Format::Tsv, $this->yamlParser),
-            Format::Xml       => new XmlDecoder(),
-            Format::Toml      => new TomlDecoder(),
-            Format::Base64    => new Base64Decoder(Format::Base64),
-            Format::Base64Url => new Base64Decoder(Format::Base64Url),
-            Format::Uri       => new UriDecoder(),
-            Format::Lua       => new LuaDecoder(),
-            Format::Hcl       => new HclDecoder(),
+            Format::Yaml                 => new YamlDecoder($this->yamlParser),
+            Format::Json                 => new JsonDecoder(),
+            Format::Props                => new PropsDecoder(),
+            Format::Csv                  => new CsvDecoder(Format::Csv, $this->yamlParser),
+            Format::Tsv                  => new CsvDecoder(Format::Tsv, $this->yamlParser),
+            Format::Xml                  => new XmlDecoder(),
+            Format::Toml                 => new TomlDecoder(),
+            Format::Base64               => new Base64Decoder(Format::Base64),
+            Format::Base64Url            => new Base64Decoder(Format::Base64Url),
+            Format::Uri                  => new UriDecoder(),
+            Format::Lua                  => new LuaDecoder(),
+            Format::Hcl                  => new HclDecoder(),
             Format::Shell, Format::Kyaml => throw new FormatException('cannot read ' . $format->value . ' input; it is an output only format'),
         };
     }

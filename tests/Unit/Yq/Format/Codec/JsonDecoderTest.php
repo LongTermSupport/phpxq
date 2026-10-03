@@ -25,7 +25,7 @@ final class JsonDecoderTest extends TestCase
 
     public function testObjectKeepsOrderAndTagsScalars(): void
     {
-        $docs = self::decode('{"b": 1, "a": [true, null, 1.50, "x"], "c": {"d": -2e3}}');
+        $docs = $this->decode('{"b": 1, "a": [true, null, 1.50, "x"], "c": {"d": -2e3}}');
 
         self::assertCount(1, $docs);
         self::assertSame(NodeKind::Document, $docs[0]->kind);
@@ -46,14 +46,14 @@ final class JsonDecoderTest extends TestCase
 
     public function testStringEscapes(): void
     {
-        $docs = self::decode('"a\"b\\\\c\/d\n\té😊\ud800x"');
+        $docs = $this->decode('"a\"b\\\c\/d\n\té😊\ud800x"');
 
         self::assertSame("a\"b\\c/d\n\té😊\u{FFFD}x", $docs[0]->root()->value);
     }
 
     public function testMultipleDocuments(): void
     {
-        $docs = self::decode("{\"a\": 1}\n{\"b\": 2}  [3]\n\n");
+        $docs = $this->decode("{\"a\": 1}\n{\"b\": 2}  [3]\n\n");
 
         self::assertCount(3, $docs);
         self::assertSame(NodeKind::Sequence, $docs[2]->root()->kind);
@@ -61,17 +61,17 @@ final class JsonDecoderTest extends TestCase
 
     public function testEmptyInputHasNoDocuments(): void
     {
-        self::assertSame([], self::decode(" \n"));
+        self::assertSame([], $this->decode(" \n"));
     }
 
     public function testBomIsSkipped(): void
     {
-        self::assertSame('1', self::decode("\u{FEFF}1")[0]->root()->value);
+        self::assertSame('1', $this->decode("\u{FEFF}1")[0]->root()->value);
     }
 
     public function testDuplicateKeyReplacesValue(): void
     {
-        $root = self::decode('{"a": 1, "b": 2, "a": 3}')[0]->root();
+        $root = $this->decode('{"a": 1, "b": 2, "a": 3}')[0]->root();
 
         self::assertCount(4, $root->content);
         self::assertSame('3', $root->content[1]->value);
@@ -81,7 +81,7 @@ final class JsonDecoderTest extends TestCase
     public function testInvalidInput(string $json): void
     {
         $this->expectException(FormatException::class);
-        self::decode($json);
+        $this->decode($json);
     }
 
     /**
@@ -101,7 +101,7 @@ final class JsonDecoderTest extends TestCase
 
         yield 'control character' => ["\"a\nb\""];
 
-        yield 'bad escape' => ['"\\q"'];
+        yield 'bad escape' => ['"\q"'];
 
         yield 'missing colon' => ['{"a" 1}'];
 
@@ -111,8 +111,8 @@ final class JsonDecoderTest extends TestCase
     /**
      * @return list<Node>
      */
-    private static function decode(string $json): array
+    private function decode(string $json): array
     {
-        return array_values([...new JsonDecoder()->decode($json, new FormatOptions())]);
+        return [...new JsonDecoder()->decode($json, new FormatOptions())];
     }
 }

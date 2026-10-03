@@ -6,6 +6,7 @@ namespace LTS\PhpXq\Tests\Unit\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeStyle;
 use LTS\PhpXq\Yaml\Parser\YamlParser;
 use LTS\PhpXq\Yq\Format\Codec\NodeTools;
 use LTS\PhpXq\Yq\Format\FormatException;
@@ -35,7 +36,7 @@ final class NodeToolsTest extends TestCase
 
     public function testPairsExpandMergeKeysWithExplicitKeysWinning(): void
     {
-        $root = self::parse("base: &b\n  a: 1\n  b: 2\nderived:\n  <<: *b\n  b: 3\n  c: 4\n");
+        $root = $this->parse("base: &b\n  a: 1\n  b: 2\nderived:\n  <<: *b\n  b: 3\n  c: 4\n");
         $map  = $root->content[3];
 
         $pairs = [];
@@ -48,7 +49,7 @@ final class NodeToolsTest extends TestCase
 
     public function testPairsExpandMergeSequences(): void
     {
-        $root = self::parse("x: &x {a: 1}\ny: &y {a: 2, b: 3}\nz:\n  <<: [*x, *y]\n");
+        $root = $this->parse("x: &x {a: 1}\ny: &y {a: 2, b: 3}\nz:\n  <<: [*x, *y]\n");
         $map  = $root->content[5];
 
         $pairs = [];
@@ -121,7 +122,58 @@ final class NodeToolsTest extends TestCase
         self::assertSame('', NodeTools::toComment(''));
     }
 
-    private static function parse(string $yaml): Node
+    public function testJoinCommentsSkipsEmptyOnes(): void
+    {
+        self::assertSame("# a\n# b", NodeTools::joinComments('# a', '', '# b'));
+        self::assertSame('', NodeTools::joinComments('', ''));
+        self::assertSame('# a', NodeTools::joinDistinct('# a', '# a'));
+        self::assertSame("# a\n# b", NodeTools::joinDistinct('# a', '# b', '# a'));
+    }
+
+    public function testReplaceAtKeepsAList(): void
+    {
+        $sequence = Node::sequence([Node::scalar('a'), Node::scalar('b')]);
+        NodeTools::replaceAt($sequence, 1, Node::scalar('c'));
+
+        self::assertSame(['a', 'c'], array_map(static fn (Node $node): string => $node->value, $sequence->content));
+    }
+
+    public function testFlatContentExpandsMergesOnlyWhenPresent(): void
+    {
+        $plain = Node::mapping([Node::scalar('a'), Node::scalar('1')]);
+        self::assertSame($plain->content, NodeTools::flatContent($plain));
+
+        $root   = $this->parse("base: &b {x: 1}\nm:\n  <<: *b\n  y: 2\n");
+        $values = array_map(static fn (Node $node): string => $node->value, NodeTools::flatContent($root->content[3]));
+
+        self::assertSame(['x', '1', 'y', '2'], $values);
+    }
+
+    public function testNullAndMergeKeyDetection(): void
+    {
+        self::assertTrue(NodeTools::isNull(Node::scalar('~')));
+        self::assertFalse(NodeTools::isNull(Node::scalar('x')));
+        self::assertFalse(NodeTools::isNull(Node::sequence()));
+        self::assertTrue(NodeTools::isMergeKey(Node::scalar('<<', '!!str')));
+        self::assertFalse(NodeTools::isMergeKey(Node::scalar('<<', '!!str', NodeStyle::DoubleQuoted)));
+        self::assertFalse(NodeTools::isMergeKey(Node::scalar('a')));
+    }
+
+    public function testKeyTextFollowsAliases(): void
+    {
+        self::assertSame('k', NodeTools::keyText(Node::alias('a', Node::scalar('k'))));
+    }
+
+    public function testAliasChainsThatNeverEndAreRejected(): void
+    {
+        $alias              = Node::alias('a', Node::scalar('x'));
+        $alias->aliasTarget = $alias;
+
+        $this->expectException(FormatException::class);
+        NodeTools::unwrap($alias);
+    }
+
+    private function parse(string $yaml): Node
     {
         foreach (new YamlParser()->parse($yaml) as $document) {
             return $document->root();

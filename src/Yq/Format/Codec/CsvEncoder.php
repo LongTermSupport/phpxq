@@ -43,7 +43,8 @@ final readonly class CsvEncoder implements EncoderInterface
         }
 
         $separator = Format::Tsv === $this->format ? $options->tsvSeparator : $options->csvSeparator;
-        $separator = '' === $separator ? ',' : $separator;
+        $separator = ''          === $separator ? ',' : $separator;
+
         $first     = NodeTools::unwrap($root->content[0]);
 
         if (NodeKind::Scalar === $first->kind) {
@@ -139,7 +140,7 @@ final readonly class CsvEncoder implements EncoderInterface
             return false;
         }
 
-        if ('\\.' === $field || \strlen($field) !== strcspn($field, "\r\n\"") || str_contains($field, $separator)) {
+        if ('\.' === $field || \strlen($field) !== strcspn($field, "\r\n\"") || str_contains($field, $separator)) {
             return true;
         }
 

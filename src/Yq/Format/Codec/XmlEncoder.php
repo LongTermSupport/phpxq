@@ -121,11 +121,13 @@ final class XmlEncoder implements EncoderInterface
         $writer->start($name, $attributes);
         foreach ($pairs as [$key, $value]) {
             $keyName = NodeTools::keyText($key);
+            $writer->raw($this->comment($key->headComment, $key->lineComment));
             if ('' !== $options->xmlAttributePrefix && str_starts_with($keyName, $options->xmlAttributePrefix)) {
+                $writer->raw($this->comment($key->footComment));
+
                 continue;
             }
 
-            $writer->raw($this->comment($key->headComment, $key->lineComment));
             if (str_starts_with($keyName, XmlReader::PROC_INST_PREFIX)) {
                 $writer->raw($this->procInst($keyName, $value));
             } elseif (XmlReader::DIRECTIVE_NAME === $keyName) {

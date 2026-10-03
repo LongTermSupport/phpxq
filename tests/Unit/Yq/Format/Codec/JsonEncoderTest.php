@@ -26,24 +26,24 @@ final class JsonEncoderTest extends TestCase
 
     public function testPrettyPrintsWithTwoSpaces(): void
     {
-        $out = self::encode("cat: meow\nlist: [1, 2]\nempty: {}\nnone: []\nnested:\n  a: b\n");
+        $out = $this->encode("cat: meow\nlist: [1, 2]\nempty: {}\nnone: []\nnested:\n  a: b\n");
 
         self::assertSame("{\n  \"cat\": \"meow\",\n  \"list\": [\n    1,\n    2\n  ],\n  \"empty\": {},\n  \"none\": [],\n  \"nested\": {\n    \"a\": \"b\"\n  }\n}\n", $out);
     }
 
     public function testIndentZeroIsCompact(): void
     {
-        self::assertSame("{\"percentiles\":[50.0,95.0,99.9]}\n", self::encode('percentiles: [50.0, 95.0, 99.9]', new FormatOptions(indent: 0)));
+        self::assertSame("{\"percentiles\":[50.0,95.0,99.9]}\n", $this->encode('percentiles: [50.0, 95.0, 99.9]', new FormatOptions(indent: 0)));
     }
 
     public function testCustomIndent(): void
     {
-        self::assertSame("[\n    1\n]\n", self::encode('[1]', new FormatOptions(indent: 4)));
+        self::assertSame("[\n    1\n]\n", $this->encode('[1]', new FormatOptions(indent: 4)));
     }
 
     public function testResolvesAliasesAndMerges(): void
     {
-        $out = self::encode("cat: &ref meow\nanotherCat: *ref\nbase: &b {x: 1, y: 2}\nm:\n  <<: *b\n  y: 9\n", new FormatOptions(indent: 0));
+        $out = $this->encode("cat: &ref meow\nanotherCat: *ref\nbase: &b {x: 1, y: 2}\nm:\n  <<: *b\n  y: 9\n", new FormatOptions(indent: 0));
 
         self::assertSame("{\"cat\":\"meow\",\"anotherCat\":\"meow\",\"base\":{\"x\":1,\"y\":2},\"m\":{\"x\":1,\"y\":9}}\n", $out);
     }
@@ -51,7 +51,7 @@ final class JsonEncoderTest extends TestCase
     #[DataProvider('scalarCases')]
     public function testScalarRendering(string $yaml, string $expected): void
     {
-        self::assertSame($expected . "\n", self::encode($yaml, new FormatOptions(indent: 0, unwrapScalar: false)));
+        self::assertSame($expected . "\n", $this->encode($yaml, new FormatOptions(indent: 0, unwrapScalar: false)));
     }
 
     /**
@@ -85,24 +85,24 @@ final class JsonEncoderTest extends TestCase
 
         yield 'timestamp is a string' => ['2001-12-14', '"2001-12-14"'];
 
-        yield 'escapes' => ['"a\"b\\\\c\n\t\u0001é"', '"a\"b\\\\c\n\t\u0001é"'];
+        yield 'escapes' => ['"a\"b\\\c\n\t\u0001é"', '"a\"b\\\c\n\t\u0001é"'];
 
         yield 'html is not escaped' => ['"<a&b>"', '"<a&b>"'];
 
-        yield 'line separator' => ["\"\u{2028}\"", "\"\\u2028\""];
+        yield 'line separator' => ["\"\u{2028}\"", '"\u2028"'];
 
         yield 'backspace and form feed' => ['"\b\f"', '"\b\f"'];
     }
 
     public function testUnwrapScalarPrintsRawValue(): void
     {
-        self::assertSame("cat\n", self::encode('cat', new FormatOptions(unwrapScalar: true)));
+        self::assertSame("cat\n", $this->encode('cat', new FormatOptions(unwrapScalar: true)));
     }
 
     public function testInfinityIsRejected(): void
     {
         $this->expectException(FormatException::class);
-        self::encode('.inf', new FormatOptions(unwrapScalar: false));
+        $this->encode('.inf', new FormatOptions(unwrapScalar: false));
     }
 
     public function testInvalidUtf8BecomesReplacementCharacter(): void
@@ -122,14 +122,14 @@ final class JsonEncoderTest extends TestCase
 
     public function testAliasCycleIsRejected(): void
     {
-        $seq = Node::sequence();
+        $seq            = Node::sequence();
         $seq->content[] = Node::alias('a', $seq);
 
         $this->expectException(FormatException::class);
         new JsonEncoder()->encode($seq, new FormatOptions(), 0);
     }
 
-    private static function encode(string $yaml, ?FormatOptions $options = null): string
+    private function encode(string $yaml, ?FormatOptions $options = null): string
     {
         foreach (new YamlParser()->parse($yaml) as $document) {
             self::assertSame(NodeKind::Document, $document->kind);

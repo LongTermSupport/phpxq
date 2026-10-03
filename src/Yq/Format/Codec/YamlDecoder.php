@@ -30,8 +30,8 @@ final readonly class YamlDecoder implements DecoderInterface
     {
         try {
             yield from $this->parser->parse($input);
-        } catch (YamlSyntaxException $exception) {
-            throw new FormatException($exception->getMessage(), 0, $exception);
+        } catch (YamlSyntaxException $yamlSyntaxException) {
+            throw new FormatException($yamlSyntaxException->getMessage(), 0, $yamlSyntaxException);
         }
     }
 }

@@ -40,7 +40,7 @@ final class PropsDecoder implements DecoderInterface
         foreach ($this->entries($input) as [$key, $value, $comment]) {
             $parts = [];
             foreach (explode('.', $key) as $part) {
-                $parts[] = 1 === preg_match('/^[0-9]{1,9}$/D', $part) ? (int) $part : $part;
+                $parts[] = 1 === preg_match('/^[0-9]{1,9}$/D', $part) ? (int)$part : $part;
             }
 
             $this->assign($root, $parts, Node::scalar($value, CoreSchema::TAG_STR), $comment, $index);
@@ -54,7 +54,11 @@ final class PropsDecoder implements DecoderInterface
      */
     private function entries(string $input): array
     {
-        $lines    = preg_split('/\r\n|\n|\r/', $input) ?: [];
+        $lines    = preg_split('/\r\n|\n|\r/', $input);
+        if (false === $lines) {
+            $lines = [$input];
+        }
+
         $count    = \count($lines);
         $entries  = [];
         $comments = [];
@@ -88,7 +92,7 @@ final class PropsDecoder implements DecoderInterface
 
     private function endsWithContinuation(string $line): bool
     {
-        $length = \strlen($line);
+        $length  = \strlen($line);
         $slashes = 0;
         while ($slashes < $length && '\\' === $line[$length - 1 - $slashes]) {
             ++$slashes;
@@ -127,7 +131,7 @@ final class PropsDecoder implements DecoderInterface
             $i += strspn($line, self::BLANKS, $i);
         }
 
-        return [$key, (string) substr($line, $i)];
+        return [$key, substr($line, $i)];
     }
 
     private function unescape(string $text): string
@@ -154,7 +158,7 @@ final class PropsDecoder implements DecoderInterface
             if ('u' === $escaped) {
                 $code = $this->hex($text, $i + 1);
                 $i += 4;
-                if ($code >= 0xD800 && $code <= 0xDBFF && '\\u' === substr($text, $i + 1, 2)) {
+                if ($code >= 0xD800 && $code <= 0xDBFF && '\u' === substr($text, $i + 1, 2)) {
                     $low = $this->hex($text, $i + 3);
                     if ($low >= 0xDC00 && $low <= 0xDFFF) {
                         $code = 0x10000 + (($code - 0xD800) << 10) + ($low - 0xDC00);
@@ -183,14 +187,14 @@ final class PropsDecoder implements DecoderInterface
     {
         $digits = substr($text, $offset, 4);
         if (4 !== \strlen($digits) || 4 !== strspn($digits, '0123456789abcdefABCDEF')) {
-            throw new FormatException('properties: malformed \\uxxxx encoding');
+            throw new FormatException('properties: malformed \uxxxx encoding');
         }
 
-        return (int) hexdec($digits);
+        return (int)hexdec($digits);
     }
 
     /**
-     * @param list<int|string>                $parts
+     * @param list<int|string>               $parts
      * @param array<int, array<string, int>> $index key positions per mapping, by object id
      */
     private function assign(Node $root, array $parts, Node $leaf, string $comment, array &$index): void
@@ -208,53 +212,60 @@ final class PropsDecoder implements DecoderInterface
                 }
 
                 if ($position === $last) {
-                    $leaf->headComment    = $comment;
-                    $node->content[$part] = $leaf;
+                    $leaf->headComment = $comment;
+                    NodeTools::replaceAt($node, $part, $leaf);
 
                     return;
                 }
 
-                $node->content[$part] = $this->container($node->content[$part], $parts[$position + 1]);
-                $node                 = $node->content[$part];
+                $child = $this->container($node->content[$part], $parts[$position + 1]);
+                if ($child !== $node->content[$part]) {
+                    NodeTools::replaceAt($node, $part, $child);
+                }
+
+                $node = $child;
 
                 continue;
             }
 
-            $text = (string) $part;
+            $text = (string)$part;
             $id   = spl_object_id($node);
             if (!isset($index[$id])) {
                 $index[$id] = [];
-                for ($i = 0; $i + 1 < \count($node->content); $i += 2) {
+                $counter    = \count($node->content);
+                for ($i = 0; $i + 1 < $counter; $i += 2) {
                     $index[$id][$node->content[$i]->value] = $i;
                 }
             }
 
             $at = $index[$id][$text] ?? null;
             if ($position === $last) {
-                $key = $at === null ? Node::scalar($text, CoreSchema::TAG_STR) : $node->content[$at];
+                $key = null === $at ? Node::scalar($text, CoreSchema::TAG_STR) : $node->content[$at];
                 if ('' !== $comment) {
                     $key->headComment = $comment;
                 }
 
-                if ($at === null) {
+                if (null === $at) {
                     $index[$id][$text] = \count($node->content);
                     $node->content[]   = $key;
                     $node->content[]   = $leaf;
                 } else {
-                    $node->content[$at + 1] = $leaf;
+                    NodeTools::replaceAt($node, $at + 1, $leaf);
                 }
 
                 return;
             }
 
-            if ($at === null) {
+            if (null === $at) {
                 $child             = $this->container(null, $parts[$position + 1]);
                 $index[$id][$text] = \count($node->content);
                 $node->content[]   = Node::scalar($text, CoreSchema::TAG_STR);
                 $node->content[]   = $child;
             } else {
-                $child                  = $this->container($node->content[$at + 1], $parts[$position + 1]);
-                $node->content[$at + 1] = $child;
+                $child = $this->container($node->content[$at + 1], $parts[$position + 1]);
+                if ($child !== $node->content[$at + 1]) {
+                    NodeTools::replaceAt($node, $at + 1, $child);
+                }
             }
 
             $node = $child;

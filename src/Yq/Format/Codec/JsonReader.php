@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
+use LTS\PhpXq\Yaml\NodeKind;
 use LTS\PhpXq\Yaml\NodeStyle;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\FormatException;
@@ -19,8 +20,6 @@ final class JsonReader
 
     /** Bytes that end a run of plain string characters: `"`, `\` and the control characters. */
     private const string STRING_STOP = "\"\\\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f";
-
-    private const string NUMBER = '/\G-?(?:0|[1-9][0-9]*)(\.[0-9]+)?([eE][-+]?[0-9]+)?/';
 
     private int $pos = 0;
 
@@ -58,21 +57,22 @@ final class JsonReader
         $char = $this->source[$this->pos];
 
         return match (true) {
-            '{' === $char                 => $this->object($depth),
-            '[' === $char                 => $this->array($depth),
-            '"' === $char                 => Node::scalar($this->string(), CoreSchema::TAG_STR),
+            '{' === $char                                   => $this->object($depth),
+            '[' === $char                                   => $this->array($depth),
+            '"' === $char                                   => new Node(NodeKind::Scalar, CoreSchema::TAG_STR, NodeStyle::Default, $this->string()),
             '-' === $char || ($char >= '0' && $char <= '9') => $this->number(),
-            default                       => $this->literal(),
+            default                                         => $this->literal(),
         };
     }
 
     private function object(int $depth): Node
     {
         ++$this->pos;
-        $content = [];
-        $index   = [];
+        $keys   = [];
+        $values = [];
+        $index  = [];
         $this->skipWhitespace();
-        if ($this->peek() === '}') {
+        if ('}' === $this->peek()) {
             ++$this->pos;
 
             return Node::mapping();
@@ -80,7 +80,7 @@ final class JsonReader
 
         while (true) {
             $this->skipWhitespace();
-            if ($this->peek() !== '"') {
+            if ('"' !== $this->peek()) {
                 throw $this->unexpected('looking for beginning of object key string');
             }
 
@@ -98,11 +98,11 @@ final class JsonReader
 
             $value = $this->value($depth + 1);
             if (isset($index[$key])) {
-                $content[$index[$key] + 1] = $value;
+                $values[$index[$key]] = $value;
             } else {
-                $index[$key] = \count($content);
-                $content[]   = Node::scalar($key, CoreSchema::TAG_STR);
-                $content[]   = $value;
+                $index[$key] = \count($keys);
+                $keys[]      = new Node(NodeKind::Scalar, CoreSchema::TAG_STR, NodeStyle::Default, $key);
+                $values[]    = $value;
             }
 
             $this->skipWhitespace();
@@ -113,6 +113,12 @@ final class JsonReader
             }
 
             if ('}' === $char) {
+                $content = [];
+                foreach ($keys as $position => $keyNode) {
+                    $content[] = $keyNode;
+                    $content[] = $values[$position];
+                }
+
                 return Node::mapping($content);
             }
 
@@ -159,27 +165,69 @@ final class JsonReader
 
     private function number(): Node
     {
-        if (1 !== preg_match(self::NUMBER, $this->source, $match, 0, $this->pos)) {
+        $source = $this->source;
+        $start  = $this->pos;
+        $i      = $start;
+        if ('-' === $source[$i]) {
+            ++$i;
+        }
+
+        $digits = strspn($source, '0123456789', $i);
+        if (0 === $digits) {
+            $this->pos = $i;
+
             throw $this->unexpected('in numeric literal');
         }
 
-        $text = $match[0];
-        $end  = $this->pos + \strlen($text);
-        if ($end < $this->length && str_contains('0123456789.eE+-', $this->source[$end])) {
-            $this->pos = $end;
+        if ($digits > 1 && '0' === $source[$i]) {
+            $this->pos = $i + 1;
 
             throw $this->unexpected('after top-level value');
         }
 
-        $this->pos = $end;
+        $i += $digits;
+        $float = false;
+        if ('.' === ($source[$i] ?? '')) {
+            $fraction = strspn($source, '0123456789', $i + 1);
+            if (0 === $fraction) {
+                $this->pos = $i + 1;
 
-        return Node::scalar($text, isset($match[1]) || isset($match[2]) ? CoreSchema::TAG_FLOAT : CoreSchema::TAG_INT, NodeStyle::Default);
+                throw $this->unexpected('after decimal point in numeric literal');
+            }
+
+            $i += 1 + $fraction;
+            $float = true;
+        }
+
+        if ('e' === ($source[$i] ?? '') || 'E' === ($source[$i] ?? '')) {
+            $j = $i + 1;
+            if ('+' === ($source[$j] ?? '') || '-' === ($source[$j] ?? '')) {
+                ++$j;
+            }
+
+            $exponent = strspn($source, '0123456789', $j);
+            if (0 === $exponent) {
+                $this->pos = $j;
+
+                throw $this->unexpected('in exponent of numeric literal');
+            }
+
+            $i += $j - $i + $exponent;
+            $float = true;
+        }
+
+        $this->pos = $i;
+        if ($i < $this->length && str_contains('0123456789.eE+-', $source[$i])) {
+            throw $this->unexpected('after top-level value');
+        }
+
+        return new Node(NodeKind::Scalar, $float ? CoreSchema::TAG_FLOAT : CoreSchema::TAG_INT, NodeStyle::Default, substr($source, $start, $i - $start));
     }
 
     private function literal(): Node
     {
         foreach (['true' => CoreSchema::TAG_BOOL, 'false' => CoreSchema::TAG_BOOL, 'null' => CoreSchema::TAG_NULL] as $word => $tag) {
-            if (substr_compare($this->source, $word, $this->pos, \strlen($word)) === 0) {
+            if (0 === substr_compare($this->source, $word, $this->pos, \strlen($word))) {
                 $this->pos += \strlen($word);
 
                 return Node::scalar($word, $tag);
@@ -192,6 +240,14 @@ final class JsonReader
     private function string(): string
     {
         ++$this->pos;
+        $run = strcspn($this->source, self::STRING_STOP, $this->pos);
+        if ($this->pos + $run < $this->length && '"' === $this->source[$this->pos + $run]) {
+            $plain = substr($this->source, $this->pos, $run);
+            $this->pos += $run + 1;
+
+            return $plain;
+        }
+
         $out = '';
         while (true) {
             $run = strcspn($this->source, self::STRING_STOP, $this->pos);
@@ -254,7 +310,7 @@ final class JsonReader
     {
         $code = $this->hex4();
         if ($code >= 0xD800 && $code <= 0xDBFF) {
-            if ('\\u' === substr($this->source, $this->pos, 2)) {
+            if ('\u' === substr($this->source, $this->pos, 2)) {
                 $save = $this->pos;
                 $this->pos += 2;
                 $low = $this->hex4();
@@ -279,12 +335,12 @@ final class JsonReader
     {
         $digits = substr($this->source, $this->pos, 4);
         if (4 !== \strlen($digits) || 4 !== strspn($digits, '0123456789abcdefABCDEF')) {
-            throw $this->unexpected('in \\u hexadecimal character escape');
+            throw $this->unexpected('in \u hexadecimal character escape');
         }
 
         $this->pos += 4;
 
-        return (int) hexdec($digits);
+        return (int)hexdec($digits);
     }
 
     private function skipWhitespace(): void

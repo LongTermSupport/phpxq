@@ -70,7 +70,7 @@ final class XmlDecoder implements DecoderInterface
         $pendingFoot = '';
         foreach ($element->children as $name => $group) {
             ++$position;
-            $key = Node::scalar((string) $name, CoreSchema::TAG_STR);
+            $key = Node::scalar((string)$name, CoreSchema::TAG_STR);
             if (1 === $position && !$headConsumed) {
                 $key->headComment = $this->comment($element->headComment);
             }

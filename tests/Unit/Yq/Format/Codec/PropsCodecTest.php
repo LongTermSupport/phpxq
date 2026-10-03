@@ -48,49 +48,49 @@ final class PropsCodecTest extends TestCase
 
             PROPS;
 
-        self::assertSame($expected, self::encodeYaml(self::SAMPLE_YAML));
+        self::assertSame($expected, $this->encodeYaml(self::SAMPLE_YAML));
     }
 
     public function testEncodesArrayBrackets(): void
     {
-        $out = self::encodeYaml("a:\n  - x\n  - y:\n      - z\n", new FormatOptions(propertiesArrayBrackets: true));
+        $out = $this->encodeYaml("a:\n  - x\n  - y:\n      - z\n", new FormatOptions(propertiesArrayBrackets: true));
 
         self::assertSame("a[0] = x\na[1].y[0] = z\n", $out);
     }
 
     public function testEncodesCustomSeparator(): void
     {
-        self::assertSame("a.b :@ c\n", self::encodeYaml("a:\n  b: c\n", new FormatOptions(propertiesSeparator: ' :@ ')));
+        self::assertSame("a.b :@ c\n", $this->encodeYaml("a:\n  b: c\n", new FormatOptions(propertiesSeparator: ' :@ ')));
     }
 
     public function testEncodesEmptyValuesAndKeepsEmptyStringProperties(): void
     {
-        self::assertSame("a = \nb = \n", self::encodeYaml("a: ''\nb: \n"));
+        self::assertSame("a = \nb = \n", $this->encodeYaml("a: ''\nb: \n"));
     }
 
     public function testTopLevelScalarIsPrintedBare(): void
     {
-        self::assertSame("hello\n", self::encodeYaml('hello'));
+        self::assertSame("hello\n", $this->encodeYaml('hello'));
     }
 
     public function testNoUnwrapQuotesStringsWithSpaces(): void
     {
-        $out = self::encodeYaml("a: Mike Wazowski\nb: cat\n", new FormatOptions(unwrapScalar: false));
+        $out = $this->encodeYaml("a: Mike Wazowski\nb: cat\n", new FormatOptions(unwrapScalar: false));
 
         self::assertSame("a = \"Mike Wazowski\"\nb = cat\n", $out);
     }
 
     public function testEscapesKeysAndValues(): void
     {
-        $out = self::encodeYaml("\"a b:c=d\": \"x\\ty\\nz\"\n");
+        $out = $this->encodeYaml("\"a b:c=d\": \"x\\ty\\nz\"\n");
 
         self::assertSame("a\\ b\\:c\\=d = x\\ty\\nz\n", $out);
     }
 
     public function testEncodesRootSequences(): void
     {
-        self::assertSame("0 = a\n1 = b\n", self::encodeYaml("- a\n- b\n"));
-        self::assertSame("[0] = a\n", self::encodeYaml("- a\n", new FormatOptions(propertiesArrayBrackets: true)));
+        self::assertSame("0 = a\n1 = b\n", $this->encodeYaml("- a\n- b\n"));
+        self::assertSame("[0] = a\n", $this->encodeYaml("- a\n", new FormatOptions(propertiesArrayBrackets: true)));
     }
 
     public function testDecodesTheDocumentedExample(): void
@@ -122,12 +122,12 @@ final class PropsCodecTest extends TestCase
 
             YAML;
 
-        self::assertSame($expected, self::decodeToYaml($props));
+        self::assertSame($expected, $this->decodeToYaml($props));
     }
 
     public function testDecodedValuesAreStrings(): void
     {
-        $doc = self::decode("a.b = 10\nc = true\n");
+        $doc = $this->decode("a.b = 10\nc = true\n");
 
         self::assertSame('!!str', $doc->root()->content[1]->content[1]->tag);
         self::assertSame('!!str', $doc->root()->content[3]->tag);
@@ -135,7 +135,7 @@ final class PropsCodecTest extends TestCase
 
     public function testSparseArrayIndexesAreFilledWithNulls(): void
     {
-        $things = self::decode('things.2 = mike')->root()->content[1];
+        $things = $this->decode('things.2 = mike')->root()->content[1];
 
         self::assertCount(3, $things->content);
         self::assertSame('!!null', $things->content[0]->tag);
@@ -145,7 +145,7 @@ final class PropsCodecTest extends TestCase
     #[DataProvider('syntaxCases')]
     public function testPropertySyntax(string $input, string $expectedKey, string $expectedValue): void
     {
-        $root = self::decode($input)->root();
+        $root = $this->decode($input)->root();
 
         self::assertSame($expectedKey, $root->content[0]->value);
         self::assertSame($expectedValue, $root->content[1]->value);
@@ -184,7 +184,7 @@ final class PropsCodecTest extends TestCase
     public function testInvalidUnicodeEscape(): void
     {
         $this->expectException(FormatException::class);
-        self::decode('k=\\u12');
+        $this->decode('k=\u12');
     }
 
     public function testFormats(): void
@@ -198,7 +198,7 @@ final class PropsCodecTest extends TestCase
         self::assertSame([], [...new PropsDecoder()->decode('', new FormatOptions())]);
     }
 
-    private static function decode(string $props): Node
+    private function decode(string $props): Node
     {
         foreach (new PropsDecoder()->decode($props, new FormatOptions()) as $document) {
             return $document;
@@ -207,12 +207,12 @@ final class PropsCodecTest extends TestCase
         self::fail('no document');
     }
 
-    private static function decodeToYaml(string $props): string
+    private function decodeToYaml(string $props): string
     {
-        return new YamlEmitter()->emit(self::decode($props));
+        return new YamlEmitter()->emit($this->decode($props));
     }
 
-    private static function encodeYaml(string $yaml, ?FormatOptions $options = null): string
+    private function encodeYaml(string $yaml, ?FormatOptions $options = null): string
     {
         foreach (new YamlParser()->parse($yaml) as $document) {
             return new PropsEncoder()->encode($document, $options ?? new FormatOptions(), 0);

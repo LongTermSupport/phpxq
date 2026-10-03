@@ -424,7 +424,7 @@ final class XmlReader
             function (array $m): string {
                 $entity = $m[1];
                 if ('#' === $entity[0]) {
-                    $code = 'x' === ($entity[1] ?? '') ? (int) hexdec(substr($entity, 2)) : (int) substr($entity, 1);
+                    $code = 'x' === ($entity[1] ?? '') ? (int)hexdec(substr($entity, 2)) : (int)substr($entity, 1);
                     if ($code > 0 && $code <= 0x10FFFF && ($code < 0xD800 || $code > 0xDFFF)) {
                         return mb_chr($code, 'UTF-8');
                     }

@@ -48,7 +48,31 @@ final class NodeTools
 
     public static function isMergeKey(Node $key): bool
     {
-        return NodeKind::Scalar === $key->kind && '<<' === $key->value && NodeStyle::Default === $key->style && (CoreSchema::TAG_STR === $key->tag || '!!merge' === $key->tag);
+        return '<<' === $key->value && NodeKind::Scalar === $key->kind && NodeStyle::Default === $key->style && (CoreSchema::TAG_STR === $key->tag || '!!merge' === $key->tag);
+    }
+
+    /**
+     * The flat key0, value0, key1, value1, ... list of a mapping with merge keys expanded. A mapping with
+     * no merge key returns its own content list, so the common case allocates nothing.
+     *
+     * @return list<Node>
+     */
+    public static function flatContent(Node $mapping): array
+    {
+        $count = \count($mapping->content);
+        for ($i = 0; $i < $count; $i += 2) {
+            if (self::isMergeKey($mapping->content[$i])) {
+                $flat = [];
+                foreach (self::pairs($mapping) as [$key, $value]) {
+                    $flat[] = $key;
+                    $flat[] = $value;
+                }
+
+                return $flat;
+            }
+        }
+
+        return $mapping->content;
     }
 
     /**
@@ -188,11 +212,28 @@ final class NodeTools
     }
 
     /**
+     * Replaces the child at `$index` of a node's content, keeping the content a list.
+     */
+    public static function replaceAt(Node $parent, int $index, Node $value): void
+    {
+        array_splice($parent->content, $index, 1, [$value]);
+    }
+
+    /**
      * Joins comments that are present, newline separated.
      */
     public static function joinComments(string ...$comments): string
     {
         return implode("\n", array_filter($comments, static fn (string $comment): bool => '' !== $comment));
+    }
+
+    /**
+     * Like {@see self::joinComments()} but a comment repeated verbatim (the same node reached twice, for
+     * example through an alias) appears once.
+     */
+    public static function joinDistinct(string ...$comments): string
+    {
+        return self::joinComments(...array_values(array_unique($comments)));
     }
 
     /**
@@ -231,7 +272,7 @@ final class NodeTools
         $number = [0];
         $length = \strlen($digits);
         for ($i = 0; $i < $length; ++$i) {
-            $carry = (int) base_convert($digits[$i], $base, 10);
+            $carry = (int)base_convert($digits[$i], $base, 10);
             foreach ($number as $position => $digit) {
                 $total             = $digit * $base + $carry;
                 $number[$position] = $total % 10;
