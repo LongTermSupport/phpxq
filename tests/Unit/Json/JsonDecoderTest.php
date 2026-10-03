@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Json;
 
+use Generator;
 use LTS\PhpXq\Json\JsonDecoder;
 use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Json\JsonSyntaxException;
 use LTS\PhpXq\Json\PreciseNumber;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
 
 /**
  * @internal
@@ -27,9 +29,11 @@ final class JsonDecoderTest extends TestCase
     #[DataProvider('valueProvider')]
     public function testScannerAndFastPathAgree(string $json, string $expected): void
     {
-        // a leading BOM keeps the text off the native fast path; the result must not change
-        $decoder = new JsonDecoder();
-        $slow    = iterator_to_array($decoder->decodeAll(str_starts_with($json, self::BOM) ? $json : self::BOM . $json), false);
+        // the scanner alone must give the same result as the native fast path
+        $method = new ReflectionMethod(JsonDecoder::class, 'scan');
+        $values = $method->invoke(new JsonDecoder(), $json, false, 0);
+        self::assertInstanceOf(Generator::class, $values);
+        $slow = iterator_to_array($values, false);
 
         self::assertCount(1, $slow);
         self::assertSame($expected, self::describe($slow[0]));
@@ -162,6 +166,9 @@ final class JsonDecoderTest extends TestCase
         yield 'raw nul'                  => ["\"\x00\"", 'Invalid string: control characters from U+0000 through U+001F must be escaped at line 1, column 3'];
         yield 'error on third line'      => ["[\n1,\nx]", 'Invalid numeric literal at line 3, column 2'];
         yield 'second value broken'      => ["1\n2\n}", "Unmatched '}' at line 3, column 1"];
+        yield 'error after bom'          => [self::BOM . '[1,}', "Unmatched '}' at line 1, column 4"];
+        yield 'bom then second line'     => [self::BOM . "1\n}", "Unmatched '}' at line 2, column 1"];
+        yield 'bom odd first line'       => [self::BOM . "1.0\n2\n}", "Unmatched '}' at line 3, column 1"];
         yield 'malformed bom'            => ["\xEF\xBB[1]", 'Malformed BOM'];
         yield 'depth limit arrays'       => [str_repeat('[', 10001), 'Exceeds depth limit for parsing at line 1, column 10001'];
         yield 'depth limit objects'      => [str_repeat('{"a":', 5001), 'Exceeds depth limit for parsing at line 1, column 25001'];

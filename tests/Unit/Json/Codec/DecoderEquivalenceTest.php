@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Json\Codec;
 
+use Generator;
 use LTS\PhpXq\Json\JsonDecoder;
 use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Json\PreciseNumber;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
 
 /**
- * Random documents decoded through the native fast path and through the scanner (a leading BOM keeps the
- * text off the fast path) must produce identical values, types and preserved literals.
+ * Random documents decoded through the native fast paths and through the hand written scanner must
+ * produce identical values, types and preserved literals.
  *
  * @internal
  */
@@ -37,7 +39,7 @@ final class DecoderEquivalenceTest extends TestCase
         for ($i = 0; $i < 1500; ++$i) {
             $text = self::randomValue(0);
             $fast = self::describe($decoder->decodeOne($text));
-            $slow = iterator_to_array($decoder->decodeAll("\xEF\xBB\xBF" . $text), false);
+            $slow = $this->scanned($text);
 
             self::assertCount(1, $slow, $text);
             self::assertSame($fast, self::describe($slow[0]), $text);
@@ -59,11 +61,25 @@ final class DecoderEquivalenceTest extends TestCase
             $text .= 0 === $i % 2 ? "\n" : '';
 
             $fast = array_map(self::describe(...), iterator_to_array($decoder->decodeAll($text), false));
-            $slow = array_map(self::describe(...), iterator_to_array($decoder->decodeAll("\xEF\xBB\xBF" . $text), false));
+            $slow = array_map(self::describe(...), $this->scanned($text));
 
             self::assertCount($count, $fast, $text);
             self::assertSame($fast, $slow, $text);
         }
+    }
+
+    /**
+     * The hand written scanner on its own, bypassing the native fast paths.
+     *
+     * @return list<mixed>
+     */
+    private function scanned(string $text): array
+    {
+        $method = new ReflectionMethod(JsonDecoder::class, 'scan');
+        $values = $method->invoke(new JsonDecoder(), $text, false, 0);
+        self::assertInstanceOf(Generator::class, $values);
+
+        return iterator_to_array($values, false);
     }
 
     private static function randomValue(int $depth): string

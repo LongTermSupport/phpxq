@@ -54,6 +54,8 @@ final class JsonDecoder implements JsonDecoderInterface
 
     private const string RS = "\x1e";
 
+    private const string BOM = "\xEF\xBB\xBF";
+
     /**
      * A string of printable ASCII without escapes, starting at the offset: group 1 is its content.
      */
@@ -72,7 +74,7 @@ final class JsonDecoder implements JsonDecoderInterface
     public function decodeOne(string $text): mixed
     {
         $ok    = false;
-        $value = $this->fast($text, $ok);
+        $value = $this->fast(str_starts_with($text, self::BOM) ? substr($text, 3) : $text, $ok);
         if ($ok) {
             return $value;
         }
@@ -99,9 +101,12 @@ final class JsonDecoder implements JsonDecoderInterface
     public function decodeAll(string $text, bool $seq = false): Generator
     {
         $offset = 0;
+        $shift  = 0;
         if (!$seq) {
-            $ok    = false;
-            $value = $this->fast($text, $ok);
+            $ok     = false;
+            $offset = str_starts_with($text, self::BOM) ? 3 : 0;
+            $shift  = $offset;
+            $value  = $this->fast(0 === $shift ? $text : substr($text, $shift), $ok);
             if ($ok) {
                 yield $value;
 
@@ -151,7 +156,8 @@ final class JsonDecoder implements JsonDecoderInterface
             }
         }
 
-        foreach ($this->scan($text, $seq, $offset) as $item) {
+        // the scanner strips a leading BOM itself, so a restart at the very beginning is a restart at 0
+        foreach ($this->scan($text, $seq, $offset === $shift ? 0 : $offset) as $item) {
             yield $item;
         }
     }
