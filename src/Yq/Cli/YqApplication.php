@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Cli;
 
+use LogicException;
 use LTS\PhpXq\Yaml\Emitter\YamlEmitter;
 use LTS\PhpXq\Yaml\Emitter\YamlEmitterInterface;
 use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
@@ -64,7 +65,7 @@ final class YqApplication implements YqApplicationInterface
             return $this->dispatch($parsed, $stdin, $stdout, $stderr);
         } catch (UsageException $e) {
             fwrite($stderr, 'Error: ' . $e->getMessage() . "\n" . HelpText::usage($parsed->command) . "\n");
-        } catch (CliException|EvaluationException|ExpressionSyntaxException|FormatException|YamlSyntaxException $e) {
+        } catch (CliException|EvaluationException|ExpressionSyntaxException|FormatException|YamlSyntaxException|LogicException $e) {
             fwrite($stderr, 'Error: ' . $e->getMessage() . "\n");
         }
 

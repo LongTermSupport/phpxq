@@ -202,13 +202,14 @@ final class YqApplicationTest extends TestCase
 
         self::assertCount(1, $this->cli->evaluator->contexts);
         self::assertCount(1, $this->cli->evaluator->contexts[0]->matches);
-        self::assertSame('!!null', $this->cli->evaluator->contexts[0]->matches[0]->node->tag);
+        self::assertSame('!!null', $this->cli->evaluator->contexts[0]->matches[0]->node->root()->tag);
     }
 
     public function testNullInputEvaluatesAgainstANullDocument(): void
     {
-        self::assertSame([0, "null\n", ''], $this->cli->run(['-n', '.']));
-        self::assertSame([0, "null\n", ''], $this->cli->run(['e', '--null-input', '.']));
+        self::assertSame([0, "null\n", ''], $this->cli->run(['-n', '.a']));
+        self::assertSame([0, "null\n", ''], $this->cli->run(['e', '--null-input', '.a']));
+        self::assertSame([0, "null\n", ''], $this->cli->run(['ea', '-n', '.a']));
     }
 
     public function testNullInputRejectsFiles(): void

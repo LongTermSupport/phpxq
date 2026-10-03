@@ -28,15 +28,17 @@ final class HeaderSplitterTest extends TestCase
 
         yield 'no header'                   => ["a: 1\n", '', "a: 1\n"];
         yield 'empty'                       => ['', '', ''];
-        yield 'comments'                    => ["# one\n# two\na: 1\n", "# one\n# two\n", "a: 1\n"];
-        yield 'indented comment'            => ["  # one\na: 1\n", "  # one\n", "a: 1\n"];
+        yield 'comments above content stay'  => ["# one\n# two\na: 1\n", '', "# one\n# two\na: 1\n"];
+        yield 'indented comment stays'       => ["  # one\na: 1\n", '', "  # one\na: 1\n"];
+        yield 'blank lines only'             => ["\n\n", "\n\n", ''];
         yield 'leading separator'           => ["---\na: 1\n", $marker . "\n", "a: 1\n"];
         yield 'comments then separator'     => ["# one\n---\na: 1\n---\nb: 2\n", "# one\n" . $marker . "\n", "a: 1\n---\nb: 2\n"];
-        yield 'separator then comments'     => ["---\n# one\na: 1\n", $marker . "\n# one\n", "a: 1\n"];
+        yield 'comments after the separator are header' => ["---\n# one\na: 1\n", $marker . "\n# one\n", "a: 1\n"];
         yield 'blank lines are kept'        => ["# one\n\n\n---\n# two\n\na: 1\n", "# one\n\n\n" . $marker . "\n# two\n\n", "a: 1\n"];
         yield 'only comments'               => ["# comment\n", "# comment\n", ''];
         yield 'no trailing newline'         => ['#comment', "#comment\n", ''];
-        yield 'directive stops the header'  => ["%YAML 1.1\n---\na: 1\n", '', "%YAML 1.1\n---\na: 1\n"];
+        yield 'directives belong to the header' => ["%YAML 1.1\n---\na: 1\n", "%YAML 1.1\n" . $marker . "\n", "a: 1\n"];
+        yield 'directive without a separator' => ["%YAML 1.1\na: 1\n", '', "%YAML 1.1\na: 1\n"];
         yield 'separator with content'      => ["--- text\n", '', "--- text\n"];
         yield 'separator with comment'      => ["--- # c\na: 1\n", '', "--- # c\na: 1\n"];
         yield 'trailing blanks after dashes' => ["---  \na: 1\n", $marker . "\n", "a: 1\n"];

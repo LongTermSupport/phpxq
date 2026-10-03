@@ -46,16 +46,16 @@ final class ResultPrinter
     }
 
     /**
+     * A separator goes between results whose file or document index differs, as in the reference.
+     *
      * @param list<Candidate> $results
-     * @param ?string         $groupKey identifies the document these results came from; when null each
-     *                                  result's own file and document index decide where a separator goes
      *
      * @throws CliException
      */
-    public function print(array $results, ?string $groupKey = null): void
+    public function print(array $results): void
     {
         foreach ($results as $result) {
-            $this->printOne($result, $groupKey ?? $result->fileIndex . ':' . $result->documentIndex);
+            $this->printOne($result, $result->fileIndex . ':' . $result->documentIndex);
         }
     }
 
@@ -102,31 +102,37 @@ final class ResultPrinter
 
     private function renderYaml(Node $node, bool $separator): string
     {
-        $text = '';
-        $document = $this->registry->documentFor($node);
-        $header   = $this->registry->headerFor($node);
-        $framed   = $document instanceof Node && ($document->explicitStart || $document->explicitEnd || '' !== $document->directives);
-        $starts   = $framed && $document->explicitStart;
+        $text     = '';
+        $document = NodeKind::Document === $node->kind;
+        $header   = $document ? $this->registry->headerFor($node) : '';
 
-        if ($separator && !$this->emitOptions->noDocSeparator && !$starts && !str_starts_with($header, HeaderSplitter::SEPARATOR_MARKER)) {
+        if ($separator && !$this->emitOptions->noDocSeparator && !str_starts_with($header, HeaderSplitter::SEPARATOR_MARKER)) {
             $text .= "---\n";
+        }
+
+        if ($document) {
+            // Document framing is the printer's business (separators, header), not the document's: the
+            // reference does not keep `---`, `...` or directives on a node either.
+            $node->explicitStart = false;
+            $node->explicitEnd   = false;
+            $node->directives    = '';
         }
 
         if ('' !== $header) {
             $text .= $this->renderHeader($header);
         }
 
-        if ($this->registry->isUntouchedEmpty($node)) {
+        if ($document && $this->registry->isUntouchedEmpty($node)) {
             return $text;
         }
 
-        return $text . $this->emitter->emit($framed ? $document : $node, $this->emitOptions);
+        return $text . $this->emitter->emit($node, $this->emitOptions);
     }
 
     private function renderHeader(string $header): string
     {
         $out = '';
-        foreach (explode("\n", rtrim($header, "\n")) as $line) {
+        foreach (explode("\n", substr($header, 0, -1)) as $line) {
             if (HeaderSplitter::SEPARATOR_MARKER === $line) {
                 if (!$this->emitOptions->noDocSeparator) {
                     $out .= "---\n";
@@ -144,7 +150,7 @@ final class ResultPrinter
     private function renderOther(Node $node): string
     {
         try {
-            return $this->formats->encoder($this->format)->encode($node, $this->formatOptions, $this->index);
+            return $this->formats->encoder($this->format)->encode($node->root(), $this->formatOptions, $this->index);
         } catch (FormatException $e) {
             throw new CliException($e->getMessage(), 0, $e);
         }
@@ -152,13 +158,16 @@ final class ResultPrinter
 
     private function guardNul(Node $node): void
     {
-        if ($this->nulSeparated && $this->emitOptions->unwrapScalar && NodeKind::Scalar === $node->kind && str_contains($node->value, "\0")) {
+        $root = $node->root();
+        if ($this->nulSeparated && $this->emitOptions->unwrapScalar && NodeKind::Scalar === $root->kind && str_contains($root->value, "\0")) {
             throw new CliException("Can't serialize value because it contains NUL char and you are using NUL separated output");
         }
     }
 
     private static function isNullOrFalse(Node $node): bool
     {
-        return NodeKind::Scalar === $node->kind && ('!!null' === $node->tag || ('!!bool' === $node->tag && 'false' === $node->value));
+        $root = $node->root();
+
+        return NodeKind::Scalar === $root->kind && ('!!null' === $root->tag || ('!!bool' === $root->tag && 'false' === $root->value));
     }
 }

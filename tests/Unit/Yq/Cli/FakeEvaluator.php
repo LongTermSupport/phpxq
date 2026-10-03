@@ -60,8 +60,9 @@ final class FakeEvaluator implements EvaluatorInterface
         if ($expression instanceof Iterate) {
             $out = [];
             foreach ($this->walk($expression->base, $context) as $parent) {
-                foreach ($parent->node->content as $i => $child) {
-                    if (NodeKind::Mapping === $parent->node->kind && 0 === $i % 2) {
+                $container = $parent->node->root();
+                foreach ($container->content as $i => $child) {
+                    if (NodeKind::Mapping === $container->kind && 0 === $i % 2) {
                         continue;
                     }
 
@@ -77,7 +78,7 @@ final class FakeEvaluator implements EvaluatorInterface
 
     private function lookup(Candidate $parent, string $key): Candidate
     {
-        $content = $parent->node->content;
+        $content = $parent->node->root()->content;
         for ($i = 0; $i + 1 < \count($content); $i += 2) {
             if ($content[$i]->value === $key) {
                 return new Candidate($content[$i + 1], $parent, $content[$i], $parent->documentIndex, $parent->fileIndex, $parent->filename);

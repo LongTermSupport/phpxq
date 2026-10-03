@@ -17,8 +17,9 @@ use LTS\PhpXq\Yq\Format\FormatRegistryInterface;
 use LTS\PhpXq\Yq\Runtime\Candidate;
 
 /**
- * Reads input files (or standard input, named `-`) and yields one Candidate per document, in order,
- * numbering documents per file and files per run. YAML goes straight to the YAML parser; every other
+ * Reads input files (or standard input, named `-`) and yields one Candidate per document (the candidate's
+ * node is the Document node, which the evaluator treats as transparent), in order, numbering documents
+ * per file and files per run. YAML goes straight to the YAML parser; every other
  * format goes through its decoder.
  *
  * An input that yields no document (an empty file, or one holding only a header) yields one synthesised
@@ -42,12 +43,12 @@ final class SourceDocuments
      *
      * @throws CliException
      */
-    public function read(array $inputs, mixed $stdin, Format $format, FormatOptions $options, bool $headerPreprocess): Generator
+    public function read(array $inputs, mixed $stdin, Format $format, FormatOptions $options, HeaderMode $mode): Generator
     {
         foreach ($inputs as $fileIndex => $input) {
             $content = $input->content ?? $this->contents($input->name, $stdin);
             $header  = '';
-            if (Format::Yaml === $format && $headerPreprocess) {
+            if (Format::Yaml === $format && (HeaderMode::PerFile === $mode || (HeaderMode::FirstFile === $mode && 0 === $fileIndex))) {
                 [$header, $content] = $this->headers->split($content);
             }
 
@@ -57,10 +58,9 @@ final class SourceDocuments
                     ? $this->yamlParser->parse($content)
                     : $this->formats->decoder($format)->decode($content, $options);
                 foreach ($documents as $document) {
-                    $root = $document->root();
-                    $this->registry->register($root, $document, 0 === $docIndex ? $header : '', false);
+                    $this->registry->register($document, 0 === $docIndex ? $header : '', false);
 
-                    yield new Candidate($root, null, null, $docIndex, $fileIndex, $input->name);
+                    yield new Candidate($document, null, null, $docIndex, $fileIndex, $input->name);
 
                     ++$docIndex;
                 }
@@ -69,10 +69,10 @@ final class SourceDocuments
             }
 
             if (0 === $docIndex) {
-                $root = new Node(NodeKind::Scalar, '!!null', NodeStyle::Default, '');
-                $this->registry->register($root, Node::document($root), $header, true);
+                $document = Node::document(new Node(NodeKind::Scalar, '!!null', NodeStyle::Default, ''));
+                $this->registry->register($document, $header, true);
 
-                yield new Candidate($root, null, null, 0, $fileIndex, $input->name);
+                yield new Candidate($document, null, null, 0, $fileIndex, $input->name);
             }
         }
     }

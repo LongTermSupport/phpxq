@@ -7,6 +7,8 @@ namespace LTS\PhpXq\Yq\Cli;
 use LTS\PhpXq\Yaml\Emitter\EmitOptions;
 use LTS\PhpXq\Yaml\Emitter\YamlEmitterInterface;
 use LTS\PhpXq\Yaml\Node;
+use LTS\PhpXq\Yaml\NodeKind;
+use LTS\PhpXq\Yaml\NodeStyle;
 use LTS\PhpXq\Yaml\Parser\YamlParserInterface;
 use LTS\PhpXq\Yq\Expression\ExpressionParserInterface;
 use LTS\PhpXq\Yq\Format\Format;
@@ -93,11 +95,16 @@ final class EvaluateCommand
                 $args->bool('security-disable-env-ops'),
                 $args->bool('security-disable-file-ops'),
             ),
+            $args->bool('yaml-fix-merge-anchor-to-spec'),
         );
 
         $registry = new DocumentRegistry();
         $source   = new SourceDocuments($this->yamlParser, $this->formats, $registry);
-        $program  = $this->expressions->parse('' === $expression ? '.' : $expression);
+        if (!$args->bool('string-interpolation')) {
+            $expression = self::escapeInterpolation($expression);
+        }
+
+        $program = $this->expressions->parse('' === $expression ? '.' : $expression);
 
         [$inputs, $appendix] = $this->inputs($args, $files, $source, $stdin);
 
@@ -121,18 +128,17 @@ final class EvaluateCommand
         $succeeded = false;
         try {
             if ($nullInput) {
-                $printer->print($this->evaluator->evaluate($program, new EvaluationContext([new Candidate(Node::scalar('null', '!!null'))], $services)), '');
+                $empty = new Candidate(Node::document(new Node(NodeKind::Scalar, '!!null', NodeStyle::Default, '')));
+                $printer->print($this->evaluator->evaluate($program, new EvaluationContext([$empty], $services)));
             } else {
-                $documents = $source->read($inputs, $stdin, $inputFormat, $this->formatOptions($args, $inputFormat, false, true), $args->bool('header-preprocess') && !$evalAll);
+                $mode      = !$args->bool('header-preprocess') ? HeaderMode::None : ($evalAll ? HeaderMode::FirstFile : HeaderMode::PerFile);
+                $documents = $source->read($inputs, $stdin, $inputFormat, $this->formatOptions($args, $inputFormat, false, true), $mode);
                 if ($evalAll) {
                     $all = iterator_to_array($documents, false);
                     $printer->print($this->evaluator->evaluate($program, new EvaluationContext($all, $services)));
                 } else {
                     foreach ($documents as $candidate) {
-                        $printer->print(
-                            $this->evaluator->evaluate($program, new EvaluationContext([$candidate], $services)),
-                            $candidate->fileIndex . ':' . $candidate->documentIndex,
-                        );
+                        $printer->print($this->evaluator->evaluate($program, new EvaluationContext([$candidate], $services)));
                     }
                 }
             }
@@ -187,6 +193,19 @@ final class EvaluateCommand
         }
 
         return [$expression, $positionals];
+    }
+
+    /**
+     * `--string-interpolation=false`: escapes every `\(` so the lexer reads it as a literal backslash and
+     * parenthesis. Escaped backslashes (`\\`) are consumed as a pair first, so `\\(` stays as it is.
+     */
+    private static function escapeInterpolation(string $expression): string
+    {
+        return (string)preg_replace_callback(
+            '/\\\\(.)/s',
+            static fn (array $match): string => '(' === $match[1] ? '\\\\(' : $match[0],
+            $expression,
+        );
     }
 
     /**

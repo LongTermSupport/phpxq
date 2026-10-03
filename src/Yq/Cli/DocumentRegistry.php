@@ -9,34 +9,28 @@ use LTS\PhpXq\Yaml\NodeKind;
 use SplObjectStorage;
 
 /**
- * Remembers, for the root node of every document read, the Document node it came from (which carries
- * `---`, `...` and directive information for output), the header text slurped ahead of it, and whether
- * the document was synthesised for an empty input. Evaluator results are looked up here by identity, so a
- * result that is still a document root prints with its document's framing and header.
+ * Remembers, for every Document node read, the header text slurped ahead of it and whether it was
+ * synthesised for an empty input. Evaluator results are looked up here by identity, so a result that is
+ * still a whole document prints with its header.
  */
 final class DocumentRegistry
 {
-    /** @var SplObjectStorage<Node, array{Node, string, bool}> */
-    private SplObjectStorage $roots;
+    /** @var SplObjectStorage<Node, array{string, bool}> */
+    private SplObjectStorage $documents;
 
     public function __construct()
     {
-        $this->roots = new SplObjectStorage();
+        $this->documents = new SplObjectStorage();
     }
 
-    public function register(Node $root, Node $document, string $header, bool $synthetic): void
+    public function register(Node $document, string $header, bool $synthetic): void
     {
-        $this->roots[$root] = [$document, $header, $synthetic];
-    }
-
-    public function documentFor(Node $node): ?Node
-    {
-        return isset($this->roots[$node]) ? $this->roots[$node][0] : null;
+        $this->documents[$document] = [$header, $synthetic];
     }
 
     public function headerFor(Node $node): string
     {
-        return isset($this->roots[$node]) ? $this->roots[$node][1] : '';
+        return isset($this->documents[$node]) ? $this->documents[$node][0] : '';
     }
 
     /**
@@ -45,11 +39,16 @@ final class DocumentRegistry
      */
     public function isUntouchedEmpty(Node $node): bool
     {
-        return isset($this->roots[$node])
-            && $this->roots[$node][2]
-            && NodeKind::Scalar === $node->kind
-            && '' === $node->value
-            && '!!null' === $node->tag
-            && '' === $node->headComment . $node->lineComment . $node->footComment;
+        if (!isset($this->documents[$node]) || !$this->documents[$node][1]) {
+            return false;
+        }
+
+        $root = $node->root();
+
+        return NodeKind::Scalar === $root->kind
+            && '' === $root->value
+            && '!!null' === $root->tag
+            && '' === $node->headComment . $node->lineComment . $node->footComment
+            && '' === $root->headComment . $root->lineComment . $root->footComment;
     }
 }
