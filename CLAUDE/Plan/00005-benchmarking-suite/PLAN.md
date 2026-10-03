@@ -38,6 +38,28 @@ Parent epic: Plan 00001.
 - Benchmarks should run on a quiet, dedicated machine (the work moves to a data centre server,
   which suits this); results from different machines are not comparable and are labelled.
 
+## Technical Decisions
+
+Usage, workloads, methodology and result format are in [BENCHMARKS.md](BENCHMARKS.md).
+
+- **Measurement tool**: no external dependency (hyperfine is not installed and adding it would be
+  an environment change). Bash `measure.bash` times wall-clock with `EPOCHREALTIME`; warm-up and
+  repetitions are explicit; the first warm-up run is a status probe so stubs and unsupported filters
+  are recorded (`not-implemented`, `failed`, `unavailable`) instead of aborting the run.
+- **Language split**: bash spawns and times processes (the repository's security hook forbids PHP
+  process spawning in written code); PHP holds all logic that has behaviour (corpus generation, workload
+  catalogue, statistics, result store, report), unit tested in `tests/Unit/Support/Bench`.
+- **Code location**: `tests/Support/Bench` (dev tooling, not shipped in the production package, same
+  convention as the conformance helpers), namespace `LTS\PhpXq\Tests\Support\Bench`.
+- **Corpora**: generated on demand, deterministic (index-derived values, no seed or clock), written to
+  `untracked/bench/corpus/`; nothing large is committed. Deep corpus is 100 levels because jq 1.6 rejects
+  deeper input.
+- **Results**: JSON schema 1 plus a Markdown report; baselines live in `benchmarks/baselines/` and are
+  compared with `--compare`. Environment (PHP, OPcache, JIT, CPU, kernel) is stored with each run and a
+  mismatch with the baseline's CPU or PHP version prints a warning.
+- **Shared filters** use only the subset both jq and mikefarah yq accept (yq lacks `add` and `reduce`).
+- **Task 3.1** (first real baseline) is deferred until Plans 00003 and 00004 deliver; the workflow is in place.
+
 ## Tasks
 
 ### Phase 1: Design

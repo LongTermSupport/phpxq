@@ -57,6 +57,22 @@ The vendored fixtures record their upstream tag, commit and licence in a `NOTICE
 `tests/Conformance/<Tool>/known-gaps.txt`. It exits non-zero on an unexpected failure or on a known
 gap that now passes, so the gap lists shrink as the tools are built.
 
+### Benchmarks
+
+`scripts/bench/bench.bash` measures startup time and throughput (small, medium, large JSON and YAML,
+representative filters) for phpxq and, when installed, the real `jq` and mikefarah `yq`. Tools phpxq has
+not implemented yet are recorded as `not-implemented`; a missing reference tool as `unavailable`.
+
+```bash
+scripts/bench/bench.bash run                     # JSON + Markdown report under untracked/bench/
+scripts/bench/bench.bash baseline --label NAME   # store benchmarks/baselines/NAME.json
+scripts/bench/bench.bash run --compare benchmarks/baselines/NAME.json
+```
+
+Inputs are generated deterministically and never committed. Results record the PHP, OPcache/JIT, CPU and
+kernel configuration; only compare results taken on the same machine. Methodology and result format:
+`CLAUDE/Plan/00005-benchmarking-suite/BENCHMARKS.md`.
+
 The project has no production dependencies, so php-qa-ci's Safe-function Rector
 lane and its `thecodingmachine/safe` require-checker scan files are overridden in
 `qaConfig/`, and the `#[\SensitiveParameter]` check is disabled in `qaConfig/qa.php`.
