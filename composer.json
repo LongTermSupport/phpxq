@@ -1,5 +1,5 @@
 {
-    "name": "lts/php-jq-yq",
+    "name": "lts/php-xq",
     "description": "Pure PHP command-line equivalents of jq and yq",
     "license": "MIT",
     "type": "project",
@@ -13,12 +13,12 @@
     "prefer-stable": true,
     "autoload": {
         "psr-4": {
-            "LTS\\PhpJqYq\\": "src/"
+            "LTS\\PhpXq\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "LTS\\PhpJqYq\\Tests\\": "tests/",
+            "LTS\\PhpXq\\Tests\\": "tests/",
             "QaConfig\\": [
                 "qaConfig/"
             ]

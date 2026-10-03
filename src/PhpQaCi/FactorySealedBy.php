@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LTS\PhpJqYq\PhpQaCi;
+namespace LTS\PhpXq\PhpQaCi;
 
 use Attribute;
 

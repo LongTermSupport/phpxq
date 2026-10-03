@@ -1,4 +1,4 @@
-# jq/yq in pure PHP
+# PHP-XQ: jq/yq in pure PHP
 
 Command-line equivalents of [jq](https://jqlang.github.io/jq/) and
 [yq](https://github.com/mikefarah/yq), written in pure PHP 8.5.
