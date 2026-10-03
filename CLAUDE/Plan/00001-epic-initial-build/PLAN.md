@@ -41,6 +41,7 @@ optimisation round will accept ugly code for measured speed.
 - Environment: PHP 8.5, Composer dev dependencies only (`lts/php-qa-ci`); see `README.md`.
 - Upstream suites exist for both tools; the conformance plan records exactly where and how.
 - Binary route researched: Box PHAR plus static-php-cli micro SFX; detail in plan 00006.
+- Human tracking issue: https://github.com/LongTermSupport/phpxq/issues/1 (status checklist only).
 
 ## Tasks
 
