@@ -1,0 +1,8 @@
+{
+    "indexes": [
+        {
+            "path": "docs/phpstan-rules/README.md",
+            "rulesDir": "qaConfig/PHPStan/Rules"
+        }
+    ]
+}

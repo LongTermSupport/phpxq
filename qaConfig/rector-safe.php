@@ -14,7 +14,7 @@ use Rector\Config\RectorConfig;
  */
 return static function (RectorConfig $rectorConfig): void {
     if (isset($_SERVER['rectorIgnorePaths'])) {
-        $ignorePaths = array_filter(array_map('trim', explode("\n", $_SERVER['rectorIgnorePaths'])));
+        $ignorePaths = array_filter(array_map(trim(...), explode("\n", $_SERVER['rectorIgnorePaths'])));
         $rectorConfig->skip($ignorePaths);
     }
 };
