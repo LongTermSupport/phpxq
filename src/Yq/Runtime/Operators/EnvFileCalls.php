@@ -6,6 +6,7 @@ namespace LTS\PhpXq\Yq\Runtime\Operators;
 
 use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
 use LTS\PhpXq\Yaml\Node;
+use LTS\PhpXq\Yaml\Parser\YamlParser;
 use LTS\PhpXq\Yq\Expression\Ast\Binary;
 use LTS\PhpXq\Yq\Expression\Ast\BinaryOperatorEnum;
 use LTS\PhpXq\Yq\Expression\Ast\Call;
@@ -129,15 +130,12 @@ final class EnvFileCalls implements CallOperatorInterface
 
     private function parseValue(string $value, EvaluationContext $context): Node
     {
-        try {
-            foreach ($context->services->yamlParser->parse($value) as $document) {
-                return NodeOps::unwrap($document);
-            }
-        } catch (YamlSyntaxException) {
+        $documents = YamlParser::attempt($context->services->yamlParser, $value, 1);
+        if ($documents instanceof YamlSyntaxException || [] === $documents) {
             return NodeOps::str($value);
         }
 
-        return NodeOps::str($value);
+        return NodeOps::unwrap($documents[0]);
     }
 
     /**

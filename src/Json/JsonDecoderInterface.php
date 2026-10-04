@@ -27,6 +27,14 @@ interface JsonDecoderInterface
     public function decodeOne(string $text): mixed;
 
     /**
+     * {@see self::decodeOne()} without the exception: $ok tells whether the text was one valid value
+     * (the return is then that value) or not (the return is null).
+     *
+     * @param-out bool $ok
+     */
+    public function tryDecodeOne(string $text, bool &$ok): mixed;
+
+    /**
      * Lazily decode a whitespace-separated sequence of values (the CLI input contract). Values before a
      * syntax error are yielded first; the exception is thrown when the generator reaches the bad text.
      *

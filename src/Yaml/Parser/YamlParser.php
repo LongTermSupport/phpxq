@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yaml\Parser;
 
 use Generator;
+use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
 use LTS\PhpXq\Yaml\Node;
 
 /**
@@ -37,5 +38,31 @@ final class YamlParser implements YamlParserInterface
         }
 
         yield from new StreamParser($yaml)->documents();
+    }
+
+    /**
+     * Parsing as a question ("is this text YAML?") for callers that fall back to a plain string: the
+     * syntax error comes back as a value, with its line and message, instead of being thrown and dropped.
+     *
+     * @param int|null $limit stop after this many documents, so a later bad document is never parsed
+     *
+     * @return list<Node>|YamlSyntaxException
+     */
+    public static function attempt(YamlParserInterface $parser, string $text, ?int $limit = null): array|YamlSyntaxException
+    {
+        $documents = [];
+
+        try {
+            foreach ($parser->parse($text) as $document) {
+                $documents[] = $document;
+                if (null !== $limit && \count($documents) >= $limit) {
+                    break;
+                }
+            }
+        } catch (YamlSyntaxException $yamlSyntaxException) {
+            return $yamlSyntaxException;
+        }
+
+        return $documents;
     }
 }

@@ -75,9 +75,8 @@ final readonly class CsvDecoder implements DecoderInterface
             return Node::scalar($text);
         }
 
-        try {
-            $documents = [...$this->parser->parse($text)];
-        } catch (YamlSyntaxException) {
+        $documents = YamlParser::attempt($this->parser, $text);
+        if ($documents instanceof YamlSyntaxException) {
             return Node::scalar($text, CoreSchema::TAG_STR);
         }
 

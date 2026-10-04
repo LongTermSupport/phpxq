@@ -221,6 +221,32 @@ final class YamlParserTest extends TestCase
         $generator->next();
     }
 
+    public function testAttemptReturnsEveryDocument(): void
+    {
+        $documents = YamlParser::attempt(new YamlParser(), "a: 1\n---\nb: 2\n");
+
+        self::assertIsArray($documents);
+        self::assertCount(2, $documents);
+        self::assertSame([], YamlParser::attempt(new YamlParser(), ''));
+    }
+
+    public function testAttemptReturnsTheSyntaxErrorInsteadOfThrowing(): void
+    {
+        $result = YamlParser::attempt(new YamlParser(), "a: [1\n");
+
+        self::assertInstanceOf(YamlSyntaxException::class, $result);
+        self::assertStringStartsWith('yaml: line ', $result->getMessage());
+    }
+
+    public function testAttemptLimitStopsBeforeALaterBadDocument(): void
+    {
+        $documents = YamlParser::attempt(new YamlParser(), "a: 1\n---\nb: [2\n", 1);
+
+        self::assertIsArray($documents);
+        self::assertCount(1, $documents);
+        self::assertInstanceOf(YamlSyntaxException::class, YamlParser::attempt(new YamlParser(), "a: [1\n", 1));
+    }
+
     #[DataProvider('errorProvider')]
     public function testSyntaxErrors(string $yaml, int $line, string $problem): void
     {

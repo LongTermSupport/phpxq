@@ -7,7 +7,6 @@ namespace LTS\PhpXq\Jq\Cli;
 use Generator;
 use LTS\PhpXq\Json\JsonDecoderInterface;
 use LTS\PhpXq\Json\JsonObject;
-use LTS\PhpXq\Json\JsonSyntaxException;
 
 /**
  * `--stream`: parses JSON text into jq's streaming events without building the whole value, and
@@ -179,9 +178,9 @@ final readonly class StreamParser
                         $end = $index + strcspn($text, " \t\r\n[]{},:\"" . ($seq ? "\x1e" : ''), $index);
                     }
 
-                    try {
-                        $value = $this->decoder->decodeOne(substr($text, $start, $end - $start));
-                    } catch (JsonSyntaxException) {
+                    $decoded = false;
+                    $value   = $this->decoder->tryDecodeOne(substr($text, $start, $end - $start), $decoded);
+                    if (!$decoded) {
                         $message = $this->diagnostics->message($text, $start, $seq);
                         yield $end => new StreamError($message, $path, !$seq);
                         if (!$seq) {

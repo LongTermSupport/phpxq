@@ -282,6 +282,61 @@ final class JsonDecoderTest extends TestCase
         self::assertSame("Unmatched '}' at line 1, column 3 (while parsing '1 }')", $this->failure(static fn (): mixed => new JsonDecoder()->decodeOne('1 }')));
     }
 
+    public function testTryDecodeOneReturnsAValidValue(): void
+    {
+        $ok    = false;
+        $value = new JsonDecoder()->tryDecodeOne(' [1, 2.0, 12345678901234567890] ', $ok);
+
+        self::assertTrue($ok);
+        self::assertIsArray($value);
+        self::assertCount(3, $value);
+
+        $ok = false;
+        self::assertNull(new JsonDecoder()->tryDecodeOne('null', $ok));
+        self::assertTrue($ok);
+    }
+
+    #[DataProvider('invalidSingleValues')]
+    public function testTryDecodeOneRejectsWithoutThrowing(string $text): void
+    {
+        $ok = true;
+
+        self::assertNull(new JsonDecoder()->tryDecodeOne($text, $ok));
+        self::assertFalse($ok);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function invalidSingleValues(): iterable
+    {
+        yield 'empty' => ['  '];
+
+        yield 'extra values' => ['1 2'];
+
+        yield 'trailing close' => ['1 }'];
+
+        yield 'bad literal' => ['tru'];
+
+        yield 'bad number' => ['1.0x'];
+
+        yield 'unfinished' => ['[1,'];
+
+        yield 'malformed BOM' => ["\xEF\xBB"];
+    }
+
+    public function testLineThatNeedsTheScannerKeepsTheWholeTextError(): void
+    {
+        [$seen, $error] = $this->collect("1.0\n2.0\n[3.0,\n");
+
+        self::assertCount(2, $seen);
+        self::assertSame('Unfinished JSON term at EOF at line 4, column 0', $error);
+
+        [, $error] = $this->collect("1.0\n[2.0\n3\n");
+
+        self::assertSame('Expected separator between values at line 4, column 0', $error);
+    }
+
     public function testObjectsAreJsonObjects(): void
     {
         $value = new JsonDecoder()->decodeOne('{"b":1,"a":{"2":[]}}');

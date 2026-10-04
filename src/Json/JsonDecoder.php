@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Json;
 
 use Generator;
-use JsonException;
 use LTS\PhpXq\Json\Codec\ParseFailure;
 use LTS\PhpXq\Json\Codec\Utf8;
 use stdClass;
@@ -98,6 +97,32 @@ final class JsonDecoder implements JsonDecoderInterface
         return $first;
     }
 
+    /**
+     * @param-out bool $ok
+     */
+    public function tryDecodeOne(string $text, bool &$ok): mixed
+    {
+        $value = $this->fast(str_starts_with($text, self::BOM) ? substr($text, 3) : $text, $ok);
+        if ($ok) {
+            return $value;
+        }
+
+        $values = $this->scan($text, false, 0, -1, true);
+        if (!$values->valid()) {
+            return null;
+        }
+
+        $first = $values->current();
+        $values->next();
+        if ($values->valid() || false === $values->getReturn()) {
+            return null;
+        }
+
+        $ok = true;
+
+        return $first;
+    }
+
     public function decodeAll(string $text, bool $seq = false): Generator
     {
         $offset = 0;
@@ -137,9 +162,9 @@ final class JsonDecoder implements JsonDecoderInterface
                     // a line the native decoder cannot take (big numbers, 1.0, nan ...): scan just that
                     // line; anything unusual, such as a value continuing on the next line or a syntax
                     // error, is left to the whole text scanner so positions and messages stay exact
-                    try {
-                        $scanned = iterator_to_array($this->scan($text, false, $offset, $end), false);
-                    } catch (JsonSyntaxException) {
+                    $line    = $this->scan($text, false, $offset, $end, true);
+                    $scanned = iterator_to_array($line, false);
+                    if (false === $line->getReturn()) {
                         break;
                     }
 
@@ -199,9 +224,8 @@ final class JsonDecoder implements JsonDecoderInterface
             }
         }
 
-        try {
-            $value = json_decode($source, false, self::FAST_DEPTH, \JSON_THROW_ON_ERROR);
-        } catch (JsonException) {
+        $value = json_decode($source, false, self::FAST_DEPTH);
+        if (\JSON_ERROR_NONE !== json_last_error()) {
             return null;
         }
 
@@ -290,14 +314,21 @@ final class JsonDecoder implements JsonDecoderInterface
      * jq's parser as a generator: yields each top level value as soon as it is complete. $limit, when not
      * negative, ends the input early (end of a line the caller has already isolated).
      *
-     * @return Generator<int, mixed>
+     * With $lenient (and not $seq) a syntax error ends the generator with the return value false instead of
+     * throwing; a clean end returns null.
+     *
+     * @return Generator<int, mixed, mixed, bool|null>
      */
-    private function scan(string $text, bool $seq, int $i, int $limit = -1): Generator
+    private function scan(string $text, bool $seq, int $i, int $limit = -1, bool $lenient = false): Generator
     {
         $n    = $limit < 0 ? \strlen($text) : $limit;
         $base = 0;
         if (0 === $i && $n > 0 && "\xEF" === $text[0]) {
             if (!str_starts_with($text, "\xEF\xBB\xBF")) {
+                if ($lenient) {
+                    return false;
+                }
+
                 throw new JsonSyntaxException('Malformed BOM');
             }
 
@@ -576,7 +607,7 @@ final class JsonDecoder implements JsonDecoderInterface
                         throw new ParseFailure('Unfinished abandoned text', $n, true);
                     }
 
-                    return;
+                    return null;
                 }
 
                 if (null !== $pending) {
@@ -602,10 +633,14 @@ final class JsonDecoder implements JsonDecoderInterface
                     yield $next;
                 }
 
-                return;
+                return null;
             } catch (ParseFailure $failure) {
                 $message = $failure->describe($text, $base);
                 if (!$seq) {
+                    if ($lenient) {
+                        return false;
+                    }
+
                     throw new JsonSyntaxException($message, $failure->getCode(), $failure);
                 }
 
@@ -619,7 +654,7 @@ final class JsonDecoder implements JsonDecoderInterface
                 if ($failure->eof) {
                     yield new JsonSyntaxException($message);
 
-                    return;
+                    return null;
                 }
 
                 if ($failure->onRs) {

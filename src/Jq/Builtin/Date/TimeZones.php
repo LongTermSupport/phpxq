@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Jq\Builtin\Date;
 
-use DateTimeZone;
-use Exception;
 
 /**
  * The local time zone for `localtime`, `strflocaltime` and `%s` parsing, resolved from the TZ environment
@@ -63,11 +61,15 @@ final class TimeZones
 
     private static function named(string $name): ?ZoneInfo
     {
+        // timezone_open() answers false for an unknown zone, where the constructor would throw
+        set_error_handler(static fn (): bool => true);
         try {
-            return ZoneInfo::named(new DateTimeZone($name));
-        } catch (Exception) {
-            return null;
+            $zone = timezone_open($name);
+        } finally {
+            restore_error_handler();
         }
+
+        return false === $zone ? null : ZoneInfo::named($zone);
     }
 
     private static function hostDefault(): ZoneInfo

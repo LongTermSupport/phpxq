@@ -6,7 +6,6 @@ namespace LTS\PhpXq\Yq\Runtime;
 
 use DateTimeImmutable;
 use DateTimeZone;
-use Exception;
 
 /**
  * Go's `time` layouts and durations on top of DateTimeImmutable: formatting and parsing with
@@ -244,11 +243,7 @@ final class GoTime
             return null;
         }
 
-        try {
-            return new DateTimeImmutable('now', $zone)->setDate($y, $mo, $d)->setTime($h, $mi, $s, intdiv($ns, 1000));
-        } catch (Exception) {
-            return null;
-        }
+        return new DateTimeImmutable('now', $zone)->setDate($y, $mo, $d)->setTime($h, $mi, $s, intdiv($ns, 1000));
     }
 
     /**
@@ -590,11 +585,15 @@ final class GoTime
             return new DateTimeZone('UTC');
         }
 
+        // timezone_open() answers false for an unknown zone, where the constructor would throw
+        set_error_handler(static fn (): bool => true);
         try {
-            return new DateTimeZone($name);
-        } catch (Exception) {
-            return new DateTimeZone('UTC');
+            $zone = timezone_open($name);
+        } finally {
+            restore_error_handler();
         }
+
+        return false === $zone ? new DateTimeZone('UTC') : $zone;
     }
 
     private static function parseOffset(string $value, int &$p, string $std): ?DateTimeZone

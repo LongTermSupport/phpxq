@@ -7,7 +7,6 @@ namespace LTS\PhpXq\Jq\Cli;
 use LTS\PhpXq\Jq\Ast\Program;
 use LTS\PhpXq\Jq\Parser\ParserInterface;
 use LTS\PhpXq\Jq\Runtime\JqCompileException;
-use RuntimeException;
 
 /**
  * Turns program text into the AST the compiler gets: parses it, rejects a program that only defines
@@ -56,16 +55,10 @@ final readonly class ProgramLoader
         }
 
         $file = rtrim($this->homeDirectory, '/') . '/.jq';
-        if (!is_file($file)) {
+        if (!is_file($file) || !is_readable($file)) {
             return null;
         }
 
-        try {
-            $source = FileReader::read($file);
-        } catch (RuntimeException) {
-            return null;
-        }
-
-        return $this->parser->parse($source);
+        return $this->parser->parse(FileReader::read($file));
     }
 }
