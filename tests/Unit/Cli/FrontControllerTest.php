@@ -45,6 +45,31 @@ final class FrontControllerTest extends TestCase
         self::assertSame('', $stderr);
     }
 
+    public function testTheCallersErrorHandlerIsRestoredAfterARun(): void
+    {
+        $sentinel = static fn (): bool => true;
+        set_error_handler($sentinel);
+
+        try {
+            $this->invoke(['yq', '--version']);
+            $current = set_error_handler(static fn (): bool => true);
+            restore_error_handler();
+        } finally {
+            restore_error_handler();
+        }
+
+        self::assertSame($sentinel, $current);
+    }
+
+    public function testNoticesDuringARunAreNotShownToTheUser(): void
+    {
+        $before = \ini_get('display_errors');
+
+        $this->invoke(['yq', '--version']);
+
+        self::assertSame($before, \ini_get('display_errors'));
+    }
+
     public function testUncaughtErrorsBecomeAnInternalErrorExit(): void
     {
         $stdin  = fopen('php://memory', 'rb');

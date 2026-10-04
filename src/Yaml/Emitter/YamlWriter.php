@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yaml\Emitter;
 
+use LogicException;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\NodeStyleEnum;
+use LTS\PhpXq\Yaml\Parser\ScalarResolver;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 
 /**
@@ -81,6 +83,9 @@ final class YamlWriter
     private int $footIndent = -1;
 
     private int $flowLevel = 0;
+
+    /** @var array<int, true> the collections being emitted right now, to refuse a structure that contains itself */
+    private array $onPath = [];
 
     /** Spaces per level; libyaml falls back to 2 for anything outside 2..9. */
     private readonly int $step;
@@ -161,13 +166,20 @@ final class YamlWriter
 
                 return;
 
-            case NodeKindEnum::Document:
-                $this->emitNode($node->root(), $simpleKey, null, $color, $headerComment, $lineComment);
-
-                return;
-
             default:
-                $this->emitCollection($node, $headerComment);
+                $id = spl_object_id($node);
+                if (isset($this->onPath[$id])) {
+                    throw new LogicException('cannot encode a cyclic structure as yaml');
+                }
+
+                $this->onPath[$id] = true;
+                if (NodeKindEnum::Document === $node->kind) {
+                    $this->emitNode($node->root(), $simpleKey, null, $color, $headerComment, $lineComment);
+                } else {
+                    $this->emitCollection($node, $headerComment);
+                }
+
+                unset($this->onPath[$id]);
         }
     }
 
@@ -408,8 +420,8 @@ final class YamlWriter
             $style   = NodeStyleEnum::Default;
         }
 
-        $quoted = NodeStyleEnum::DoubleQuoted                                                                                                                                                                             === $style || NodeStyleEnum::SingleQuoted === $style
-                                                                                                                                                                                                                                     || NodeStyleEnum::Literal         === $style || NodeStyleEnum::Folded === $style;
+        $quoted = NodeStyleEnum::DoubleQuoted                                                                                                                                                                                                                          === $style || NodeStyleEnum::SingleQuoted === $style
+                                                                                                                                                                                                                                                                                  || NodeStyleEnum::Literal         === $style || NodeStyleEnum::Folded === $style;
 
         $force = false;
         if ('' !== $tag && !$node->tagExplicit) {
@@ -456,6 +468,11 @@ final class YamlWriter
         }
 
         $tag = CoreSchema::resolve($value);
+        if (CoreSchema::TAG_INT === $tag && CoreSchema::TAG_INT !== ScalarResolver::resolve($value)) {
+            // Decimal digits beyond 64 bits resolve as a float, as go-yaml does.
+            $tag = ScalarResolver::resolve($value);
+        }
+
         if (CoreSchema::TAG_STR !== $tag || '' === $value) {
             return $tag;
         }
@@ -875,7 +892,7 @@ final class YamlWriter
     private function increaseIndent(): void
     {
         $inSequenceItem        = $this->inSequenceItem;
-        $this->inSequenceItem = false;
+        $this->inSequenceItem  = false;
 
         if ($this->indent < 0) {
             $this->indent = 0;

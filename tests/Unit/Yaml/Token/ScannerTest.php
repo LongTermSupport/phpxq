@@ -103,6 +103,21 @@ final class ScannerTest extends TestCase
         self::assertSame("a\nb\nc\nd", Scanner::prepare("\xEF\xBB\xBFa\r\nb\rc\xC2\x85d"));
     }
 
+    public function testPrepareDecodesUtf16WithABom(): void
+    {
+        $text = "a: \u{00E9}\u{1F600}\r\nb: 1\n";
+
+        self::assertSame("a: \u{00E9}\u{1F600}\nb: 1\n", Scanner::prepare("\xFF\xFE" . mb_convert_encoding($text, 'UTF-16LE', 'UTF-8')));
+        self::assertSame("a: \u{00E9}\u{1F600}\nb: 1\n", Scanner::prepare("\xFE\xFF" . mb_convert_encoding($text, 'UTF-16BE', 'UTF-8')));
+    }
+
+    public function testPrepareRejectsUtf16WithAnOddByteCount(): void
+    {
+        $this->expectException(YamlSyntaxException::class);
+
+        Scanner::prepare("\xFF\xFEa\x00:");
+    }
+
     public function testCrlfBreaksCountTwiceWhenLookingAheadForComments(): void
     {
         $head = static function (string $yaml): string {

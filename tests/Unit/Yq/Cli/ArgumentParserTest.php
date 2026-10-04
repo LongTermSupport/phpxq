@@ -22,6 +22,27 @@ final class ArgumentParserTest extends TestCase
         self::assertSame(['.a', 'file.yml', '-'], $parsed->positionals);
     }
 
+    public function testAnEmptyArgumentIsAPositionalNotAWarning(): void
+    {
+        $notices = [];
+        set_error_handler(static function (int $level, string $message) use (&$notices): bool {
+            $notices[] = $message;
+
+            return true;
+        });
+
+        try {
+            $parsed  = new ArgumentParser()->parse(['', 'file.yml']);
+            $flagged = new ArgumentParser()->parse(['-I', '4', '', 'file.yml']);
+        } finally {
+            restore_error_handler();
+        }
+
+        self::assertSame([], $notices);
+        self::assertSame(['', 'file.yml'], $parsed->positionals);
+        self::assertSame(['', 'file.yml'], $flagged->positionals);
+    }
+
     /**
      * @param list<string> $args
      * @param list<string> $positionals

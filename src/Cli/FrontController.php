@@ -24,6 +24,10 @@ final class FrontController implements FrontControllerInterface
             return self::EXIT_USAGE;
         }
 
+        // A PHP warning or notice is never part of the tool's output: it is dropped, not printed.
+        $display = ini_set('display_errors', '0');
+        set_error_handler(static fn (): bool => true);
+
         try {
             if ('jq' === $tool) {
                 return JqApplication::create()->run(\array_slice($args, 1), $stdin, $stdout, $stderr);
@@ -34,6 +38,11 @@ final class FrontController implements FrontControllerInterface
             fwrite($stderr, \sprintf("%s: error (at <unknown>): internal error: %s\n", $tool, $throwable->getMessage()));
 
             return self::EXIT_INTERNAL;
+        } finally {
+            restore_error_handler();
+            if (false !== $display) {
+                ini_set('display_errors', $display);
+            }
         }
     }
 }

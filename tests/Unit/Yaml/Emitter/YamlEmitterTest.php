@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Yaml\Emitter;
 
+use LogicException;
 use LTS\PhpXq\Yaml\Emitter\EmitOptions;
 use LTS\PhpXq\Yaml\Emitter\YamlEmitter;
 use LTS\PhpXq\Yaml\Node;
@@ -349,6 +350,39 @@ final class YamlEmitterTest extends TestCase
         $node                = Node::mapping([$first, Node::scalar('1'), $second, Node::scalar('2')]);
 
         self::assertSame("# a1\na: 1\n# a2\n\n# b1\nb: 2\n", new YamlEmitter()->emit($node));
+    }
+
+    public function testACyclicStructureIsRefusedInsteadOfExhaustingMemory(): void
+    {
+        $inner            = Node::mapping([Node::scalar('b'), Node::scalar('1')]);
+        $root             = Node::mapping([Node::scalar('a'), $inner]);
+        $inner->content[] = Node::scalar('c');
+        $inner->content[] = $root;
+
+        try {
+            new YamlEmitter()->emit($root);
+            self::fail('a cyclic structure must be refused');
+        } catch (LogicException $logicException) {
+            self::assertStringContainsString('cyclic', $logicException->getMessage());
+        }
+    }
+
+    public function testADocumentHoldingItselfIsRefused(): void
+    {
+        $document          = new Node(NodeKindEnum::Document);
+        $document->content = [$document];
+
+        $this->expectException(LogicException::class);
+
+        new YamlEmitter()->emit($document);
+    }
+
+    public function testASharedNodeThatIsNotACycleStillEmitsTwice(): void
+    {
+        $shared = Node::mapping([Node::scalar('x'), Node::scalar('1')]);
+        $root   = Node::mapping([Node::scalar('a'), $shared, Node::scalar('b'), $shared]);
+
+        self::assertSame("a:\n  x: 1\nb:\n  x: 1\n", new YamlEmitter()->emit($root));
     }
 
     public function testHeadCommentAfterAKeyWithoutFootCommentFollowsDirectly(): void
