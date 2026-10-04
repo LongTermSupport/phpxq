@@ -25,6 +25,15 @@ final class StreamParser
 {
     private const string LONG_TAG_PREFIX = 'tag:yaml.org,2002:';
 
+    /** Tokens after which a block sequence entry has no node. */
+    private const array SEQUENCE_STOPS = [ScanToken::BLOCK_ENTRY, ScanToken::BLOCK_END];
+
+    /** Tokens after which an indentless sequence entry has no node. */
+    private const array INDENTLESS_STOPS = [ScanToken::BLOCK_ENTRY, ScanToken::KEY, ScanToken::VALUE, ScanToken::BLOCK_END];
+
+    /** Tokens after which a block mapping key or value has no node. */
+    private const array MAPPING_STOPS = [ScanToken::KEY, ScanToken::VALUE, ScanToken::BLOCK_END];
+
     private readonly Scanner $sc;
 
     /** @var array<string, Node> */
@@ -507,12 +516,7 @@ final class StreamParser
                 $prior = \strlen($sc->headComment);
                 $sc->skip();
                 $this->splitStem($prior);
-                $t = $sc->peek();
-                if (ScanToken::BLOCK_ENTRY !== $t->type && ScanToken::BLOCK_END !== $t->type) {
-                    $node->content[] = $this->parseNode(true, false);
-                } else {
-                    $node->content[] = $this->emptyScalar($mark->endLine, $mark->endColumn);
-                }
+                $node->content[] = $this->nodeOrEmpty($mark, self::SEQUENCE_STOPS, false);
 
                 continue;
             }
@@ -540,18 +544,23 @@ final class StreamParser
             $prior = \strlen($sc->headComment);
             $sc->skip();
             $this->splitStem($prior);
-            $t = $sc->peek();
-            if (
-                ScanToken::BLOCK_ENTRY  !== $t->type
-                && ScanToken::KEY       !== $t->type
-                && ScanToken::VALUE     !== $t->type
-                && ScanToken::BLOCK_END !== $t->type
-            ) {
-                $node->content[] = $this->parseNode(true, false);
-            } else {
-                $node->content[] = $this->emptyScalar($mark->endLine, $mark->endColumn);
-            }
+            $node->content[] = $this->nodeOrEmpty($mark, self::INDENTLESS_STOPS, false);
         }
+    }
+
+    /**
+     * The node after a block indicator, or an empty scalar placed at the indicator's end when the next
+     * token is one of $stops.
+     *
+     * @param list<int> $stops
+     */
+    private function nodeOrEmpty(ScanToken $mark, array $stops, bool $mapping): Node
+    {
+        if (\in_array($this->sc->peek()->type, $stops, true)) {
+            return $this->emptyScalar($mark->endLine, $mark->endColumn);
+        }
+
+        return $this->parseNode(true, $mapping);
     }
 
     private function parseBlockMapping(Node $node): void
@@ -563,12 +572,7 @@ final class StreamParser
             if (ScanToken::KEY === $t->type) {
                 $mark = $t;
                 $sc->skip();
-                $t = $sc->peek();
-                if (ScanToken::KEY !== $t->type && ScanToken::VALUE !== $t->type && ScanToken::BLOCK_END !== $t->type) {
-                    $key = $this->parseNode(true, true);
-                } else {
-                    $key = $this->emptyScalar($mark->endLine, $mark->endColumn);
-                }
+                $key = $this->nodeOrEmpty($mark, self::MAPPING_STOPS, true);
             } elseif (ScanToken::BLOCK_END === $t->type) {
                 $this->takeEnd($node);
                 $sc->skip();
@@ -592,12 +596,7 @@ final class StreamParser
             if (ScanToken::VALUE === $t->type) {
                 $mark = $t;
                 $sc->skip();
-                $t = $sc->peek();
-                if (ScanToken::KEY !== $t->type && ScanToken::VALUE !== $t->type && ScanToken::BLOCK_END !== $t->type) {
-                    $value = $this->parseNode(true, true);
-                } else {
-                    $value = $this->emptyScalar($mark->endLine, $mark->endColumn);
-                }
+                $value = $this->nodeOrEmpty($mark, self::MAPPING_STOPS, true);
             } else {
                 $value = $this->emptyScalar($t->startLine, $t->startColumn);
             }

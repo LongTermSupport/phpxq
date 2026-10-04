@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Jq\Builtin\Core;
 
+use LTS\PhpXq\Json\Codec\Utf8;
+
 /**
  * UTF-8 text helpers on strings that are always valid UTF-8 (the value model guarantees it): codepoint
  * counts and offsets, explode/implode, jq's whitespace trimming.
@@ -76,26 +78,7 @@ final class Unicode
             return self::REPLACEMENT;
         }
 
-        if ($codepoint < 0x80) {
-            return \chr($codepoint);
-        }
-
-        if ($codepoint < 0x800) {
-            return \chr(0xC0 | ($codepoint >> 6)) . \chr(0x80 | ($codepoint & 0x3F));
-        }
-
-        if (($codepoint >= 0xD800 && $codepoint <= 0xDFFF) || $codepoint > 0x10FFFF) {
-            return self::REPLACEMENT;
-        }
-
-        if ($codepoint < 0x10000) {
-            return \chr(0xE0 | ($codepoint >> 12)) . \chr(0x80 | (($codepoint >> 6) & 0x3F)) . \chr(0x80 | ($codepoint & 0x3F));
-        }
-
-        return \chr(0xF0 | ($codepoint >> 18))
-            . \chr(0x80 | (($codepoint >> 12) & 0x3F))
-            . \chr(0x80 | (($codepoint >> 6) & 0x3F))
-            . \chr(0x80 | ($codepoint & 0x3F));
+        return Utf8::encode($codepoint);
     }
 
     /**

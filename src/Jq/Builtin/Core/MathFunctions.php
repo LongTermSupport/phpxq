@@ -21,6 +21,14 @@ final class MathFunctions
 
     private const float ASYMPTOTIC_FROM = 25.0;
 
+    private const array Y0_COSINE_TERMS = [1.0, -0.1098628627e-2, 0.2734510407e-4, -0.2073370639e-5, 0.2093887211e-6];
+
+    private const array Y0_SINE_TERMS = [-0.1562499995e-1, 0.1430488765e-3, -0.6911147651e-5, 0.7621095161e-6, -0.934945152e-7];
+
+    private const array Y1_COSINE_TERMS = [1.0, 0.183105e-2, -0.3516396496e-4, 0.2457520174e-5, -0.240337019e-6];
+
+    private const array Y1_SINE_TERMS = [0.04687499995, -0.2002690873e-3, 0.8449199096e-5, -0.88228987e-6, 0.105787412e-6];
+
     private const array LANCZOS = [
         0.99999999999980993,
         676.5203681218851,
@@ -618,7 +626,10 @@ final class MathFunctions
         return self::besselOrLimit($order, $x);
     }
 
-    private static function y0(float $x): float
+    /**
+     * The Bessel Y functions' value outside the finite positive reals, or null inside them.
+     */
+    private static function yOutsideDomain(float $x): ?float
     {
         if ($x < 0) {
             return \NAN;
@@ -630,6 +641,16 @@ final class MathFunctions
 
         if (!is_finite($x)) {
             return is_nan($x) ? $x : 0.0;
+        }
+
+        return null;
+    }
+
+    private static function y0(float $x): float
+    {
+        $edge = self::yOutsideDomain($x);
+        if (null !== $edge) {
+            return $edge;
         }
 
         if ($x < 8.0) {
@@ -640,31 +661,49 @@ final class MathFunctions
             return $a / $b + 0.636619772 * self::j0($x) * log($x);
         }
 
+        return self::yLarge(0, $x, 0.785398164, self::Y0_COSINE_TERMS, self::Y0_SINE_TERMS);
+    }
+
+    /**
+     * Y of the given order for x from 8 up: the Hankel expansion past ASYMPTOTIC_FROM, otherwise the
+     * Numerical Recipes rational form with the given phase and Horner coefficients in (8/x)^2.
+     *
+     * @param list<float> $cosineTerms
+     * @param list<float> $sineTerms
+     */
+    private static function yLarge(int $order, float $x, float $phase, array $cosineTerms, array $sineTerms): float
+    {
         if ($x >= self::ASYMPTOTIC_FROM) {
-            return self::hankel(0, $x, true);
+            return self::hankel($order, $x, true);
         }
 
         $z  = 8.0 / $x;
         $y  = $z * $z;
-        $xx = $x - 0.785398164;
-        $a  = 1.0              + $y * (-0.1098628627e-2 + $y * (0.2734510407e-4 + $y * (-0.2073370639e-5 + $y * 0.2093887211e-6)));
-        $b  = -0.1562499995e-1 + $y * (0.1430488765e-3 + $y * (-0.6911147651e-5 + $y * (0.7621095161e-6 + $y * -0.934945152e-7)));
+        $xx = $x - $phase;
+        $a  = self::horner($cosineTerms, $y);
+        $b  = self::horner($sineTerms, $y);
 
         return sqrt(0.636619772 / $x) * (sin($xx) * $a + $z * cos($xx) * $b);
     }
 
+    /**
+     * @param list<float> $coefficients lowest power first
+     */
+    private static function horner(array $coefficients, float $y): float
+    {
+        $sum = 0.0;
+        for ($i = \count($coefficients) - 1; $i >= 0; --$i) {
+            $sum = $coefficients[$i] + $y * $sum;
+        }
+
+        return $sum;
+    }
+
     private static function y1(float $x): float
     {
-        if ($x < 0) {
-            return \NAN;
-        }
-
-        if (0.0 === $x) {
-            return -\INF;
-        }
-
-        if (!is_finite($x)) {
-            return is_nan($x) ? $x : 0.0;
+        $edge = self::yOutsideDomain($x);
+        if (null !== $edge) {
+            return $edge;
         }
 
         if ($x < 8.0) {
@@ -675,17 +714,7 @@ final class MathFunctions
             return $a / $b + 0.636619772 * (self::j1($x) * log($x) - 1.0 / $x);
         }
 
-        if ($x >= self::ASYMPTOTIC_FROM) {
-            return self::hankel(1, $x, true);
-        }
-
-        $z  = 8.0 / $x;
-        $y  = $z * $z;
-        $xx = $x - 2.356194491;
-        $a  = 1.0           + $y * (0.183105e-2 + $y * (-0.3516396496e-4 + $y * (0.2457520174e-5 + $y * -0.240337019e-6)));
-        $b  = 0.04687499995 + $y * (-0.2002690873e-3 + $y * (0.8449199096e-5 + $y * (-0.88228987e-6 + $y * 0.105787412e-6)));
-
-        return sqrt(0.636619772 / $x) * (sin($xx) * $a + $z * cos($xx) * $b);
+        return self::yLarge(1, $x, 2.356194491, self::Y1_COSINE_TERMS, self::Y1_SINE_TERMS);
     }
 
     private static function yn(int $order, float $x): float

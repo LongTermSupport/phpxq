@@ -22,6 +22,8 @@ final class HclEncoder implements EncoderInterface
 {
     private const int MAX_DEPTH = 500;
 
+    private const string ASSIGN = ' = ';
+
     public function format(): FormatEnum
     {
         return FormatEnum::Hcl;
@@ -64,7 +66,7 @@ final class HclEncoder implements EncoderInterface
                     $this->block($out, $name, NodeTools::unwrap($item), [], $level, $depth);
                 }
             } else {
-                $out .= $indent . $name . ' = ' . $this->value($resolved, $level, false, $depth + 1) . $this->trailing($key->lineComment, $value->lineComment, $resolved->lineComment) . "\n";
+                $out .= $indent . $name . self::ASSIGN . $this->value($resolved, $level, false, $depth + 1) . $this->trailing($key->lineComment, $value->lineComment, $resolved->lineComment) . "\n";
             }
 
             $out .= $this->comment($key->footComment, $indent);
@@ -144,7 +146,7 @@ final class HclEncoder implements EncoderInterface
         if ($inline) {
             $entries = [];
             foreach ($pairs as [$key, $value]) {
-                $entries[] = $this->name(NodeTools::keyText($key)) . ' = ' . $this->value($value, $level, true, $depth + 1);
+                $entries[] = $this->name(NodeTools::keyText($key)) . self::ASSIGN . $this->value($value, $level, true, $depth + 1);
             }
 
             return '{ ' . implode(', ', $entries) . ' }';
@@ -153,7 +155,7 @@ final class HclEncoder implements EncoderInterface
         $inner = str_repeat('  ', $level + 1);
         $out   = "{\n";
         foreach ($pairs as [$key, $value]) {
-            $out .= $inner . $this->name(NodeTools::keyText($key)) . ' = ' . $this->value($value, $level + 1, false, $depth + 1) . "\n";
+            $out .= $inner . $this->name(NodeTools::keyText($key)) . self::ASSIGN . $this->value($value, $level + 1, false, $depth + 1) . "\n";
         }
 
         return $out . str_repeat('  ', $level) . '}';
@@ -186,24 +188,11 @@ final class HclEncoder implements EncoderInterface
 
     private function trailing(string ...$comments): string
     {
-        $text = str_replace("\n", ' ', NodeTools::commentText(NodeTools::joinDistinct(...$comments)));
-
-        return '' === trim($text) ? '' : ' # ' . $text;
+        return NodeTools::trailingComment(...$comments);
     }
 
     private function comment(string $comment, string $indent): string
     {
-        $comment = rtrim($comment, "\n");
-        if ('' === $comment) {
-            return '';
-        }
-
-        $out = '';
-        foreach (explode("\n", $comment) as $line) {
-            $line = trim($line);
-            $out .= $indent . ('#' === ($line[0] ?? '') ? $line : '# ' . $line) . "\n";
-        }
-
-        return $out;
+        return NodeTools::hashComment($comment, $indent);
     }
 }

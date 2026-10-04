@@ -212,6 +212,37 @@ final class NodeTools
     }
 
     /**
+     * The end-of-line comment for the given comments: one ` # ` line with newlines folded to spaces, or
+     * nothing when there is no comment text.
+     */
+    public static function trailingComment(string ...$comments): string
+    {
+        $text = str_replace("\n", ' ', self::commentText(self::joinDistinct(...$comments)));
+
+        return '' === trim($text) ? '' : ' # ' . $text;
+    }
+
+    /**
+     * Own-line `#` comment lines at `$indent`, each ending in a newline; a line already starting with `#`
+     * is kept as is.
+     */
+    public static function hashComment(string $comment, string $indent): string
+    {
+        $comment = rtrim($comment, "\n");
+        if ('' === $comment) {
+            return '';
+        }
+
+        $out = '';
+        foreach (explode("\n", $comment) as $line) {
+            $line = trim($line);
+            $out .= $indent . ('#' === ($line[0] ?? '') ? $line : '# ' . $line) . "\n";
+        }
+
+        return $out;
+    }
+
+    /**
      * Replaces the child at `$index` of a node's content, keeping the content a list.
      */
     public static function replaceAt(Node $parent, int $index, Node $value): void

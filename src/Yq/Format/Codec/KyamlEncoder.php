@@ -129,24 +129,11 @@ final class KyamlEncoder implements EncoderInterface
 
     private function trailing(string ...$comments): string
     {
-        $text = str_replace("\n", ' ', NodeTools::commentText(NodeTools::joinDistinct(...$comments)));
-
-        return '' === trim($text) ? '' : ' # ' . $text;
+        return NodeTools::trailingComment(...$comments);
     }
 
     private function comment(string $comment, string $indent): string
     {
-        $comment = rtrim($comment, "\n");
-        if ('' === $comment) {
-            return '';
-        }
-
-        $out = '';
-        foreach (explode("\n", $comment) as $line) {
-            $line = trim($line);
-            $out .= $indent . ('#' === ($line[0] ?? '') ? $line : '# ' . $line) . "\n";
-        }
-
-        return $out;
+        return NodeTools::hashComment($comment, $indent);
     }
 }
