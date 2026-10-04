@@ -21,6 +21,8 @@ final class DateBuiltinsTest extends TestCase
 {
     private string|false $originalZone = false;
 
+    private ?BuiltinRegistryInterface $registry = null;
+
     protected function setUp(): void
     {
         $this->originalZone = getenv('TZ');
@@ -172,10 +174,12 @@ final class DateBuiltinsTest extends TestCase
 
     private function registry(): BuiltinRegistryInterface
     {
-        $registry = new DefaultBuiltinRegistry();
-        new DateBuiltins()->registerInto($registry);
+        if (!$this->registry instanceof BuiltinRegistryInterface) {
+            $this->registry = new DefaultBuiltinRegistry();
+            new DateBuiltins()->registerInto($this->registry);
+        }
 
-        return $registry;
+        return $this->registry;
     }
 
     private function call(string $name, mixed $input, mixed ...$args): mixed
