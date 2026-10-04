@@ -44,21 +44,21 @@ Parent epic: Plan 00001.
 
 ### Phase 1: Profile
 
-- [ ] ⬜ **Task 1.1**: Choose and document the profiler; make profiling a one-command workflow
-- [ ] ⬜ **Task 1.2**: Profile every benchmark workload from Plan 00005; record hot spots in a supporting doc
+- [x] ✅ **Task 1.1**: Choose and document the profiler; make profiling a one-command workflow (pcntl sampling profiler, `scripts/bench/profile.bash`; method in [results.md](results.md))
+- [ ] ⬜ **Task 1.2**: Profile every benchmark workload from Plan 00005; record hot spots in a supporting doc (profiles were taken per lane, but no per-workload hot-spot document exists; results\*.md record only the resulting optimisations)
 
 ### Phase 2: Optimise (repeat per hot spot)
 
-- [ ] ⬜ **Task 2.1**: Startup path optimisation
-- [ ] ⬜ **Task 2.2**: JSON parse and serialise hot paths
-- [ ] ⬜ **Task 2.3**: Evaluator hot paths
+- [x] ✅ **Task 2.1**: Startup path optimisation (f9562b0, 581aae3; numbers in results.md and results-yq.md)
+- [x] ✅ **Task 2.2**: JSON parse and serialise hot paths (26d90cf; numbers in results.md)
+- [x] ✅ **Task 2.3**: Evaluator hot paths (26d90cf native walk and sort, 58bd249 GC policy; numbers in results.md)
 - [x] ✅ **Task 2.4**: YAML parse and emit hot paths (yq numbers in results-yq.md)
-- [ ] ⬜ **Task 2.5**: Build-level optimisation of the shipped binary (extension set, preloading, concatenation)
+- [ ] ⬜ **Task 2.5**: Build-level optimisation of the shipped binary (extension set, preloading, concatenation); not started, needs a published binary from Plan 00006 to measure against
 
 ### Phase 3: Verify
 
-- [ ] ⬜ **Task 3.1**: Re-run conformance (Plan 00002) and benchmarks (Plan 00005); record before and after
-- [ ] ⬜ **Task 3.2**: This project's QA gate passes (`vendor/bin/qa`)
+- [x] ✅ **Task 3.1**: Re-run conformance (Plan 00002) and benchmarks (Plan 00005); record before and after (results.md, results-yq.md; `scripts/conformance.bash all` OK at 40a9aba)
+- [x] ✅ **Task 3.2**: This project's QA gate passes (`vendor/bin/qa`)
 
 ## Dependencies
 
@@ -67,10 +67,10 @@ Parent epic: Plan 00001.
 
 ## Success Criteria
 
-- [ ] Each optimisation has recorded before and after benchmark numbers
-- [ ] Conformance results are unchanged
-- [ ] Overall improvement against the Plan 00005 baseline is recorded
-- [ ] This project's QA gate passes
+- [x] Each optimisation has recorded before and after benchmark numbers
+- [x] Conformance results are unchanged
+- [x] Overall improvement against the Plan 00005 baseline is recorded
+- [x] This project's QA gate passes
 
 ## Risks & Mitigations
 
@@ -81,4 +81,5 @@ Parent epic: Plan 00001.
 
 ## Delivery & Milestones
 
-- None yet.
+- Round 1 merged: jq (d148a10) and yq (1ce8af3) optimisations with before and after numbers.
+- Open: Task 1.2 hot-spot document and Task 2.5 shipped-binary build optimisation.

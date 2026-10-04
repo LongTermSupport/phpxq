@@ -1,6 +1,6 @@
 # Plan 00003: jq json functionality
 
-**Status**: In Progress
+**Status**: Complete (delivered in b995067; conformance re-verified at 40a9aba)
 **Created**: 2026-10-03
 **Owner**: joseph
 **Priority**: High
@@ -72,33 +72,33 @@ Full reasoning and the file ownership map for parallel workers: [architecture.md
 
 ### Phase 1: Design
 
-- [ ] ⬜ **Task 1.1**: Write an architecture supporting doc: pipeline stages, AST, evaluator model for generators/backtracking, number representation, error model
-- [ ] ⬜ **Task 1.2**: Record the number-semantics decision (big integers, float output) in the plan's Technical Decisions
+- [x] ✅ **Task 1.1**: Write an architecture supporting doc: pipeline stages, AST, evaluator model for generators/backtracking, number representation, error model
+- [x] ✅ **Task 1.2**: Record the number-semantics decision (big integers, float output) in the plan's Technical Decisions
 
 ### Phase 2: Core (TDD, each task driven by upstream `.test` cases)
 
-- [ ] ⬜ **Task 2.1**: JSON parser and serialiser, including invalid-input error behaviour
-- [ ] ⬜ **Task 2.2**: Lexer and parser for the jq language
-- [ ] ⬜ **Task 2.3**: Evaluator: identity, field and index access, slices, iteration, pipes, comma, literals
-- [ ] ⬜ **Task 2.4**: Operators, comparison, ordering and the alternative operator
-- [ ] ⬜ **Task 2.5**: Variables, destructuring, function definitions, closures, recursion
-- [ ] ⬜ **Task 2.6**: reduce, foreach, limit-style generators, label/break, try/catch, error handling
-- [ ] ⬜ **Task 2.7**: Paths and assignment operators
-- [ ] ⬜ **Task 2.8**: String interpolation, `@format` strings
-- [ ] ⬜ **Task 2.9**: Builtins in groups, each against the suite
-- [ ] ⬜ **Task 2.10**: Regex builtins, date/time builtins
-- [ ] ⬜ **Task 2.11**: Modules (`import`, `include`) and `-L`
+- [x] ✅ **Task 2.1**: JSON parser and serialiser, including invalid-input error behaviour
+- [x] ✅ **Task 2.2**: Lexer and parser for the jq language
+- [x] ✅ **Task 2.3**: Evaluator: identity, field and index access, slices, iteration, pipes, comma, literals
+- [x] ✅ **Task 2.4**: Operators, comparison, ordering and the alternative operator
+- [x] ✅ **Task 2.5**: Variables, destructuring, function definitions, closures, recursion
+- [x] ✅ **Task 2.6**: reduce, foreach, limit-style generators, label/break, try/catch, error handling
+- [x] ✅ **Task 2.7**: Paths and assignment operators
+- [x] ✅ **Task 2.8**: String interpolation, `@format` strings
+- [x] ✅ **Task 2.9**: Builtins in groups, each against the suite
+- [x] ✅ **Task 2.10**: Regex builtins, date/time builtins
+- [x] ✅ **Task 2.11**: Modules (`import`, `include`) and `-L`
 
 ### Phase 3: CLI
 
-- [ ] ⬜ **Task 3.1**: Argument handling and flags, `--arg`, `--args`, `--jsonargs`, `--slurp`, `--raw-input`, `--null-input`, `--seq`, `--stream` and the rest of the documented set
-- [ ] ⬜ **Task 3.2**: Exit codes, stderr messages, `-e`
-- [ ] ⬜ **Task 3.3**: Output options: indentation, sort keys, colour, ASCII output, raw output
+- [x] ✅ **Task 3.1**: Argument handling and flags, `--arg`, `--args`, `--jsonargs`, `--slurp`, `--raw-input`, `--null-input`, `--seq`, `--stream` and the rest of the documented set
+- [x] ✅ **Task 3.2**: Exit codes, stderr messages, `-e`
+- [x] ✅ **Task 3.3**: Output options: indentation, sort keys, colour, ASCII output, raw output
 
 ### Phase 4: Conformance and QA
 
-- [ ] ⬜ **Task 4.1**: Run the upstream suites via the Plan 00002 harness; triage every failure into fix or justified gap
-- [ ] ⬜ **Task 4.2**: This project's QA gate passes (`vendor/bin/qa`)
+- [x] ✅ **Task 4.1**: Run the upstream suites via the Plan 00002 harness; triage every failure into fix or justified gap
+- [x] ✅ **Task 4.2**: This project's QA gate passes (`vendor/bin/qa`)
 
 ## Dependencies
 
@@ -108,9 +108,9 @@ Full reasoning and the file ownership map for parallel workers: [architecture.md
 
 ## Success Criteria
 
-- [ ] Upstream jq suites pass, with only justified, listed gaps
-- [ ] No production dependency was added
-- [ ] This project's QA gate passes
+- [x] Upstream jq suites pass, with only justified, listed gaps (878 of 879 pass; the 1 gap is justified in `tests/Conformance/Jq/known-gaps.txt`; jq shell suite passes)
+- [x] No production dependency was added (`composer.json` `require` is php and ext-ctype, ext-json, ext-mbstring only)
+- [x] This project's QA gate passes
 
 ## Risks & Mitigations
 
@@ -122,4 +122,5 @@ Full reasoning and the file ownership map for parallel workers: [architecture.md
 
 ## Delivery & Milestones
 
-- None yet.
+- Implementation, conformance triage and QA conformance merged to main; final hardening round merged in b995067.
+- `scripts/conformance.bash all`: jq 879 cases, 878 pass, 1 justified known gap, 0 unexpected; jq shell suite passes.

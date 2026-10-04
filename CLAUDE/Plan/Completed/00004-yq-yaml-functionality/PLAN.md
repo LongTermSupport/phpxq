@@ -1,6 +1,6 @@
 # Plan 00004: yq yaml functionality
 
-**Status**: In Progress
+**Status**: Complete (delivered in f8dd0e7; conformance re-verified at 40a9aba)
 **Created**: 2026-10-03
 **Owner**: joseph
 **Priority**: High
@@ -44,26 +44,26 @@ Parent epic: Plan 00001.
 
 ### Phase 1: Confirm and design
 
-- [ ] ⬜ **Task 1.1**: Owner confirms the reference yq; record the answer in Technical Decisions
-- [ ] ⬜ **Task 1.2**: Supporting doc: scope of the YAML subset, node model that preserves comments, order and style, and how the expression layer relates to Plan 00003
+- [x] ✅ **Task 1.1**: Owner confirms the reference yq; record the answer in Technical Decisions
+- [x] ✅ **Task 1.2**: Supporting doc: scope of the YAML subset, node model that preserves comments, order and style, and how the expression layer relates to Plan 00003
 
 ### Phase 2: YAML core (TDD)
 
-- [ ] ⬜ **Task 2.1**: YAML tokenizer and parser (block and flow collections, scalars, multi-line strings, documents)
-- [ ] ⬜ **Task 2.2**: Anchors, aliases, merge keys, tags
-- [ ] ⬜ **Task 2.3**: Comment and style capture
-- [ ] ⬜ **Task 2.4**: YAML emitter with reference-compatible output
+- [x] ✅ **Task 2.1**: YAML tokenizer and parser (block and flow collections, scalars, multi-line strings, documents)
+- [x] ✅ **Task 2.2**: Anchors, aliases, merge keys, tags
+- [x] ✅ **Task 2.3**: Comment and style capture
+- [x] ✅ **Task 2.4**: YAML emitter with reference-compatible output
 
 ### Phase 3: Expression language and CLI
 
-- [ ] ⬜ **Task 3.1**: Expression evaluator per the confirmed reference
-- [ ] ⬜ **Task 3.2**: CLI commands and flags, in-place editing, multi-file handling, exit codes
-- [ ] ⬜ **Task 3.3**: Format conversion in and out
+- [x] ✅ **Task 3.1**: Expression evaluator per the confirmed reference
+- [x] ✅ **Task 3.2**: CLI commands and flags, in-place editing, multi-file handling, exit codes
+- [x] ✅ **Task 3.3**: Format conversion in and out
 
 ### Phase 4: Conformance and QA
 
-- [ ] ⬜ **Task 4.1**: Run the upstream suites via the Plan 00002 harness; triage every failure into fix or justified gap
-- [ ] ⬜ **Task 4.2**: This project's QA gate passes (`vendor/bin/qa`)
+- [x] ✅ **Task 4.1**: Run the upstream suites via the Plan 00002 harness; triage every failure into fix or justified gap
+- [x] ✅ **Task 4.2**: This project's QA gate passes (`vendor/bin/qa`)
 
 ## Dependencies
 
@@ -87,10 +87,10 @@ worker file ownership map.
 
 ## Success Criteria
 
-- [ ] Reference yq confirmed and recorded
-- [ ] Upstream yq tests pass, with only justified, listed gaps
-- [ ] No production dependency was added
-- [ ] This project's QA gate passes
+- [x] Reference yq confirmed and recorded (owner delegated the choice; Decision 1)
+- [x] Upstream yq tests pass, with only justified, listed gaps (565 of 574 pass; 9 justified gaps in `tests/Conformance/Yq/known-gaps.txt`; all 17 yq shell suites pass)
+- [x] No production dependency was added (`composer.json` `require` is php and ext-ctype, ext-json, ext-mbstring only)
+- [x] This project's QA gate passes
 
 ## Risks & Mitigations
 
@@ -102,4 +102,5 @@ worker file ownership map.
 
 ## Delivery & Milestones
 
-- None yet.
+- Parser, emitter, evaluator, CLI and format codecs merged to main; final hardening round merged in f8dd0e7.
+- `scripts/conformance.bash all`: yq 574 cases, 565 pass, 9 justified known gaps, 0 unexpected; 17 yq shell suites pass.

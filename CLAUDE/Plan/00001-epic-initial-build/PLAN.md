@@ -48,20 +48,20 @@ optimisation round will accept ugly code for measured speed.
 ### Phase 1: Foundations
 
 - [x] ✅ **Task 1.1**: Plan 00002 - upstream conformance test harness (runs jq and yq upstream suites)
-- [ ] ⬜ **Task 1.2**: Plan 00005 - benchmarking suite (baseline before and after optimisation)
+- [x] ✅ **Task 1.2**: Plan 00005 - benchmarking suite (baseline before and after optimisation) (complete, 3d22c46)
 
 ### Phase 2: Functionality
 
-- [ ] ⬜ **Task 2.1**: Plan 00003 - jq JSON functionality
-- [ ] ⬜ **Task 2.2**: Plan 00004 - yq YAML functionality
+- [x] ✅ **Task 2.1**: Plan 00003 - jq JSON functionality (complete, b995067)
+- [x] ✅ **Task 2.2**: Plan 00004 - yq YAML functionality (complete, f8dd0e7)
 
 ### Phase 3: Shipping
 
-- [ ] ⬜ **Task 3.1**: Plan 00006 - static binary packaging
+- [ ] ⬜ **Task 3.1**: Plan 00006 - static binary packaging (In Progress: local PHAR and binary verified; needs the release workflow to run on GitHub and 0.1.0 to be published)
 
 ### Phase 4: Performance
 
-- [ ] ⬜ **Task 4.1**: Plan 00007 - performance optimisation round (profile, find hot spots, micro-optimise)
+- [ ] ⬜ **Task 4.1**: Plan 00007 - performance optimisation round (In Progress: jq and yq round 1 merged; open are the hot-spot document and shipped-binary build optimisation)
 
 ### Phase 5: Close-out
 
@@ -91,10 +91,10 @@ language and native YAML handling. kislyuk/yq is a Python wrapper that feeds YAM
 ## Success Criteria
 
 - [ ] Plans 00002 to 00007 are Complete
-- [ ] Upstream jq and yq conformance results are recorded, with known gaps listed
-- [ ] A binary is published and installable
-- [ ] Benchmarks show the post-optimisation improvement against the recorded baseline
-- [ ] This project's QA gate passes
+- [x] Upstream jq and yq conformance results are recorded, with known gaps listed (`tests/Conformance/*/known-gaps.txt`; jq 878/879, yq 565/574, shell suites all pass)
+- [ ] A binary is published and installable (needs the release workflow to run on GitHub and 0.1.0 to be published)
+- [x] Benchmarks show the post-optimisation improvement against the recorded baseline (Plan 00007 results.md and results-yq.md)
+- [x] This project's QA gate passes
 
 ## Risks & Mitigations
 
@@ -107,3 +107,4 @@ language and native YAML handling. kislyuk/yq is a Python wrapper that feeds YAM
 ## Delivery & Milestones
 
 - Plan workflow and sub-plans created.
+- Plans 00002, 00003, 00004 and 00005 complete; Plans 00006 and 00007 In Progress (see their Delivery & Milestones).

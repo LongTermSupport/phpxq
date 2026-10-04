@@ -1,6 +1,6 @@
 # Plan 00005: benchmarking suite
 
-**Status**: Not Started
+**Status**: Complete (delivered in 3d22c46; first baselines stored in 84b6cb2 and 581aae3)
 **Created**: 2026-10-03
 **Owner**: joseph
 **Priority**: High
@@ -64,20 +64,20 @@ Usage, workloads, methodology and result format are in [BENCHMARKS.md](BENCHMARK
 
 ### Phase 1: Design
 
-- [ ] ⬜ **Task 1.1**: Choose workloads and corpus generation (deterministic generators, no large files committed)
-- [ ] ⬜ **Task 1.2**: Choose the measurement tool and methodology; record the decision
+- [x] ✅ **Task 1.1**: Choose workloads and corpus generation (deterministic generators, no large files committed)
+- [x] ✅ **Task 1.2**: Choose the measurement tool and methodology; record the decision
 
 ### Phase 2: Build
 
-- [ ] ⬜ **Task 2.1**: Corpus generator script
-- [ ] ⬜ **Task 2.2**: Runner that executes phpxq and the reference tools, with warm-up and repetitions
-- [ ] ⬜ **Task 2.3**: Result storage format and comparison report
-- [ ] ⬜ **Task 2.4**: Record the environment (PHP version, OPcache and JIT settings, CPU, kernel) with each run
+- [x] ✅ **Task 2.1**: Corpus generator script
+- [x] ✅ **Task 2.2**: Runner that executes phpxq and the reference tools, with warm-up and repetitions
+- [x] ✅ **Task 2.3**: Result storage format and comparison report
+- [x] ✅ **Task 2.4**: Record the environment (PHP version, OPcache and JIT settings, CPU, kernel) with each run
 
 ### Phase 3: Baseline
 
-- [ ] ⬜ **Task 3.1**: First baseline run once Plans 00003 and 00004 have usable functionality; store it
-- [ ] ⬜ **Task 3.2**: This project's QA gate passes (`vendor/bin/qa`)
+- [x] ✅ **Task 3.1**: First baseline run once Plans 00003 and 00004 have usable functionality; store it
+- [x] ✅ **Task 3.2**: This project's QA gate passes (`vendor/bin/qa`)
 
 ## Dependencies
 
@@ -87,11 +87,13 @@ Usage, workloads, methodology and result format are in [BENCHMARKS.md](BENCHMARK
 
 ## Success Criteria
 
-- [ ] One command produces a comparable benchmark report
-- [ ] A baseline is stored and reproducible
-- [ ] Methodology and environment are recorded
-- [ ] This project's QA gate passes
+- [x] One command produces a comparable benchmark report (`scripts/bench/bench.bash run|baseline|report`)
+- [x] A baseline is stored and reproducible (`benchmarks/baselines/perf-jq-before.*`, `yq-before.*`, `yq-after.*`)
+- [x] Methodology and environment are recorded ([BENCHMARKS.md](BENCHMARKS.md); environment stored with each result)
+- [x] This project's QA gate passes
 
 ## Delivery & Milestones
 
-- None yet.
+- Harness (corpora, runner, result store, report, environment capture) merged in 3d22c46.
+- Task 3.1 baselines for jq and yq were recorded by the Plan 00007 rounds (84b6cb2, 581aae3) once Plans 00003 and 00004 were usable.
+- Benchmarking the packaged binary is supported (`--binary PATH`); no binary results are stored yet (see Plan 00006).
