@@ -26,7 +26,9 @@ use RuntimeException;
  */
 final class InputSource implements InputProviderInterface, InputPositionInterface
 {
-    private const string BOM = "\xEF\xBB\xBF";
+    private const string ENCODING = 'UTF-8';
+
+    private const string BOM ="\xEF\xBB\xBF";
 
     /** bytes asked of standard input per read; a pipe hands over what has arrived, up to this much */
     private const int CHUNK = 65536;
@@ -464,7 +466,7 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
      */
     private function scrub(string $text): string
     {
-        if (mb_check_encoding($text, 'UTF-8')) {
+        if (mb_check_encoding($text, self::ENCODING)) {
             return $text;
         }
 
@@ -472,7 +474,7 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
         mb_substitute_character(0xFFFD);
 
         try {
-            return mb_convert_encoding($text, 'UTF-8', 'UTF-8');
+            return mb_convert_encoding($text, self::ENCODING, self::ENCODING);
         } finally {
             mb_substitute_character($previous);
         }

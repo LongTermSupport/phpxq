@@ -23,6 +23,8 @@ use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
  */
 final class Scanner
 {
+    private const string EXPECTED_COLON = "could not find expected ':'";
+
     private const string NON_PRINTABLE = '/[^\x09\x0A\x0D\x20-\x7E\x{85}\x{A0}-\x{D7FF}\x{E000}-\x{FEFE}\x{FF00}-\x{FFFD}\x{10000}-\x{10FFFF}]/u';
 
     /** The first line of a block-context plain scalar: runs of non-blank bytes, a colon not followed by a blank, and inner blanks not followed by a hash. */
@@ -864,7 +866,7 @@ final class Scanner
         $number   = $this->parsed + (\count($this->tokens) - $this->head);
         if ($this->skPossible[$i]) {
             if ($this->skRequired[$i]) {
-                $this->error("could not find expected ':'", $this->skLine[$i]);
+                $this->error(self::EXPECTED_COLON, $this->skLine[$i]);
             }
 
             unset($this->keysByToken[$this->skToken[$i]]);
@@ -885,7 +887,7 @@ final class Scanner
         $i = $this->flowLevel;
         if ($this->skPossible[$i]) {
             if ($this->skRequired[$i]) {
-                $this->error("could not find expected ':'", $this->skLine[$i]);
+                $this->error(self::EXPECTED_COLON, $this->skLine[$i]);
             }
 
             $this->skPossible[$i] = false;
@@ -901,7 +903,7 @@ final class Scanner
 
         if ($this->skLine[$i] < $this->line || $this->skIndex[$i] + 1024 < $this->p) {
             if ($this->skRequired[$i]) {
-                $this->error("could not find expected ':'", $this->skLine[$i]);
+                $this->error(self::EXPECTED_COLON, $this->skLine[$i]);
             }
 
             $this->skPossible[$i] = false;

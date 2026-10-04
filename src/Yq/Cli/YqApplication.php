@@ -31,6 +31,8 @@ final readonly class YqApplication implements YqApplicationInterface
     /** The pinned reference release this implementation follows (see tests/Conformance/Yq/fixtures/NOTICE.md). */
     public const string REFERENCE_VERSION = 'v4.54.1';
 
+    private const string ERROR_PREFIX = 'Error: ';
+
     private ArgumentParser $parser;
 
     private EvaluateCommand $evaluate;
@@ -79,7 +81,7 @@ final readonly class YqApplication implements YqApplicationInterface
         try {
             $parsed = $this->parser->parse($args);
         } catch (UsageException $usageException) {
-            fwrite($stderr, 'Error: ' . $usageException->getMessage() . "\n" . HelpText::usage('') . "\n");
+            fwrite($stderr, self::ERROR_PREFIX . $usageException->getMessage() . "\n" . HelpText::usage('') . "\n");
 
             return self::EXIT_ERROR;
         }
@@ -87,13 +89,13 @@ final readonly class YqApplication implements YqApplicationInterface
         try {
             return $this->dispatch($parsed, $stdin, $stdout);
         } catch (UsageException $e) {
-            fwrite($stderr, 'Error: ' . $e->getMessage() . "\n" . HelpText::usage($parsed->command) . "\n");
+            fwrite($stderr, self::ERROR_PREFIX . $e->getMessage() . "\n" . HelpText::usage($parsed->command) . "\n");
         } catch (CliException|EvaluationException|ExpressionSyntaxException|FormatException|YamlSyntaxException|LogicException $e) {
             if ($e instanceof CliException && CliException::BROKEN_PIPE === $e->getCode()) {
                 return CliException::BROKEN_PIPE_EXIT;
             }
 
-            fwrite($stderr, 'Error: ' . $e->getMessage() . "\n");
+            fwrite($stderr, self::ERROR_PREFIX . $e->getMessage() . "\n");
         }
 
         return self::EXIT_ERROR;

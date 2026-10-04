@@ -9,6 +9,8 @@ namespace LTS\PhpXq\Yq\Cli;
  */
 final class FlagCatalog
 {
+    private const string TRUE_TEXT = 'true';
+
     private const string FORMATS_IN = '[auto|a|yaml|y|json|j|props|p|csv|c|tsv|t|xml|x|base64|uri|toml|hcl|h|lua|l|ini|i]';
 
     private const string FORMATS_OUT = '[auto|a|yaml|y|json|j|props|p|csv|c|tsv|t|xml|x|base64|uri|toml|hcl|h|shell|s|lua|l|ini|i]';
@@ -63,13 +65,13 @@ final class FlagCatalog
     {
         return [
             new FlagSpec('colors', 'C', FlagTypeEnum::Bool, false, 'force print with colors'),
-            new FlagSpec('csv-auto-parse', '', FlagTypeEnum::Bool, true, 'parse CSV YAML/JSON values', '', 'true'),
+            new FlagSpec('csv-auto-parse', '', FlagTypeEnum::Bool, true, 'parse CSV YAML/JSON values', '', self::TRUE_TEXT),
             new FlagSpec('csv-separator', '', FlagTypeEnum::String, ',', 'CSV Separator character', 'char', ','),
             new FlagSpec('exit-status', 'e', FlagTypeEnum::Bool, false, 'set exit status if there are no matches or null or false is returned'),
             new FlagSpec('expression', '', FlagTypeEnum::String, '', 'forcibly set the expression argument. Useful when yq argument detection thinks your expression is a file.'),
             new FlagSpec('from-file', '', FlagTypeEnum::String, '', 'Load expression from specified file.'),
             new FlagSpec('front-matter', 'f', FlagTypeEnum::String, '', '(extract|process) first input as yaml front-matter. Extract will pull out the yaml content, process will run the expression against the yaml content, leaving the remaining data intact'),
-            new FlagSpec('header-preprocess', '', FlagTypeEnum::Bool, true, 'Slurp any header comments and separators before processing expression.', '', 'true'),
+            new FlagSpec('header-preprocess', '', FlagTypeEnum::Bool, true, 'Slurp any header comments and separators before processing expression.', '', self::TRUE_TEXT),
             new FlagSpec('help', 'h', FlagTypeEnum::Bool, false, 'help for yq'),
             new FlagSpec('indent', 'I', FlagTypeEnum::Int, 2, 'sets indent level for output', '', '2'),
             new FlagSpec('inplace', 'i', FlagTypeEnum::Bool, false, 'update the file in place of first file given.'),
@@ -92,19 +94,19 @@ final class FlagCatalog
             new FlagSpec('shell-key-separator', '', FlagTypeEnum::String, '_', 'separator for shell variable key paths', '', '"_"'),
             new FlagSpec('split-exp', 's', FlagTypeEnum::String, '', 'print each result (or doc) into a file named (exp). [exp] argument must return a string. You can use $index in the expression as the result counter. The necessary directories will be created.'),
             new FlagSpec('split-exp-file', '', FlagTypeEnum::String, '', 'Use a file to specify the split-exp expression.'),
-            new FlagSpec('string-interpolation', '', FlagTypeEnum::Bool, true, 'Toggles strings interpolation of \(exp)', '', 'true'),
+            new FlagSpec('string-interpolation', '', FlagTypeEnum::Bool, true, 'Toggles strings interpolation of \(exp)', '', self::TRUE_TEXT),
             new FlagSpec('toyaml', 'y', FlagTypeEnum::Bool, false, 'output as yaml', '', '', true),
             new FlagSpec('tojson', 'j', FlagTypeEnum::Bool, false, 'output as json', '', '', true),
-            new FlagSpec('tsv-auto-parse', '', FlagTypeEnum::Bool, true, 'parse TSV YAML/JSON values', '', 'true'),
-            new FlagSpec('unwrapScalar', 'r', FlagTypeEnum::Bool, true, 'unwrap scalar, print the value with no quotes, colours or comments. Defaults to true for yaml', '', 'true'),
+            new FlagSpec('tsv-auto-parse', '', FlagTypeEnum::Bool, true, 'parse TSV YAML/JSON values', '', self::TRUE_TEXT),
+            new FlagSpec('unwrapScalar', 'r', FlagTypeEnum::Bool, true, 'unwrap scalar, print the value with no quotes, colours or comments. Defaults to true for yaml', '', self::TRUE_TEXT),
             new FlagSpec('verbose', 'v', FlagTypeEnum::Bool, false, 'verbose mode'),
             new FlagSpec('version', 'V', FlagTypeEnum::Bool, false, 'Print version information and quit'),
             new FlagSpec('xml-attribute-prefix', '', FlagTypeEnum::String, '+@', 'prefix for xml attributes', '', '"+@"'),
             new FlagSpec('xml-content-name', '', FlagTypeEnum::String, '+content', 'name for xml content (if no attribute name is present).', '', '"+content"'),
             new FlagSpec('xml-directive-name', '', FlagTypeEnum::String, '+directive', 'name for xml directives (e.g. <!DOCTYPE thing cat>)', '', '"+directive"'),
-            new FlagSpec('xml-keep-namespace', '', FlagTypeEnum::Bool, true, 'enables keeping namespace after parsing attributes', '', 'true'),
+            new FlagSpec('xml-keep-namespace', '', FlagTypeEnum::Bool, true, 'enables keeping namespace after parsing attributes', '', self::TRUE_TEXT),
             new FlagSpec('xml-proc-inst-prefix', '', FlagTypeEnum::String, '+p_', 'prefix for xml processing instructions (e.g. <?xml version="1"?>)', '', '"+p_"'),
-            new FlagSpec('xml-raw-token', '', FlagTypeEnum::Bool, true, 'enables using RawToken method instead Token. Commonly disables namespace translations. See https://pkg.go.dev/encoding/xml#Decoder.RawToken for details.', '', 'true'),
+            new FlagSpec('xml-raw-token', '', FlagTypeEnum::Bool, true, 'enables using RawToken method instead Token. Commonly disables namespace translations. See https://pkg.go.dev/encoding/xml#Decoder.RawToken for details.', '', self::TRUE_TEXT),
             new FlagSpec('xml-skip-directives', '', FlagTypeEnum::Bool, false, 'skip over directives (e.g. <!DOCTYPE thing cat>)'),
             new FlagSpec('xml-skip-proc-inst', '', FlagTypeEnum::Bool, false, 'skip over process instructions (e.g. <?xml version="1"?>)'),
             new FlagSpec('xml-strict-mode', '', FlagTypeEnum::Bool, false, 'enables strict parsing of XML. See https://pkg.go.dev/encoding/xml for more details.'),

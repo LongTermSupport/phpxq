@@ -62,6 +62,8 @@ final class Parser implements ParserInterface
 {
     private const string TOP_LEVEL_FILE = '<top-level>';
 
+    private const string LOC_KEYWORD = '__loc__';
+
     private const int MAX_CLOSURES = 4095;
 
     /** @var array<string, int> operator token value => binary level */
@@ -641,7 +643,7 @@ final class Parser implements ParserInterface
 
             case TokenTypeEnum::Variable:
                 ++$this->pos;
-                if ('__loc__' === $tok->text) {
+                if (self::LOC_KEYWORD === $tok->text) {
                     return new Location(self::TOP_LEVEL_FILE, $tok->line);
                 }
 
@@ -1038,8 +1040,8 @@ final class Parser implements ParserInterface
                     return new ObjectEntry(new Variable($tok->text, $tok->line), $this->parseObjectValue());
                 }
 
-                if ('__loc__' === $tok->text) {
-                    return new ObjectEntry(new Literal('__loc__'), new Location(self::TOP_LEVEL_FILE, $tok->line));
+                if (self::LOC_KEYWORD === $tok->text) {
+                    return new ObjectEntry(new Literal(self::LOC_KEYWORD), new Location(self::TOP_LEVEL_FILE, $tok->line));
                 }
 
                 return new ObjectEntry(new Literal($tok->text), new Variable($tok->text, $tok->line));

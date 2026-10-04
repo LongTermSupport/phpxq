@@ -12,6 +12,8 @@ namespace LTS\PhpXq\Json;
  */
 final readonly class ColorScheme
 {
+    private const string DEFAULT_COLOR = "\e[0;39m";
+
     public function __construct(
         public string $null,
         public string $false,
@@ -31,9 +33,9 @@ final readonly class ColorScheme
     {
         return new self(
             "\e[0;90m",
-            "\e[0;39m",
-            "\e[0;39m",
-            "\e[0;39m",
+            self::DEFAULT_COLOR,
+            self::DEFAULT_COLOR,
+            self::DEFAULT_COLOR,
             "\e[0;32m",
             "\e[1;39m",
             "\e[1;39m",

@@ -20,6 +20,10 @@ use LTS\PhpXq\Yaml\Schema\CoreSchema;
  */
 final class YamlWriter
 {
+    private const string TAG_NULL   = '!!null';
+
+    private const string TAG_STR    = '!!str';
+
     private const int COLOR_KEY     = 36;
 
     private const int COLOR_STRING  = 32;
@@ -260,7 +264,7 @@ final class YamlWriter
         $nextLine = false;
         for ($i = 0; $i < $count; $i += 2) {
             $key   = $mapping->content[$i];
-            $value = $mapping->content[$i + 1] ?? new Node(NodeKindEnum::Scalar, '!!null');
+            $value = $mapping->content[$i + 1] ?? new Node(NodeKindEnum::Scalar, self::TAG_NULL);
 
             // Fast path (benchmark yq:identity-medium): `key: value` where both are scalars that print plain.
             // After one such line the writer state is known (broken-off line, nothing pending), so the next
@@ -410,7 +414,7 @@ final class YamlWriter
         $count = \count($mapping->content);
         for ($i = 0; $i < $count; $i += 2) {
             $key   = $mapping->content[$i];
-            $value = $mapping->content[$i + 1] ?? new Node(NodeKindEnum::Scalar, '!!null');
+            $value = $mapping->content[$i + 1] ?? new Node(NodeKindEnum::Scalar, self::TAG_NULL);
             if ($i > 0) {
                 $this->indicator(',', false, false, false);
             }
@@ -490,7 +494,7 @@ final class YamlWriter
         $value = $node->value;
 
         return match ($node->tag) {
-            '!!str'  => 1 === preg_match(self::PLAIN_WORD, $value) && !isset(self::RESERVED_WORDS[$value]) ? $value : null,
+            self::TAG_STR => 1 === preg_match(self::PLAIN_WORD, $value) && !isset(self::RESERVED_WORDS[$value]) ? $value : null,
             '!!int'  => 1 === preg_match(self::PLAIN_INT, $value) ? $value : null,
             '!!bool' => isset(self::BOOL_WORDS[$value]) ? $value : null,
             default  => null,
@@ -526,15 +530,15 @@ final class YamlWriter
 
         $force = false;
         if ('' !== $tag && !$node->tagExplicit) {
-            if ('!!str' === $stag && $quoted) {
+            if (self::TAG_STR === $stag && $quoted) {
                 $tag = '';
-            } elseif ('!!str' === $stag && 1 === preg_match(self::PLAIN_WORD, $value) && !isset(self::RESERVED_WORDS[$value])) {
+            } elseif (self::TAG_STR === $stag && 1 === preg_match(self::PLAIN_WORD, $value) && !isset(self::RESERVED_WORDS[$value])) {
                 $tag = '';
             } else {
                 $resolved = $this->resolveImplicit($value);
                 if ($resolved === $stag) {
                     $tag = '';
-                } elseif ('!!str' === $stag) {
+                } elseif (self::TAG_STR === $stag) {
                     $tag   = '';
                     $force = '<<' !== $value;
                 }
@@ -676,7 +680,7 @@ final class YamlWriter
     {
         return match ($tag) {
             '!!bool', '!!int', '!!float' => self::COLOR_NUMBER,
-            '!!null'                     => null,
+            self::TAG_NULL               => null,
             default                      => self::COLOR_STRING,
         };
     }

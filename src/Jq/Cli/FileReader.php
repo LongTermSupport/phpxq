@@ -13,6 +13,8 @@ use RuntimeException;
  */
 final class FileReader
 {
+    private const string OPEN_FAILURE = 'Could not open ';
+
     private function __construct()
     {
     }
@@ -23,15 +25,15 @@ final class FileReader
     public static function read(string $path): string
     {
         if (is_dir($path)) {
-            throw new RuntimeException('Could not open ' . $path . ': Is a directory');
+            throw new RuntimeException(self::OPEN_FAILURE . $path . ': Is a directory');
         }
 
         if (!file_exists($path)) {
-            throw new RuntimeException('Could not open ' . $path . ': No such file or directory');
+            throw new RuntimeException(self::OPEN_FAILURE . $path . ': No such file or directory');
         }
 
         if (!is_readable($path)) {
-            throw new RuntimeException('Could not open ' . $path . ': Permission denied');
+            throw new RuntimeException(self::OPEN_FAILURE . $path . ': Permission denied');
         }
 
         $reason = 'Input/output error';
@@ -51,7 +53,7 @@ final class FileReader
         }
 
         if (false === $contents) {
-            throw new RuntimeException('Could not open ' . $path . ': ' . $reason);
+            throw new RuntimeException(self::OPEN_FAILURE . $path . ': ' . $reason);
         }
 
         return $contents;

@@ -9,6 +9,12 @@ namespace LTS\PhpXq\Yq\Cli;
  */
 final class HelpText
 {
+    private const string CMD_EVAL       = 'eval';
+
+    private const string CMD_EVAL_ALL   = 'eval-all';
+
+    private const string CMD_COMPLETION = 'completion';
+
     private const string LONG = "yq is a portable command-line data file processor (https://github.com/mikefarah/yq/) \n"
         . 'See https://mikefarah.gitbook.io/yq/ for detailed documentation and examples.';
 
@@ -54,9 +60,9 @@ final class HelpText
     public static function forCommand(string $command): string
     {
         return match ($command) {
-            'eval', 'e'      => self::EVAL_LONG . "\n\n" . self::usage('eval'),
-            'eval-all', 'ea' => self::EVAL_ALL_LONG . "\n\n" . self::usage('eval-all'),
-            'completion'     => self::COMPLETION_LONG . "\n\n" . self::usage('completion'),
+            self::CMD_EVAL, 'e'      => self::EVAL_LONG . "\n\n" . self::usage(self::CMD_EVAL),
+            self::CMD_EVAL_ALL, 'ea' => self::EVAL_ALL_LONG . "\n\n" . self::usage(self::CMD_EVAL_ALL),
+            self::CMD_COMPLETION     => self::COMPLETION_LONG . "\n\n" . self::usage(self::CMD_COMPLETION),
             default          => self::root(),
         };
     }
@@ -67,9 +73,9 @@ final class HelpText
     public static function usage(string $command): string
     {
         return match ($command) {
-            'eval', 'e'      => self::commandUsage('eval [expression] [yaml_file1]...', "\n\nAliases:\n  eval, e"),
-            'eval-all', 'ea' => self::commandUsage('eval-all [expression] [yaml_file1]...', "\n\nAliases:\n  eval-all, ea"),
-            'completion'     => "Usage:\n  yq completion [command]\n\nAvailable Commands:\n"
+            self::CMD_EVAL, 'e'      => self::commandUsage('eval [expression] [yaml_file1]...', "\n\nAliases:\n  eval, e"),
+            self::CMD_EVAL_ALL, 'ea' => self::commandUsage('eval-all [expression] [yaml_file1]...', "\n\nAliases:\n  eval-all, ea"),
+            self::CMD_COMPLETION     => "Usage:\n  yq completion [command]\n\nAvailable Commands:\n"
                 . "  bash        Generate the autocompletion script for bash\n"
                 . "  fish        Generate the autocompletion script for fish\n"
                 . "  powershell  Generate the autocompletion script for powershell\n"

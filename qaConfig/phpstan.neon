@@ -10,6 +10,21 @@ parameters:
             - ../tests/Fixtures/Defence/*
 
 rules:
+    # Bundled with php-qa-ci but opt-in: a catch block that neither uses, logs nor rethrows the exception.
+    - LTS\PHPQA\PHPStan\Rules\ForbidSilentCatchRule
+    # Bundled with php-qa-ci but opt-in: a scalar documented as a closed set of literals ('a'|'b').
+    - LTS\PHPQA\PHPStan\Rules\RequireEnumOverLiteralUnionRule
     - QaConfig\PHPStan\Rules\RecursionThroughNativeCallbackRule
     - QaConfig\PHPStan\Rules\UnguardedAliasRecursionRule
     - QaConfig\PHPStan\Rules\LoopInvariantConstructionRule
+
+services:
+    # Bundled with php-qa-ci but opt-in: a string literal written three or more times in one class. Production
+    # code only: test data repeats literals on purpose, one assertion per value (docs/phpstan-rules/README.md).
+    -
+        class: QaConfig\PHPStan\Rules\ProductionOnlyRule
+        arguments:
+            inner: LTS\PHPQA\PHPStan\Rules\ForbidRepeatedStringLiteralRule()
+            excludedDirectory: %currentWorkingDirectory%/tests
+        tags:
+            - phpstan.rules.rule

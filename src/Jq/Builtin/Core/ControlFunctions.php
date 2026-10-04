@@ -22,6 +22,10 @@ use LTS\PhpXq\Json\Values;
  */
 final class ControlFunctions
 {
+    private const string RANGE   = 'range';
+
+    private const string RECURSE = 'recurse';
+
     private function __construct()
     {
     }
@@ -40,12 +44,12 @@ final class ControlFunctions
         $registry->register(new StreamFunction('isempty', 1, self::isEmpty(...)));
         $registry->register(new StreamFunction('any', 2, self::any(...)));
         $registry->register(new StreamFunction('all', 2, self::all(...)));
-        $registry->register(new StreamFunction('range', 1, self::range1(...)));
-        $registry->register(new StreamFunction('range', 2, self::range2(...)));
-        $registry->register(new StreamFunction('range', 3, self::range3(...)));
-        $registry->register(new PathStreamFunction('recurse', 0, self::recurse0(...), self::recurse0Paths(...)));
-        $registry->register(new PathStreamFunction('recurse', 1, self::recurse1(...), self::recurse1Paths(...)));
-        $registry->register(new PathStreamFunction('recurse', 2, self::recurse2(...), self::recurse2Paths(...)));
+        $registry->register(new StreamFunction(self::RANGE, 1, self::range1(...)));
+        $registry->register(new StreamFunction(self::RANGE, 2, self::range2(...)));
+        $registry->register(new StreamFunction(self::RANGE, 3, self::range3(...)));
+        $registry->register(new PathStreamFunction(self::RECURSE, 0, self::recurse0(...), self::recurse0Paths(...)));
+        $registry->register(new PathStreamFunction(self::RECURSE, 1, self::recurse1(...), self::recurse1Paths(...)));
+        $registry->register(new PathStreamFunction(self::RECURSE, 2, self::recurse2(...), self::recurse2Paths(...)));
         $registry->register(new StreamFunction('repeat', 1, self::repeat(...)));
     }
 
