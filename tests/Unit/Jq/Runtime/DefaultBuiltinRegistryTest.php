@@ -6,6 +6,7 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Runtime;
 
 use InvalidArgumentException;
 use LTS\PhpXq\Jq\Runtime\BuiltinInterface;
+use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
 use LTS\PhpXq\Jq\Runtime\DefaultBuiltinRegistry;
 use PHPUnit\Framework\TestCase;
 
@@ -44,6 +45,35 @@ final class DefaultBuiltinRegistryTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
         $registry->register($this->builtin('length', 0));
+    }
+
+    public function testLazyLoaderRunsOnFirstLookupOfAnyOfItsNamesAndOnlyOnce(): void
+    {
+        $registry = new DefaultBuiltinRegistry();
+        $calls    = 0;
+        $registry->registerLazy(['one/0', 'two/1'], function (BuiltinRegistryInterface $target) use (&$calls): void {
+            ++$calls;
+            $target->register($this->builtin('one', 0));
+            $target->register($this->builtin('two', 1));
+        });
+
+        self::assertSame(0, $calls);
+        self::assertNull($registry->lookup('one', 1), 'a name the loader does not claim is not loaded');
+        self::assertSame(0, $calls);
+
+        self::assertSame('two', $registry->lookup('two', 1)?->name());
+        self::assertSame('one', $registry->lookup('one', 0)?->name());
+        self::assertSame(1, $calls);
+    }
+
+    public function testLazyNameThatTheLoaderFailsToRegisterIsNull(): void
+    {
+        $registry = new DefaultBuiltinRegistry();
+        $registry->registerLazy(['ghost/0'], static function (): void {
+        });
+
+        self::assertNull($registry->lookup('ghost', 0));
+        self::assertNull($registry->lookup('ghost', 0));
     }
 
     public function testPreludeSourcesAreConcatenatedInOrder(): void

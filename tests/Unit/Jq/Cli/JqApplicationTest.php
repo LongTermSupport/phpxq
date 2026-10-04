@@ -26,6 +26,36 @@ final class JqApplicationTest extends JqApplicationTestCase
         self::assertNotSame($application, JqApplication::create());
     }
 
+    public function testTheCycleCollectorIsOffDuringARunAndRestoredAfterwards(): void
+    {
+        $wasEnabled = gc_enabled();
+        gc_enable();
+
+        try {
+            [$status] = $this->jq(['.'], '1');
+            self::assertSame(0, $status);
+            self::assertTrue(gc_enabled());
+
+            gc_disable();
+            $this->jq(['.'], '1');
+            self::assertFalse(gc_enabled(), 'a collector the caller switched off stays off');
+        } finally {
+            if ($wasEnabled) {
+                gc_enable();
+            } else {
+                gc_disable();
+            }
+        }
+    }
+
+    public function testManyInputsRunThroughTheManualCollectionInterval(): void
+    {
+        [$status, $out] = $this->jq(['-c', '.'], str_repeat("1\n", 9000));
+
+        self::assertSame(0, $status);
+        self::assertSame(9000, substr_count($out, "1\n"));
+    }
+
     public function testIdentityPrettyPrintsEveryInput(): void
     {
         [$status, $out, $err] = $this->jq(['.'], "{\"a\":1}\n[1,2]");

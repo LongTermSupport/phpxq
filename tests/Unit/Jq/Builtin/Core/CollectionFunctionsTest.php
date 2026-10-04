@@ -7,6 +7,7 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Builtin\Core;
 use LTS\PhpXq\Jq\Builtin\Core\CollectionFunctions;
 use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Json\PreciseNumber;
+use LTS\PhpXq\Json\Values;
 use LTS\PhpXq\Tests\Unit\Jq\Builtin\Core\Support\Harness;
 use PHPUnit\Framework\TestCase;
 
@@ -300,6 +301,46 @@ final class CollectionFunctionsTest extends TestCase
         self::assertSame('Cannot iterate over number (1)', Harness::error('from_entries', 1));
         self::assertSame('Cannot index number with string ("key")', Harness::error('from_entries', [1]));
         self::assertSame('Cannot check whether null has a string key', Harness::error('from_entries', [null]));
+    }
+
+    public function testSortByAndGroupByAgreeWithTheGenericComparisonOnAnyKeyShape(): void
+    {
+        mt_srand(20260);
+        $pools = [
+            'strings'  => static fn (): string => ['', 'a', 'B', 'ab', "\u{e9}", '10', '9'][mt_rand(0, 6)],
+            'ints'     => static fn (): int => [-3, 0, 1, 2, 2, 10, 9007199254740993, -9007199254740993][mt_rand(0, 7)],
+            'floats'   => static fn (): float|int => [-0.5, 0.0, 1.5, 2, 1.0E300][mt_rand(0, 4)],
+            'booleans' => static fn (): ?bool => [null, false, true][mt_rand(0, 2)],
+            'mixed'    => static fn (): mixed => [null, true, 3, 'x', [1], 1.5][mt_rand(0, 5)],
+            'nan'      => static fn (): float|int => [\NAN, 1, 2][mt_rand(0, 2)],
+        ];
+
+        for ($case = 0; $case < 300; ++$case) {
+            $width = mt_rand(0, 3);
+            $kinds = array_map(static fn (): string => array_rand($pools), array_fill(0, $width, null));
+            $keys  = [];
+            for ($row = 0, $rows = mt_rand(0, 12); $row < $rows; ++$row) {
+                $keys[] = array_map(static fn (string $kind): mixed => $pools[$kind](), $kinds);
+            }
+
+            $indices  = array_keys($keys);
+            $expected = $indices;
+            usort($expected, static fn (int $left, int $right): int => Values::compare($keys[$left], $keys[$right]));
+
+            $context = json_encode([$kinds, $keys], \JSON_PARTIAL_OUTPUT_ON_ERROR);
+            self::assertSame($expected, Harness::call('_sort_by_impl', $indices, [$keys]), $context);
+
+            $groups = [];
+            foreach ($expected as $position => $index) {
+                if (0 === $position || 0 !== Values::compare($keys[$expected[$position - 1]], $keys[$index])) {
+                    $groups[] = [];
+                }
+
+                $groups[array_key_last($groups)][] = $index;
+            }
+
+            self::assertSame($groups, Harness::call('_group_by_impl', $indices, [$keys]), $context);
+        }
     }
 
     public function testSortListIsPublic(): void

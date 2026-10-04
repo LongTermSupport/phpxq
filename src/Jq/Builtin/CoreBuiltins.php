@@ -29,7 +29,7 @@ final class CoreBuiltins implements BuiltinProviderInterface
     /**
      * Builtins the regex and date providers register, so that `builtins` lists them too.
      */
-    private const array OTHER_PROVIDERS = [
+    public const array OTHER_PROVIDERS = [
         'test/1', 'test/2', 'match/1', 'match/2', 'capture/1', 'capture/2', 'scan/1', 'scan/2', 'split/2',
         'splits/1', 'splits/2', 'sub/2', 'sub/3', 'gsub/2', 'gsub/3',
         'mktime/0', 'gmtime/0', 'localtime/0', 'strftime/1', 'strflocaltime/1', 'strptime/1', 'now/0',

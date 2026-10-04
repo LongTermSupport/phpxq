@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Jq\Runtime;
 
+use Closure;
 use InvalidArgumentException;
 
 /**
@@ -15,6 +16,9 @@ final class DefaultBuiltinRegistry implements BuiltinRegistryInterface
 {
     /** @var array<string, BuiltinInterface> */
     private array $builtins = [];
+
+    /** @var array<string, Closure(BuiltinRegistryInterface): void> loaders of natives not registered yet, by `name/arity` */
+    private array $lazy = [];
 
     private string $prelude = '';
 
@@ -33,9 +37,36 @@ final class DefaultBuiltinRegistry implements BuiltinRegistryInterface
         $this->prelude .= $source . "\n";
     }
 
+    /**
+     * Declare that $loader registers every one of $signatures (`name/arity`), and call it the first time one
+     * of them is looked up. Keeps rarely used builtin classes from being loaded at start-up.
+     *
+     * @param list<string>                            $signatures
+     * @param Closure(BuiltinRegistryInterface): void $loader     receives this registry
+     */
+    public function registerLazy(array $signatures, Closure $loader): void
+    {
+        foreach ($signatures as $signature) {
+            $this->lazy[$signature] = $loader;
+        }
+    }
+
     public function lookup(string $name, int $arity): ?BuiltinInterface
     {
-        return $this->builtins[$name . '/' . $arity] ?? null;
+        $key = $name . '/' . $arity;
+        if (isset($this->builtins[$key])) {
+            return $this->builtins[$key];
+        }
+
+        $loader = $this->lazy[$key] ?? null;
+        if (!$loader instanceof Closure) {
+            return null;
+        }
+
+        $this->lazy = array_filter($this->lazy, static fn (Closure $pending): bool => $pending !== $loader);
+        $loader($this);
+
+        return $this->builtins[$key] ?? null;
     }
 
     public function prelude(): string
