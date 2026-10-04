@@ -50,6 +50,13 @@ final class FastBlockParserTest extends TestCase
         yield 'repeated texts resolve alike' => ["a: 1\nb: 1\nc: true\nd: true\ne: 1.5\nf: 1.5\ng: ~\nh: ~\ni: 007\nj: 007\n"];
         yield 'null value then dedent' => ["a:\n  b:\nc: 1\n"];
         yield 'nested empty then sibling' => ["a:\n  b:\n  c: 1\n"];
+        yield 'quoted scalars' => ["a: 'x y'\nb: \"p q\"\n"];
+        yield 'quoted keys and items' => ["'a b': 1\n\"c:d\": 'e # f'\nl:\n  - 'x'\n  - \"y\"\n"];
+        yield 'empty quoted' => ["a: ''\nb: \"\"\n"];
+        yield 'line comments' => ["a: 1 # c\nb: 'x' # d  e\nl:\n  - z # f\n"];
+        yield 'head comments' => ["# top\na: 1\n# two\n# lines\nb:\n  # inner\n  c: 2\n  d: 3\n"];
+        yield 'head comment on sequence item' => ["l:\n  # one\n  - a\n  # two\n  - b\n"];
+        yield 'comment then blank then key' => ["a: 1\n\n# c\nb: 2\n"];
         yield 'deep' => ["a:\n  b:\n    c:\n      d:\n        - 1\n        - e: 2\n          f:\n            - g\n"];
     }
 
@@ -66,10 +73,17 @@ final class FastBlockParserTest extends TestCase
     {
         yield 'empty' => [''];
         yield 'only blank lines' => ["\n\n"];
-        yield 'comment' => ["a: 1 # c\n"];
-        yield 'comment line' => ["# c\na: 1\n"];
-        yield 'quoted scalar' => ["a: 'x'\n"];
-        yield 'double quoted scalar' => ["a: \"x\"\n"];
+        yield 'comment above blank gap' => ["# c\n\na: 1\n"];
+        yield 'comment at wrong indent' => ["a:\n  # c\n  b: 1\n    # d\n  e: 2\n"];
+        yield 'comment above item mapping' => ["# c\n- a: 1\n"];
+        yield 'comment after key without value' => ["a: # c\n  b: 1\n"];
+        yield 'comment only document' => ["# c\n"];
+        yield 'quoted with escape' => ["a: \"x\\ny\"\n"];
+        yield 'quoted with doubled quote' => ["a: 'it''s'\n"];
+        yield 'quoted then text' => ["a: 'x' y\n"];
+        yield 'comment with trailing blank' => ["a: 1 # c \n"];
+        yield 'comment with tab' => ["a: 1 # c\td\n"];
+        yield 'hash inside a plain value' => ["a: b#c\n"];
         yield 'flow collection' => ["a: [1, 2]\n"];
         yield 'anchor' => ["a: &x 1\n"];
         yield 'alias' => ["a: *x\n"];
@@ -157,10 +171,14 @@ final class FastBlockParserTest extends TestCase
         $pad   = str_repeat(' ', $indent);
         $isSeq = 0 === mt_rand(0, 2);
         $count = mt_rand(1, 4);
-        $words = ['alpha', 'beta gamma', '12', '-3', '4.5', 'true', 'null', '~', 'x_y', 'a:b', 'http://h/p', '2001-12-14', '<<', 'k-1', 'a b  c'];
+        $words = ["'q r'", '"s t"', 'u # v', 'w #x', 'alpha', 'beta gamma', '12', '-3', '4.5', 'true', 'null', '~', 'x_y', 'a:b', 'http://h/p', '2001-12-14', '<<', 'k-1', 'a b  c'];
         for ($i = 0; $i < $count; ++$i) {
             if (0 === mt_rand(0, 15)) {
                 $lines[] = '';
+            }
+
+            if (0 === mt_rand(0, 9)) {
+                $lines[] = $pad . '# note ' . $i;
             }
 
             $word   = $words[mt_rand(0, \count($words) - 1)];

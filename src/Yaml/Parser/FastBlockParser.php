@@ -37,14 +37,23 @@ final class FastBlockParser
     /** A mapping key: no colon and no `#`; blanks only between visible characters. */
     private const string KEY = self::FIRST . '(?:' . self::REST . '|[ ]++(?=' . self::REST . '))*+';
 
-    /** A scalar value: a colon only before a visible character; blanks only between visible characters. */
-    private const string VALUE = self::FIRST . '(?:' . self::REST . '|:(?=[\x21-\x7E])|[ ]++(?=[\x21-\x7E]))*+';
+    /**
+     * A scalar value: a colon only before a visible character; blanks only between visible characters, but
+     * never before a `#` (that starts a comment).
+     */
+    private const string VALUE = self::FIRST . '(?:' . self::REST . '|:(?=[\x21-\x7E])|[ ]++(?=[\x21\x22\x24-\x7E]))*+';
+
+    /** A single-quoted scalar without an escaped quote, or a double-quoted one without escapes; printable ASCII, one line. */
+    private const string QUOTED = '\'[\x20-\x26\x28-\x7E]*+\'|"[\x20\x21\x23-\x5B\x5D-\x7E]*+"';
+
+    /** A comment: a hash, then printable ASCII that does not end in a blank. */
+    private const string COMMENT = '#(?:[\x20-\x7E]*+(?<! ))';
 
     /**
-     * Groups: 1 blank lines before, 2 indent, 3 dash, 4 blanks after the dash, 5 key, 6 blanks after the
-     * colon, 7 value after a key, 8 value of a sequence item.
+     * Groups: 1 blank and comment lines before, 2 indent, 3 dash, 4 blanks after the dash, 5 key, 6 blanks
+     * after the colon, 7 value after a key, 8 value of a sequence item, 9 comment after a value.
      */
-    private const string LINE = '/\G((?: *\n)*)(?!---|\.\.\.)( *)(?:(-)( +))?(?:(' . self::KEY . '):(?:( +)(' . self::VALUE . '))?(?=\n)|(' . self::VALUE . '))\n/';
+    private const string LINE = '/\G((?: *(?:' . self::COMMENT . ')?\n)*)(?!---|\.\.\.)( *)(?:(-)( +))?(?:(' . self::KEY . '|' . self::QUOTED . '):(?:( +)(' . self::VALUE . '|' . self::QUOTED . '))?|(' . self::VALUE . '|' . self::QUOTED . '))(?:[ ]+(' . self::COMMENT . '))?\n/';
 
     private function __construct()
     {
@@ -100,11 +109,19 @@ final class FastBlockParser
             }
 
             $position += \strlen($m[0]);
+            $indent    = \strlen($m[2]);
+            $head      = '';
             if ('' !== $m[1]) {
                 $line += substr_count($m[1], "\n");
+                if (str_contains($m[1], '#')) {
+                    $head = self::headComment($m[1], $indent);
+                    if (null === $head) {
+                        return null;
+                    }
+                }
             }
 
-            $indent    = \strlen($m[2]);
+            $comment   = $m[9];
             $dash      = null !== ($m[3] ?? null);
             $key       = $m[5] ?? null;
             $valueOnly = $m[8] ?? null;
@@ -172,16 +189,36 @@ final class FastBlockParser
             if ($dash) {
                 $column = $indent + 1 + \strlen($m[4] ?? '');
                 if (null === $key) {
-                    $text              = (string)$valueOnly;
-                    $scalar            = clone $scalarProto;
-                    $scalar->tag       = $tagMemo[$text] ?? self::resolveMemo($text, $tagMemo);
-                    $scalar->value     = $text;
-                    $scalar->line      = $line;
-                    $scalar->column    = $column + 1;
+                    $text   = (string)$valueOnly;
+                    $scalar = clone $scalarProto;
+                    if ("'" === $text[0] || '"' === $text[0]) {
+                        $scalar->tag   = CoreSchema::TAG_STR;
+                        $scalar->style = "'" === $text[0] ? NodeStyleEnum::SingleQuoted : NodeStyleEnum::DoubleQuoted;
+                        $scalar->value = substr($text, 1, -1);
+                    } else {
+                        $scalar->tag   = $tagMemo[$text] ?? self::resolveMemo($text, $tagMemo);
+                        $scalar->value = $text;
+                    }
+
+                    $scalar->line   = $line;
+                    $scalar->column = $column + 1;
+                    if ('' !== $head) {
+                        $scalar->headComment = $head;
+                    }
+
+                    if (null !== $comment) {
+                        $scalar->lineComment = $comment;
+                    }
+
                     $target->content[] = $scalar;
                     ++$line;
 
                     continue;
+                }
+
+                // a comment above `- key: value` belongs to a node this parser does not model
+                if ('' !== $head) {
+                    return null;
                 }
 
                 $item              = clone $mappingProto;
@@ -196,22 +233,49 @@ final class FastBlockParser
                 $target = $item;
             }
 
-            $keyText           = $key;
-            $scalar            = clone $scalarProto;
-            $scalar->tag       = $tagMemo[$keyText] ?? self::resolveMemo($keyText, $tagMemo);
-            $scalar->value     = $keyText;
-            $scalar->line      = $line;
-            $scalar->column    = $column + 1;
+            $keyText = $key;
+            $scalar  = clone $scalarProto;
+            if ("'" === $keyText[0] || '"' === $keyText[0]) {
+                $scalar->tag   = CoreSchema::TAG_STR;
+                $scalar->style = "'" === $keyText[0] ? NodeStyleEnum::SingleQuoted : NodeStyleEnum::DoubleQuoted;
+                $scalar->value = substr($keyText, 1, -1);
+            } else {
+                $scalar->tag   = $tagMemo[$keyText] ?? self::resolveMemo($keyText, $tagMemo);
+                $scalar->value = $keyText;
+            }
+
+            $scalar->line   = $line;
+            $scalar->column = $column + 1;
+            if ('' !== $head) {
+                $scalar->headComment = $head;
+            }
+
             $target->content[] = $scalar;
             $valueText         = $m[7] ?? null;
             if (null !== $valueText) {
-                $scalar            = clone $scalarProto;
-                $scalar->tag       = $tagMemo[$valueText] ?? self::resolveMemo($valueText, $tagMemo);
-                $scalar->value     = $valueText;
-                $scalar->line      = $line;
-                $scalar->column    = $column + \strlen($keyText) + 2 + \strlen($m[6] ?? '');
+                $scalar = clone $scalarProto;
+                if ("'" === $valueText[0] || '"' === $valueText[0]) {
+                    $scalar->tag   = CoreSchema::TAG_STR;
+                    $scalar->style = "'" === $valueText[0] ? NodeStyleEnum::SingleQuoted : NodeStyleEnum::DoubleQuoted;
+                    $scalar->value = substr($valueText, 1, -1);
+                } else {
+                    $scalar->tag   = $tagMemo[$valueText] ?? self::resolveMemo($valueText, $tagMemo);
+                    $scalar->value = $valueText;
+                }
+
+                $scalar->line   = $line;
+                $scalar->column = $column + \strlen($keyText) + 2 + \strlen($m[6] ?? '');
+                if (null !== $comment) {
+                    $scalar->lineComment = $comment;
+                }
+
                 $target->content[] = $scalar;
             } else {
+                // a comment after a key with no value belongs to the key or to the block that follows
+                if (null !== $comment) {
+                    return null;
+                }
+
                 $pending       = $target;
                 $pendingIndent = $column;
                 $pendingLine   = $line;
@@ -230,6 +294,34 @@ final class FastBlockParser
         }
 
         return new Node(NodeKindEnum::Document, '', NodeStyleEnum::Default, '', [$root], line: $rootLine, column: 1);
+    }
+
+    /**
+     * The head comment of the node on the line that follows `$prefix`, the blank and comment lines before
+     * it, or null when the comments are of a shape this parser does not model: a comment must sit at the
+     * indent of the line it precedes and touch it (no blank line between), as a single block.
+     */
+    private static function headComment(string $prefix, int $indent): ?string
+    {
+        $comment = [];
+        foreach (explode("\n", substr($prefix, 0, -1)) as $text) {
+            $trimmed = ltrim($text, ' ');
+            if ('' === $trimmed) {
+                if ([] !== $comment) {
+                    return null;
+                }
+
+                continue;
+            }
+
+            if (\strlen($text) - \strlen($trimmed) !== $indent) {
+                return null;
+            }
+
+            $comment[] = $trimmed;
+        }
+
+        return implode("\n", $comment);
     }
 
     /**
