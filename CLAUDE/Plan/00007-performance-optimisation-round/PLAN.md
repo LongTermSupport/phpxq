@@ -1,6 +1,6 @@
 # Plan 00007: performance optimisation round
 
-**Status**: Not Started
+**Status**: In Progress
 **Created**: 2026-10-03
 **Owner**: joseph
 **Priority**: Medium
@@ -52,7 +52,7 @@ Parent epic: Plan 00001.
 - [ ] ⬜ **Task 2.1**: Startup path optimisation
 - [ ] ⬜ **Task 2.2**: JSON parse and serialise hot paths
 - [ ] ⬜ **Task 2.3**: Evaluator hot paths
-- [ ] ⬜ **Task 2.4**: YAML parse and emit hot paths
+- [x] ✅ **Task 2.4**: YAML parse and emit hot paths (yq numbers in results-yq.md)
 - [ ] ⬜ **Task 2.5**: Build-level optimisation of the shipped binary (extension set, preloading, concatenation)
 
 ### Phase 3: Verify
@@ -74,10 +74,10 @@ Parent epic: Plan 00001.
 
 ## Risks & Mitigations
 
-| Risk | Impact | Probability | Mitigation |
-| ---- | ------ | ----------- | ---------- |
-| Optimisation breaks conformance | High | Medium | Run the harness on every change |
-| Unreadable hot paths get cleaned up later | Medium | Medium | Comment naming the justifying benchmark |
+| Risk                                      | Impact | Probability | Mitigation                              |
+| ----------------------------------------- | ------ | ----------- | --------------------------------------- |
+| Optimisation breaks conformance           | High   | Medium      | Run the harness on every change         |
+| Unreadable hot paths get cleaned up later | Medium | Medium      | Comment naming the justifying benchmark |
 
 ## Delivery & Milestones
 

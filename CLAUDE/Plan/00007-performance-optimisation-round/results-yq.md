@@ -25,7 +25,7 @@ before and after numbers. The jq lane records its own numbers separately.
 
 ## Overall (CPU ms, min of 3, production-like build)
 
-See the table at the end of this file for the final numbers.
+See "Final numbers" at the end of this file.
 
 ## Optimisations
 
@@ -92,6 +92,30 @@ of each distinct plain text (bounded at 2048 entries).
 | --------------------------- | ------ | ------ |
 | `YamlParser::parse`, medium | 119 ms | 101 ms |
 
+### 6. Fast parser: quoted scalars and comments
+
+Real configuration files carry comments and quoted strings, and one such line used to send the whole
+document down the full scanner and parser. `FastBlockParser` now takes single-quoted scalars without a
+doubled quote and double-quoted scalars without escapes (printable ASCII, one line), a line comment after
+a value, and head comments that sit at the indent of the line they precede and touch it. Anything else
+(a comment above `- key: value`, after a key with no value, a blank line between comment and node, a tab,
+a trailing blank in a comment) still declines to the full parser. `FastBlockParserTest` pins every
+accepted shape against the full parser (positions, comments and styles included) and fuzzes 400 generated
+documents that now include comment lines and quoted words.
+
+| step                                                                   | before  | after  |
+| ---------------------------------------------------------------------- | ------- | ------ |
+| `YamlParser::parse`, medium with a quoted name and comments per record | 1100 ms | 126 ms |
+
+(`untracked/scratch/phases.php`, 5000 records, 721 KB, min of 5; the CLI output is byte-identical to the
+previous builds.)
+
+## Merge notes
+
+`group_by` on main groups by first appearance (it no longer sorts), so the native-sort fast path now only
+serves `sort_by`; the emitter fast path in `YamlWriter::emitBlockMapping()` stands down while a scalar
+value's head comment is being carried to the next key.
+
 ## Measured and rejected
 
 - Memoising the plain-word test in the emitter (a bounded per-writer cache): no measurable change in
@@ -106,4 +130,32 @@ of each distinct plain text (bounded at 2048 entries).
 
 ## Final numbers
 
-(filled in at the end of the round)
+CPU ms (user plus system), minimum of 3 runs, production-like builds of `69a7860` (before) and this
+branch (after), taken with `untracked/scratch/ba.bash` while the host load average was 12 to 30:
+
+| workload            | before | after |
+| ------------------- | -----: | ----: |
+| startup             |     66 |    56 |
+| identity-small      |    110 |    70 |
+| identity-medium     |   2113 |   333 |
+| select-medium       |   1699 |   273 |
+| aggregate-medium    |   1632 |   284 |
+| group-medium        |   2072 |   342 |
+| wide-keys           |    644 |   149 |
+| deep-walk           |     77 |    61 |
+| json-in-medium      |    477 |   396 |
+| yaml-to-json-medium |   1824 |   317 |
+| identity-large      |  42367 |  6417 |
+| select-large        |  39171 |  4852 |
+
+The before numbers are dominated by the cycle collector re-scanning the tree (optimisation 3) and the
+object-per-node parser cost.
+
+Harness record: `benchmarks/baselines/yq-after.json` (label `yq-after`, `bench.bash baseline --tools yq --reps 3 --sizes small,medium`, wall clock on the loaded host, compared with `yq-before`). Median wall
+ms against `yq-before`, with the ratio to mikefarah yq v4.54.1 on the same host in brackets: startup 90
+(4.4x), identity-small 94 (2.4x), identity-medium 1075 (0.95x), select-medium 406 (0.96x),
+aggregate-medium 443 (0.68x), group-medium 502 (0.64x), wide-keys 276 (1.45x), deep-walk 82 (2.3x),
+many-small 2198 (5.5x). The remaining gap is process startup (the PHP binary itself costs 45 to 50 ms of
+CPU) and the many-small workload (one process per file).
+
+Conformance after the round: `scripts/conformance.bash all` prints CONFORMANCE: OK.

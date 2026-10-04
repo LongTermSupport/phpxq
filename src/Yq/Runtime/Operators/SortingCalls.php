@@ -288,7 +288,7 @@ final class SortingCalls implements CallOperatorInterface
         $groups = [];
         foreach ($items as $item) {
             $results = $evaluator->evaluate($call->arguments[0], $read->withMatches([$item]));
-            $key     = [] === $results ? NodeOps::null() : Cands::node($results[0]);
+            $key     = []                   === $results ? NodeOps::null() : Cands::node($results[0]);
             $text    = NodeKindEnum::Scalar === $key->kind ? $key->value : '';
 
             $groups[$text][] = $item->node->deepCopy();
