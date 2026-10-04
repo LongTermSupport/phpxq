@@ -1,0 +1,693 @@
+{
+    "schema": 1,
+    "label": "perf-jq-before",
+    "startedAt": "2026-10-03T22:16:35+00:00",
+    "environment": {
+        "php_version": "8.5.11",
+        "php_binary": "/usr/bin/php8.5",
+        "php_sapi": "cli",
+        "opcache_loaded": "yes",
+        "opcache_enable_cli": "0",
+        "jit": "disable",
+        "jit_buffer_size": "64M",
+        "xdebug_loaded": "no",
+        "memory_limit": "-1",
+        "cpu_model": "Intel(R) Xeon(R) E-2236 CPU @ 3.40GHz",
+        "cpu_cores": "8",
+        "kernel": "7.2.8-200.fc44.x86_64",
+        "os": "Linux",
+        "hostname": "5dc514e2f2e9"
+    },
+    "settings": {
+        "repetitions": "5",
+        "warmup": "2",
+        "sizes": "small,medium,large",
+        "tools": "jq",
+        "filter": "none",
+        "binary": "none",
+        "commit": "69a7860",
+        "subject_php": "php"
+    },
+    "targets": [
+        {
+            "id": "phpxq-jq",
+            "tool": "jq",
+            "role": "subject",
+            "version": "69a7860",
+            "command": "php /workspace/.claude/worktrees/wf-c206089e-50f-1-060403c8/bin/phpxq jq"
+        },
+        {
+            "id": "jq",
+            "tool": "jq",
+            "role": "reference",
+            "version": "jq-1.6",
+            "command": "/usr/bin/jq"
+        }
+    ],
+    "measurements": [
+        {
+            "targetId": "phpxq-jq",
+            "workloadId": "jq:startup",
+            "status": "ok",
+            "outputBytes": 59,
+            "note": "",
+            "samplesMs": [
+                109.318,
+                100.262,
+                88.92,
+                79.725,
+                57.874
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 57.874,
+                "medianMs": 88.92,
+                "meanMs": 87.21979999999999,
+                "p95Ms": 107.5068,
+                "maxMs": 109.318,
+                "stddevMs": 19.866228308362913
+            }
+        },
+        {
+            "targetId": "jq",
+            "workloadId": "jq:startup",
+            "status": "ok",
+            "outputBytes": 59,
+            "note": "",
+            "samplesMs": [
+                36.104,
+                56.325,
+                36.879,
+                64.861,
+                96.688
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 36.104,
+                "medianMs": 56.325,
+                "meanMs": 58.17139999999999,
+                "p95Ms": 90.3226,
+                "maxMs": 96.688,
+                "stddevMs": 24.859730776901024
+            }
+        },
+        {
+            "targetId": "phpxq-jq",
+            "workloadId": "jq:many-small",
+            "status": "ok",
+            "outputBytes": 2,
+            "note": "",
+            "samplesMs": [
+                1609.773,
+                1328.785,
+                1292.399,
+                1322.834,
+                1526.348
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 1292.399,
+                "medianMs": 1328.785,
+                "meanMs": 1416.0278,
+                "p95Ms": 1593.088,
+                "maxMs": 1609.773,
+                "stddevMs": 142.55544513521744
+            }
+        },
+        {
+            "targetId": "jq",
+            "workloadId": "jq:many-small",
+            "status": "ok",
+            "outputBytes": 2,
+            "note": "",
+            "samplesMs": [
+                594.632,
+                613.497,
+                588.087,
+                595.011,
+                588.074
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 588.074,
+                "medianMs": 594.632,
+                "meanMs": 595.8602,
+                "p95Ms": 609.7998,
+                "maxMs": 613.497,
+                "stddevMs": 10.420339231522162
+            }
+        },
+        {
+            "targetId": "phpxq-jq",
+            "workloadId": "jq:identity-small",
+            "status": "ok",
+            "outputBytes": 20140,
+            "note": "",
+            "samplesMs": [
+                59.471,
+                56.978,
+                97.845,
+                75.528,
+                86.567
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 56.978,
+                "medianMs": 75.528,
+                "meanMs": 75.2778,
+                "p95Ms": 95.5894,
+                "maxMs": 97.845,
+                "stddevMs": 17.475159218158787
+            }
+        },
+        {
+            "targetId": "jq",
+            "workloadId": "jq:identity-small",
+            "status": "ok",
+            "outputBytes": 20140,
+            "note": "",
+            "samplesMs": [
+                62.137,
+                39.233,
+                57.168,
+                33.222,
+                35.868
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 33.222,
+                "medianMs": 39.233,
+                "meanMs": 45.525600000000004,
+                "p95Ms": 61.1432,
+                "maxMs": 62.137,
+                "stddevMs": 13.188334932810887
+            }
+        },
+        {
+            "targetId": "phpxq-jq",
+            "workloadId": "jq:select-small",
+            "status": "ok",
+            "outputBytes": 317,
+            "note": "",
+            "samplesMs": [
+                101.04,
+                93.112,
+                155.791,
+                167.596,
+                102.013
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 93.112,
+                "medianMs": 102.013,
+                "meanMs": 123.91039999999998,
+                "p95Ms": 165.235,
+                "maxMs": 167.596,
+                "stddevMs": 34.91381198465731
+            }
+        },
+        {
+            "targetId": "jq",
+            "workloadId": "jq:select-small",
+            "status": "ok",
+            "outputBytes": 317,
+            "note": "",
+            "samplesMs": [
+                27.946,
+                41.974,
+                28.681,
+                30.4,
+                32.359
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 27.946,
+                "medianMs": 30.4,
+                "meanMs": 32.272,
+                "p95Ms": 40.050999999999995,
+                "maxMs": 41.974,
+                "stddevMs": 5.684415405298946
+            }
+        },
+        {
+            "targetId": "phpxq-jq",
+            "workloadId": "jq:identity-medium",
+            "status": "ok",
+            "outputBytes": 1026015,
+            "note": "",
+            "samplesMs": [
+                95.561,
+                138.924,
+                133.888,
+                165.539,
+                104.72
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 95.561,
+                "medianMs": 133.888,
+                "meanMs": 127.72639999999998,
+                "p95Ms": 160.21599999999998,
+                "maxMs": 165.539,
+                "stddevMs": 28.093823508023963
+            }
+        },
+        {
+            "targetId": "jq",
+            "workloadId": "jq:identity-medium",
+            "status": "ok",
+            "outputBytes": 1026015,
+            "note": "",
+            "samplesMs": [
+                78.487,
+                90.263,
+                90.889,
+                100.462,
+                74.652
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 74.652,
+                "medianMs": 90.263,
+                "meanMs": 86.9506,
+                "p95Ms": 98.5474,
+                "maxMs": 100.462,
+                "stddevMs": 10.391450875599617
+            }
+        },
+        {
+            "targetId": "phpxq-jq",
+            "workloadId": "jq:select-medium",
+            "status": "ok",
+            "outputBytes": 19614,
+            "note": "",
+            "samplesMs": [
+                74.387,
+                75.26,
+                80.021,
+                76.065,
+                72.99
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 72.99,
+                "medianMs": 75.26,
+                "meanMs": 75.7446,
+                "p95Ms": 79.2298,
+                "maxMs": 80.021,
+                "stddevMs": 2.648395231078626
+            }
+        },
+        {
+            "targetId": "jq",
+            "workloadId": "jq:select-medium",
+            "status": "ok",
+            "outputBytes": 19614,
+            "note": "",
+            "samplesMs": [
+                51.488,
+                67.862,
+                47.15,
+                48.467,
+                49.582
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 47.15,
+                "medianMs": 49.582,
+                "meanMs": 52.9098,
+                "p95Ms": 64.5872,
+                "maxMs": 67.862,
+                "stddevMs": 8.508493121581516
+            }
+        },
+        {
+            "targetId": "phpxq-jq",
+            "workloadId": "jq:identity-large",
+            "status": "ok",
+            "outputBytes": 20742531,
+            "note": "",
+            "samplesMs": [
+                1314.724,
+                1220.554,
+                1526.643,
+                1013.329,
+                984.787
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 984.787,
+                "medianMs": 1220.554,
+                "meanMs": 1212.0074,
+                "p95Ms": 1484.2592,
+                "maxMs": 1526.643,
+                "stddevMs": 224.00977761986195
+            }
+        },
+        {
+            "targetId": "jq",
+            "workloadId": "jq:identity-large",
+            "status": "ok",
+            "outputBytes": 20742531,
+            "note": "",
+            "samplesMs": [
+                1286.287,
+                1215.184,
+                1202.626,
+                1346.503,
+                1188.937
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 1188.937,
+                "medianMs": 1215.184,
+                "meanMs": 1247.9074,
+                "p95Ms": 1334.4597999999999,
+                "maxMs": 1346.503,
+                "stddevMs": 66.69486525438073
+            }
+        },
+        {
+            "targetId": "phpxq-jq",
+            "workloadId": "jq:select-large",
+            "status": "ok",
+            "outputBytes": 429630,
+            "note": "",
+            "samplesMs": [
+                586.29,
+                599.484,
+                981.743,
+                954.27,
+                864.354
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 586.29,
+                "medianMs": 864.354,
+                "meanMs": 797.2281999999999,
+                "p95Ms": 976.2484000000001,
+                "maxMs": 981.743,
+                "stddevMs": 191.5798816713279
+            }
+        },
+        {
+            "targetId": "jq",
+            "workloadId": "jq:select-large",
+            "status": "ok",
+            "outputBytes": 429630,
+            "note": "",
+            "samplesMs": [
+                902.279,
+                1149.213,
+                859.954,
+                1071.236,
+                670.81
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 670.81,
+                "medianMs": 902.279,
+                "meanMs": 930.6983999999999,
+                "p95Ms": 1133.6176,
+                "maxMs": 1149.213,
+                "stddevMs": 187.6525115134354
+            }
+        },
+        {
+            "targetId": "phpxq-jq",
+            "workloadId": "jq:aggregate-medium",
+            "status": "ok",
+            "outputBytes": 5,
+            "note": "",
+            "samplesMs": [
+                79.088,
+                87.614,
+                73.278,
+                82.518,
+                98.595
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 73.278,
+                "medianMs": 82.518,
+                "meanMs": 84.2186,
+                "p95Ms": 96.3988,
+                "maxMs": 98.595,
+                "stddevMs": 9.580206720107869
+            }
+        },
+        {
+            "targetId": "jq",
+            "workloadId": "jq:aggregate-medium",
+            "status": "ok",
+            "outputBytes": 5,
+            "note": "",
+            "samplesMs": [
+                99.946,
+                101.425,
+                77.28,
+                66.136,
+                61.213
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 61.213,
+                "medianMs": 77.28,
+                "meanMs": 81.2,
+                "p95Ms": 101.1292,
+                "maxMs": 101.425,
+                "stddevMs": 18.72320622916919
+            }
+        },
+        {
+            "targetId": "phpxq-jq",
+            "workloadId": "jq:group-medium",
+            "status": "ok",
+            "outputBytes": 247,
+            "note": "",
+            "samplesMs": [
+                123.98,
+                130.006,
+                212.652,
+                179.965,
+                124.887
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 123.98,
+                "medianMs": 130.006,
+                "meanMs": 154.298,
+                "p95Ms": 206.1146,
+                "maxMs": 212.652,
+                "stddevMs": 40.11942644779459
+            }
+        },
+        {
+            "targetId": "jq",
+            "workloadId": "jq:group-medium",
+            "status": "ok",
+            "outputBytes": 247,
+            "note": "",
+            "samplesMs": [
+                60.715,
+                93.471,
+                59.098,
+                65.291,
+                100.243
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 59.098,
+                "medianMs": 65.291,
+                "meanMs": 75.7636,
+                "p95Ms": 98.8886,
+                "maxMs": 100.243,
+                "stddevMs": 19.53631858360218
+            }
+        },
+        {
+            "targetId": "phpxq-jq",
+            "workloadId": "jq:aggregate-large",
+            "status": "ok",
+            "outputBytes": 5,
+            "note": "",
+            "samplesMs": [
+                627.427,
+                682.943,
+                593.569,
+                730.998,
+                864.716
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 593.569,
+                "medianMs": 682.943,
+                "meanMs": 699.9305999999999,
+                "p95Ms": 837.9724,
+                "maxMs": 864.716,
+                "stddevMs": 106.039558558587
+            }
+        },
+        {
+            "targetId": "jq",
+            "workloadId": "jq:aggregate-large",
+            "status": "ok",
+            "outputBytes": 5,
+            "note": "",
+            "samplesMs": [
+                1101.203,
+                1193.058,
+                1210.476,
+                1203.227,
+                1594.219
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 1101.203,
+                "medianMs": 1203.227,
+                "meanMs": 1260.4366,
+                "p95Ms": 1517.4704,
+                "maxMs": 1594.219,
+                "stddevMs": 191.7517311142197
+            }
+        },
+        {
+            "targetId": "phpxq-jq",
+            "workloadId": "jq:group-large",
+            "status": "ok",
+            "outputBytes": 254,
+            "note": "",
+            "samplesMs": [
+                2089.987,
+                2261.912,
+                2520.911,
+                2106.174,
+                2368.258
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 2089.987,
+                "medianMs": 2261.912,
+                "meanMs": 2269.4484,
+                "p95Ms": 2490.3804,
+                "maxMs": 2520.911,
+                "stddevMs": 181.60293042872405
+            }
+        },
+        {
+            "targetId": "jq",
+            "workloadId": "jq:group-large",
+            "status": "ok",
+            "outputBytes": 254,
+            "note": "",
+            "samplesMs": [
+                1178.841,
+                1344.361,
+                1125.091,
+                1127.517,
+                1151.416
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 1125.091,
+                "medianMs": 1151.416,
+                "meanMs": 1185.4451999999999,
+                "p95Ms": 1311.257,
+                "maxMs": 1344.361,
+                "stddevMs": 91.45236357361144
+            }
+        },
+        {
+            "targetId": "phpxq-jq",
+            "workloadId": "jq:wide-keys",
+            "status": "ok",
+            "outputBytes": 6,
+            "note": "",
+            "samplesMs": [
+                62.366,
+                62.299,
+                60.839,
+                64.193,
+                84.959
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 60.839,
+                "medianMs": 62.366,
+                "meanMs": 66.9312,
+                "p95Ms": 80.8058,
+                "maxMs": 84.959,
+                "stddevMs": 10.14781430653912
+            }
+        },
+        {
+            "targetId": "jq",
+            "workloadId": "jq:wide-keys",
+            "status": "ok",
+            "outputBytes": 6,
+            "note": "",
+            "samplesMs": [
+                42.838,
+                50.28,
+                46.895,
+                47.515,
+                40.113
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 40.113,
+                "medianMs": 46.895,
+                "meanMs": 45.5282,
+                "p95Ms": 49.727000000000004,
+                "maxMs": 50.28,
+                "stddevMs": 4.0297855650145955
+            }
+        },
+        {
+            "targetId": "phpxq-jq",
+            "workloadId": "jq:deep-walk",
+            "status": "ok",
+            "outputBytes": 4,
+            "note": "",
+            "samplesMs": [
+                61.877,
+                85.292,
+                84.715,
+                70.39,
+                75.952
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 61.877,
+                "medianMs": 75.952,
+                "meanMs": 75.6452,
+                "p95Ms": 85.17660000000001,
+                "maxMs": 85.292,
+                "stddevMs": 9.907025370917347
+            }
+        },
+        {
+            "targetId": "jq",
+            "workloadId": "jq:deep-walk",
+            "status": "ok",
+            "outputBytes": 4,
+            "note": "",
+            "samplesMs": [
+                29.116,
+                35.103,
+                29.412,
+                35.377,
+                32.103
+            ],
+            "stats": {
+                "count": 5,
+                "minMs": 29.116,
+                "medianMs": 32.103,
+                "meanMs": 32.2222,
+                "p95Ms": 35.3222,
+                "maxMs": 35.377,
+                "stddevMs": 2.9921431616819416
+            }
+        }
+    ]
+}

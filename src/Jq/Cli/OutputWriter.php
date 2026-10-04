@@ -16,6 +16,8 @@ final class OutputWriter
 
     private bool $failed = false;
 
+    private string $reason = 'Broken pipe';
+
     /**
      * @param resource $stream
      * @param int      $limit  flush once this many bytes are buffered; 0 writes through
@@ -52,7 +54,13 @@ final class OutputWriter
 
         $length  = \strlen($data);
         $written = 0;
-        set_error_handler(static fn (): bool => true);
+        set_error_handler(function (int $severity, string $message): bool {
+            if (1 === preg_match('/errno=\d+ (.+)$/', $message, $matches)) {
+                $this->reason = $matches[1];
+            }
+
+            return true;
+        });
 
         try {
             while ($written < $length) {
@@ -66,7 +74,9 @@ final class OutputWriter
                 $written += $chunk;
             }
 
-            fflush($this->stream);
+            if (!fflush($this->stream)) {
+                $this->failed = true;
+            }
         } finally {
             restore_error_handler();
         }
@@ -75,5 +85,13 @@ final class OutputWriter
     public function hasFailed(): bool
     {
         return $this->failed;
+    }
+
+    /**
+     * The system's wording for why the last write failed, as jq prints it after "writing output failed:".
+     */
+    public function failureReason(): string
+    {
+        return $this->reason;
     }
 }

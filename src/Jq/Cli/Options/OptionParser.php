@@ -336,8 +336,8 @@ final readonly class OptionParser
                         throw new UsageException('jq: --arg takes two parameters (e.g. --arg varname value)');
                     }
 
-                    $named[$args[$i + 1]] = $args[$i + 2];
-                    $i += 2;
+                    $named += [$args[$i + 1] => $args[$i + 2]];
+                    $i     += 2;
 
                     break;
 
@@ -346,8 +346,8 @@ final readonly class OptionParser
                         throw new UsageException('jq: --argjson takes two parameters (e.g. --argjson varname text)');
                     }
 
-                    $named[$args[$i + 1]] = $this->decodeOrRefuse($args[$i + 2], '--argjson');
-                    $i += 2;
+                    $named += [$args[$i + 1] => $this->decodeOrRefuse($args[$i + 2], '--argjson')];
+                    $i     += 2;
 
                     break;
 
@@ -358,8 +358,8 @@ final readonly class OptionParser
                         throw new UsageException(\sprintf('jq: --%s takes two parameters (e.g. --%s varname filename)', $which, $which));
                     }
 
-                    $named[$args[$i + 1]] = $this->loadFile($which, $args[$i + 1], $args[$i + 2]);
-                    $i += 2;
+                    $named += [$args[$i + 1] => $this->loadFile($which, $args[$i + 1], $args[$i + 2])];
+                    $i     += 2;
 
                     break;
 

@@ -1,0 +1,87 @@
+flags:-C
+flags:-C -c
+flags:-h
+flags:--help
+flags:--version
+flags:-V
+flags:--indent abc
+flags:--indent 0
+flags:-n --raw-output0
+flags:-n -c --argjson x 1.0
+flags:-n -c --argjson x 1e2
+file:empty.json
+file:nums.json
+1 | ltrimstr("a")
+ltrimstr("a")
+ltrimstr(null)
+.name | ltrimstr(1)
+ltrimstr("a") | halt
+"abc" * 0
+"a" * 0.5
+[limit(0; 1)]
+limit(-1; 1,2)
+.arr | limit(0; .[])
+[1,2,3] | .[1.5]
+.a.[0]
+@foo
+$__prog_args?
+1e1000
+-1e1000
+[.1, 1.0, 1.10, 100000000000000000000, 1e5, 1e-5, 0.0001, 1.5e300, 5e-324]
+[1, 1.0, 1.5] | map(tojson)
+9007199254740993
+[9007199254740993] | tojson
+"1e2" | tonumber
+" 1 " | tonumber?
+-5 | length
+[{"name":"a","value":1},{"k":"b","v":2}] | from_entries
+"abc" | ascii
+.arr | ascii?
+.n | abs?
+"" | indices("")
+"abc" | gsub("^"; "!")
+"aaa" | [match("a*?"; "g")] | length
+1 | debug("m")
+"\ud800" | length
+1/0
+error(null)
+map(test("\\u0000")?)
+.arr | to_entries | from_entries?
+.text | gsub(""; "-")
+.text | [match(""; "g")] | length
+--
+file:p008.json
+file:p009.json
+file:p061.json
+file:p062.json
+file:p098.json
+file:p134.json
+file:p135.json
+file:p074.json
+file:p075.json
+file:p076.json
+file:p077.json
+file:p078.json
+file:p079.json
+file:p080.json
+file:p081.json
+file:p082.json
+file:p083.json
+file:p084.json
+file:p085.json
+file:p086.json
+file:p087.json
+file:p088.json
+file:p089.json
+file:p136.json
+file:p137.json
+file:p138.json
+file:p139.json
+file:p140.json
+file:p141.json
+.any | .a.b.c?
+.any | isvalid(.a)?
+.any | with_entries(.)?
+.any | ltrimstr("a")
+.text | ascii
+ltrimstr("x")

@@ -87,7 +87,7 @@ final class Core
 
         $function->compiling = true;
         try {
-            [$names, $body] = self::expand($function->definition);
+            [$names, $body] = self::expand($function->definition());
             $scope          = null;
             foreach ($names as $name) {
                 $scope = Scope::param($scope, $name);
@@ -137,11 +137,28 @@ final class Core
 
         $set           = new DefSet();
         $this->prelude = $set;
-        $source        = $this->builtins->prelude();
-        if ('' !== trim($source)) {
-            foreach ($this->parser->parse($source)->defs as $definition) {
-                $set->add(new FuncInfo($definition, $set, $set->size() + 1, true));
+        $parser        = $this->parser;
+        // Each top-level `def` starts in column 0 and its continuation lines are indented, so the prelude
+        // splits into one chunk per definition, parsed only when something calls it (start-up cost: parsing
+        // the whole prelude and loading its AST classes on every run).
+        $chunks = preg_split('/^(?=def )/m', $this->builtins->prelude(), -1, \PREG_SPLIT_NO_EMPTY);
+        foreach (false === $chunks ? [] : $chunks as $chunk) {
+            if (1 === preg_match('/;\s*def\s/', $chunk) || 1 !== preg_match('/^def ([A-Za-z_][A-Za-z_0-9]*)(?:\(([^)]*)\))?:/', $chunk, $head)) {
+                // several definitions in one chunk, or an unusual head: parse it now, like the whole text
+                foreach ($parser->parse($chunk)->defs as $definition) {
+                    $set->add(new FuncInfo($definition, $set, $set->size() + 1, true));
+                }
+
+                continue;
             }
+
+            $arity = isset($head[2]) && '' !== $head[2] ? substr_count($head[2], ';') + 1 : 0;
+            $set->add(FuncInfo::deferred(
+                $head[1] . '/' . $arity,
+                static fn (): FuncDef => $parser->parse($chunk)->defs[0],
+                $set,
+                $set->size() + 1,
+            ));
         }
 
         return $set;

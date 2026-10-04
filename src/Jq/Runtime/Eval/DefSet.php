@@ -34,8 +34,8 @@ final class DefSet
 
     public function add(FuncInfo $function): void
     {
-        $this->index[$function->definition->signature()][]  = \count($this->functions);
-        $this->functions[]                                  = $function;
+        $this->index[$function->signature()][] = \count($this->functions);
+        $this->functions[]                     = $function;
     }
 
     public function size(): int

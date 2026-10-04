@@ -29,8 +29,12 @@ final class LineTracker
 
     private int $eol = -1;
 
+    /**
+     * @param int $firstLine the number of lines read before $text, when it is a piece of a longer input
+     */
     public function __construct(
         private readonly string $text,
+        private readonly int $firstLine = 0,
     ) {
         $this->scanner = new ValueScanner();
     }
@@ -54,7 +58,7 @@ final class LineTracker
         }
 
         if (0 === $this->values) {
-            return 0;
+            return $this->firstLine;
         }
 
         $length = \strlen($this->text);
@@ -69,6 +73,6 @@ final class LineTracker
             $this->counted = $upto;
         }
 
-        return $this->lines;
+        return $this->firstLine + $this->lines;
     }
 }

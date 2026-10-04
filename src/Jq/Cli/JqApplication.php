@@ -31,6 +31,11 @@ use RuntimeException;
  */
 final readonly class JqApplication
 {
+    /**
+     * Inputs between two manual runs of the cycle collector.
+     */
+    private const int GC_INTERVAL = 4096;
+
     public function __construct(
         public ParserInterface $parser,
         public CompilerFactoryInterface $compilers,
@@ -60,9 +65,21 @@ final readonly class JqApplication
      */
     public function run(array $args, mixed $stdin, mixed $stdout, mixed $stderr): int
     {
-        $console = new Console($stdout, $stderr);
-        $status  = $this->execute($args, $stdin, $stdout, $console);
-        $console->flush();
+        // The cycle collector is switched off for the run: jq values are trees, so what it would find is only
+        // the evaluator's closure cycles, collected below every GC_INTERVAL inputs. Its automatic runs cost
+        // 20% of identity-large and group-large (bench, results.md of Plan 00007).
+        $collectorWasOn = gc_enabled();
+        gc_disable();
+
+        try {
+            $console = new Console($stdout, $stderr);
+            $status  = $this->execute($args, $stdin, $stdout, $console);
+            $console->flush();
+        } finally {
+            if ($collectorWasOn) {
+                gc_enable();
+            }
+        }
 
         return $status;
     }
@@ -225,8 +242,9 @@ final readonly class JqApplication
         $context = new CliRuntimeContext($source, $this->globals($options), $options->libraryPaths, $console, $this->encoder);
         $runner  = new ProgramRunner($program, $context, $source, $console, $this->encoder, $options, $options->encodeOptions($scheme));
 
-        $status = ProgramRunner::NO_OUTPUT;
-        $last   = -1;
+        $status    = ProgramRunner::NO_OUTPUT;
+        $last      = -1;
+        $processed = 0;
 
         if ($options->nullInput) {
             $status = $runner->process(null);
@@ -253,14 +271,24 @@ final readonly class JqApplication
                     $last = ProgramRunner::NULL_KIND !== $status ? 1 : 0;
                 }
 
+                if (0 === ++$processed % self::GC_INTERVAL) {
+                    gc_collect_cycles();
+                }
+
                 if ($console->stdoutFailed()) {
                     break;
                 }
             }
         }
 
+        $console->flush();
         if ($console->stdoutFailed()) {
-            $console->err("jq: error: writing output failed: Broken pipe\n");
+            // jq is ended by SIGPIPE when the reader goes away (`jq . big | head`), without a word
+            if ('Broken pipe' === $console->failureReason()) {
+                return JqExitCode::BROKEN_PIPE;
+            }
+
+            $console->err('jq: error: writing output failed: ' . $console->failureReason() . "\n");
 
             return JqExitCode::USAGE;
         }
