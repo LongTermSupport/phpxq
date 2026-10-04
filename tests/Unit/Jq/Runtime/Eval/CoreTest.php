@@ -170,6 +170,25 @@ final class CoreTest extends TestCase
         self::assertSame([1], $seen);
     }
 
+    public function testPreludeDefinitionsOnTheirOwnLinesAreParsedOnlyWhenUsed(): void
+    {
+        $registry = new DefaultBuiltinRegistry();
+        // one definition per line, continuation lines indented: split without parsing; the first is not valid jq
+        $registry->addPrelude(implode("\n", ['def broken: ((;', 'def two($x; f):', '  $x | f;', 'def fine: 1;']));
+
+        $parser = new Parser(new Lexer());
+
+        $program = new Compiler($registry, $parser, new FileModuleLoader([], $parser, new JsonDecoder()))
+            ->compile($parser->parse('[fine, two(5; . + 1)]'))
+        ;
+        $seen = [];
+        $program->run(new StubContext(), null, static function (mixed $value) use (&$seen): void {
+            $seen[] = $value;
+        });
+
+        self::assertSame([[1, 6]], $seen);
+    }
+
     public function testExpandTurnsValueParametersIntoBindings(): void
     {
         $parser = new Parser(new Lexer());

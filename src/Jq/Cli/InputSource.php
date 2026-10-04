@@ -42,9 +42,8 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
 
     private bool $unreadable = false;
 
-    private readonly ParseDiagnostics $diagnostics;
-
-    private readonly StreamParser $streams;
+    /** only `--stream` needs it: built on demand so that other runs do not load its classes */
+    private ?StreamParser $streams = null;
 
     /**
      * @param list<string>          $files
@@ -58,8 +57,6 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
         private readonly CliOptions $options,
         private readonly Closure $warn,
     ) {
-        $this->diagnostics = new ParseDiagnostics($decoder);
-        $this->streams     = new StreamParser($decoder, $this->diagnostics);
     }
 
     /**
@@ -415,8 +412,9 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
         $lines   = 0;
         $length  = \strlen($text);
         // offset of the next newline at or after the last event; cached so a long single line is scanned once
-        $eol = -1;
-        foreach ($this->streams->events($text, $this->options->seq) as $offset => $event) {
+        $eol     = -1;
+        $streams = $this->streams ??= new StreamParser($this->decoder, new ParseDiagnostics($this->decoder));
+        foreach ($streams->events($text, $this->options->seq) as $offset => $event) {
             if ($eol < $offset) {
                 $found = strpos($text, "\n", $offset);
                 $eol   = false === $found ? \PHP_INT_MAX : $found;
