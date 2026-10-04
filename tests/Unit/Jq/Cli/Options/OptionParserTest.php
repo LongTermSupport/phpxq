@@ -225,6 +225,23 @@ final class OptionParserTest extends TestCase
         self::assertSame(['ENV', '__prog_args', 'ARGS', 'a', 'b'], $options->globalNames());
     }
 
+    public function testTheFirstDefinitionOfANamedArgumentWins(): void
+    {
+        $file    = $this->tempFile("[2]\n");
+        $options = $this->parse(['-n', '--arg', 'a', '1', '--arg', 'a', '2', '--argjson', 'a', '3', '--slurpfile', 'a', $file, '.']);
+
+        self::assertSame(['a' => '1'], $options->named);
+
+        $options = $this->parse(['-n', '--argjson', 'b', '3', '--arg', 'b', '2', '.']);
+
+        self::assertSame(['b' => 3], $options->named);
+    }
+
+    public function testADuplicateNamedArgumentIsStillValidated(): void
+    {
+        $this->assertRefused(['--arg', 'a', '1', '--argjson', 'a', '1x'], 'jq: Invalid JSON text passed to --argjson');
+    }
+
     public function testNamedArgumentErrors(): void
     {
         $this->assertRefused(['--arg', 'a'], 'jq: --arg takes two parameters (e.g. --arg varname value)');

@@ -7,6 +7,16 @@ current version.
 
 ## [Unreleased]
 
+### Changed
+
+- `jq`: standard input is processed as it arrives (line-delimited JSON and `-R` lines are emitted as soon
+  as each line is read) instead of after end-of-file, so `tail -f log | jq .` works; a read error on
+  standard input (a directory, say) is reported like an unreadable file.
+- `jq`: with repeated `--arg`/`--argjson`/`--slurpfile`/`--rawfile` of the same name the first one wins,
+  as in jq.
+- `jq`: a closed output pipe (`jq . big.json | head`) ends the run silently with status 141, as jq does
+  when SIGPIPE kills it, instead of printing "writing output failed".
+
 ## [0.1.0]
 
 First release.

@@ -67,6 +67,32 @@ final class JqApplicationOutputWriterTest extends TestCase
         fclose($near);
     }
 
+    public function testAFullDiskIsReportedWithItsReason(): void
+    {
+        if (!is_writable('/dev/full')) {
+            self::markTestSkipped('/dev/full is not available');
+        }
+
+        $stream = fopen('/dev/full', 'wb');
+        self::assertIsResource($stream);
+        $writer = new OutputWriter($stream);
+
+        $writer->write('data');
+        $writer->flush();
+
+        self::assertTrue($writer->hasFailed());
+        self::assertSame('No space left on device', $writer->failureReason());
+        fclose($stream);
+    }
+
+    public function testBrokenPipeIsTheDefaultReason(): void
+    {
+        $stream = fopen('php://memory', 'w+b');
+        self::assertIsResource($stream);
+
+        self::assertSame('Broken pipe', new OutputWriter($stream)->failureReason());
+    }
+
     public function testConsoleFlushesStdoutBeforeStderr(): void
     {
         $out = fopen('php://memory', 'w+b');

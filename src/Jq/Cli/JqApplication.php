@@ -281,8 +281,14 @@ final readonly class JqApplication
             }
         }
 
+        $console->flush();
         if ($console->stdoutFailed()) {
-            $console->err("jq: error: writing output failed: Broken pipe\n");
+            // jq is ended by SIGPIPE when the reader goes away (`jq . big | head`), without a word
+            if ('Broken pipe' === $console->failureReason()) {
+                return JqExitCode::BROKEN_PIPE;
+            }
+
+            $console->err('jq: error: writing output failed: ' . $console->failureReason() . "\n");
 
             return JqExitCode::USAGE;
         }
