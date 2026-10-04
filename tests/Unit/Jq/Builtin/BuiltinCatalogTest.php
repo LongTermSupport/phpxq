@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Jq\Builtin;
 
-use Closure;
 use LTS\PhpXq\Jq\Builtin\BuiltinCatalog;
 use LTS\PhpXq\Jq\Builtin\Core\CollectionFunctions;
 use LTS\PhpXq\Jq\Builtin\Core\ControlFunctions;
@@ -48,7 +47,6 @@ final class BuiltinCatalogTest extends TestCase
             'date'       => static fn (BuiltinRegistryInterface $registry) => new DateBuiltins()->registerInto($registry),
         ];
 
-        self::assertSame(array_keys($registrars), array_keys(BuiltinCatalog::GROUPS));
         foreach ($registrars as $group => $register) {
             $recording = new RecordingRegistry(new DefaultBuiltinRegistry());
             $register($recording);
@@ -80,7 +78,9 @@ final class BuiltinCatalogTest extends TestCase
         foreach (BuiltinCatalog::GROUPS as $signatures) {
             foreach ($signatures as $signature) {
                 [$name, $arity] = explode('/', $signature);
-                self::assertInstanceOf($eager->lookup($name, (int)$arity)::class, $lazy->lookup($name, (int)$arity), $signature);
+                $expected       = $eager->lookup($name, (int)$arity);
+                self::assertNotNull($expected, $signature);
+                self::assertInstanceOf($expected::class, $lazy->lookup($name, (int)$arity), $signature);
             }
         }
 
@@ -103,6 +103,5 @@ final class BuiltinCatalogTest extends TestCase
         self::assertNull($registry->lookup('floor', 1));
         self::assertNotNull($registry->lookup('floor', 0));
         self::assertNotNull($registry->lookup('floor', 0));
-        self::assertInstanceOf(Closure::class, BuiltinCatalog::loader('math'));
     }
 }

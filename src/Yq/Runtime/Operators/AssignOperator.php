@@ -192,7 +192,9 @@ final class AssignOperator implements BinaryOperatorInterface
                 Comments::set($node, $kind, $value);
                 if ('head' === $kind || 'all' === $kind) {
                     // A document's slurped leading content is its head comment: setting one replaces it.
-                    $document = NodeKindEnum::Document === $node->kind ? $node : ($target->parent instanceof Candidate && NodeKindEnum::Document === $target->parent->node->kind ? $target->parent->node : null);
+                    $parentNode = $target->parent instanceof Candidate ? $target->parent->node : null;
+                    $parentDoc  = $parentNode instanceof \LTS\PhpXq\Yaml\Node && NodeKindEnum::Document === $parentNode->kind ? $parentNode : null;
+                    $document   = NodeKindEnum::Document                         === $node->kind ? $node : $parentDoc;
                     if ($document instanceof Node && '' !== $document->leadingContent) {
                         $document->leadingContent = '' === $value ? '' : Comments::write($value) . "\n";
                         $node->headComment        = '';

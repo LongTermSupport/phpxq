@@ -327,16 +327,23 @@ final class CollectionFunctionsTest extends TestCase
             $expected = $indices;
             usort($expected, static fn (int $left, int $right): int => Values::compare($keys[$left], $keys[$right]));
 
-            $context = json_encode([$kinds, $keys], \JSON_PARTIAL_OUTPUT_ON_ERROR);
+            $encoded = json_encode([$kinds, $keys], \JSON_PARTIAL_OUTPUT_ON_ERROR);
+            $context = false === $encoded ? 'unencodable case' : $encoded;
             self::assertSame($expected, Harness::call('_sort_by_impl', $indices, [$keys]), $context);
 
             $groups = [];
+            $group  = [];
             foreach ($expected as $position => $index) {
-                if (0 === $position || 0 !== Values::compare($keys[$expected[$position - 1]], $keys[$index])) {
-                    $groups[] = [];
+                if (0 !== $position && 0 !== Values::compare($keys[$expected[$position - 1]], $keys[$index])) {
+                    $groups[] = $group;
+                    $group    = [];
                 }
 
-                $groups[array_key_last($groups)][] = $index;
+                $group[] = $index;
+            }
+
+            if ([] !== $group) {
+                $groups[] = $group;
             }
 
             self::assertSame($groups, Harness::call('_group_by_impl', $indices, [$keys]), $context);

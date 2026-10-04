@@ -31,21 +31,23 @@ final class FuncInfoTest extends TestCase
 
     public function testDeferredDefinitionIsParsedOnceOnFirstUse(): void
     {
-        $parses = 0;
-        $info   = FuncInfo::deferred('g/1', static function () use (&$parses): FuncDef {
-            ++$parses;
+        $parses = new class {
+            public int $count = 0;
+        };
+        $info   = FuncInfo::deferred('g/1', static function () use ($parses): FuncDef {
+            ++$parses->count;
 
             return new FuncDef('g', ['x'], new Identity());
         }, new DefSet(), 3);
 
         self::assertSame('g/1', $info->signature());
-        self::assertSame(0, $parses, 'asking for the signature must not parse');
+        self::assertSame(0, $parses->count, 'asking for the signature must not parse');
         self::assertTrue($info->prelude);
         self::assertSame(3, $info->limit);
 
         self::assertSame('g', $info->definition()->name);
         self::assertSame($info->definition(), $info->definition());
-        self::assertSame(1, $parses);
+        self::assertSame(1, $parses->count);
     }
 
     public function testSignatureOfAnEagerDefinitionComesFromTheDefinition(): void
