@@ -46,6 +46,8 @@ final class JqApplicationFileReaderTest extends TestCase
 
         // root can read everything, so a root run reads as the unprivileged "nobody" user instead.
         $isRoot = 0 === posix_getuid();
+        // autoload the class while still privileged: "nobody" may not be able to read the source tree.
+        class_exists(FileReader::class);
         if ($isRoot) {
             self::assertTrue(posix_seteuid(65534), 'cannot drop root privileges');
         }
