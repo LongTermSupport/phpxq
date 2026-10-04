@@ -103,7 +103,7 @@ final class EnvFileCalls implements CallOperatorInterface
                 }
 
                 $file = Args::string($call, 0, $context, $evaluator, $match) ?? '';
-                if (!is_file($file) || !is_readable($file)) {
+                if (!file_exists($file) || is_dir($file) || !is_readable($file)) {
                     throw new EvaluationException(\sprintf('failed to load %1$s: open %1$s: no such file or directory', $file));
                 }
 

@@ -27,7 +27,7 @@ final class NavigationCalls implements CallOperatorInterface
 {
     public function names(): array
     {
-        return ['parent', 'parents', 'root', 'key', 'is_key', 'path', 'getpath', 'line', 'column', 'document_index', 'di', 'file_index', 'fi', 'filename', 'split_doc', 'splitDoc', 'eval'];
+        return ['parent', 'parents', 'root', 'key', 'is_key', 'path', 'getpath', 'line', 'column', 'document_index', 'documentIndex', 'di', 'file_index', 'fileIndex', 'fi', 'filename', 'split_doc', 'splitDoc', 'eval'];
     }
 
     public function evaluate(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
@@ -105,10 +105,12 @@ final class NavigationCalls implements CallOperatorInterface
                 return [Cands::derive(NodeOps::int(Cands::node($match)->column), $match)];
 
             case 'document_index':
+            case 'documentIndex':
             case 'di':
                 return [Cands::derive(NodeOps::int($match->documentIndex), $match)];
 
             case 'file_index':
+            case 'fileIndex':
             case 'fi':
                 return [Cands::derive(NodeOps::int($match->fileIndex), $match)];
 

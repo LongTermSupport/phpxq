@@ -201,8 +201,8 @@ final readonly class EvaluateCommand
 
         $first = $positionals[0] ?? null;
         if ('' === $expression && null !== $first && '-' !== $first) {
-            if (is_file($first)) {
-                if (is_executable($first) && str_starts_with((string)file_get_contents($first), '#!')) {
+            if (file_exists($first)) {
+                if (is_file($first) && is_executable($first) && str_starts_with((string)file_get_contents($first), '#!')) {
                     $expression = $this->readExpressionFile($first);
                     array_shift($positionals);
                 }
@@ -233,7 +233,7 @@ final readonly class EvaluateCommand
      */
     private function readExpressionFile(string $path): string
     {
-        if (!is_file($path)) {
+        if (!file_exists($path) || is_dir($path)) {
             throw new CliException(\sprintf('open %s: no such file or directory', $path));
         }
 

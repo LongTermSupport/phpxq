@@ -401,7 +401,8 @@ final readonly class Evaluator implements EvaluatorInterface
     private function reduce(Reduce $reduce, EvaluationContext $context): array
     {
         $items       = $this->evaluate($reduce->source, $context);
-        $accumulator = $this->evaluate($reduce->initial, $context);
+        $initial     = Cands::together($context->matches) ? $context->withMatches([$context->matches[0]]) : $context;
+        $accumulator = $this->evaluate($reduce->initial, $initial);
         foreach ($items as $item) {
             $accumulator = $this->evaluate($reduce->update, $context->withMatches($accumulator)->withVariable($reduce->name, [$item]));
         }
