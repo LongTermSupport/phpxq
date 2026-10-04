@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval;
 
 use LTS\PhpXq\Jq\Runtime\Eval\ConstOp;
-use LTS\PhpXq\Jq\Runtime\Eval\IdentityOp;
 use LTS\PhpXq\Jq\Runtime\Eval\SingleWalkOp;
 use LTS\PhpXq\Jq\Runtime\Eval\WalkOp;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;

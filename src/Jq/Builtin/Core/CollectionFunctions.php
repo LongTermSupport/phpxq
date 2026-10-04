@@ -210,15 +210,19 @@ final class CollectionFunctions
 
         $order = array_keys($keys);
         // array_multisort wants its columns by reference, so they are spread from a list of references
-        $call = [];
-        foreach ($sortable as $index => $unused) {
-            $call[] = &$sortable[$index];
-            $call[] = \SORT_ASC;
-            $call[] = $flags[$index];
+        if ([] === $sortable) {
+            return $order;
         }
 
-        $call[] = &$order;
-        array_multisort(...$call);
+        $rest = [$flags[0]];
+        for ($index = 1, $last = \count($sortable); $index < $last; ++$index) {
+            $rest[] = &$sortable[$index];
+            $rest[] = \SORT_ASC;
+            $rest[] = $flags[$index];
+        }
+
+        $rest[] = &$order;
+        array_multisort($sortable[0], \SORT_ASC, ...$rest);
 
         return $order;
     }
@@ -240,7 +244,7 @@ final class CollectionFunctions
 
         if (\is_int($first) || \is_float($first)) {
             foreach ($column as $element) {
-                if (!(\is_int($element) && $element <= self::TWO_TO_53 && $element >= -self::TWO_TO_53) && !(\is_float($element) && !is_nan($element))) {
+                if (!(\is_int($element) && $element <= self::TWO_TO_53 && $element >= -self::TWO_TO_53) && (!\is_float($element) || is_nan($element))) {
                     return null;
                 }
             }

@@ -95,10 +95,6 @@ final class Values
             return self::compareNumbers(self::toFloat($left), self::toFloat($right));
         }
 
-        if (\is_string($left) && \is_string($right)) {
-            return strcmp($left, $right) <=> 0;
-        }
-
         if (\is_bool($left) && \is_bool($right)) {
             return (int)$left <=> (int)$right;
         }

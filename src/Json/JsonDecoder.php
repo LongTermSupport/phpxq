@@ -214,7 +214,7 @@ final class JsonDecoder implements JsonDecoderInterface
             return self::convert($value, $numbers);
         }
 
-        if ([] !== $numbers && \is_string($value) && '' !== $value && "\0" === $value[0]) {
+        if (\is_string($value) && '' !== $value && "\0" === $value[0]) {
             return $numbers[(int)substr($value, 1)];
         }
 

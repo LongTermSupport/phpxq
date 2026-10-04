@@ -44,11 +44,6 @@ final class BuiltinCatalog
         'date'       => ['now/0', 'mktime/0', 'gmtime/0', 'localtime/0', 'strftime/1', 'strflocaltime/1', 'strptime/1'],
     ];
 
-    /**
-     * The groups of {@see CoreBuiltins}; the others belong to the regex and date providers.
-     */
-    private const array CORE_GROUPS = ['type', 'math', 'string', 'format', 'collection', 'control', 'path', 'io'];
-
     public const string REGEX_PRELUDE = <<<'JQ'
         def match(re; mode): _match_impl(re; mode; false) | .[];
         def match($val): ($val | type) as $vt
@@ -76,6 +71,11 @@ final class BuiltinCatalog
         def dateadd(u; n): . + n;
         def datesub(u; n): . - n;
         JQ;
+
+    /**
+     * The groups of {@see CoreBuiltins}; the others belong to the regex and date providers.
+     */
+    private const array CORE_GROUPS = ['type', 'math', 'string', 'format', 'collection', 'control', 'path', 'io'];
 
     private function __construct()
     {

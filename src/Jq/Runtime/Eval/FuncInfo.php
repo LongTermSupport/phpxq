@@ -24,23 +24,20 @@ final class FuncInfo
 
     public bool $compiling = false;
 
-    private ?FuncDef $parsed;
-
     /**
-     * @param ?DefSet           $home      the definition set a top-level function resolves names in, null for a nested one
-     * @param int               $limit     top-level functions only see definitions below this index in $home
+     * @param ?DefSet             $home     the definition set a top-level function resolves names in, null for a nested one
+     * @param int                 $limit    top-level functions only see definitions below this index in $home
      * @param ?Closure(): FuncDef $deferred parses the definition on first use; null when $definition is given
      */
     public function __construct(
-        ?FuncDef $definition,
+        private ?FuncDef $parsed,
         public readonly ?DefSet $home,
         public readonly int $limit,
         public readonly bool $prelude = false,
         public readonly string $signature = '',
         private readonly ?Closure $deferred = null,
     ) {
-        $this->parsed = $definition;
-        if (!$definition instanceof FuncDef && !$deferred instanceof Closure) {
+        if (!$this->parsed instanceof FuncDef && !$deferred instanceof Closure) {
             throw new LogicException('A function needs a definition or a way to parse it');
         }
     }
