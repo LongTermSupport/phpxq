@@ -6,6 +6,38 @@ hand and no one tags manually.
 
 The first public version is `0.1.0`.
 
+## Cutting 0.1.0 (exact steps)
+
+`VERSION` already reads `0.1.0` on `main`, and `CHANGELOG.md` has the `0.1.0` entry.
+
+1. Configure GitHub once (see "One-off GitHub configuration" below): Actions permissions, then make the
+   repository public if the installer must work for everyone.
+
+2. Make sure `main` is green: the QA workflow passes on the commit you intend to ship, and locally
+   `CI=true vendor/bin/qa` and `scripts/conformance.bash all` exit 0.
+
+3. Create the `release` branch once from that commit. This first push runs the Release workflow, so only
+   do it when you are ready to publish:
+
+   ```bash
+   git fetch origin
+   git push origin origin/main:refs/heads/release
+   ```
+
+   Then apply the branch protection below. (If you prefer to review the release as a pull request, push
+   an older commit first, apply protection, and open a pull request `main` into `release`; the version
+   bump is what makes that merge publish.)
+
+4. Watch the Release workflow in the Actions tab. It succeeds only when preflight, qa, phar, every
+   required binary, release and verify all pass.
+
+5. Check the Releases page: `v0.1.0` with `phpxq.phar`, `phpxq-linux-x86_64`, `phpxq-linux-aarch64`
+   (plus the macOS binaries when they built), `install.sh`, `SHA256SUMS` and generated notes. Test the
+   installer: `curl -fsSL https://github.com/LongTermSupport/php-xq/releases/latest/download/install.sh | sh`.
+
+6. Afterwards move the `[Unreleased]` heading's contents into the next version section as you work, and
+   bump `VERSION` on `main` for the next release.
+
 ## Cutting a release
 
 1. On `main`, set the new version in `VERSION` (one line, `MAJOR.MINOR.PATCH`, optionally with a
@@ -30,7 +62,7 @@ If `VERSION` was not bumped, the workflow stops at preflight with `tag vX.Y.Z al
 | Stage     | What it does                                                                                                                                | If it fails                                           |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
 | preflight | Only runs on `release`; reads `VERSION`; refuses if the tag exists locally or on the remote                                                 | Nothing is built or published                         |
-| qa        | `qa -t allCS`, `qa -t allStatic`, the unit suite, `scripts/conformance.bash all`                                                            | Nothing is published                                  |
+| qa        | the full `CI=true vendor/bin/qa` pipeline, then `scripts/conformance.bash all`                                                              | Nothing is published                                  |
 | phar      | `scripts/build-phar.bash --check-reproducible` (two clean builds must be byte-identical), smoke test                                        | Nothing is published                                  |
 | binary    | `scripts/build-binary.bash` per platform, then `scripts/smoke-test.bash --static` with an empty environment                                 | Linux failure: nothing is published. macOS: see below |
 | release   | `scripts/release-assets.bash` (required assets present, `SHA256SUMS`), re-checks the tag, `gh release create` makes the tag and the release | Nothing is published                                  |
@@ -106,6 +138,14 @@ scripts/smoke-test.bash --static dist/phpxq-linux-x86_64
 PHPXQ_BINARY=dist/phpxq-linux-x86_64 scripts/conformance-shell.bash all   # shell conformance on the binary
 ```
 
+What a local build looks like (Debian container, PHP 8.5, 8 cores): the PHAR is about 1.5 MB (uncompressed:
+compression saves little and costs startup) and builds in a few seconds, byte-identical across builds;
+the static Linux x86_64 binary is about 13 MB, passes `scripts/smoke-test.bash --static`, and
+`PHPXQ_BINARY=... scripts/conformance-shell.bash all` passes on it (jq `shtest`, 17 yq acceptance
+scripts). The binary build needs `make`, a C/C++ toolchain, `cmake`, `autoconf` and friends and `sudo`;
+`spc doctor --auto-fix` (run by the script) installs them with `apt-get` or `dnf` and takes several
+minutes on a cold start, so CI caches the spc workspace.
+
 Pinned tool versions and their checksums live in `packaging/tools.env`; the extensions compiled into
 the static runtime are `packaging/extensions.txt` plus every `ext-*` in `composer.json`. Box is a
 pinned, checksum-verified download rather than a Composer dev dependency, because `humbug/box` cannot
@@ -128,5 +168,4 @@ be resolved alongside php-qa-ci's current dependency set. Design notes:
 - Homebrew tap (Plan 00006 task 2.4, optional).
 - Windows builds.
 - Build provenance attestation (`actions/attest-build-provenance`) once the repository is public.
-- A real functional smoke test: `scripts/smoke-test.bash` skips the jq/yq functional checks while a
-  tool still exits 70 ("not implemented") and runs them as soon as it does not.
+- Verifying the macOS binaries locally: they are only ever built on GitHub's macOS runners.
