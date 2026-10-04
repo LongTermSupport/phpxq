@@ -1,6 +1,6 @@
 # Plan 00007: performance optimisation round
 
-**Status**: Complete (delivered in COMMIT_HASH)
+**Status**: Complete (delivered in f47103c)
 **Created**: 2026-10-03
 **Owner**: joseph
 **Priority**: Medium

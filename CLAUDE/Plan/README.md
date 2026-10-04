@@ -19,7 +19,7 @@ folder (e.g. `00001-feature-name/`) with a `PLAN.md` file.
 - [00003: jq JSON Functionality](Completed/00003-jq-json-functionality/PLAN.md) - Complete (delivered in b995067)
 - [00004: yq YAML Functionality](Completed/00004-yq-yaml-functionality/PLAN.md) - Complete (delivered in f8dd0e7)
 - [00005: Benchmarking Suite](Completed/00005-benchmarking-suite/PLAN.md) - Complete (delivered in 3d22c46)
-- [00007: Performance Optimisation Round](Completed/00007-performance-optimisation-round/PLAN.md) - Complete (delivered in COMMIT_HASH)
+- [00007: Performance Optimisation Round](Completed/00007-performance-optimisation-round/PLAN.md) - Complete (delivered in f47103c)
 
 ## Statistics
 
