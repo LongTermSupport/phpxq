@@ -21,6 +21,15 @@ use LTS\PhpXq\Json\Values;
  */
 final class PathOps
 {
+    /**
+     * What a key's type is called in the error for deleting at that key of an array: a string key would have
+     * addressed an object, a number key an array.
+     */
+    private const array INDEXED_AS = [
+        'string' => 'object',
+        'number' => 'array',
+    ];
+
     private const int MAX_INDEX = 536870911;
 
     private const int MAX_PATH_DEPTH = 10000;
@@ -333,10 +342,6 @@ final class PathOps
     {
         $kind = Values::typeName($key);
 
-        return match ($kind) {
-            'string' => 'object',
-            'number' => 'array',
-            default  => $kind,
-        };
+        return self::INDEXED_AS[$kind] ?? $kind;
     }
 }

@@ -25,6 +25,12 @@ final class TypeFunctions
 {
     private const int MAX_DEPTH = 10000;
 
+    /** The strings `toboolean` reads, with the boolean each one stands for. */
+    private const array BOOLEAN_TEXTS = [
+        'true'  => true,
+        'false' => false,
+    ];
+
     private const string NUMBER_TEXT = '/^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/D';
 
     private static ?JsonDecoder $decoder = null;
@@ -144,15 +150,11 @@ final class TypeFunctions
             return $value;
         }
 
-        if ('true' === $value) {
-            return true;
+        if (!\is_string($value) || !isset(self::BOOLEAN_TEXTS[$value])) {
+            throw Problems::type($value, 'cannot be parsed as a boolean');
         }
 
-        if ('false' === $value) {
-            return false;
-        }
-
-        throw Problems::type($value, 'cannot be parsed as a boolean');
+        return self::BOOLEAN_TEXTS[$value];
     }
 
     private static function fromJson(mixed $value): mixed

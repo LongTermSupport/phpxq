@@ -11,28 +11,28 @@ namespace LTS\PhpXq\Yq\Format;
 enum FormatEnum: string
 {
     /**
-     * Resolves a `-p`/`-o` argument, accepting the reference's short aliases (`y`, `j`, `p`, `c`, `t`, `x`,
-     * `yml`, `properties`, `sh`, `ky`).
+     * The reference's short aliases for `-p`/`-o`, by alias.
+     */
+    private const array ALIASES = [
+        'y'          => self::Yaml,
+        'yml'        => self::Yaml,
+        'j'          => self::Json,
+        'p'          => self::Props,
+        'properties' => self::Props,
+        'c'          => self::Csv,
+        't'          => self::Tsv,
+        'x'          => self::Xml,
+        'sh'         => self::Shell,
+        'l'          => self::Lua,
+        'ky'         => self::Kyaml,
+    ];
+
+    /**
+     * Resolves a `-p`/`-o` argument: a format's own name or one of the reference's short aliases.
      */
     public static function fromName(string $name): ?self
     {
-        return match ($name) {
-            'yaml', 'y', 'yml'         => self::Yaml,
-            'json', 'j'                => self::Json,
-            'props', 'p', 'properties' => self::Props,
-            'csv', 'c'                 => self::Csv,
-            'tsv', 't'                 => self::Tsv,
-            'xml', 'x'                 => self::Xml,
-            'toml'                     => self::Toml,
-            'base64'                   => self::Base64,
-            'base64url'                => self::Base64Url,
-            'uri'                      => self::Uri,
-            'shell', 'sh'              => self::Shell,
-            'lua', 'l'                 => self::Lua,
-            'kyaml', 'ky'              => self::Kyaml,
-            'hcl'                      => self::Hcl,
-            default                    => null,
-        };
+        return self::tryFrom($name) ?? self::ALIASES[$name] ?? null;
     }
 
     public function canDecode(): bool

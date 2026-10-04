@@ -13,6 +13,11 @@ namespace LTS\PhpXq\Yq\Cli;
 final class ArgumentParser
 {
     public const array COMMANDS = ['eval', 'e', 'eval-all', 'ea', 'completion', 'help', '__complete', '__completeNoDesc'];
+    /** The spellings Go's `strconv.ParseBool` reads as true. */
+    private const array TRUE_SPELLINGS = ['1', 't', 'T', 'TRUE', 'true', 'True'];
+
+    /** The spellings Go's `strconv.ParseBool` reads as false. */
+    private const array FALSE_SPELLINGS = ['0', 'f', 'F', 'FALSE', 'false', 'False'];
 
     /**
      * @param list<string> $args
@@ -232,11 +237,11 @@ final class ArgumentParser
 
     private function parseBool(FlagSpec $spec, string $raw): bool
     {
-        if (\in_array($raw, ['1', 't', 'T', 'TRUE', 'true', 'True'], true)) {
+        if (\in_array($raw, self::TRUE_SPELLINGS, true)) {
             return true;
         }
 
-        if (\in_array($raw, ['0', 'f', 'F', 'FALSE', 'false', 'False'], true)) {
+        if (\in_array($raw, self::FALSE_SPELLINGS, true)) {
             return false;
         }
 

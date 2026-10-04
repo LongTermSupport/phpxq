@@ -37,6 +37,9 @@ final readonly class EvaluateCommand
 {
     private const string FORMAT_LIST = 'yaml|json|props|csv|tsv|xml|base64|uri|toml|hcl|shell|lua|kyaml';
 
+    /** The `-p`/`-o` values that ask for the format to be detected from the file name. */
+    private const array AUTO_FORMAT_NAMES = ['auto', 'a', ''];
+
     public function __construct(
         private YamlParserInterface $yamlParser,
         private YamlEmitterInterface $emitter,
@@ -294,7 +297,7 @@ final readonly class EvaluateCommand
     private function inputFormat(ParsedArguments $args, array $files): array
     {
         $name = $args->string('input-format');
-        if (\in_array($name, ['auto', 'a', ''], true)) {
+        if (\in_array($name, self::AUTO_FORMAT_NAMES, true)) {
             $first = $files[0] ?? '-';
 
             return ['-' === $first ? FormatEnum::Yaml : $this->detector->fromFilename($first), true];
@@ -318,7 +321,7 @@ final readonly class EvaluateCommand
     private function outputFormat(ParsedArguments $args, FormatEnum $inputFormat, bool $autoInput): FormatEnum
     {
         $name = $args->string('output-format');
-        if (\in_array($name, ['auto', 'a', ''], true)) {
+        if (\in_array($name, self::AUTO_FORMAT_NAMES, true)) {
             return $autoInput ? $inputFormat : FormatEnum::Yaml;
         }
 
