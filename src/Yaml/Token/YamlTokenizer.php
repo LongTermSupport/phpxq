@@ -16,7 +16,7 @@ use LTS\PhpXq\Yaml\NodeStyleEnum;
  * The synthetic block tokens (BlockMappingStart, BlockEnd and so on) carry the position libyaml gives
  * them, which for BlockEnd can be the start of the comment that trails the block.
  */
-final class YamlTokenizer implements YamlTokenizerInterface
+final readonly class YamlTokenizer implements YamlTokenizerInterface
 {
     /**
      * @return Generator<int, Token>

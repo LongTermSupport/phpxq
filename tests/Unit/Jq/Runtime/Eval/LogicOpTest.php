@@ -17,14 +17,14 @@ final class LogicOpTest extends OpTestCase
 {
     public function testAndHasTheLeftOperandAsOuterLoop(): void
     {
-        $op = new LogicOp(self::generator([true, false]), self::generator([true, false]), true);
+        $op = new LogicOp(self::generator(true, false), self::generator(true, false), true);
 
         self::assertSame([true, false, false], self::outputs($op));
     }
 
     public function testOrHasTheLeftOperandAsOuterLoop(): void
     {
-        $op = new LogicOp(self::generator([true, false]), self::generator([true, false]), false);
+        $op = new LogicOp(self::generator(true, false), self::generator(true, false), false);
 
         self::assertSame([true, true, false], self::outputs($op));
     }

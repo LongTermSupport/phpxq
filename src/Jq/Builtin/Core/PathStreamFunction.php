@@ -17,8 +17,8 @@ use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 final readonly class PathStreamFunction implements PathStreamBuiltinInterface
 {
     /**
-     * @param Closure(RuntimeContextInterface, mixed, list<FilterInterface>, Closure(mixed): void): void                             $values
-     * @param Closure(RuntimeContextInterface, ?list<mixed>, mixed, list<FilterInterface>, Closure(?list<mixed>, mixed): void): void $paths
+     * @param Closure(RuntimeContextInterface, mixed, Closure(mixed): void, FilterInterface...): void                             $values
+     * @param Closure(RuntimeContextInterface, ?list<mixed>, mixed, Closure(?list<mixed>, mixed): void, FilterInterface...): void $paths
      */
     public function __construct(
         private string $name,
@@ -38,13 +38,13 @@ final readonly class PathStreamFunction implements PathStreamBuiltinInterface
         return $this->arity;
     }
 
-    public function run(RuntimeContextInterface $context, mixed $input, array $args, Closure $emit): void
+    public function run(RuntimeContextInterface $context, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
-        ($this->values)($context, $input, $args, $emit);
+        ($this->values)($context, $input, $emit, ...$args);
     }
 
-    public function runPaths(RuntimeContextInterface $context, ?array $path, mixed $input, array $args, Closure $emit): void
+    public function runPaths(RuntimeContextInterface $context, ?array $path, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
-        ($this->paths)($context, $path, $input, $args, $emit);
+        ($this->paths)($context, $path, $input, $emit, ...$args);
     }
 }

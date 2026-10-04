@@ -63,7 +63,7 @@ final class ExpressionParserTest extends TestCase
         $seen = [];
         foreach ($cases as $case) {
             self::assertIsArray($case);
-            $expression = $case['expression'] ?? '';
+            $expression = isset($case['expression']) ? $case['expression'] : '';
             self::assertIsString($expression);
             if (isset($seen[$expression])) {
                 continue;

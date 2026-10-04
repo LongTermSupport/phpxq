@@ -16,7 +16,7 @@ use LTS\PhpXq\Json\JsonObject;
  *
  * @internal
  */
-final class FormatFunctions
+final readonly class FormatFunctions
 {
     private const string BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
@@ -42,20 +42,20 @@ final class FormatFunctions
      */
     public static function apply(string $name, mixed $value): string
     {
-        return match ($name) {
-            'text'    => \is_string($value) ? $value : Problems::json($value),
-            'json'    => Problems::json($value),
-            'csv'     => self::csv($value),
-            'tsv'     => self::tsv($value),
-            'html'    => self::html(self::text($value)),
-            'uri'     => self::uri(self::text($value)),
-            'urid'    => self::uriDecode(self::text($value)),
-            'sh'      => self::shell($value),
-            'base64'  => self::base64(self::text($value)),
-            'base64d' => self::base64Decode(self::text($value)),
-            'base32'  => self::base32(self::text($value)),
-            'base32d' => self::base32Decode(self::text($value)),
-            default   => throw new JqException($name . ' is not a valid format'),
+        return match (FormatNameEnum::tryFrom($name)) {
+            FormatNameEnum::Text    => \is_string($value) ? $value : Problems::json($value),
+            FormatNameEnum::Json    => Problems::json($value),
+            FormatNameEnum::Csv     => self::csv($value),
+            FormatNameEnum::Tsv     => self::tsv($value),
+            FormatNameEnum::Html    => self::html(self::text($value)),
+            FormatNameEnum::Uri     => self::uri(self::text($value)),
+            FormatNameEnum::Urid    => self::uriDecode(self::text($value)),
+            FormatNameEnum::Sh      => self::shell($value),
+            FormatNameEnum::Base64  => self::base64(self::text($value)),
+            FormatNameEnum::Base64d => self::base64Decode(self::text($value)),
+            FormatNameEnum::Base32  => self::base32(self::text($value)),
+            FormatNameEnum::Base32d => self::base32Decode(self::text($value)),
+            default                 => throw new JqException($name . ' is not a valid format'),
         };
     }
 

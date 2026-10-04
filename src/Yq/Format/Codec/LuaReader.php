@@ -38,7 +38,7 @@ final class LuaReader
         if ($this->word('return')) {
             $value = $this->expression(0);
             $this->skip();
-            if (';' === ($this->source[$this->pos] ?? '')) {
+            if (';' === substr($this->source, $this->pos, 1)) {
                 ++$this->pos;
             }
 
@@ -54,7 +54,7 @@ final class LuaReader
         while ($this->pos < $this->length) {
             $name = $this->identifier();
             $this->skip();
-            if ('=' !== ($this->source[$this->pos] ?? '')) {
+            if ('=' !== substr($this->source, $this->pos, 1)) {
                 throw $this->error('expected = after ' . $name);
             }
 
@@ -62,7 +62,7 @@ final class LuaReader
             $content[] = Node::scalar($name, CoreSchema::TAG_STR);
             $content[] = $this->expression(0);
             $this->skip();
-            if (';' === ($this->source[$this->pos] ?? '')) {
+            if (';' === substr($this->source, $this->pos, 1)) {
                 ++$this->pos;
             }
 
@@ -77,7 +77,7 @@ final class LuaReader
         $this->skip();
         $left = $this->unary($depth);
         $this->skip();
-        while ('/' === ($this->source[$this->pos] ?? '')) {
+        while ('/' === substr($this->source, $this->pos, 1)) {
             ++$this->pos;
             $right = $this->unary($depth);
             $left  = $this->divide($left, $right);
@@ -113,7 +113,7 @@ final class LuaReader
         }
 
         $this->skip();
-        $char = $this->source[$this->pos] ?? '';
+        $char = substr($this->source, $this->pos, 1);
         switch (true) {
             case '' === $char:
                 throw $this->error('unexpected end of input');
@@ -131,7 +131,7 @@ final class LuaReader
                 ++$this->pos;
                 $inner = $this->expression($depth + 1);
                 $this->skip();
-                if (')' !== ($this->source[$this->pos] ?? '')) {
+                if (')' !== substr($this->source, $this->pos, 1)) {
                     throw $this->error('expected )');
                 }
 
@@ -188,7 +188,7 @@ final class LuaReader
         $position = 0;
         while (true) {
             $this->skip();
-            $char = $this->source[$this->pos] ?? '';
+            $char = substr($this->source, $this->pos, 1);
             if ('' === $char) {
                 throw $this->error('unterminated table');
             }
@@ -203,7 +203,7 @@ final class LuaReader
                 ++$this->pos;
                 $key = $this->expression($depth + 1);
                 $this->skip();
-                if (']' !== ($this->source[$this->pos] ?? '')) {
+                if (']' !== substr($this->source, $this->pos, 1)) {
                     throw $this->error('expected ]');
                 }
 
@@ -225,7 +225,7 @@ final class LuaReader
             }
 
             $this->skip();
-            $separator = $this->source[$this->pos] ?? '';
+            $separator = substr($this->source, $this->pos, 1);
             if (',' === $separator || ';' === $separator) {
                 ++$this->pos;
             } elseif ('}' !== $separator) {
@@ -249,7 +249,7 @@ final class LuaReader
     private function expect(string $char): void
     {
         $this->skip();
-        if ($char !== ($this->source[$this->pos] ?? '')) {
+        if ($char !== substr($this->source, $this->pos, 1)) {
             throw $this->error('expected ' . $char);
         }
 
@@ -314,7 +314,7 @@ final class LuaReader
             $run = strcspn($this->source, $quote . "\\\n", $this->pos);
             $out .= substr($this->source, $this->pos, $run);
             $this->pos += $run;
-            $char = $this->source[$this->pos] ?? '';
+            $char = substr($this->source, $this->pos, 1);
             if ($char === $quote) {
                 ++$this->pos;
 
@@ -331,7 +331,7 @@ final class LuaReader
 
     private function escape(): string
     {
-        $next = $this->source[$this->pos + 1] ?? '';
+        $next = substr($this->source, $this->pos + 1, 1);
         $this->pos += 2;
         switch ($next) {
             case 'a':

@@ -13,6 +13,7 @@ use LTS\PhpXq\Yq\Runtime\Args;
 use LTS\PhpXq\Yq\Runtime\CallOperatorInterface;
 use LTS\PhpXq\Yq\Runtime\Candidate;
 use LTS\PhpXq\Yq\Runtime\Cands;
+use LTS\PhpXq\Yq\Runtime\CommentKindEnum;
 use LTS\PhpXq\Yq\Runtime\Comments;
 use LTS\PhpXq\Yq\Runtime\Detached;
 use LTS\PhpXq\Yq\Runtime\EvaluationContext;
@@ -24,16 +25,31 @@ use LTS\PhpXq\Yq\Runtime\NodeOps;
  * readers, `explode` and `sort_keys`. (Setting them is done with `X style = "..."` by the assignment
  * operators.).
  */
-final class MetaCalls implements CallOperatorInterface
+final readonly class MetaCalls implements CallOperatorInterface
 {
     public function names(): array
     {
-        return ['tag', 'type', 'kind', 'style', 'anchor', 'alias', 'head_comment', 'headComment', 'line_comment', 'lineComment', 'foot_comment', 'footComment', 'explode', 'sort_keys'];
+        return BuiltinNameEnum::values(
+            BuiltinNameEnum::Tag,
+            BuiltinNameEnum::Type,
+            BuiltinNameEnum::Kind,
+            BuiltinNameEnum::Style,
+            BuiltinNameEnum::Anchor,
+            BuiltinNameEnum::Alias,
+            BuiltinNameEnum::HeadComment,
+            BuiltinNameEnum::HeadCommentCamel,
+            BuiltinNameEnum::LineComment,
+            BuiltinNameEnum::LineCommentCamel,
+            BuiltinNameEnum::FootComment,
+            BuiltinNameEnum::FootCommentCamel,
+            BuiltinNameEnum::Explode,
+            BuiltinNameEnum::SortKeys,
+        );
     }
 
     public function evaluate(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
-        if ('explode' === $call->name || 'sort_keys' === $call->name) {
+        if (BuiltinNameEnum::Explode->value === $call->name || BuiltinNameEnum::SortKeys->value === $call->name) {
             return $this->mutate($call, $context, $evaluator);
         }
 
@@ -48,9 +64,9 @@ final class MetaCalls implements CallOperatorInterface
     private function read(string $name, Candidate $match): string
     {
         $node = Cands::node($match);
-        switch ($name) {
-            case 'tag':
-            case 'type':
+        switch (BuiltinNameEnum::tryFrom($name)) {
+            case BuiltinNameEnum::Tag:
+            case BuiltinNameEnum::Type:
                 if (NodeKindEnum::Alias === $node->kind) {
                     return '';
                 }
@@ -59,35 +75,32 @@ final class MetaCalls implements CallOperatorInterface
 
                 return '' === $target->tag ? NodeOps::effectiveTag($target) : $target->tag;
 
-            case 'kind':
+            case BuiltinNameEnum::Kind:
                 return NodeOps::kindName($node);
 
-            case 'style':
+            case BuiltinNameEnum::Style:
                 return $this->styleName($node);
 
-            case 'anchor':
+            case BuiltinNameEnum::Anchor:
                 return $node->anchor;
 
-            case 'alias':
+            case BuiltinNameEnum::Alias:
                 return NodeKindEnum::Alias === $node->kind ? $node->value : '';
 
-            case 'head_comment':
-            case 'headComment':
-                return Comments::read($this->comment($match, 'head'));
+            case BuiltinNameEnum::HeadComment:
+            case BuiltinNameEnum::HeadCommentCamel:
+                return Comments::read($this->comment($match, CommentKindEnum::Head));
 
-            case 'line_comment':
-            case 'lineComment':
-                return Comments::read($this->comment($match, 'line'));
+            case BuiltinNameEnum::LineComment:
+            case BuiltinNameEnum::LineCommentCamel:
+                return Comments::read($this->comment($match, CommentKindEnum::Line));
 
             default:
-                return Comments::read($this->comment($match, 'foot'));
+                return Comments::read($this->comment($match, CommentKindEnum::Foot));
         }
     }
 
-    /**
-     * @param 'head'|'line'|'foot' $kind
-     */
-    private function comment(Candidate $match, string $kind): string
+    private function comment(Candidate $match, CommentKindEnum $kind): string
     {
         $document = null;
         if (NodeKindEnum::Document === $match->node->kind) {
@@ -96,7 +109,7 @@ final class MetaCalls implements CallOperatorInterface
             $document = $match->parent->node;
         }
 
-        if ('head' === $kind && $document instanceof Node && !$document->commentsCleared && '' !== $document->leadingContent) {
+        if (CommentKindEnum::Head === $kind && $document instanceof Node && !$document->commentsCleared && '' !== $document->leadingContent) {
             return Comments::fromLeadingContent($document->leadingContent);
         }
 
@@ -116,17 +129,12 @@ final class MetaCalls implements CallOperatorInterface
     private function styleName(Node $node): string
     {
         if ($node->tagExplicit && NodeStyleEnum::Default === $node->style) {
-            return 'tagged';
+            return StyleNameEnum::Tagged->value;
         }
 
-        return match ($node->style) {
-            NodeStyleEnum::DoubleQuoted => 'double',
-            NodeStyleEnum::SingleQuoted => 'single',
-            NodeStyleEnum::Literal      => 'literal',
-            NodeStyleEnum::Folded       => 'folded',
-            NodeStyleEnum::Flow         => 'flow',
-            default                     => '',
-        };
+        $name = StyleNameEnum::fromNodeStyle($node->style);
+
+        return $name instanceof StyleNameEnum ? $name->value : '';
     }
 
     /**
@@ -142,7 +150,7 @@ final class MetaCalls implements CallOperatorInterface
             }
 
             $node = Cands::node($target);
-            if ('explode' === $call->name) {
+            if (BuiltinNameEnum::Explode->value === $call->name) {
                 Anchors::explode($node, $fixed);
 
                 continue;

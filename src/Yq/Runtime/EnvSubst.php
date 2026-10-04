@@ -8,7 +8,7 @@ namespace LTS\PhpXq\Yq\Runtime;
  * The `envsubst` operator's text substitution: `$VAR`, `${VAR}` and the default forms
  * `${VAR-d}`, `${VAR:-d}`, `${VAR=d}`, `${VAR:=d}`, `${VAR+a}`, `${VAR:+a}`.
  */
-final class EnvSubst
+final readonly class EnvSubst
 {
     private function __construct()
     {
@@ -34,7 +34,7 @@ final class EnvSubst
                 continue;
             }
 
-            $next = $text[$i + 1] ?? '';
+            $next = substr($text, $i + 1, 1);
             if ('{' === $next) {
                 $end = self::closingBrace($text, $i + 2);
                 if (null === $end) {
@@ -57,7 +57,7 @@ final class EnvSubst
                 }
 
                 $name = substr($text, $i + 1, $j - $i - 1);
-                $out .= self::value($name, $noUnset, $noEmpty) ?? '';
+                $out .= self::value($name, $noUnset, $noEmpty);
                 $i = $j;
 
                 continue;
@@ -91,14 +91,17 @@ final class EnvSubst
             return '';
         }
 
+        // preg_match omits trailing groups that did not participate.
+        $m += [2 => '', 3 => ''];
+
         $name  = $m[1];
-        $op    = $m[2] ?? '';
-        $word  = $m[3] ?? '';
+        $op    = $m[2];
+        $word  = $m[3];
         $raw   = getenv($name);
         $set   = false !== $raw;
         $value = false === $raw ? '' : $raw;
         if ('' === $op) {
-            return self::value($name, $noUnset, $noEmpty) ?? '';
+            return self::value($name, $noUnset, $noEmpty);
         }
 
         $colon = ':' === $op[0];
@@ -113,7 +116,7 @@ final class EnvSubst
         };
     }
 
-    private static function value(string $name, bool $noUnset, bool $noEmpty): ?string
+    private static function value(string $name, bool $noUnset, bool $noEmpty): string
     {
         $raw = getenv($name);
         if (false === $raw) {
@@ -121,7 +124,7 @@ final class EnvSubst
                 throw new EvaluationException(\sprintf('variable ${%s} not set', $name));
             }
 
-            return null;
+            return '';
         }
 
         if ($noEmpty && '' === $raw) {

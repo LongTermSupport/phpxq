@@ -19,6 +19,6 @@ final class DefaultCompilerFactoryTest extends TestCase
     {
         $factory = new DefaultCompilerFactory(new Parser(new Lexer()), new JsonDecoder());
 
-        self::assertNotSame($factory->create(['/lib']), $factory->create(['/lib']));
+        self::assertNotSame($factory->create('/lib'), $factory->create('/lib'));
     }
 }

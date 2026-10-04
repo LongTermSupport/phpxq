@@ -24,6 +24,7 @@ use LTS\PhpXq\Jq\Runtime\DefaultBuiltinRegistry;
 use LTS\PhpXq\Jq\Runtime\ValueBuiltinInterface;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\StubContext;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -32,27 +33,42 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(BuiltinCatalog::class)]
 final class BuiltinCatalogTest extends TestCase
 {
-    public function testEveryGroupListsExactlyWhatItRegisters(): void
+    /**
+     * @param callable(BuiltinRegistryInterface): void $register
+     */
+    #[DataProvider('provideGroupRegistrars')]
+    public function testEveryGroupListsExactlyWhatItRegisters(string $group, callable $register): void
     {
-        $registrars = [
-            'type'       => TypeFunctions::register(...),
-            'math'       => MathFunctions::register(...),
-            'string'     => StringFunctions::register(...),
-            'format'     => FormatFunctions::register(...),
-            'collection' => CollectionFunctions::register(...),
-            'control'    => ControlFunctions::register(...),
-            'path'       => PathFunctions::register(...),
-            'io'         => static fn (BuiltinRegistryInterface $registry) => IoFunctions::register($registry, static fn (): array => []),
-            'regex'      => static fn (BuiltinRegistryInterface $registry) => new RegexBuiltins()->registerInto($registry),
-            'date'       => static fn (BuiltinRegistryInterface $registry) => new DateBuiltins()->registerInto($registry),
-        ];
+        $recording = new RecordingRegistry(new DefaultBuiltinRegistry());
+        $register($recording);
 
-        foreach ($registrars as $group => $register) {
-            $recording = new RecordingRegistry(new DefaultBuiltinRegistry());
-            $register($recording);
+        self::assertSame(BuiltinCatalog::GROUPS[$group], $recording->signatures(), 'group ' . $group);
+    }
 
-            self::assertSame(BuiltinCatalog::GROUPS[$group], $recording->signatures(), 'group ' . $group);
-        }
+    /**
+     * @return iterable<string, array{string, callable(BuiltinRegistryInterface): void}>
+     */
+    public static function provideGroupRegistrars(): iterable
+    {
+        yield 'type' => ['type', TypeFunctions::register(...)];
+
+        yield 'math' => ['math', MathFunctions::register(...)];
+
+        yield 'string' => ['string', StringFunctions::register(...)];
+
+        yield 'format' => ['format', FormatFunctions::register(...)];
+
+        yield 'collection' => ['collection', CollectionFunctions::register(...)];
+
+        yield 'control' => ['control', ControlFunctions::register(...)];
+
+        yield 'path' => ['path', PathFunctions::register(...)];
+
+        yield 'io' => ['io', static fn (BuiltinRegistryInterface $registry) => IoFunctions::register($registry, static fn (): array => [])];
+
+        yield 'regex' => ['regex', static fn (BuiltinRegistryInterface $registry) => new RegexBuiltins()->registerInto($registry)];
+
+        yield 'date' => ['date', static fn (BuiltinRegistryInterface $registry) => new DateBuiltins()->registerInto($registry)];
     }
 
     public function testNamesAreTheBuiltinsTheEagerRegistryReports(): void
@@ -62,7 +78,7 @@ final class BuiltinCatalogTest extends TestCase
 
         $builtin = $eager->lookup('builtins', 0);
         self::assertInstanceOf(ValueBuiltinInterface::class, $builtin);
-        self::assertSame($builtin->call(new StubContext(), null, []), BuiltinCatalog::names());
+        self::assertSame($builtin->call(new StubContext(), null), BuiltinCatalog::names());
         self::assertContains('map_values/1', BuiltinCatalog::names());
         self::assertNotContains('_sort_by_impl/1', BuiltinCatalog::names());
     }

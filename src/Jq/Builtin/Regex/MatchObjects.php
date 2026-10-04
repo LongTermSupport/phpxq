@@ -15,7 +15,7 @@ use LTS\PhpXq\Json\JsonObject;
  *
  * @internal
  */
-final class MatchObjects
+final readonly class MatchObjects
 {
     private function __construct()
     {
@@ -23,13 +23,12 @@ final class MatchObjects
 
     /**
      * @param array<array{0: ?string, 1: int}> $groups one PCRE match as returned by {@see RegexEngine::find()}
-     * @param list<?string>                    $names
      */
-    public static function match(array $groups, array $names, CodepointCursor $cursor): JsonObject
+    public static function match(array $groups, CodepointCursor $cursor, ?string ...$names): JsonObject
     {
         $whole    = (string)$groups[0][0];
         $captures = [];
-        foreach ($names as $index => $name) {
+        foreach (array_values($names) as $index => $name) {
             [$text, $byteOffset] = $groups[$index + 1] ?? [null, -1];
             if (null === $text) {
                 $captures[] = new JsonObject(['offset' => -1, 'string' => null, 'length' => 0, 'name' => $name]);
@@ -58,12 +57,11 @@ final class MatchObjects
      * used twice keeps the later group.
      *
      * @param array<array{0: ?string, 1: int}> $groups
-     * @param list<?string>                    $names
      */
-    public static function named(array $groups, array $names): JsonObject
+    public static function named(array $groups, ?string ...$names): JsonObject
     {
         $members = [];
-        foreach ($names as $index => $name) {
+        foreach (array_values($names) as $index => $name) {
             if (null !== $name) {
                 $members[$name] = ($groups[$index + 1] ?? [null])[0];
             }

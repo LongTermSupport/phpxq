@@ -21,14 +21,14 @@ final class IndexOpTest extends OpTestCase
 
     public function testIndexIsTheOuterLoopAndTargetTheInnerOne(): void
     {
-        $op = new IndexOp(self::generator([[10, 11], [20, 21]]), self::generator([0, 1]));
+        $op = new IndexOp(self::generator([10, 11], [20, 21]), self::generator(0, 1));
 
         self::assertSame([10, 20, 11, 21], self::outputs($op));
     }
 
     public function testPathModeAppendsTheKey(): void
     {
-        $op = new IndexOp(new IdentityOp(), self::generator(['a', 'b']));
+        $op = new IndexOp(new IdentityOp(), self::generator('a', 'b'));
 
         self::assertSame(
             [[['a'], 1], [['b'], 2]],

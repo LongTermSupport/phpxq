@@ -191,8 +191,9 @@ final class TomlCodecTest extends TestCase
     public function testSequenceRootIsRejected(): void
     {
         $this->expectException(FormatException::class);
+        $encoder = new TomlEncoder();
         foreach (new YamlParser()->parse("- a\n") as $document) {
-            new TomlEncoder()->encode($document, new FormatOptions(), 0);
+            $encoder->encode($document, new FormatOptions(), 0);
         }
     }
 

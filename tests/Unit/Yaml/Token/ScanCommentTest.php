@@ -12,13 +12,19 @@ use PHPUnit\Framework\TestCase;
  */
 final class ScanCommentTest extends TestCase
 {
-    public function testConsumeClearsTheRecord(): void
+    public function testItCarriesWhatTheScannerRecorded(): void
     {
         $comment = new ScanComment(1, 2, 3, 4, 5, 6, 7, 8, '# h', '', '');
-        $comment->consume();
 
-        self::assertSame('', $comment->head);
-        self::assertSame(0, $comment->startColumn);
-        self::assertSame(PHP_INT_MIN, $comment->endIndex);
+        self::assertSame('# h', $comment->head);
+        self::assertSame(5, $comment->startColumn);
+        self::assertSame(6, $comment->endIndex);
+    }
+
+    public function testCloneKeepsTheValues(): void
+    {
+        $comment = new ScanComment(1, 2, 3, 4, 5, 6, 7, 8, '', '# l', '');
+
+        self::assertEquals($comment, clone $comment);
     }
 }

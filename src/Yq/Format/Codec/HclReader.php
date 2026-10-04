@@ -76,8 +76,8 @@ final class HclReader
 
             $name = $this->identifier();
             $this->skipSpaces();
-            $char = $this->source[$this->pos] ?? '';
-            if ('=' === $char && '=' !== ($this->source[$this->pos + 1] ?? '')) {
+            $char = substr($this->source, $this->pos, 1);
+            if ('=' === $char && '=' !== substr($this->source, $this->pos + 1, 1)) {
                 $this->attribute($body, $name);
 
                 continue;
@@ -105,7 +105,7 @@ final class HclReader
         $labels = [];
         while (true) {
             $this->skipSpaces();
-            $char = $this->source[$this->pos] ?? '';
+            $char = substr($this->source, $this->pos, 1);
             if ('{' === $char) {
                 ++$this->pos;
 
@@ -134,13 +134,10 @@ final class HclReader
         $this->skipSpaces();
         $this->trailingComment();
 
-        $this->place($body, $type, $labels, $inner, $head);
+        $this->place($body, $type, $inner, $head, ...$labels);
     }
 
-    /**
-     * @param list<string> $labels
-     */
-    private function place(Node $body, string $type, array $labels, Node $inner, string $head): void
+    private function place(Node $body, string $type, Node $inner, string $head, string ...$labels): void
     {
         if ([] === $labels) {
             $at = $this->find($body, $type);
@@ -357,7 +354,7 @@ final class HclReader
      */
     private function trailingComment(): string
     {
-        if ('#' === ($this->source[$this->pos] ?? '') || '//' === substr($this->source, $this->pos, 2)) {
+        if ('#' === substr($this->source, $this->pos, 1) || '//' === substr($this->source, $this->pos, 2)) {
             return $this->lineText();
         }
 
@@ -381,7 +378,7 @@ final class HclReader
     {
         while ($this->pos < $this->length) {
             $this->pos += strspn($this->source, " \t\r\n", $this->pos);
-            $char       = $this->source[$this->pos] ?? '';
+            $char       = substr($this->source, $this->pos, 1);
             if ('#' === $char || '//' === substr($this->source, $this->pos, 2)) {
                 $this->pending = NodeTools::joinComments($this->pending, $this->lineText());
 

@@ -14,7 +14,7 @@ use LTS\PhpXq\Yaml\Schema\CoreSchema;
  * alias dereferencing, truthiness, effective tags (custom tags resolve by value) and the in-place
  * update the assignment operators use.
  */
-final class NodeOps
+final readonly class NodeOps
 {
     public const string TRUE_TEXT = 'true';
 

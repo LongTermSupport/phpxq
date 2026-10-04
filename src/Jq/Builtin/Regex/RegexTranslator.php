@@ -21,9 +21,12 @@ use LTS\PhpXq\Jq\Runtime\JqException;
  * property case is rejected, `\W` keeps PCRE's meaning); Oniguruma-only constructs (absent operator
  * `(?~...)`, other `\p{...}` names PCRE lacks, `\y`/`\Y`) are left to PCRE and fail as invalid regexes.
  *
+ * PROPERTIES maps a normalised Oniguruma property name to its class body, and to the body to use for the
+ * negation inside a character class (null when there is none).
+ *
  * @internal
  */
-final class RegexTranslator
+final readonly class RegexTranslator
 {
     private const string HEX = '0-9a-fA-F';
 
@@ -31,10 +34,6 @@ final class RegexTranslator
 
     private const string CASED = '\p{Lu}\p{Ll}\p{Lt}';
 
-    /**
-     * Normalised Oniguruma property name => class body, and the body to use for the negation inside a
-     * character class (null when there is none).
-     */
     private const array PROPERTIES = [
         'alnum'  => ['\p{L}\p{Nl}\p{Nd}', null],
         'ascii'  => ['\x00-\x7f', null],
@@ -111,7 +110,7 @@ final class RegexTranslator
             }
 
             if ($inClass) {
-                if ('[' === $c && ':' === ($source[$i + 1] ?? '')) {
+                if ('[' === $c && ':' === substr($source, $i + 1, 1)) {
                     $close = strpos($source, ':]', $i + 2);
                     if (false !== $close) {
                         $bracket = substr($source, $i, $close + 2 - $i);
@@ -136,7 +135,7 @@ final class RegexTranslator
                 $inClass = true;
                 $out    .= '[';
                 ++$i;
-                if ('^' === ($source[$i] ?? '')) {
+                if ('^' === substr($source, $i, 1)) {
                     $out .= '^';
                     ++$i;
                 }
@@ -269,7 +268,7 @@ final class RegexTranslator
     private static function translateGroup(string $source, int $i, string &$out, array &$names, bool &$extended): int
     {
         $length = \strlen($source);
-        $next   = $source[$i + 1] ?? '';
+        $next   = substr($source, $i + 1, 1);
 
         if ('*' === $next) {
             $close = strpos($source, ')', $i);
@@ -286,7 +285,7 @@ final class RegexTranslator
             return $i + 1;
         }
 
-        $kind = $source[$i + 2] ?? '';
+        $kind = substr($source, $i + 2, 1);
 
         if ('#' === $kind) {
             $close = strpos($source, ')', $i);
@@ -316,7 +315,7 @@ final class RegexTranslator
         if (1 === preg_match('/\G\(\?([a-zA-Z]*)(?:-([a-zA-Z]*))?[:)]/', $source, $flags, 0, $i)) {
             if (str_contains($flags[1], 'x')) {
                 $extended = true;
-            } elseif (str_contains($flags[2] ?? '', 'x')) {
+            } elseif (isset($flags[2]) && str_contains($flags[2], 'x')) {
                 $extended = false;
             }
         }
@@ -331,7 +330,7 @@ final class RegexTranslator
      */
     private static function namedGroupOpener(string $source, int $i, string $kind): ?array
     {
-        $after = $source[$i + 3] ?? '';
+        $after = substr($source, $i + 3, 1);
 
         if ('<' === $kind && '=' !== $after && '!' !== $after) {
             return self::readName($source, $i + 3, '>', '(?<', '>');

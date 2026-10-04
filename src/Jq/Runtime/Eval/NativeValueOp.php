@@ -15,7 +15,7 @@ use LTS\PhpXq\Jq\Runtime\ValueBuiltinInterface;
 final class NativeValueOp extends AbstractOp
 {
     /**
-     * @param non-empty-list<OpInterface> $arguments
+     * @param list<OpInterface> $arguments
      */
     public function __construct(
         private readonly ValueBuiltinInterface $builtin,
@@ -36,7 +36,7 @@ final class NativeValueOp extends AbstractOp
     {
         if ($index < 0) {
             ksort($values);
-            $emit($this->builtin->call($this->state->context(), $input, array_values($values)));
+            $emit($this->builtin->call($this->state->context(), $input, ...array_values($values)));
 
             return;
         }

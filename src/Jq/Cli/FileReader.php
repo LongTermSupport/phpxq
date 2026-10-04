@@ -11,7 +11,7 @@ use RuntimeException;
  *
  * @api
  */
-final class FileReader
+final readonly class FileReader
 {
     private const string OPEN_FAILURE = 'Could not open ';
 

@@ -14,27 +14,22 @@ use LTS\PhpXq\Json\Codec\Utf8;
  * {@see PreciseNumber}; strings are escaped as jq does (U+007F and control characters as \u00xx, invalid
  * UTF-8 replaced by U+FFFD, optional \uXXXX for every non-ASCII codepoint).
  *
+ * jq prints a value nested more than MAX_PRINT_DEPTH containers deep as the SKIPPED marker. UNSAFE is the bytes
+ * JSON output escapes (controls, quote, backslash and DEL); PLAIN_ASCII is printable ASCII without quote and
+ * backslash, printed as is when every non-ASCII codepoint is escaped.
+ *
  * @api
  */
 final class JsonEncoder implements JsonEncoderInterface
 {
     private const string RESET = "\e[0m";
 
-    /**
-     * jq prints a value nested more than this many containers deep as this marker (MAX_PRINT_DEPTH).
-     */
     private const int MAX_PRINT_DEPTH = 10000;
 
     private const string SKIPPED = '<skipped: too deep>';
 
-    /**
-     * The bytes JSON output escapes: controls, quote, backslash and DEL.
-     */
     private const string UNSAFE = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\"\\\x7f";
 
-    /**
-     * Printable ASCII without quote and backslash: printed as is when every non-ASCII codepoint is escaped.
-     */
     private const string PLAIN_ASCII = '/^[\x20\x21\x23-\x5b\x5d-\x7e]*+$/D';
 
     private const array ESCAPES = [
@@ -293,7 +288,7 @@ final class JsonEncoder implements JsonEncoderInterface
     }
 
     /**
-     * @param array<string> $match
+     * @param array<int|string, string> $match
      */
     private function escapeCodepoint(array $match): string
     {

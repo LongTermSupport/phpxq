@@ -21,7 +21,7 @@ use LTS\PhpXq\Yaml\Node;
  *  - anchors stay visible to aliases in later documents of the same stream;
  *  - a stream that holds only comments yields one document whose null root carries them.
  */
-final class YamlParser implements YamlParserInterface
+final readonly class YamlParser implements YamlParserInterface
 {
     /**
      * @return Generator<int, Node>

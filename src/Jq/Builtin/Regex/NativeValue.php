@@ -35,8 +35,8 @@ final readonly class NativeValue implements ValueBuiltinInterface
         return $this->arity;
     }
 
-    public function call(RuntimeContextInterface $context, mixed $input, array $args): mixed
+    public function call(RuntimeContextInterface $context, mixed $input, mixed ...$args): mixed
     {
-        return ($this->function)($input, $args, $context);
+        return ($this->function)($input, array_values($args), $context);
     }
 }

@@ -18,10 +18,9 @@ use Closure;
 interface StreamBuiltinInterface extends BuiltinInterface
 {
     /**
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      *
      * @throws JqException
      */
-    public function run(RuntimeContextInterface $context, mixed $input, array $args, Closure $emit): void;
+    public function run(RuntimeContextInterface $context, mixed $input, Closure $emit, FilterInterface ...$args): void;
 }

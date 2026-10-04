@@ -17,7 +17,7 @@ final class IfOpTest extends OpTestCase
 {
     public function testEveryConditionOutputSelectsABranch(): void
     {
-        $op = new IfOp(self::generator([1, null, 2]), self::constant('then'), self::constant('else'));
+        $op = new IfOp(self::generator(1, null, 2), self::constant('then'), self::constant('else'));
 
         self::assertSame(['then', 'else', 'then'], self::outputs($op));
     }
@@ -31,12 +31,12 @@ final class IfOpTest extends OpTestCase
 
     public function testEmptyConditionYieldsNothing(): void
     {
-        self::assertSame([], self::outputs(new IfOp(self::generator([]), self::constant(1), null)));
+        self::assertSame([], self::outputs(new IfOp(self::generator(), self::constant(1), null)));
     }
 
     public function testGeneratingBranchesEmitEveryOutput(): void
     {
-        $op = new IfOp(self::constant(true), self::generator([1, 2]), null);
+        $op = new IfOp(self::constant(true), self::generator(1, 2), null);
 
         self::assertSame([1, 2], self::outputs($op));
     }
@@ -51,7 +51,7 @@ final class IfOpTest extends OpTestCase
 
     public function testPathModeEvaluatesTheConditionAsAValueAndThePickedBranchAsAPath(): void
     {
-        $op    = new IfOp(self::generator([true, false]), new FieldOp('a'), new FieldOp('b'));
+        $op    = new IfOp(self::generator(true, false), new FieldOp('a'), new FieldOp('b'));
         $input = self::object(['a' => 1, 'b' => 2]);
 
         self::assertSame([[['a'], 1], [['b'], 2]], self::pathOutputs($op, $input));
@@ -59,7 +59,7 @@ final class IfOpTest extends OpTestCase
 
     public function testPathModeWithoutElseKeepsThePath(): void
     {
-        $op = new IfOp(self::generator([false]), self::constant(1), null);
+        $op = new IfOp(self::generator(false), self::constant(1), null);
 
         self::assertSame([[['p'], 'v']], self::pathOutputs($op, 'v', ['p']));
     }

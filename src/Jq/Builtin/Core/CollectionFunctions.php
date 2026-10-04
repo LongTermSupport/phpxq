@@ -19,7 +19,7 @@ use LTS\PhpXq\Json\Values;
  *
  * @internal
  */
-final class CollectionFunctions
+final readonly class CollectionFunctions
 {
     private const int TWO_TO_53 = 9007199254740992;
 
@@ -461,14 +461,8 @@ final class CollectionFunctions
                 continue;
             }
 
-            $itemKind = match (true) {
-                \is_string($item)                => 's',
-                \is_array($item)                 => 'a',
-                $item instanceof JsonObject      => 'o',
-                \is_int($item), \is_float($item) => 'n',
-                default                          => 'x',
-            };
-            if ('x' === $itemKind || (null !== $kind && $kind !== $itemKind)) {
+            $itemKind = SimpleKindEnum::of($item);
+            if (SimpleKindEnum::Other === $itemKind || (null !== $kind && $kind !== $itemKind)) {
                 return null;
             }
 
@@ -476,11 +470,11 @@ final class CollectionFunctions
         }
 
         return match ($kind) {
-            null    => [null],
-            's'     => [implode('', array_filter($items, \is_string(...)))],
-            'a'     => [array_merge(...array_values(array_filter($items, \is_array(...))))],
-            'o'     => [self::mergeObjects($items)],
-            default => [self::sumNumbers($items)],
+            null                     => [null],
+            SimpleKindEnum::Text     => [implode('', array_filter($items, \is_string(...)))],
+            SimpleKindEnum::Sequence => [array_merge(...array_values(array_filter($items, \is_array(...))))],
+            SimpleKindEnum::Mapping  => [self::mergeObjects($items)],
+            default                  => [self::sumNumbers($items)],
         };
     }
 
@@ -625,7 +619,7 @@ final class CollectionFunctions
             }
 
             $key = $entry->get('key');
-            $key ??= self::firstTruthy($entry, ['k', 'name', 'Name', 'K', 'Key']);
+            $key ??= self::firstTruthy($entry, 'k', 'name', 'Name', 'K', 'Key');
 
             $name = \is_string($key) ? $key : Problems::json($key);
             if ($entry->has('value')) {
@@ -642,10 +636,8 @@ final class CollectionFunctions
 
     /**
      * jq's `a // b // c`: the first truthy field, else the last field whatever it holds.
-     *
-     * @param list<string> $fields
      */
-    private static function firstTruthy(JsonObject $object, array $fields): mixed
+    private static function firstTruthy(JsonObject $object, string ...$fields): mixed
     {
         $value = null;
         foreach ($fields as $field) {

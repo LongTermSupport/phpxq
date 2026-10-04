@@ -21,22 +21,20 @@ use stdClass;
  * state machine so error behaviour matches. Multi value text first tries newline separated chunks
  * natively, which is the common NDJSON shape.
  *
+ * DANGER matches the number shapes the native path must not see (outside strings, which are skipped);
+ * NUMBER_TOKEN the same shapes as whole tokens, plus nan and Infinity. SIMPLE_STRING matches a string of
+ * printable ASCII without escapes at the offset: group 1 is its content.
+ *
  * RFC 7464 mode ($seq): the generator yields a {@see JsonSyntaxException} object in place of a thrown error
  * when jq would "ignore the parse error" and resynchronise on the next RS; the caller reports it and keeps
  * iterating. Text before the first RS is ignored.
  *
  * @api
  */
-final class JsonDecoder implements JsonDecoderInterface
+final readonly class JsonDecoder implements JsonDecoderInterface
 {
-    /**
-     * Number shapes the native path must not see (outside strings, which are skipped).
-     */
     private const string DANGER = '/"(?:[^"\\\]++|\\\.)*+"(*SKIP)(*FAIL)|\d[\d.]{15}|\d[eE]|\.\d*0(?!\d)|\.0000|-0(?![\d.])/s';
 
-    /**
-     * The same shapes as DANGER, as whole tokens (strings skipped), plus nan and Infinity.
-     */
     private const string NUMBER_TOKEN = '/"(?:[^"\\\]++|\\\.)*+"(*SKIP)(*FAIL)|(?<![\w.+-])(?:(?=-?(?:\d+(?:\.\d+)?[eE]|\d+\.\d*0(?![\d.eE+-])|\d+\.0000|\d[\d.]{15})|-0(?![\d.eE]))-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|-?(?:nan|NaN|Infinity)(?!\w))/s';
 
     private const string DELIMITERS = " \t\r\n[]{},:\"";
@@ -59,9 +57,6 @@ final class JsonDecoder implements JsonDecoderInterface
 
     private const string BOM = "\xEF\xBB\xBF";
 
-    /**
-     * A string of printable ASCII without escapes, starting at the offset: group 1 is its content.
-     */
     private const string SIMPLE_STRING = '/\G"([\x20\x21\x23-\x5b\x5d-\x7e]*+)"/';
 
     private const int MAX_DEPTH = 10000;
@@ -239,7 +234,7 @@ final class JsonDecoder implements JsonDecoderInterface
         }
 
         if (\is_array($value) || $value instanceof stdClass) {
-            return self::convert($value, $numbers);
+            return self::convert($value, ...$numbers);
         }
 
         if (\is_string($value) && '' !== $value && "\0" === $value[0]) {
@@ -282,36 +277,40 @@ final class JsonDecoder implements JsonDecoderInterface
      * Native decoder output to the value model: objects become JsonObject and number placeholders are
      * replaced by their parsed numbers.
      *
-     * @param list<int|float|PreciseNumber> $numbers
+     * The numbers are captured once by the recursive walk, so nesting does not re-spread them.
      */
-    private static function convert(mixed $value, array $numbers): mixed
+    private static function convert(mixed $value, int|float|PreciseNumber ...$numbers): mixed
     {
-        if (\is_array($value)) {
-            foreach ($value as $key => $member) {
-                if (\is_array($member) || $member instanceof stdClass) {
-                    $value[$key] = self::convert($member, $numbers);
-                } elseif ([] !== $numbers && \is_string($member) && '' !== $member && "\0" === $member[0]) {
-                    $value[$key] = $numbers[(int)substr($member, 1)];
+        $walk = static function (mixed $value) use ($numbers, &$walk): mixed {
+            if (\is_array($value)) {
+                foreach ($value as $key => $member) {
+                    if (\is_array($member) || $member instanceof stdClass) {
+                        $value[$key] = $walk($member);
+                    } elseif ([] !== $numbers && \is_string($member) && '' !== $member && "\0" === $member[0]) {
+                        $value[$key] = $numbers[(int)substr($member, 1)];
+                    }
                 }
+
+                return $value;
+            }
+
+            if ($value instanceof stdClass) {
+                $members = (array)$value;
+                foreach ($members as $key => $member) {
+                    if (\is_array($member) || $member instanceof stdClass) {
+                        $members[$key] = $walk($member);
+                    } elseif ([] !== $numbers && \is_string($member) && '' !== $member && "\0" === $member[0]) {
+                        $members[$key] = $numbers[(int)substr($member, 1)];
+                    }
+                }
+
+                return new JsonObject($members);
             }
 
             return $value;
-        }
+        };
 
-        if ($value instanceof stdClass) {
-            $members = (array)$value;
-            foreach ($members as $key => $member) {
-                if (\is_array($member) || $member instanceof stdClass) {
-                    $members[$key] = self::convert($member, $numbers);
-                } elseif ([] !== $numbers && \is_string($member) && '' !== $member && "\0" === $member[0]) {
-                    $members[$key] = $numbers[(int)substr($member, 1)];
-                }
-            }
-
-            return new JsonObject($members);
-        }
-
-        return $value;
+        return $walk($value);
     }
 
     /**

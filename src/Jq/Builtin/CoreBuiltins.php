@@ -24,7 +24,7 @@ use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
  *
  * @api
  */
-final class CoreBuiltins implements BuiltinProviderInterface
+final readonly class CoreBuiltins implements BuiltinProviderInterface
 {
     /**
      * Builtins the regex and date providers register, so that `builtins` lists them too.

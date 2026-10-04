@@ -18,7 +18,7 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * global assignments. Comments become Lua `--` comments. Infinity and NaN are written as `(1/0)`,
  * `(-1/0)` and `(0/0)`.
  */
-final class LuaEncoder implements EncoderInterface
+final readonly class LuaEncoder implements EncoderInterface
 {
     private const int MAX_DEPTH = 1000;
 

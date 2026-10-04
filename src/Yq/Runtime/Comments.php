@@ -10,7 +10,7 @@ use LTS\PhpXq\Yaml\Node;
  * Comment text conversion: nodes store comments with their `#` markers, the operators read and write the
  * bare text.
  */
-final class Comments
+final readonly class Comments
 {
     private function __construct()
     {
@@ -77,33 +77,27 @@ final class Comments
         return implode("\n", $lines);
     }
 
-    /**
-     * @param 'head'|'line'|'foot' $kind
-     */
-    public static function get(Node $node, string $kind): string
+    public static function get(Node $node, CommentKindEnum $kind): string
     {
         return match ($kind) {
-            'head'  => $node->headComment,
-            'line'  => $node->lineComment,
-            default => $node->footComment,
+            CommentKindEnum::Head => $node->headComment,
+            CommentKindEnum::Line => $node->lineComment,
+            default               => $node->footComment,
         };
     }
 
-    /**
-     * @param 'head'|'line'|'foot'|'all' $kind
-     */
-    public static function set(Node $node, string $kind, string $text): void
+    public static function set(Node $node, CommentKindEnum $kind, string $text): void
     {
         $stored = self::write($text);
-        if ('head' === $kind || 'all' === $kind) {
+        if (CommentKindEnum::Head === $kind || CommentKindEnum::All === $kind) {
             $node->headComment = $stored;
         }
 
-        if ('line' === $kind || 'all' === $kind) {
+        if (CommentKindEnum::Line === $kind || CommentKindEnum::All === $kind) {
             $node->lineComment = $stored;
         }
 
-        if ('foot' === $kind || 'all' === $kind) {
+        if (CommentKindEnum::Foot === $kind || CommentKindEnum::All === $kind) {
             $node->footComment = $stored;
         }
     }

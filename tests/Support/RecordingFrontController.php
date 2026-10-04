@@ -20,9 +20,9 @@ final class RecordingFrontController implements FrontControllerInterface
     {
     }
 
-    public function run(array $args, mixed $stdin, mixed $stdout, mixed $stderr): int
+    public function run(mixed $stdin, mixed $stdout, mixed $stderr, string ...$args): int
     {
-        $this->received = $args;
+        $this->received = array_values($args);
 
         return $this->exitCode;
     }

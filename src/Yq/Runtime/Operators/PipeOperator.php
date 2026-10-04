@@ -13,7 +13,7 @@ use LTS\PhpXq\Yq\Runtime\EvaluatorInterface;
 /**
  * `lhs | rhs`: the right side runs against the left side's matches.
  */
-final class PipeOperator implements BinaryOperatorInterface
+final readonly class PipeOperator implements BinaryOperatorInterface
 {
     public function operators(): array
     {
@@ -22,6 +22,6 @@ final class PipeOperator implements BinaryOperatorInterface
 
     public function evaluate(Binary $expression, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
-        return $evaluator->evaluate($expression->right, $context->withMatches($evaluator->evaluate($expression->left, $context)));
+        return $evaluator->evaluate($expression->right, $context->withMatches(...$evaluator->evaluate($expression->left, $context)));
     }
 }

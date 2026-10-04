@@ -21,12 +21,12 @@ final class PathTrie
     private bool $strings = false;
 
     /**
-     * @param list<list<mixed>> $paths
+     * @param list<mixed> ...$paths
      */
-    public static function build(array $paths): ?self
+    public static function build(array ...$paths): ?self
     {
         $root = new self();
-        foreach ($paths as $index => $path) {
+        foreach (array_values($paths) as $index => $path) {
             if ([] === $path) {
                 return null;
             }

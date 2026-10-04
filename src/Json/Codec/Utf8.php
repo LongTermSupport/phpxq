@@ -9,7 +9,7 @@ namespace LTS\PhpXq\Json\Codec;
  *
  * @internal
  */
-final class Utf8
+final readonly class Utf8
 {
     private const string REPLACEMENT = "\u{fffd}";
 

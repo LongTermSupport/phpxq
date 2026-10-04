@@ -15,6 +15,7 @@ use LTS\PhpXq\Yq\Expression\Ast\Interpolation;
 use LTS\PhpXq\Yq\Expression\Ast\Iterate;
 use LTS\PhpXq\Yq\Expression\Ast\Literal;
 use LTS\PhpXq\Yq\Expression\Ast\ObjectConstruct;
+use LTS\PhpXq\Yq\Expression\Ast\ObjectEntry;
 use LTS\PhpXq\Yq\Expression\Ast\RecursiveDescent;
 use LTS\PhpXq\Yq\Expression\Ast\Reduce;
 use LTS\PhpXq\Yq\Expression\Ast\Slice;
@@ -38,15 +39,45 @@ final class AstDumper
             $node instanceof Iterate          => '(iter' . ($node->optional ? '?' : '') . ' ' . self::dump($node->base) . ')',
             $node instanceof RecursiveDescent => '(' . ($node->includeKeys ? 'recall' : 'rec') . ' ' . self::dump($node->base) . ')',
             $node instanceof Binary           => '(' . $node->operator->value . ('' === $node->modifiers ? '' : '/' . $node->modifiers) . ' ' . self::dump($node->left) . ' ' . self::dump($node->right) . ')',
-            $node instanceof Call             => '(call ' . $node->name . implode('', array_map(static fn (ExpressionNodeInterface $argument): string => ' ' . self::dump($argument), $node->arguments)) . ')',
+            $node instanceof Call             => '(call ' . $node->name . self::spaced(...$node->arguments) . ')',
             $node instanceof Collect          => '(collect ' . self::optional($node->inner) . ')',
-            $node instanceof ObjectConstruct  => '(obj' . implode('', array_map(static fn (\LTS\PhpXq\Yq\Expression\Ast\ObjectEntry $entry): string => ' [' . self::dump($entry->key) . ' ' . self::dump($entry->value) . ']', $node->entries)) . ')',
+            $node instanceof ObjectConstruct  => '(obj' . self::entries(...$node->entries) . ')',
             $node instanceof Conditional      => '(if ' . self::dump($node->condition) . ' ' . self::dump($node->then) . ' ' . self::optional($node->otherwise) . ')',
             $node instanceof Bind             => '(' . ($node->reference ? 'ref' : 'as') . ' $' . $node->name . ' ' . self::dump($node->source) . ' ' . self::dump($node->body) . ')',
             $node instanceof Reduce           => '(reduce $' . $node->name . ' ' . self::dump($node->source) . ' ' . self::dump($node->initial) . ' ' . self::dump($node->update) . ')',
-            $node instanceof Interpolation    => '(interp' . implode('', array_map(static fn (string|ExpressionNodeInterface $part): string => ' ' . (\is_string($part) ? "'" . $part . "'" : self::dump($part)), $node->parts)) . ')',
+            $node instanceof Interpolation    => '(interp' . self::parts(...$node->parts) . ')',
             default                           => throw new RuntimeException('unknown node ' . $node::class),
         };
+    }
+
+    private static function spaced(ExpressionNodeInterface ...$nodes): string
+    {
+        $text = '';
+        foreach ($nodes as $node) {
+            $text .= ' ' . self::dump($node);
+        }
+
+        return $text;
+    }
+
+    private static function entries(ObjectEntry ...$entries): string
+    {
+        $text = '';
+        foreach ($entries as $entry) {
+            $text .= ' [' . self::dump($entry->key) . ' ' . self::dump($entry->value) . ']';
+        }
+
+        return $text;
+    }
+
+    private static function parts(ExpressionNodeInterface|string ...$parts): string
+    {
+        $text = '';
+        foreach ($parts as $part) {
+            $text .= ' ' . (\is_string($part) ? "'" . $part . "'" : self::dump($part));
+        }
+
+        return $text;
     }
 
     private static function optional(?ExpressionNodeInterface $node): string

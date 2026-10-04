@@ -25,16 +25,16 @@ final readonly class EntryPoint
     }
 
     /**
-     * @param list<string> $args   arguments after the program name
-     * @param resource     $stdin
-     * @param resource     $stdout
-     * @param resource     $stderr
+     * @param resource $stdin
+     * @param resource $stdout
+     * @param resource $stderr
+     * @param string   ...$args arguments after the program name
      */
-    public function run(string $argv0, array $args, mixed $stdin, mixed $stdout, mixed $stderr): int
+    public function run(string $argv0, mixed $stdin, mixed $stdout, mixed $stderr, string ...$args): int
     {
         $tool = ToolEnum::fromProgramName($argv0);
         if (null !== $tool) {
-            return $this->controller->run([$tool->value, ...$args], $stdin, $stdout, $stderr);
+            return $this->controller->run($stdin, $stdout, $stderr, $tool->value, ...$args);
         }
 
         if (['--version'] === $args) {
@@ -43,7 +43,7 @@ final readonly class EntryPoint
             return FrontControllerInterface::EXIT_OK;
         }
 
-        return $this->controller->run($args, $stdin, $stdout, $stderr);
+        return $this->controller->run($stdin, $stdout, $stderr, ...$args);
     }
 
     public function version(): string

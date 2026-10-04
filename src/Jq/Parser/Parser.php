@@ -149,7 +149,6 @@ final class Parser implements ParserInterface
 
     private bool $bindingAllowed = true;
 
-    /** Set once a syntax error has been annotated with "Possibly unterminated 'if' statement". */
     private bool $unterminated = false;
 
     public function __construct(private readonly LexerInterface $lexer)

@@ -29,7 +29,7 @@ use LTS\PhpXq\Yq\Runtime\Numbers;
  * string repetition, division and string splitting, modulo; with dates plus or minus a duration. The
  * same arithmetic backs the compound assignments (`+=`, `-=`, ...).
  */
-final class ArithmeticOperator implements BinaryOperatorInterface
+final readonly class ArithmeticOperator implements BinaryOperatorInterface
 {
     public function operators(): array
     {
@@ -47,14 +47,15 @@ final class ArithmeticOperator implements BinaryOperatorInterface
         $operator  = $expression->operator;
         $modifiers = $expression->modifiers;
         $layout    = Cands::dateLayout($context);
+        $replaced  = $context->replacedNode;
 
         return Cross::run(
             $expression->left,
             $expression->right,
             $context,
             $evaluator,
-            static function (?Candidate $left, ?Candidate $right, ?Candidate $from) use ($operator, $modifiers, $layout): ?Candidate {
-                $result = self::apply($operator, $left instanceof Candidate ? $left->node : null, $right instanceof Candidate ? $right->node : null, $modifiers, $layout);
+            static function (?Candidate $left, ?Candidate $right, ?Candidate $from) use ($operator, $modifiers, $layout, $replaced): ?Candidate {
+                $result = self::apply($operator, $left instanceof Candidate ? $left->node : null, $right instanceof Candidate ? $right->node : null, $modifiers, $layout, $replaced);
 
                 return $result instanceof Node ? Cands::deriveInDocument($result, $from) : null;
             },
@@ -63,18 +64,22 @@ final class ArithmeticOperator implements BinaryOperatorInterface
 
     /**
      * Applies an arithmetic operator to two nodes (null: no match on that side) and returns a new node,
-     * or null when neither side exists.
+     * or null when neither side exists. A side that is the `$replaced` node (the one the result is about to
+     * take the place of) hands over its children instead of copies, unless both sides are that node.
      *
      * @throws EvaluationException
      */
-    public static function apply(BinaryOperatorEnum $operator, ?Node $left, ?Node $right, string $modifiers = '', ?string $layout = null): ?Node
+    public static function apply(BinaryOperatorEnum $operator, ?Node $left, ?Node $right, string $modifiers = '', ?string $layout = null, ?Node $replaced = null): ?Node
     {
         $l = $left instanceof Node ? NodeOps::deref(NodeOps::unwrap($left)) : null;
         $r = $right instanceof Node ? NodeOps::deref(NodeOps::unwrap($right)) : null;
 
+        $shareLeft  = null !== $replaced && $l === $replaced && $r !== $replaced;
+        $shareRight = null !== $replaced && $r === $replaced && $l !== $replaced;
+
         return match ($operator) {
-            BinaryOperatorEnum::Add, BinaryOperatorEnum::AddAssign           => self::add($l, $r, $layout),
-            BinaryOperatorEnum::Subtract, BinaryOperatorEnum::SubtractAssign => self::subtract($l, $r, $layout),
+            BinaryOperatorEnum::Add, BinaryOperatorEnum::AddAssign           => self::add($l, $r, $layout, $shareLeft, $shareRight),
+            BinaryOperatorEnum::Subtract, BinaryOperatorEnum::SubtractAssign => self::subtract($l, $r, $layout, $shareLeft),
             BinaryOperatorEnum::Multiply, BinaryOperatorEnum::MultiplyAssign => self::multiply($l, $r, $modifiers),
             BinaryOperatorEnum::Divide, BinaryOperatorEnum::DivideAssign     => self::divide($l, $r),
             BinaryOperatorEnum::Modulo, BinaryOperatorEnum::ModuloAssign     => self::modulo($l, $r),
@@ -82,7 +87,12 @@ final class ArithmeticOperator implements BinaryOperatorInterface
         };
     }
 
-    private static function add(?Node $l, ?Node $r, ?string $layout): ?Node
+    private static function own(Node $node, bool $share): Node
+    {
+        return $share ? $node : $node->deepCopy();
+    }
+
+    private static function add(?Node $l, ?Node $r, ?string $layout, bool $shareLeft, bool $shareRight): ?Node
     {
         if (!$l instanceof Node) {
             return $r?->deepCopy();
@@ -97,11 +107,11 @@ final class ArithmeticOperator implements BinaryOperatorInterface
         }
 
         if (NodeKindEnum::Sequence === $l->kind) {
-            return self::addToSequence($l, $r);
+            return self::addToSequence($l, $r, $shareLeft, $shareRight);
         }
 
         if (NodeKindEnum::Mapping === $l->kind && NodeKindEnum::Mapping === $r->kind) {
-            $merged = $l->deepCopy();
+            $merged = $shareLeft ? clone $l : $l->deepCopy();
             for ($i = 0, $n = \count($r->content); $i < $n; $i += 2) {
                 $found = null;
                 for ($j = 0, $m = \count($merged->content); $j < $m; $j += 2) {
@@ -113,10 +123,10 @@ final class ArithmeticOperator implements BinaryOperatorInterface
                 }
 
                 if (null === $found) {
-                    $merged->content[] = $r->content[$i]->deepCopy();
-                    $merged->content[] = $r->content[$i + 1]->deepCopy();
+                    $merged->content[] = self::own($r->content[$i], $shareRight);
+                    $merged->content[] = self::own($r->content[$i + 1], $shareRight);
                 } else {
-                    array_splice($merged->content, $found + 1, 1, [$r->content[$i + 1]->deepCopy()]);
+                    array_splice($merged->content, $found + 1, 1, [self::own($r->content[$i + 1], $shareRight)]);
                 }
             }
 
@@ -148,12 +158,12 @@ final class ArithmeticOperator implements BinaryOperatorInterface
         return $out;
     }
 
-    private static function addToSequence(Node $l, Node $r): Node
+    private static function addToSequence(Node $l, Node $r, bool $shareLeft, bool $shareRight): Node
     {
-        $items = array_map(static fn (Node $item): Node => $item->deepCopy(), $l->content);
+        $items = $shareLeft ? $l->content : array_map(static fn (Node $item): Node => $item->deepCopy(), $l->content);
         if (NodeKindEnum::Sequence === $r->kind) {
             foreach ($r->content as $item) {
-                $items[] = $item->deepCopy();
+                $items[] = self::own($item, $shareRight);
             }
         } else {
             $add  = clone $r; // shallow: children stay shared so `.. |= [] + .` still updates them after the parent is replaced
@@ -172,7 +182,7 @@ final class ArithmeticOperator implements BinaryOperatorInterface
         return $new;
     }
 
-    private static function subtract(?Node $l, ?Node $r, ?string $layout): ?Node
+    private static function subtract(?Node $l, ?Node $r, ?string $layout, bool $shareLeft): ?Node
     {
         if (!$l instanceof Node) {
             return null;
@@ -188,7 +198,7 @@ final class ArithmeticOperator implements BinaryOperatorInterface
             foreach ($l->content as $item) {
                 $drop = array_any($remove, static fn (Node $candidate): bool => Compare::deepEquals($item, $candidate));
                 if (!$drop) {
-                    $items[] = $item->deepCopy();
+                    $items[] = self::own($item, $shareLeft);
                 }
             }
 

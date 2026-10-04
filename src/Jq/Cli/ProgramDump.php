@@ -15,7 +15,7 @@ use LTS\PhpXq\Jq\Ast\Program;
  *
  * @api
  */
-final class ProgramDump
+final readonly class ProgramDump
 {
     private function __construct()
     {

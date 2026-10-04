@@ -21,7 +21,7 @@ final class FrontControllerTest extends TestCase
     #[DataProvider('provideUsageErrors')]
     public function testUsageErrorsExitWithTwo(array $args): void
     {
-        [$exit, $stdout, $stderr] = $this->invoke($args);
+        [$exit, $stdout, $stderr] = $this->invoke(...$args);
 
         self::assertSame(FrontControllerInterface::EXIT_USAGE, $exit);
         self::assertSame('', $stdout);
@@ -39,7 +39,7 @@ final class FrontControllerTest extends TestCase
 
     public function testYqIsDelegatedToTheYqApplication(): void
     {
-        [$exit, $stdout, $stderr] = $this->invoke([ToolEnum::Yq->value, '--version']);
+        [$exit, $stdout, $stderr] = $this->invoke(ToolEnum::Yq->value, '--version');
 
         self::assertSame(FrontControllerInterface::EXIT_OK, $exit);
         self::assertStringStartsWith('yq (https://github.com/mikefarah/yq/) version v', $stdout);
@@ -56,7 +56,7 @@ final class FrontControllerTest extends TestCase
         self::assertIsResource($stderr);
         fclose($stdout);
 
-        $exit = new FrontController()->run([ToolEnum::Jq->value, '-n', '1'], $stdin, $stdout, $stderr);
+        $exit = new FrontController()->run($stdin, $stdout, $stderr, ToolEnum::Jq->value, '-n', '1');
 
         rewind($stderr);
 
@@ -65,11 +65,9 @@ final class FrontControllerTest extends TestCase
     }
 
     /**
-     * @param list<string> $args
-     *
      * @return array{int, string, string}
      */
-    private function invoke(array $args): array
+    private function invoke(string ...$args): array
     {
         $stdin  = fopen('php://memory', 'rb');
         $stdout = fopen('php://memory', 'w+b');
@@ -78,7 +76,7 @@ final class FrontControllerTest extends TestCase
         self::assertIsResource($stdout);
         self::assertIsResource($stderr);
 
-        $exit = new FrontController()->run($args, $stdin, $stdout, $stderr);
+        $exit = new FrontController()->run($stdin, $stdout, $stderr, ...$args);
 
         rewind($stdout);
         rewind($stderr);

@@ -25,7 +25,7 @@ final class PipeOpTest extends OpTestCase
 
     public function testEmptyLeftYieldsNothing(): void
     {
-        self::assertSame([], self::outputs(new PipeOp(self::generator([]), self::constant(1))));
+        self::assertSame([], self::outputs(new PipeOp(self::generator(), self::constant(1))));
     }
 
     public function testPathModeThreadsThePath(): void

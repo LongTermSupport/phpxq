@@ -17,7 +17,7 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * processing instructions become `+p_target` and directives `+directive`; every value is a string.
  * Comments become head, line and foot comments.
  */
-final class XmlDecoder implements DecoderInterface
+final readonly class XmlDecoder implements DecoderInterface
 {
     public function format(): FormatEnum
     {
@@ -44,7 +44,7 @@ final class XmlDecoder implements DecoderInterface
             return $this->mapping($element, $options);
         }
 
-        $node              = $this->dataNode($element->data);
+        $node              = $this->dataNode(...$element->data);
         $node->headComment = $this->comment($element->headComment);
         $node->lineComment = $this->comment($element->lineComment);
         $node->footComment = $this->comment($element->footComment);
@@ -61,7 +61,7 @@ final class XmlDecoder implements DecoderInterface
             $label->headComment = $this->comment($element->headComment);
             $label->lineComment = $this->comment($element->lineComment);
             $content[]          = $label;
-            $content[]          = $this->dataNode($element->data);
+            $content[]          = $this->dataNode(...$element->data);
             $headConsumed       = true;
         }
 
@@ -78,7 +78,7 @@ final class XmlDecoder implements DecoderInterface
                 $content[] = $this->single($key, $group[0], $options);
                 $foot      = $this->comment($group[0]->footComment);
             } else {
-                $content[] = $this->sequence($group, $options);
+                $content[] = $this->sequence($options, ...$group);
                 $foot      = $this->comment($group[\count($group) - 1]->footComment);
             }
 
@@ -106,10 +106,7 @@ final class XmlDecoder implements DecoderInterface
         return $node;
     }
 
-    /**
-     * @param list<XmlElement> $group
-     */
-    private function sequence(array $group, FormatOptions $options): Node
+    private function sequence(FormatOptions $options, XmlElement ...$group): Node
     {
         $items = [];
         $last  = \count($group) - 1;
@@ -129,10 +126,7 @@ final class XmlDecoder implements DecoderInterface
         return Node::sequence($items);
     }
 
-    /**
-     * @param list<string> $data
-     */
-    private function dataNode(array $data): Node
+    private function dataNode(string ...$data): Node
     {
         if ([] === $data) {
             return Node::scalar('', CoreSchema::TAG_NULL);

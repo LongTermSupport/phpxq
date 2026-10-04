@@ -36,14 +36,14 @@ final class UpdateAssignOpTest extends OpTestCase
 
     public function testTheFirstOutputOfAGeneratingUpdateIsUsed(): void
     {
-        $op = new UpdateAssignOp(new FieldOp('a'), self::generator([1, 2]));
+        $op = new UpdateAssignOp(new FieldOp('a'), self::generator(1, 2));
 
         self::assertEquals([self::object(['a' => 1])], self::outputs($op, self::object(['a' => 0])));
     }
 
     public function testAnEmptyUpdateDeletesThePath(): void
     {
-        $op = new UpdateAssignOp(new FieldOp('a'), self::generator([]));
+        $op = new UpdateAssignOp(new FieldOp('a'), self::generator());
 
         self::assertEquals([self::object(['b' => 2])], self::outputs($op, self::object(['a' => 1, 'b' => 2])));
     }

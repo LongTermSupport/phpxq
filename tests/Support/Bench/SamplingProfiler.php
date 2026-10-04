@@ -20,9 +20,9 @@ final class SamplingProfiler
     private int $samples = 0;
 
     /**
-     * @param list<array{class?: string, type?: string, function: string, file?: string}> $frames innermost first
+     * @param array{class?: string, type?: string, function: string, file?: string} ...$frames innermost first
      */
-    public function record(array $frames): void
+    public function record(array ...$frames): void
     {
         if ([] === $frames) {
             return;
@@ -85,11 +85,12 @@ final class SamplingProfiler
      */
     private function name(array $frame): string
     {
+        $class = \array_key_exists('class', $frame) ? $frame['class'] : '';
         if (str_contains($frame['function'], '{closure')) {
-            return ($frame['class'] ?? '') . ('' !== ($frame['class'] ?? '') ? '::' : '') . '{closure}@' . basename($frame['file'] ?? '?');
+            return $class . ('' !== $class ? '::' : '') . '{closure}@' . basename($frame['file'] ?? '?');
         }
 
-        return ($frame['class'] ?? '') . ($frame['type'] ?? '') . $frame['function'];
+        return $class . (\array_key_exists('type', $frame) ? $frame['type'] : '') . $frame['function'];
     }
 
     /**

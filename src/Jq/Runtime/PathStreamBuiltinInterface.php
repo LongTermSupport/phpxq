@@ -17,10 +17,9 @@ interface PathStreamBuiltinInterface extends StreamBuiltinInterface
 {
     /**
      * @param ?list<mixed>                       $path input path, null when the input is not path-derived
-     * @param list<FilterInterface>              $args
      * @param Closure(?list<mixed>, mixed): void $emit
      *
      * @throws JqException
      */
-    public function runPaths(RuntimeContextInterface $context, ?array $path, mixed $input, array $args, Closure $emit): void;
+    public function runPaths(RuntimeContextInterface $context, ?array $path, mixed $input, Closure $emit, FilterInterface ...$args): void;
 }

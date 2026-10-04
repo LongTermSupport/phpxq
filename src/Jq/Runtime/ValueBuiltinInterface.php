@@ -19,9 +19,9 @@ namespace LTS\PhpXq\Jq\Runtime;
 interface ValueBuiltinInterface extends BuiltinInterface
 {
     /**
-     * @param list<mixed> $args one value per declared parameter
+     * $args holds one value per declared parameter.
      *
      * @throws JqException
      */
-    public function call(RuntimeContextInterface $context, mixed $input, array $args): mixed;
+    public function call(RuntimeContextInterface $context, mixed $input, mixed ...$args): mixed;
 }

@@ -13,7 +13,7 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
 /**
  * URI-escaped input: the unescaped text becomes one string scalar (a trailing newline is dropped).
  */
-final class UriDecoder implements DecoderInterface
+final readonly class UriDecoder implements DecoderInterface
 {
     public function format(): FormatEnum
     {

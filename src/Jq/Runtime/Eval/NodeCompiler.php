@@ -347,8 +347,9 @@ final readonly class NodeCompiler
         $native = $this->core->builtins->lookup($name, $arity);
         if ($native instanceof ValueBuiltinInterface) {
             $arguments = $this->arguments($node, $scope);
-            if ($this->allSingle($arguments)) {
-                return new SingleNativeOp($native, $arguments, $this->core->state);
+            $singles   = $this->singles(...$arguments);
+            if (null !== $singles) {
+                return new SingleNativeOp($native, $singles, $this->core->state);
             }
 
             return new NativeValueOp($native, $arguments, $this->core->state);
@@ -397,13 +398,20 @@ final readonly class NodeCompiler
     }
 
     /**
-     * @param list<OpInterface> $operations
-     *
-     * @phpstan-assert-if-true list<SingleOpInterface> $operations
+     * @return ?list<SingleOpInterface> the operations when every one yields exactly one value, else null
      */
-    private function allSingle(array $operations): bool
+    private function singles(OpInterface ...$operations): ?array
     {
-        return array_all($operations, static fn (OpInterface $operation): bool => $operation instanceof SingleOpInterface);
+        $singles = [];
+        foreach ($operations as $operation) {
+            if (!$operation instanceof SingleOpInterface) {
+                return null;
+            }
+
+            $singles[] = $operation;
+        }
+
+        return $singles;
     }
 
     private function intrinsic(FunctionCall $node, ?Scope $scope): ?OpInterface
@@ -605,7 +613,7 @@ final readonly class NodeCompiler
         $state = $this->core->state;
 
         return static function (mixed $value) use ($builtin, $name, $state): string {
-            $text = $builtin->call($state->context(), $value, [$name]);
+            $text = $builtin->call($state->context(), $value, $name);
 
             return \is_string($text) ? $text : ErrorText::json($text);
         };

@@ -50,13 +50,11 @@ final class Core
     /**
      * Compile a main program to the op that runs its body.
      *
-     * @param list<string> $globalNames
-     *
      * @throws JqCompileException
      */
-    public function compileMain(Program $program, array $globalNames): OpInterface
+    public function compileMain(Program $program, string ...$globalNames): OpInterface
     {
-        $this->globalNames = $globalNames;
+        $this->globalNames = array_values($globalNames);
         $set               = $this->buildSet($program, null);
         foreach ($set->functions() as $function) {
             $this->ensureCompiled($function);
@@ -71,7 +69,7 @@ final class Core
 
     public function isGlobal(string $name): bool
     {
-        return 'ENV' === $name || '__prog_args' === $name || \in_array($name, $this->globalNames, true);
+        return ReservedGlobalEnum::tryFrom($name) instanceof ReservedGlobalEnum || \in_array($name, $this->globalNames, true);
     }
 
     /**
@@ -175,7 +173,7 @@ final class Core
         foreach ($program->imports as $import) {
             $search = $import->metadata instanceof JsonObject ? $import->metadata->get('search') : null;
             if (ImportKindEnum::Data === $import->kind) {
-                $set->addData((string)$import->alias, $this->loader->loadData($import->path, $search, $path));
+                $set->addData((string)$import->alias, ...$this->loader->loadData($import->path, $search, $path));
 
                 continue;
             }

@@ -11,7 +11,7 @@ namespace LTS\PhpXq\Json\Codec;
  *
  * @internal
  */
-final class DecimalLiteral
+final readonly class DecimalLiteral
 {
     private const int EXPONENT_CLAMP = 100_000_000_000;
 
@@ -31,7 +31,8 @@ final class DecimalLiteral
         }
 
         $integral = $m[2];
-        $fraction = $m[3] ?? '';
+        // preg_match omits a trailing group that did not participate.
+        $fraction = \array_key_exists(3, $m) ? $m[3] : '';
         if ('' === $integral && '' === $fraction) {
             return null;
         }

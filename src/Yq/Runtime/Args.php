@@ -14,7 +14,7 @@ use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 /**
  * Evaluation of an operator's arguments against one match.
  */
-final class Args
+final readonly class Args
 {
     private function __construct()
     {
@@ -31,7 +31,7 @@ final class Args
             return [];
         }
 
-        $sub = $context->withDontAutoCreate(true)->withMatches($match instanceof Candidate ? [$match] : []);
+        $sub = $context->withDontAutoCreate(true)->withMatches(...($match instanceof Candidate ? [$match] : []));
 
         return $evaluator->evaluate($call->arguments[$index], $sub);
     }
@@ -54,6 +54,16 @@ final class Args
         $node = self::node($call, $index, $context, $evaluator, $match);
 
         return $node instanceof Node && NodeKindEnum::Scalar === $node->kind ? $node->value : null;
+    }
+
+    /**
+     * Like string(), but the empty string stands for an absent or non-scalar argument.
+     */
+    public static function stringOrEmpty(Call $call, int $index, EvaluationContext $context, EvaluatorInterface $evaluator, ?Candidate $match): string
+    {
+        $text = self::string($call, $index, $context, $evaluator, $match);
+
+        return null === $text ? '' : $text;
     }
 
     public static function int(Call $call, int $index, EvaluationContext $context, EvaluatorInterface $evaluator, ?Candidate $match): ?int

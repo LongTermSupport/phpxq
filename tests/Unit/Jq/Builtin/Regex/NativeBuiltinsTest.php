@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Jq\Builtin\Regex;
 
 use Closure;
+use LTS\PhpXq\Jq\Runtime\FilterInterface;
 use LTS\PhpXq\Jq\Builtin\Regex\NativeStream;
 use LTS\PhpXq\Jq\Builtin\Regex\NativeValue;
 use LTS\PhpXq\Jq\Runtime\InputProviderInterface;
@@ -23,7 +24,7 @@ final class NativeBuiltinsTest extends TestCase
 
         self::assertSame('twice', $builtin->name());
         self::assertSame(1, $builtin->arity());
-        self::assertSame(['in', 'arg'], $builtin->call($this->context(), 'in', ['arg']));
+        self::assertSame(['in', 'arg'], $builtin->call($this->context(), 'in', 'arg'));
     }
 
     public function testNativeValuePassesTheContext(): void
@@ -31,12 +32,12 @@ final class NativeBuiltinsTest extends TestCase
         $context = $this->context();
         $builtin = new NativeValue('ctx', 0, static fn (mixed $input, array $args, RuntimeContextInterface $given): mixed => $given);
 
-        self::assertSame($context, $builtin->call($context, null, []));
+        self::assertSame($context, $builtin->call($context, null));
     }
 
     public function testNativeStreamDelegatesToItsClosure(): void
     {
-        $builtin = new NativeStream('both', 2, static function (mixed $input, array $args, Closure $emit): void {
+        $builtin = new NativeStream('both', 2, static function (mixed $input, Closure $emit, FilterInterface ...$args): void {
             $emit($input);
             $emit(\count($args));
         });
@@ -45,9 +46,9 @@ final class NativeBuiltinsTest extends TestCase
         self::assertSame(2, $builtin->arity());
 
         $seen = [];
-        $builtin->run($this->context(), 'x', [FakeFilter::yielding(1), FakeFilter::yielding(2)], static function (mixed $value) use (&$seen): void {
+        $builtin->run($this->context(), 'x', static function (mixed $value) use (&$seen): void {
             $seen[] = $value;
-        });
+        }, FakeFilter::yielding(1), FakeFilter::yielding(2));
 
         self::assertSame(['x', 2], $seen);
     }

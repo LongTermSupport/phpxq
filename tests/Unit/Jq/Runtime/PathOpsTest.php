@@ -25,34 +25,34 @@ final class PathOpsTest extends TestCase
     {
         $value = new JsonObject(['foo' => ['a', 'b', 'c']]);
 
-        self::assertSame('b', PathOps::getPath($value, ['foo', 1]));
-        self::assertSame($value, PathOps::getPath($value, []));
-        self::assertNull(PathOps::getPath($value, ['bar']));
-        self::assertNull(PathOps::getPath($value, ['bar', 'x', 0]));
-        self::assertSame('c', PathOps::getPath($value, ['foo', -1]));
+        self::assertSame('b', PathOps::getPath($value, 'foo', 1));
+        self::assertSame($value, PathOps::getPath($value));
+        self::assertNull(PathOps::getPath($value, 'bar'));
+        self::assertNull(PathOps::getPath($value, 'bar', 'x', 0));
+        self::assertSame('c', PathOps::getPath($value, 'foo', -1));
     }
 
     public function testGetPathWithSliceKeys(): void
     {
         $slice = new JsonObject(['start' => 1, 'end' => 3]);
 
-        self::assertSame(['b', 'c'], PathOps::getPath(['a', 'b', 'c', 'd'], [$slice]));
-        self::assertSame('bc', PathOps::getPath('abcd', [$slice]));
+        self::assertSame(['b', 'c'], PathOps::getPath(['a', 'b', 'c', 'd'], $slice));
+        self::assertSame('bc', PathOps::getPath('abcd', $slice));
     }
 
     public function testPathsLongerThanTenThousandStepsAreRejected(): void
     {
         $path = array_fill(0, 10001, 0);
 
-        self::assertNull(PathOps::getPath(null, \array_slice($path, 1)));
-        self::assertRaises(JqException::class, 'Path too deep', static fn (): mixed => PathOps::getPath(null, $path));
-        self::assertRaises(JqException::class, 'Path too deep', static fn (): mixed => PathOps::setPath(null, $path, 0));
-        self::assertRaises(JqException::class, 'Path too deep', static fn (): mixed => PathOps::deletePaths(null, [$path]));
+        self::assertNull(PathOps::getPath(null, ...\array_slice($path, 1)));
+        self::assertRaises(JqException::class, 'Path too deep', static fn (): mixed => PathOps::getPath(null, ...$path));
+        self::assertRaises(JqException::class, 'Path too deep', static fn (): mixed => PathOps::setPath(null, 0, ...$path));
+        self::assertRaises(JqException::class, 'Path too deep', static fn (): mixed => PathOps::deletePaths(null, $path));
     }
 
     public function testGetPathPropagatesTypeErrors(): void
     {
-        self::assertRaises(JqException::class, 'Cannot index number with string ("b")', static fn (): mixed => PathOps::getPath(new JsonObject(['a' => 1]), ['a', 'b']));
+        self::assertRaises(JqException::class, 'Cannot index number with string ("b")', static fn (): mixed => PathOps::getPath(new JsonObject(['a' => 1]), 'a', 'b'));
     }
 
     /**
@@ -61,7 +61,7 @@ final class PathOpsTest extends TestCase
     #[DataProvider('sets')]
     public function testSetPath(mixed $value, array $path, mixed $new, mixed $expected): void
     {
-        self::assertEquals($expected, PathOps::setPath($value, $path, $new));
+        self::assertEquals($expected, PathOps::setPath($value, $new, ...$path));
     }
 
     /**
@@ -91,7 +91,7 @@ final class PathOpsTest extends TestCase
     #[DataProvider('failingSets')]
     public function testSetPathErrors(mixed $value, array $path, mixed $new, string $message): void
     {
-        self::assertRaises(JqException::class, $message, static fn (): mixed => PathOps::setPath($value, $path, $new));
+        self::assertRaises(JqException::class, $message, static fn (): mixed => PathOps::setPath($value, $new, ...$path));
     }
 
     /**
@@ -120,7 +120,7 @@ final class PathOpsTest extends TestCase
     #[DataProvider('deletions')]
     public function testDeletePaths(mixed $value, array $paths, mixed $expected): void
     {
-        self::assertEquals($expected, PathOps::deletePaths($value, $paths));
+        self::assertEquals($expected, PathOps::deletePaths($value, ...$paths));
     }
 
     /**
@@ -150,7 +150,7 @@ final class PathOpsTest extends TestCase
     #[DataProvider('failingDeletions')]
     public function testDeletePathsErrors(mixed $value, array $paths, string $message): void
     {
-        self::assertRaises(JqException::class, $message, static fn (): mixed => PathOps::deletePaths($value, $paths));
+        self::assertRaises(JqException::class, $message, static fn (): mixed => PathOps::deletePaths($value, ...$paths));
     }
 
     /**

@@ -13,7 +13,7 @@ use LTS\PhpXq\Json\ColorScheme;
  *
  * @api
  */
-final class JqColors
+final readonly class JqColors
 {
     private const int MAX_FIELD_LENGTH = 30;
 

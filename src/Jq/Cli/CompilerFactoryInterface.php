@@ -13,8 +13,5 @@ use LTS\PhpXq\Jq\Runtime\CompilerInterface;
  */
 interface CompilerFactoryInterface
 {
-    /**
-     * @param list<string> $libraryPaths
-     */
-    public function create(array $libraryPaths): CompilerInterface;
+    public function create(string ...$libraryPaths): CompilerInterface;
 }

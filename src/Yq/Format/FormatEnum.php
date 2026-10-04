@@ -6,13 +6,11 @@ namespace LTS\PhpXq\Yq\Format;
 
 /**
  * The data formats the reference yq reads and writes, valued with the name used by `-p`/`-o`.
+ * ALIASES maps the reference's short `-p`/`-o` aliases to their format.
  * Not every format is both readable and writable; see {@see self::canDecode()} and {@see self::canEncode()}.
  */
 enum FormatEnum: string
 {
-    /**
-     * The reference's short aliases for `-p`/`-o`, by alias.
-     */
     private const array ALIASES = [
         'y'          => self::Yaml,
         'yml'        => self::Yaml,

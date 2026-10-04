@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Json\Codec;
 
 use LTS\PhpXq\Json\Codec\NumberFormatter;
+use LTS\PhpXq\Tests\Support\SeededRandom;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -52,9 +53,9 @@ final class NumberFormatterTest extends TestCase
 
     public function testRandomDoublesRoundTripAndUseJqLayout(): void
     {
-        mt_srand(42);
+        $random = new SeededRandom(42);
         for ($i = 0; $i < 20000; ++$i) {
-            $unpacked = unpack('d', pack('NN', mt_rand(0, 0xFFFFFFFF), mt_rand(0, 0xFFFFFFFF)));
+            $unpacked = unpack('d', pack('NN', $random->between(0, 0xFFFFFFFF), $random->between(0, 0xFFFFFFFF)));
             self::assertIsArray($unpacked);
             $value = $unpacked[1];
             self::assertIsFloat($value);
@@ -70,7 +71,7 @@ final class NumberFormatterTest extends TestCase
         }
 
         for ($i = 0; $i < 20000; ++$i) {
-            $value = mt_rand() / mt_rand(1, 1000000) * (0 === $i % 2 ? 1 : 1.0e-7);
+            $value = $random->between(0, 0x7FFFFFFF) / $random->between(1, 1000000) * (0 === $i % 2 ? 1 : 1.0e-7);
             $text  = NumberFormatter::format($value);
 
             self::assertSame($value, (float)$text, $text);

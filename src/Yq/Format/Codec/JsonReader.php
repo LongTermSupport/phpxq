@@ -12,7 +12,8 @@ use LTS\PhpXq\Yq\Format\FormatException;
 
 /**
  * A byte-scanning reader that pulls one JSON value at a time out of a string holding any number of
- * concatenated values (JSON lines and pretty-printed streams alike). Numbers keep their source text.
+ * concatenated values (JSON lines and pretty-printed streams alike). Numbers keep their source text. A run of
+ * plain string characters ends at `"`, `\` or a control character (STRING_STOP).
  */
 final class JsonReader
 {
@@ -22,7 +23,6 @@ final class JsonReader
 
     private const string DIGITS = '0123456789';
 
-    /** Bytes that end a run of plain string characters: `"`, `\` and the control characters. */
     private const string STRING_STOP = "\"\\\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f";
 
     private int $pos = 0;
@@ -185,7 +185,7 @@ final class JsonReader
 
         $i += $digits;
         $float = false;
-        if ('.' === ($source[$i] ?? '')) {
+        if ('.' === substr($source, $i, 1)) {
             $fraction = strspn($source, self::DIGITS, $i + 1);
             if (0 === $fraction) {
                 $this->pos = $i + 1;
@@ -197,9 +197,9 @@ final class JsonReader
             $float = true;
         }
 
-        if ('e' === ($source[$i] ?? '') || 'E' === ($source[$i] ?? '')) {
+        if ('e' === substr($source, $i, 1) || 'E' === substr($source, $i, 1)) {
             $j = $i + 1;
-            if ('+' === ($source[$j] ?? '') || '-' === ($source[$j] ?? '')) {
+            if ('+' === substr($source, $j, 1) || '-' === substr($source, $j, 1)) {
                 ++$j;
             }
 
@@ -335,7 +335,7 @@ final class JsonReader
 
     private function escape(): string
     {
-        $next = $this->source[$this->pos + 1] ?? '';
+        $next = substr($this->source, $this->pos + 1, 1);
         $this->pos += 2;
 
         switch ($next) {
@@ -408,7 +408,7 @@ final class JsonReader
 
     private function peek(): string
     {
-        return $this->source[$this->pos] ?? '';
+        return substr($this->source, $this->pos, 1);
     }
 
     private function unexpected(string $context): FormatException

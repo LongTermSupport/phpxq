@@ -25,25 +25,33 @@ use LTS\PhpXq\Yq\Runtime\NodeOps;
  * Environment, file and process operators: `env`, `strenv`, `envsubst`, `load`, `load_str`, `system`. They
  * honour the `--security-*` switches.
  */
-final class EnvFileCalls implements CallOperatorInterface
+final readonly class EnvFileCalls implements CallOperatorInterface
 {
     public function names(): array
     {
-        return ['env', 'strenv', 'envsubst', 'load', 'load_str', 'strload', 'system'];
+        return BuiltinNameEnum::values(
+            BuiltinNameEnum::Env,
+            BuiltinNameEnum::Strenv,
+            BuiltinNameEnum::Envsubst,
+            BuiltinNameEnum::Load,
+            BuiltinNameEnum::LoadStr,
+            BuiltinNameEnum::Strload,
+            BuiltinNameEnum::System,
+        );
     }
 
     public function evaluate(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
         $security = $context->services->security;
-        if (('env' === $call->name || 'strenv' === $call->name || 'envsubst' === $call->name) && $security->disableEnvOperators) {
+        if ((BuiltinNameEnum::Env->value === $call->name || BuiltinNameEnum::Strenv->value === $call->name || BuiltinNameEnum::Envsubst->value === $call->name) && $security->disableEnvOperators) {
             throw new EvaluationException('Environment variable operations have been disabled');
         }
 
-        if (('load' === $call->name || 'load_str' === $call->name || 'strload' === $call->name) && $security->disableFileOperators) {
+        if ((BuiltinNameEnum::Load->value === $call->name || BuiltinNameEnum::LoadStr->value === $call->name || BuiltinNameEnum::Strload->value === $call->name) && $security->disableFileOperators) {
             throw new EvaluationException('File operations have been disabled');
         }
 
-        if ('system' === $call->name && !$security->enableSystemOperator) {
+        if (BuiltinNameEnum::System->value === $call->name && !$security->enableSystemOperator) {
             throw new EvaluationException('System operations are disabled, use --security-enable-system-operator to enable them');
         }
 
@@ -57,10 +65,10 @@ final class EnvFileCalls implements CallOperatorInterface
 
     private function one(Call $call, Candidate $match, EvaluationContext $context, EvaluatorInterface $evaluator): Candidate
     {
-        switch ($call->name) {
-            case 'env':
+        switch (BuiltinNameEnum::tryFrom($call->name)) {
+            case BuiltinNameEnum::Env:
                 Args::require($call, 1);
-                $name  = Args::string($call, 0, $context, $evaluator, $match) ?? '';
+                $name  = Args::stringOrEmpty($call, 0, $context, $evaluator, $match);
                 $value = getenv($name);
                 if (false === $value) {
                     return Cands::derive(NodeOps::null(), $match);
@@ -68,9 +76,9 @@ final class EnvFileCalls implements CallOperatorInterface
 
                 return Cands::derive($this->parseValue($value, $context), $match);
 
-            case 'strenv':
+            case BuiltinNameEnum::Strenv:
                 Args::require($call, 1);
-                $name  = Args::string($call, 0, $context, $evaluator, $match) ?? '';
+                $name  = Args::stringOrEmpty($call, 0, $context, $evaluator, $match);
                 $value = getenv($name);
                 if (false === $value) {
                     throw new EvaluationException(\sprintf("Value for env variable '%s' not provided in env()", $name));
@@ -78,7 +86,7 @@ final class EnvFileCalls implements CallOperatorInterface
 
                 return Cands::derive(NodeOps::str($value), $match);
 
-            case 'envsubst':
+            case BuiltinNameEnum::Envsubst:
                 $node = NodeOps::deref(Cands::node($match));
                 if (!NodeOps::isScalar($node)) {
                     throw new EvaluationException('Cannot envsubst a collection');
@@ -94,22 +102,22 @@ final class EnvFileCalls implements CallOperatorInterface
 
                 return Cands::derive($out, $match);
 
-            case 'load':
-            case 'load_str':
-            case 'strload':
+            case BuiltinNameEnum::Load:
+            case BuiltinNameEnum::LoadStr:
+            case BuiltinNameEnum::Strload:
                 Args::require($call, 1);
                 $name = Args::node($call, 0, $context, $evaluator, $match);
                 if (!$name instanceof Node || NodeOps::isNull($name)) {
                     throw new EvaluationException('filename expression returned nil');
                 }
 
-                $file = Args::string($call, 0, $context, $evaluator, $match) ?? '';
+                $file = Args::stringOrEmpty($call, 0, $context, $evaluator, $match);
                 if (!is_file($file) || !is_readable($file)) {
                     throw new EvaluationException(\sprintf('failed to load %1$s: open %1$s: no such file or directory', $file));
                 }
 
                 $content = (string)file_get_contents($file);
-                if ('load' !== $call->name) {
+                if (BuiltinNameEnum::Load->value !== $call->name) {
                     return Cands::derive(NodeOps::str($content), $match);
                 }
 

@@ -17,7 +17,8 @@ use LTS\PhpXq\Json\Values;
 
 /**
  * Type tests and conversions: type, length, keys, has, contains, tojson/fromjson, tonumber, tostring and the
- * float classification builtins.
+ * float classification builtins. BOOLEAN_TEXTS holds the strings `toboolean` reads and the boolean each stands
+ * for.
  *
  * @internal
  */
@@ -25,7 +26,6 @@ final class TypeFunctions
 {
     private const int MAX_DEPTH = 10000;
 
-    /** The strings `toboolean` reads, with the boolean each one stands for. */
     private const array BOOLEAN_TEXTS = [
         'true'  => true,
         'false' => false,
@@ -243,7 +243,7 @@ final class TypeFunctions
         if (\is_array($haystack) && array_is_list($haystack) && \is_array($needle) && array_is_list($needle)) {
             $wanted = \count($needle);
             for ($i = 0; $i < $wanted; ++$i) {
-                if (!self::anyContains($haystack, $needle[$i], $depth + 1)) {
+                if (!self::anyContains($needle[$i], $depth + 1, ...$haystack)) {
                     return false;
                 }
             }
@@ -262,11 +262,10 @@ final class TypeFunctions
      * Whether some element of the array contains $wanted. The loops of this class are indexed rather than
      * `array_any`/`array_all` with a closure: a closure callback re-enters the engine through native
      * code, so a depth of 10000 would exhaust the C stack, while plain PHP calls do not.
-     *
-     * @param list<mixed> $haystack
      */
-    private static function anyContains(array $haystack, mixed $wanted, int $depth): bool
+    private static function anyContains(mixed $wanted, int $depth, mixed ...$haystack): bool
     {
+        $haystack   = array_values($haystack);
         $wantedKind = self::kind($wanted);
         $count      = \count($haystack);
         for ($i = 0; $i < $count; ++$i) {

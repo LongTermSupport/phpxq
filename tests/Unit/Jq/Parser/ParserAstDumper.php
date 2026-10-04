@@ -70,7 +70,7 @@ final class ParserAstDumper
             $node instanceof Binary              => '(' . $node->op->value . ' ' . self::dump($node->left) . ' ' . self::dump($node->right) . ')',
             $node instanceof Assign              => '(' . $node->op->value . ' ' . self::dump($node->left) . ' ' . self::dump($node->right) . ')',
             $node instanceof IfThenElse          => '(if ' . self::dump($node->condition) . ' ' . self::dump($node->then) . ' ' . self::opt($node->else) . ')',
-            $node instanceof Bind                => '(as ' . self::dump($node->source) . ' (' . implode(' ?// ', array_map(self::pattern(...), $node->patterns)) . ') ' . self::dump($node->body) . ')',
+            $node instanceof Bind                => '(as ' . self::dump($node->source) . ' (' . self::patterns(' ?// ', ...$node->patterns) . ') ' . self::dump($node->body) . ')',
             $node instanceof Reduce              => '(reduce ' . self::dump($node->source) . ' ' . self::pattern($node->pattern) . ' ' . self::dump($node->init) . ' ' . self::dump($node->update) . ')',
             $node instanceof ForeachLoop         => '(foreach ' . self::dump($node->source) . ' ' . self::pattern($node->pattern) . ' ' . self::dump($node->init) . ' ' . self::dump($node->update) . ' ' . self::opt($node->extract) . ')',
             $node instanceof Label               => '(label ' . $node->name . ' ' . self::dump($node->body) . ')',
@@ -78,7 +78,7 @@ final class ParserAstDumper
             $node instanceof FuncDefScope        => '(def ' . self::def($node->def) . ' ' . self::dump($node->rest) . ')',
             $node instanceof FunctionCall        => [] === $node->args
                 ? $node->name
-                : '(' . $node->name . ' ' . implode(' ', array_map(self::dump(...), $node->args)) . ')',
+                : '(' . $node->name . ' ' . self::nodes(...$node->args) . ')',
             default                              => throw new InvalidArgumentException('unknown node ' . $node::class),
         };
     }
@@ -108,7 +108,7 @@ final class ParserAstDumper
         }
 
         if ($pattern instanceof ArrayPattern) {
-            return '[' . implode(' ', array_map(self::pattern(...), $pattern->elements)) . ']';
+            return '[' . self::patterns(' ', ...$pattern->elements) . ']';
         }
 
         if ($pattern instanceof ObjectPattern) {
@@ -123,6 +123,26 @@ final class ParserAstDumper
         }
 
         throw new InvalidArgumentException('unknown pattern ' . $pattern::class);
+    }
+
+    private static function patterns(string $separator, PatternInterface ...$patterns): string
+    {
+        $parts = [];
+        foreach ($patterns as $pattern) {
+            $parts[] = self::pattern($pattern);
+        }
+
+        return implode($separator, $parts);
+    }
+
+    private static function nodes(NodeInterface ...$nodes): string
+    {
+        $parts = [];
+        foreach ($nodes as $node) {
+            $parts[] = self::dump($node);
+        }
+
+        return implode(' ', $parts);
     }
 
     private static function opt(?NodeInterface $node, string $none = '_'): string

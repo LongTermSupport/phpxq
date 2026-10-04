@@ -5,16 +5,17 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support;
 
 use Closure;
+use LTS\PhpXq\Jq\Runtime\FilterInterface;
 use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Jq\Runtime\StreamBuiltinInterface;
 
 /**
- * A {@see StreamBuiltinInterface} backed by a closure `(input, filters, emit) => void`.
+ * A {@see StreamBuiltinInterface} backed by a closure `(input, emit, ...filters) => void`.
  */
 final readonly class CallbackStreamBuiltin implements StreamBuiltinInterface
 {
     /**
-     * @param Closure(mixed, list<\LTS\PhpXq\Jq\Runtime\FilterInterface>, Closure): void $callback
+     * @param Closure(mixed, Closure, FilterInterface ...): void $callback
      */
     public function __construct(
         private string $name,
@@ -33,8 +34,8 @@ final readonly class CallbackStreamBuiltin implements StreamBuiltinInterface
         return $this->arity;
     }
 
-    public function run(RuntimeContextInterface $context, mixed $input, array $args, Closure $emit): void
+    public function run(RuntimeContextInterface $context, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
-        ($this->callback)($input, $args, $emit);
+        ($this->callback)($input, $emit, ...$args);
     }
 }

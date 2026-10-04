@@ -16,7 +16,7 @@ final class ArgumentParserTest extends TestCase
 {
     public function testPlainArgumentsArePositionalsOfTheRootCommand(): void
     {
-        $parsed = new ArgumentParser()->parse(['.a', 'file.yml', '-']);
+        $parsed = new ArgumentParser()->parse('.a', 'file.yml', '-');
 
         self::assertSame('', $parsed->command);
         self::assertSame(['.a', 'file.yml', '-'], $parsed->positionals);
@@ -32,8 +32,8 @@ final class ArgumentParserTest extends TestCase
         });
 
         try {
-            $parsed  = new ArgumentParser()->parse(['', 'file.yml']);
-            $flagged = new ArgumentParser()->parse(['-I', '4', '', 'file.yml']);
+            $parsed  = new ArgumentParser()->parse('', 'file.yml');
+            $flagged = new ArgumentParser()->parse('-I', '4', '', 'file.yml');
         } finally {
             restore_error_handler();
         }
@@ -50,7 +50,7 @@ final class ArgumentParserTest extends TestCase
     #[DataProvider('commandProvider')]
     public function testTheFirstNonFlagArgumentMayNameACommand(array $args, string $command, array $positionals): void
     {
-        $parsed = new ArgumentParser()->parse($args);
+        $parsed = new ArgumentParser()->parse(...$args);
 
         self::assertSame($command, $parsed->command);
         self::assertSame($positionals, $parsed->positionals);
@@ -75,7 +75,7 @@ final class ArgumentParserTest extends TestCase
 
     public function testDefaultsAreFilledIn(): void
     {
-        $parsed = new ArgumentParser()->parse([]);
+        $parsed = new ArgumentParser()->parse();
 
         self::assertSame(2, $parsed->int('indent'));
         self::assertSame('auto', $parsed->string('input-format'));
@@ -91,7 +91,7 @@ final class ArgumentParserTest extends TestCase
     #[DataProvider('flagFormsProvider')]
     public function testFlagForms(array $args, string $flag, bool|int|string $expected): void
     {
-        $parsed = new ArgumentParser()->parse($args);
+        $parsed = new ArgumentParser()->parse(...$args);
 
         self::assertTrue($parsed->given($flag));
         self::assertSame($expected, $parsed->values[$flag]);
@@ -127,7 +127,7 @@ final class ArgumentParserTest extends TestCase
 
     public function testClusterSetsEveryBoolean(): void
     {
-        $parsed = new ArgumentParser()->parse(['-inP']);
+        $parsed = new ArgumentParser()->parse('-inP');
 
         self::assertTrue($parsed->bool('inplace'));
         self::assertTrue($parsed->bool('null-input'));
@@ -136,12 +136,12 @@ final class ArgumentParserTest extends TestCase
 
     public function testAnExplicitOutputFormatBeatsTheShortcut(): void
     {
-        self::assertSame('csv', new ArgumentParser()->parse(['-j', '-o=csv'])->string('output-format'));
+        self::assertSame('csv', new ArgumentParser()->parse('-j', '-o=csv')->string('output-format'));
     }
 
     public function testFlagsMayFollowPositionals(): void
     {
-        $parsed = new ArgumentParser()->parse(['test.yml', '-P', '.a', '-I=4']);
+        $parsed = new ArgumentParser()->parse('test.yml', '-P', '.a', '-I=4');
 
         self::assertSame(['test.yml', '.a'], $parsed->positionals);
         self::assertTrue($parsed->bool('prettyPrint'));
@@ -150,7 +150,7 @@ final class ArgumentParserTest extends TestCase
 
     public function testDoubleDashEndsTheFlags(): void
     {
-        $parsed = new ArgumentParser()->parse(['-P', '--', '-n', '--x']);
+        $parsed = new ArgumentParser()->parse('-P', '--', '-n', '--x');
 
         self::assertTrue($parsed->bool('prettyPrint'));
         self::assertFalse($parsed->bool('null-input'));
@@ -164,7 +164,7 @@ final class ArgumentParserTest extends TestCase
     public function testUsageErrors(array $args, string $message): void
     {
         try {
-            new ArgumentParser()->parse($args);
+            new ArgumentParser()->parse(...$args);
         } catch (UsageException $usageException) {
             self::assertStringContainsString($message, $usageException->getMessage());
 

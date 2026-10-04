@@ -14,7 +14,7 @@ use LTS\PhpXq\Yaml\NodeKindEnum;
  * documents, a document head comment is printed before an explicit `---` marker, and `--no-doc`
  * (`noDocSeparator`) drops every marker and directive.
  */
-final class YamlEmitter implements YamlEmitterInterface
+final readonly class YamlEmitter implements YamlEmitterInterface
 {
     public function emit(Node $node, EmitOptions $options = new EmitOptions()): string
     {

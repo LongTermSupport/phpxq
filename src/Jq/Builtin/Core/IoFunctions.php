@@ -19,7 +19,7 @@ use LTS\PhpXq\Json\JsonObject;
  *
  * @internal
  */
-final class IoFunctions
+final readonly class IoFunctions
 {
     private function __construct()
     {
@@ -30,21 +30,21 @@ final class IoFunctions
      */
     public static function register(BuiltinRegistryInterface $registry, Closure $catalog): void
     {
-        $registry->register(new StreamFunction('input', 0, static function (RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void {
+        $registry->register(new StreamFunction('input', 0, static function (RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void {
             $emit($c->inputs()->next());
         }));
-        $registry->register(new StreamFunction('inputs', 0, static function (RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void {
+        $registry->register(new StreamFunction('inputs', 0, static function (RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void {
             $inputs = $c->inputs();
             while ($inputs->hasNext()) {
                 $emit($inputs->next());
             }
         }));
-        $registry->register(new StreamFunction('debug', 0, static function (RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void {
+        $registry->register(new StreamFunction('debug', 0, static function (RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void {
             $c->debug($input);
             $emit($input);
         }));
         $registry->register(new StreamFunction('debug', 1, self::debugWith(...)));
-        $registry->register(new StreamFunction('stderr', 0, static function (RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void {
+        $registry->register(new StreamFunction('stderr', 0, static function (RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void {
             $c->writeStderr($input);
             $emit($input);
         }));
@@ -79,10 +79,9 @@ final class IoFunctions
     }
 
     /**
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      */
-    private static function debugWith(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
+    private static function debugWith(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         $args[0]->run($input, static function (mixed $message) use ($c): void {
             $c->debug($message);

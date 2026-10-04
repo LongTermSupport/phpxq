@@ -23,7 +23,7 @@ use LTS\PhpXq\Yq\Expression\Parser\StringLiteral;
  *   the text is the undecoded body so the parser can split out the interpolations. Single-quoted strings are
  *   verbatim.
  */
-final class ExpressionLexer implements ExpressionLexerInterface
+final readonly class ExpressionLexer implements ExpressionLexerInterface
 {
     private const string NAME_STOP = " \t\r\n.[](){}|,;=:\"'!?<>/%&#\\";
 
@@ -67,8 +67,8 @@ final class ExpressionLexer implements ExpressionLexerInterface
             }
 
             if ('.' === $char) {
-                if ('.' === ($expression[$index + 1] ?? '')) {
-                    $three    = '.' === ($expression[$index + 2] ?? '');
+                if ('.' === substr($expression, $index + 1, 1)) {
+                    $three    = '.' === substr($expression, $index + 2, 1);
                     $tokens[] = new ExpressionToken($three ? ExpressionTokenKindEnum::DotDotDot : ExpressionTokenKindEnum::DotDot, $three ? '...' : '..', $index);
                     $index   += $three ? 3 : 2;
 
@@ -180,7 +180,7 @@ final class ExpressionLexer implements ExpressionLexerInterface
 
     private function operator(string $expression, int $index, string $char): ?string
     {
-        $next = $expression[$index + 1] ?? '';
+        $next = substr($expression, $index + 1, 1);
 
         return match ($char) {
             '|'     => '=' === $next ? '|=' : '|',
@@ -208,7 +208,7 @@ final class ExpressionLexer implements ExpressionLexerInterface
             return '==';
         }
 
-        if ('c' === $next && !$this->isWordChar($expression[$index + 2] ?? '')) {
+        if ('c' === $next && !$this->isWordChar(substr($expression, $index + 2, 1))) {
             return '=c';
         }
 
@@ -218,7 +218,7 @@ final class ExpressionLexer implements ExpressionLexerInterface
     private function multiplyOperator(string $expression, int $index): string
     {
         $end = $index + 1;
-        if ('=' === ($expression[$end] ?? '')) {
+        if ('=' === substr($expression, $end, 1)) {
             ++$end;
         }
 
@@ -226,7 +226,7 @@ final class ExpressionLexer implements ExpressionLexerInterface
         $end      += strspn($expression, '+?dnc', $end, 3);
         $modifiers = substr($expression, $base, $end - $base);
         $letters   = \strlen($modifiers) - substr_count($modifiers, '+') - substr_count($modifiers, '?');
-        if ($end > $base && ($letters > 1 || $this->isWordChar($expression[$end] ?? ''))) {
+        if ($end > $base && ($letters > 1 || $this->isWordChar(substr($expression, $end, 1)))) {
             $end = $base;
         }
 
@@ -240,7 +240,7 @@ final class ExpressionLexer implements ExpressionLexerInterface
 
     private function nameLength(string $expression, int $index): int
     {
-        if ('+' === ($expression[$index] ?? '')) {
+        if ('+' === substr($expression, $index, 1)) {
             return 1 + strcspn($expression, self::NAME_STOP . '+', $index + 1);
         }
 

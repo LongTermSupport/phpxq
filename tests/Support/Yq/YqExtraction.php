@@ -31,7 +31,7 @@ final readonly class YqExtraction
             $rows[] = $case->toArray();
         }
 
-        return $this->encode($rows);
+        return $this->encode(...$rows);
     }
 
     public function skippedJson(): string
@@ -41,13 +41,13 @@ final readonly class YqExtraction
             $rows[] = $skip->toArray();
         }
 
-        return $this->encode($rows);
+        return $this->encode(...$rows);
     }
 
     /**
-     * @param list<array<string, mixed>> $rows
+     * @param array<string, mixed> ...$rows
      */
-    private function encode(array $rows): string
+    private function encode(array ...$rows): string
     {
         return json_encode($rows, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE | \JSON_THROW_ON_ERROR) . "\n";
     }

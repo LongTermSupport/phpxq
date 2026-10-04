@@ -12,7 +12,7 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
 /**
  * HCL input: one Document holding the attributes and nested blocks (see {@see HclReader}).
  */
-final class HclDecoder implements DecoderInterface
+final readonly class HclDecoder implements DecoderInterface
 {
     public function format(): FormatEnum
     {

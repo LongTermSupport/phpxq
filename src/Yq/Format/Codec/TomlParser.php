@@ -95,7 +95,7 @@ final class TomlParser
 
     private function header(Node $root): Node
     {
-        $array = '[' === ($this->source[$this->pos + 1] ?? '');
+        $array = '[' === substr($this->source, $this->pos + 1, 1);
         $this->pos += $array ? 2 : 1;
         $path = $this->keyPath();
         $this->skipBlanks();
@@ -199,7 +199,7 @@ final class TomlParser
     {
         $path = $this->keyPath();
         $this->skipBlanks();
-        if ('=' !== ($this->source[$this->pos] ?? '')) {
+        if ('=' !== substr($this->source, $this->pos, 1)) {
             throw $this->error('expected = after key');
         }
 
@@ -207,7 +207,7 @@ final class TomlParser
         $this->skipBlanks();
         $value = $this->value(0);
         $this->skipBlanks();
-        if ('#' === ($this->source[$this->pos] ?? '')) {
+        if ('#' === substr($this->source, $this->pos, 1)) {
             $value->lineComment = $this->readComment();
         }
 
@@ -215,13 +215,10 @@ final class TomlParser
 
         $comment       = $this->pending;
         $this->pending = '';
-        $this->insert($table, $path, $value, $comment);
+        $this->insert($table, $value, $comment, ...$path);
     }
 
-    /**
-     * @param list<string> $path
-     */
-    private function insert(Node $table, array $path, Node $value, string $comment): void
+    private function insert(Node $table, Node $value, string $comment, string ...$path): void
     {
         $last = \count($path) - 1;
         $node = $table;
@@ -267,7 +264,7 @@ final class TomlParser
             $this->skipBlanks();
             $path[] = $this->keyPart();
             $this->skipBlanks();
-            if ('.' !== ($this->source[$this->pos] ?? '')) {
+            if ('.' !== substr($this->source, $this->pos, 1)) {
                 return $path;
             }
 
@@ -277,7 +274,7 @@ final class TomlParser
 
     private function keyPart(): string
     {
-        $char = $this->source[$this->pos] ?? '';
+        $char = substr($this->source, $this->pos, 1);
         if ('"' === $char) {
             return $this->basicString();
         }
@@ -303,7 +300,7 @@ final class TomlParser
             throw $this->error('nesting is too deep');
         }
 
-        $char = $this->source[$this->pos] ?? '';
+        $char = substr($this->source, $this->pos, 1);
 
         return match ($char) {
             '"'     => $this->stringValue(true),
@@ -343,7 +340,7 @@ final class TomlParser
 
             $items[] = $this->value($depth + 1);
             $this->skipSpace();
-            $char = $this->source[$this->pos] ?? '';
+            $char = substr($this->source, $this->pos, 1);
             if (',' === $char) {
                 ++$this->pos;
 
@@ -363,7 +360,7 @@ final class TomlParser
         $table->explicitStart                = true;
         $this->sealed[spl_object_id($table)] = true;
         $this->skipBlanks();
-        if ('}' === ($this->source[$this->pos] ?? '')) {
+        if ('}' === substr($this->source, $this->pos, 1)) {
             ++$this->pos;
 
             return $table;
@@ -373,15 +370,15 @@ final class TomlParser
             $this->skipSpace();
             $path = $this->keyPath();
             $this->skipBlanks();
-            if ('=' !== ($this->source[$this->pos] ?? '')) {
+            if ('=' !== substr($this->source, $this->pos, 1)) {
                 throw $this->error('expected = after key in inline table');
             }
 
             ++$this->pos;
             $this->skipBlanks();
-            $this->insert($table, $path, $this->value($depth + 1), '');
+            $this->insert($table, $this->value($depth + 1), '', ...$path);
             $this->skipSpace();
-            $char = $this->source[$this->pos] ?? '';
+            $char = substr($this->source, $this->pos, 1);
             ++$this->pos;
             if ('}' === $char) {
                 return $table;
@@ -458,7 +455,7 @@ final class TomlParser
             $start = $this->pos + 3;
             if ("\r\n" === substr($this->source, $start, 2)) {
                 $start += 2;
-            } elseif ("\n" === ($this->source[$start] ?? '')) {
+            } elseif ("\n" === substr($this->source, $start, 1)) {
                 ++$start;
             }
 
@@ -467,7 +464,7 @@ final class TomlParser
                 throw $this->error('unterminated multi-line literal string');
             }
 
-            while ("'" === ($this->source[$end + 3] ?? '')) {
+            while ("'" === substr($this->source, $end + 3, 1)) {
                 ++$end;
             }
 
@@ -498,7 +495,7 @@ final class TomlParser
         if ($multiline) {
             if ("\r\n" === substr($this->source, $this->pos, 2)) {
                 $this->pos += 2;
-            } elseif ("\n" === ($this->source[$this->pos] ?? '')) {
+            } elseif ("\n" === substr($this->source, $this->pos, 1)) {
                 ++$this->pos;
             }
         }
@@ -522,7 +519,7 @@ final class TomlParser
 
                 if ('"""' === substr($this->source, $this->pos, 3)) {
                     $this->pos += 3;
-                    while ('"' === ($this->source[$this->pos] ?? '') && !str_ends_with($out, '""')) {
+                    while ('"' === substr($this->source, $this->pos, 1) && !str_ends_with($out, '""')) {
                         $out .= '"';
                         ++$this->pos;
                     }
@@ -553,7 +550,7 @@ final class TomlParser
 
     private function escape(bool $multiline): string
     {
-        $next = $this->source[$this->pos + 1] ?? '';
+        $next = substr($this->source, $this->pos + 1, 1);
         $this->pos += 2;
         switch ($next) {
             case 'b':
@@ -614,11 +611,11 @@ final class TomlParser
     private function endOfLine(): void
     {
         $this->skipBlanks();
-        if ('#' === ($this->source[$this->pos] ?? '')) {
+        if ('#' === substr($this->source, $this->pos, 1)) {
             $this->pos += strcspn($this->source, "\r\n", $this->pos);
         }
 
-        $char = $this->source[$this->pos] ?? '';
+        $char = substr($this->source, $this->pos, 1);
         if ('' === $char) {
             return;
         }
@@ -640,7 +637,7 @@ final class TomlParser
     {
         while ($this->pos < $this->length) {
             $this->pos += strspn($this->source, " \t\r\n", $this->pos);
-            if ('#' !== ($this->source[$this->pos] ?? '')) {
+            if ('#' !== substr($this->source, $this->pos, 1)) {
                 return;
             }
 

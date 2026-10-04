@@ -14,7 +14,7 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
 /**
  * URI output: the scalar's text escaped like Go's url.QueryEscape.
  */
-final class UriEncoder implements EncoderInterface
+final readonly class UriEncoder implements EncoderInterface
 {
     public function format(): FormatEnum
     {

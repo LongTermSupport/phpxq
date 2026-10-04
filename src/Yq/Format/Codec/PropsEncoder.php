@@ -18,7 +18,7 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * their property, separated from the previous property by a blank line; head comments of maps and arrays
  * ride along with the first scalar below them.
  */
-final class PropsEncoder implements EncoderInterface
+final readonly class PropsEncoder implements EncoderInterface
 {
     private const int MAX_DEPTH = 1000;
 

@@ -8,17 +8,15 @@ use LTS\PhpXq\Json\Codec\Utf8;
 
 /**
  * UTF-8 text helpers on strings that are always valid UTF-8 (the value model guarantees it): codepoint
- * counts and offsets, explode/implode, jq's whitespace trimming.
+ * counts and offsets, explode/implode, jq's whitespace trimming (ASCII controls 9 to 13 and the Unicode
+ * White_Space characters).
  *
  * @internal
  */
-final class Unicode
+final readonly class Unicode
 {
     private const string REPLACEMENT = "\u{fffd}";
 
-    /**
-     * Whitespace as jq's trim sees it: ASCII controls 9 to 13 and the Unicode White_Space characters.
-     */
     private const string TRIM_CLASS = '[\x09-\x0d\x20\x{85}\x{a0}\x{1680}\x{2000}-\x{200a}\x{2028}\x{2029}\x{202f}\x{205f}\x{3000}]';
 
     private function __construct()

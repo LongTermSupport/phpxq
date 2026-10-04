@@ -12,7 +12,7 @@ use LTS\PhpXq\Json\JsonObject;
  *
  * @internal
  */
-final class Nesting
+final readonly class Nesting
 {
     private const int LIMIT = 10001;
 

@@ -18,7 +18,7 @@ use LTS\PhpXq\Json\JsonObject;
  *
  * @internal
  */
-final class PathFunctions
+final readonly class PathFunctions
 {
     private function __construct()
     {
@@ -28,8 +28,8 @@ final class PathFunctions
     {
         $registry->register(new PathStreamFunction('path', 1, self::path(...), self::pathOfPath(...)));
         $registry->register(new PathStreamFunction('getpath', 1, self::getPath(...), self::getPathPaths(...)));
-        $registry->register(new ValueFunction('setpath', 2, static fn (RuntimeContextInterface $c, mixed $v, array $a): mixed => PathOps::setPath($v, self::pathArgument($a[0]), $a[1])));
-        $registry->register(new ValueFunction('delpaths', 1, static fn (RuntimeContextInterface $c, mixed $v, array $a): mixed => PathOps::deletePaths($v, self::pathList($a[0]))));
+        $registry->register(new ValueFunction('setpath', 2, static fn (RuntimeContextInterface $c, mixed $v, array $a): mixed => PathOps::setPath($v, $a[1], ...self::pathArgument($a[0]))));
+        $registry->register(new ValueFunction('delpaths', 1, static fn (RuntimeContextInterface $c, mixed $v, array $a): mixed => PathOps::deletePaths($v, ...self::pathList($a[0]))));
         $registry->register(new StreamFunction('paths', 0, self::paths(...)));
         $registry->register(new StreamFunction('tostream', 0, self::toStream(...)));
         $registry->register(new StreamFunction('fromstream', 1, self::fromStream(...)));
@@ -65,10 +65,9 @@ final class PathFunctions
     }
 
     /**
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      */
-    private static function path(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
+    private static function path(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         $args[0]->paths([], $input, static function (?array $path, mixed $value) use ($emit): void {
             if (null === $path) {
@@ -81,87 +80,81 @@ final class PathFunctions
 
     /**
      * @param ?list<mixed>                       $path
-     * @param list<FilterInterface>              $args
      * @param Closure(?list<mixed>, mixed): void $emit
      */
-    private static function pathOfPath(RuntimeContextInterface $c, ?array $path, mixed $input, array $args, Closure $emit): void
+    private static function pathOfPath(RuntimeContextInterface $c, ?array $path, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
-        self::path($c, $input, $args, static function (mixed $found) use ($emit): void {
+        self::path($c, $input, static function (mixed $found) use ($emit): void {
             $emit(null, $found);
-        });
+        }, ...$args);
     }
 
     /**
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      */
-    private static function getPath(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
+    private static function getPath(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         $args[0]->run($input, static function (mixed $path) use ($input, $emit): void {
-            $emit(PathOps::getPath($input, self::pathArgument($path)));
+            $emit(PathOps::getPath($input, ...self::pathArgument($path)));
         });
     }
 
     /**
      * @param ?list<mixed>                       $path
-     * @param list<FilterInterface>              $args
      * @param Closure(?list<mixed>, mixed): void $emit
      */
-    private static function getPathPaths(RuntimeContextInterface $c, ?array $path, mixed $input, array $args, Closure $emit): void
+    private static function getPathPaths(RuntimeContextInterface $c, ?array $path, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         $args[0]->run($input, static function (mixed $extra) use ($path, $input, $emit): void {
             $steps = self::pathArgument($extra);
-            $emit(null === $path ? null : [...$path, ...$steps], PathOps::getPath($input, $steps));
+            $emit(null === $path ? null : [...$path, ...$steps], PathOps::getPath($input, ...$steps));
         });
     }
 
     /**
      * Every path below the root, in document order.
      *
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      */
-    private static function paths(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
+    private static function paths(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
-        self::walkPaths([], $input, $emit);
+        self::walkPaths($input, $emit);
     }
 
     /**
-     * @param list<mixed>          $prefix
      * @param Closure(mixed): void $emit
      */
-    private static function walkPaths(array $prefix, mixed $value, Closure $emit): void
+    private static function walkPaths(mixed $value, Closure $emit, mixed ...$prefix): void
     {
         if (\is_array($value)) {
             foreach ($value as $index => $child) {
                 $path = [...$prefix, $index];
                 $emit($path);
-                self::walkPaths($path, $child, $emit);
+                self::walkPaths($child, $emit, ...$path);
             }
         } elseif ($value instanceof JsonObject) {
             foreach ($value->toArray() as $key => $child) {
                 $path = [...$prefix, (string)$key];
                 $emit($path);
-                self::walkPaths($path, $child, $emit);
+                self::walkPaths($child, $emit, ...$path);
             }
         }
     }
 
     /**
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      */
-    private static function toStream(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
+    private static function toStream(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
-        self::streamEvents([], $input, $emit);
+        self::streamEvents($input, $emit);
     }
 
     /**
-     * @param list<mixed>          $path
      * @param Closure(mixed): void $emit
      */
-    private static function streamEvents(array $path, mixed $value, Closure $emit): void
+    private static function streamEvents(mixed $value, Closure $emit, mixed ...$path): void
     {
+        $path     = array_values($path);
         $children = null;
         if (\is_array($value) && [] !== $value) {
             $children = $value;
@@ -178,17 +171,16 @@ final class PathFunctions
         $last = null;
         foreach ($children as $key => $child) {
             $last = \is_int($key) && \is_array($value) ? $key : (string)$key;
-            self::streamEvents([...$path, $last], $child, $emit);
+            self::streamEvents($child, $emit, ...[...$path, $last]);
         }
 
         $emit([[...$path, $last]]);
     }
 
     /**
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      */
-    private static function fromStream(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
+    private static function fromStream(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         $value = null;
         $done  = false;
@@ -205,7 +197,7 @@ final class PathFunctions
             $path = self::pathArgument($event[0]);
             if (2 === \count($event)) {
                 $done  = [] === $path;
-                $value = PathOps::setPath($value, $path, $event[1]);
+                $value = PathOps::setPath($value, $event[1], ...$path);
             } else {
                 $done = 1 === \count($path);
             }

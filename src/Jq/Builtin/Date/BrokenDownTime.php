@@ -9,15 +9,13 @@ use LTS\PhpXq\Json\Values;
 
 /**
  * C's `struct tm` as jq sees it: a calendar date and wall-clock time plus weekday and day of the year,
- * and the zone data `strftime` prints for `%z` and `%Z`.
+ * and the zone data `strftime` prints for `%z` and `%Z`. EPOCH_LIMIT is the largest |seconds since the epoch|
+ * whose year still fits the 32-bit `tm_year` of glibc.
  *
  * @internal
  */
 final readonly class BrokenDownTime
 {
-    /**
-     * The largest |seconds since the epoch| whose year still fits the 32-bit `tm_year` of glibc.
-     */
     private const int EPOCH_LIMIT = 67768036191676799;
 
     private const int INT_MAX = 2147483647;

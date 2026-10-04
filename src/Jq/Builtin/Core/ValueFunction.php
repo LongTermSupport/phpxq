@@ -35,8 +35,8 @@ final readonly class ValueFunction implements ValueBuiltinInterface
         return $this->arity;
     }
 
-    public function call(RuntimeContextInterface $context, mixed $input, array $args): mixed
+    public function call(RuntimeContextInterface $context, mixed $input, mixed ...$args): mixed
     {
-        return ($this->function)($context, $input, $args);
+        return ($this->function)($context, $input, array_values($args));
     }
 }

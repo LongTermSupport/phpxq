@@ -91,7 +91,7 @@ final class CompleteCommandTest extends TestCase
         self::assertIsResource($out);
         self::assertIsResource($err);
 
-        new CompleteCommand()->run($words, $descriptions, $out, $err);
+        new CompleteCommand()->run($descriptions, $out, $err, ...$words);
         rewind($out);
         rewind($err);
 

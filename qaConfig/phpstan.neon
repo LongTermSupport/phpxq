@@ -14,6 +14,14 @@ rules:
     - LTS\PHPQA\PHPStan\Rules\ForbidSilentCatchRule
     # Bundled with php-qa-ci but opt-in: a scalar documented as a closed set of literals ('a'|'b').
     - LTS\PHPQA\PHPStan\Rules\RequireEnumOverLiteralUnionRule
+    - LTS\PHPQA\PHPStan\Rules\ForbidNullCoalescingEmptyStringRule
+    - LTS\PHPQA\PHPStan\Rules\ForbidNullCoalescingFalseRule
+    - LTS\PHPQA\PHPStan\Rules\RequireReadonlyServiceRule
+    - LTS\PHPQA\PHPStan\Rules\RequireConsistentMemberDocsRule
+    - LTS\PHPQA\PHPStan\Rules\RequireVariadicOverArrayParameterRule
+    - LTS\PHPQA\PHPStan\Rules\ForbidAmbiguousArrayDocRule
+    - LTS\PHPQA\PHPStan\Rules\ForbidInsecureFunctionsRule
+    - LTS\PHPQA\PHPStan\Rules\ForbidDebugOutputFunctionsRule
     - QaConfig\PHPStan\Rules\RecursionThroughNativeCallbackRule
     - QaConfig\PHPStan\Rules\UnguardedAliasRecursionRule
     - QaConfig\PHPStan\Rules\LoopInvariantConstructionRule
@@ -25,6 +33,35 @@ services:
         class: QaConfig\PHPStan\Rules\ProductionOnlyRule
         arguments:
             inner: LTS\PHPQA\PHPStan\Rules\ForbidRepeatedStringLiteralRule()
+            excludedDirectory: %currentWorkingDirectory%/tests
+        tags:
+            - phpstan.rules.rule
+    # A closed set of names written as strings. Production code only. The syntax namespaces are the one allowed
+    # exception: their literals are the grammar of an external text syntax (reasons in
+    # docs/phpstan-rules/string-discriminator.md).
+    -
+        class: QaConfig\PHPStan\Rules\ProductionOnlyRule
+        arguments:
+            inner: QaConfig\PHPStan\Rules\StringDiscriminatorRule([
+                LTS\PhpXq\Json,
+                LTS\PhpXq\Yaml\Token,
+                LTS\PhpXq\Yaml\Parser,
+                LTS\PhpXq\Yaml\Schema,
+                LTS\PhpXq\Jq\Parser,
+                LTS\PhpXq\Yq\Expression\Parser,
+                LTS\PhpXq\Jq\Builtin\Regex,
+                LTS\PhpXq\Jq\Builtin\Date\Strftime,
+                LTS\PhpXq\Jq\Builtin\Date\Strptime,
+                LTS\PhpXq\Yq\Format\Codec\HclReader,
+                LTS\PhpXq\Yq\Format\Codec\JsonReader,
+                LTS\PhpXq\Yq\Format\Codec\LuaReader,
+                LTS\PhpXq\Yq\Format\Codec\PropsDecoder,
+                LTS\PhpXq\Yq\Format\Codec\TomlParser,
+                LTS\PhpXq\Yq\Format\Codec\XmlReader,
+                LTS\PhpXq\Yq\Runtime\GoTime,
+                LTS\PhpXq\Yq\Runtime\GoRegex,
+                LTS\PhpXq\Yq\Runtime\Numbers,
+            ])
             excludedDirectory: %currentWorkingDirectory%/tests
         tags:
             - phpstan.rules.rule

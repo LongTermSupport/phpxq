@@ -13,7 +13,7 @@ use LTS\PhpXq\Yaml\Schema\CoreSchema;
  * unsigned 64-bit integer are ints, a lone "-0" is a float, dates and date-times are !!timestamp, and
  * a float that overflows a double stays a string.
  */
-final class ScalarResolver
+final readonly class ScalarResolver
 {
     public const string TAG_MERGE = '!!merge';
 
@@ -144,6 +144,9 @@ final class ScalarResolver
             return false;
         }
 
+        // preg_match omits trailing groups that did not participate; fill them with '' so every index below exists.
+        $m += array_fill(0, 12, '');
+
         $year  = (int)$m[1];
         $month = (int)$m[2];
         $day   = (int)$m[3];
@@ -152,8 +155,8 @@ final class ScalarResolver
         }
 
         $clocks = [
-            [$m[4] ?? '', $m[5] ?? '', $m[6] ?? ''],
-            [$m[9] ?? '', $m[10] ?? '', $m[11] ?? ''],
+            [$m[4], $m[5], $m[6]],
+            [$m[9], $m[10], $m[11]],
         ];
         foreach ($clocks as [$hour, $minute, $second]) {
             if ('' !== $hour && ((int)$hour > 23 || (int)$minute > 59 || (int)$second > 59)) {
@@ -161,9 +164,9 @@ final class ScalarResolver
             }
         }
 
-        $zoneHour = $m[7] ?? '';
+        $zoneHour = $m[7];
 
-        return '' === $zoneHour || (int)$zoneHour <= 24 && (int)($m[8] ?? '') <= 59;
+        return '' === $zoneHour || (int)$zoneHour <= 24 && (int)$m[8] <= 59;
     }
 
     private static function daysInMonth(int $year, int $month): int

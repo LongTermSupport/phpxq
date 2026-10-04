@@ -12,7 +12,7 @@ use LTS\PhpXq\Yaml\NodeStyleEnum;
  * Anchor and alias resolution: `explode` (replace aliases by copies, drop anchors, expand `<<` merge
  * keys) and anchor lookup for the `alias` setter.
  */
-final class Anchors
+final readonly class Anchors
 {
     private const int MAX_DEPTH = 200;
 

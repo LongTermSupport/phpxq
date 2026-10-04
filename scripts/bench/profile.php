@@ -65,9 +65,9 @@ for ($run = 0; $run < $repetitions; ++$run) {
     }
 
     if (str_ends_with($file, '.yaml') || str_ends_with($file, '.yml')) {
-        new YqApplication()->run([$filter, $file], $stdin, $stdout, $stderr);
+        new YqApplication()->run($stdin, $stdout, $stderr, $filter, $file);
     } else {
-        JqApplication::create()->run([$filter, $file], $stdin, $stdout, $stderr);
+        JqApplication::create()->run($stdin, $stdout, $stderr, $filter, $file);
     }
 }
 

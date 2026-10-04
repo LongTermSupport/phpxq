@@ -24,7 +24,7 @@ final class SetAssignOp extends AbstractOp
     {
         $left = $this->left;
         $this->right->run($env, $input, static function (mixed $value) use ($left, $env, $input, $emit): void {
-            $emit(Assignment::setAll($input, Assignment::collect($left, $env, $input), static fn (): mixed => $value));
+            $emit(Assignment::setAll($input, static fn (): mixed => $value, ...Assignment::collect($left, $env, $input)));
         });
     }
 }

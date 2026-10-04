@@ -23,17 +23,35 @@ use LTS\PhpXq\Yq\Runtime\PathOps;
  * `line`, `column`, `document_index` (`di`), `file_index` (`fi`), `filename`, `split_doc`, and the operator
  * that parses and runs an expression held in a string.
  */
-final class NavigationCalls implements CallOperatorInterface
+final readonly class NavigationCalls implements CallOperatorInterface
 {
     public function names(): array
     {
-        return ['parent', 'parents', 'root', 'key', 'is_key', 'path', 'getpath', 'line', 'column', 'document_index', 'di', 'file_index', 'fi', 'filename', 'split_doc', 'splitDoc', 'eval'];
+        return BuiltinNameEnum::values(
+            BuiltinNameEnum::Parent,
+            BuiltinNameEnum::Parents,
+            BuiltinNameEnum::Root,
+            BuiltinNameEnum::Key,
+            BuiltinNameEnum::IsKey,
+            BuiltinNameEnum::Path,
+            BuiltinNameEnum::Getpath,
+            BuiltinNameEnum::Line,
+            BuiltinNameEnum::Column,
+            BuiltinNameEnum::DocumentIndex,
+            BuiltinNameEnum::DocumentIndexShort,
+            BuiltinNameEnum::FileIndex,
+            BuiltinNameEnum::FileIndexShort,
+            BuiltinNameEnum::Filename,
+            BuiltinNameEnum::SplitDoc,
+            BuiltinNameEnum::SplitDocCamel,
+            BuiltinNameEnum::Eval,
+        );
     }
 
     public function evaluate(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
         $out = [];
-        if ('split_doc' === $call->name || 'splitDoc' === $call->name) {
+        if (BuiltinNameEnum::SplitDoc->value === $call->name || BuiltinNameEnum::SplitDocCamel->value === $call->name) {
             foreach ($context->matches as $match) {
                 if (NodeOps::isNull(Cands::node($match))) {
                     continue;
@@ -59,14 +77,14 @@ final class NavigationCalls implements CallOperatorInterface
      */
     private function one(Call $call, Candidate $match, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
-        switch ($call->name) {
-            case 'parent':
+        switch (BuiltinNameEnum::tryFrom($call->name)) {
+            case BuiltinNameEnum::Parent:
                 $count  = [] === $call->arguments ? 1 : (Args::int($call, 0, $context, $evaluator, $match) ?? 1);
-                $parent = $this->ancestor($this->ancestors($match), $count);
+                $parent = $this->ancestor($count, ...$this->ancestors($match));
 
                 return $parent instanceof Candidate ? [$parent] : [];
 
-            case 'parents':
+            case BuiltinNameEnum::Parents:
                 $items = [];
                 foreach ($this->ancestors($match) as $ancestor) {
                     $items[] = $ancestor->node->deepCopy();
@@ -74,23 +92,23 @@ final class NavigationCalls implements CallOperatorInterface
 
                 return [Cands::derive(NodeOps::seq($items), $match)];
 
-            case 'root':
+            case BuiltinNameEnum::Root:
                 return [Cands::root($match)];
 
-            case 'key':
+            case BuiltinNameEnum::Key:
                 return $match->key instanceof Node ? [new Candidate($match->key, $match->parent, $match->key, $match->documentIndex, $match->fileIndex, $match->filename)] : [];
 
-            case 'is_key':
+            case BuiltinNameEnum::IsKey:
                 return [Cands::derive(NodeOps::bool(Cands::isKey($match)), $match)];
 
-            case 'path':
+            case BuiltinNameEnum::Path:
                 return [Cands::derive(PathOps::pathNode($match), $match)];
 
-            case 'getpath':
+            case BuiltinNameEnum::Getpath:
                 Args::require($call, 1);
                 $found = [];
                 foreach (Args::results($call, 0, $context, $evaluator, $match) as $path) {
-                    $target = PathOps::follow($match, PathOps::elements(Cands::node($path)), false, $context->services->yamlFixMergeAnchorToSpec);
+                    $target = PathOps::follow($match, false, $context->services->yamlFixMergeAnchorToSpec, ...PathOps::elements(Cands::node($path)));
                     if ($target instanceof Candidate) {
                         $found[] = $target;
                     }
@@ -98,21 +116,21 @@ final class NavigationCalls implements CallOperatorInterface
 
                 return $found;
 
-            case 'line':
+            case BuiltinNameEnum::Line:
                 return [Cands::derive(NodeOps::int(Cands::node($match)->line), $match)];
 
-            case 'column':
+            case BuiltinNameEnum::Column:
                 return [Cands::derive(NodeOps::int(Cands::node($match)->column), $match)];
 
-            case 'document_index':
-            case 'di':
+            case BuiltinNameEnum::DocumentIndex:
+            case BuiltinNameEnum::DocumentIndexShort:
                 return [Cands::derive(NodeOps::int($match->documentIndex), $match)];
 
-            case 'file_index':
-            case 'fi':
+            case BuiltinNameEnum::FileIndex:
+            case BuiltinNameEnum::FileIndexShort:
                 return [Cands::derive(NodeOps::int($match->fileIndex), $match)];
 
-            case 'filename':
+            case BuiltinNameEnum::Filename:
                 return [Cands::derive(NodeOps::str($match->filename), $match)];
 
             default:
@@ -133,10 +151,7 @@ final class NavigationCalls implements CallOperatorInterface
         return $chain;
     }
 
-    /**
-     * @param list<Candidate> $chain
-     */
-    private function ancestor(array $chain, int $count): ?Candidate
+    private function ancestor(int $count, Candidate ...$chain): ?Candidate
     {
         if (0 === $count) {
             return null;
@@ -161,7 +176,7 @@ final class NavigationCalls implements CallOperatorInterface
                 throw new EvaluationException($exception->getMessage(), 0, $exception);
             }
 
-            foreach ($evaluator->evaluate($parsed, $context->withMatches([$match])) as $result) {
+            foreach ($evaluator->evaluate($parsed, $context->withMatches($match)) as $result) {
                 $out[] = $result;
             }
         }

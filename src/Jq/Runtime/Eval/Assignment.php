@@ -19,7 +19,7 @@ use LTS\PhpXq\Json\JsonObject;
  *
  * @internal
  */
-final class Assignment
+final readonly class Assignment
 {
     private const int MAX_INDEX = 536870911;
 
@@ -30,18 +30,19 @@ final class Assignment
     /**
      * Replace the value at every path by $valueFor(old value at that path).
      *
-     * @param list<list<mixed>>     $paths
      * @param Closure(mixed): mixed $valueFor
+     * @param list<mixed>           ...$paths
      *
      * @throws JqException
      */
-    public static function setAll(mixed $input, array $paths, Closure $valueFor): mixed
+    public static function setAll(mixed $input, Closure $valueFor, array ...$paths): mixed
     {
-        $trie = \count($paths) > 1 ? PathTrie::build($paths) : null;
+        $paths = array_values($paths);
+        $trie  = \count($paths) > 1 ? PathTrie::build(...$paths) : null;
         if ($trie instanceof PathTrie) {
             $values = [];
             foreach ($paths as $index => $path) {
-                $values[$index] = $valueFor(PathOps::getPath($input, $path));
+                $values[$index] = $valueFor(PathOps::getPath($input, ...$path));
             }
 
             return self::write($input, $trie, $values, []);
@@ -49,7 +50,7 @@ final class Assignment
 
         $result = $input;
         foreach ($paths as $path) {
-            $result = PathOps::setPath($result, $path, $valueFor(PathOps::getPath($result, $path)));
+            $result = PathOps::setPath($result, $valueFor(PathOps::getPath($result, ...$path)), ...$path);
         }
 
         return $result;
@@ -59,20 +60,21 @@ final class Assignment
      * `|=`: replace the value at every path by the first output of $update, and delete the paths for which
      * it yields no output.
      *
-     * @param list<list<mixed>>           $paths
      * @param Closure(mixed): list<mixed> $update returns [] for no output, otherwise [first output]
+     * @param list<mixed>                 ...$paths
      *
      * @throws JqException
      */
-    public static function updateAll(mixed $input, array $paths, Closure $update): mixed
+    public static function updateAll(mixed $input, Closure $update, array ...$paths): mixed
     {
-        $trie    = \count($paths) > 1 ? PathTrie::build($paths) : null;
+        $paths   = array_values($paths);
+        $trie    = \count($paths) > 1 ? PathTrie::build(...$paths) : null;
         $deleted = [];
         if ($trie instanceof PathTrie) {
             $values  = [];
             $skipped = [];
             foreach ($paths as $index => $path) {
-                $outcome = $update(PathOps::getPath($input, $path));
+                $outcome = $update(PathOps::getPath($input, ...$path));
                 if ([] === $outcome) {
                     $deleted[]       = $path;
                     $skipped[$index] = true;
@@ -83,22 +85,22 @@ final class Assignment
 
             $result = self::write($input, $trie, $values, $skipped);
 
-            return [] === $deleted ? $result : PathOps::deletePaths($result, $deleted);
+            return [] === $deleted ? $result : PathOps::deletePaths($result, ...$deleted);
         }
 
         $result = $input;
         foreach ($paths as $path) {
-            $outcome = $update(PathOps::getPath($result, $path));
+            $outcome = $update(PathOps::getPath($result, ...$path));
             if ([] === $outcome) {
                 $deleted[] = $path;
 
                 continue;
             }
 
-            $result = PathOps::setPath($result, $path, $outcome[0]);
+            $result = PathOps::setPath($result, $outcome[0], ...$path);
         }
 
-        return [] === $deleted ? $result : PathOps::deletePaths($result, $deleted);
+        return [] === $deleted ? $result : PathOps::deletePaths($result, ...$deleted);
     }
 
     /**

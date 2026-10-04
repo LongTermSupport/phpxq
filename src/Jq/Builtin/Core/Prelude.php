@@ -11,7 +11,7 @@ namespace LTS\PhpXq\Jq\Builtin\Core;
  *
  * @internal
  */
-final class Prelude
+final readonly class Prelude
 {
     public const string SOURCE = <<<'JQ'
         def halt_error: halt_error(5);

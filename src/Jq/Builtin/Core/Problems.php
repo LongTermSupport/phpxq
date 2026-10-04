@@ -13,7 +13,7 @@ use LTS\PhpXq\Jq\Runtime\JqException;
  *
  * @internal
  */
-final class Problems
+final readonly class Problems
 {
     private function __construct()
     {

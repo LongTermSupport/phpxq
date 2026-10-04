@@ -11,7 +11,7 @@ use LTS\PhpXq\Json\Values;
  *
  * @internal
  */
-final class Cmp
+final readonly class Cmp
 {
     private function __construct()
     {

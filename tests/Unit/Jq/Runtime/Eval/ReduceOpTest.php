@@ -37,7 +37,7 @@ final class ReduceOpTest extends OpTestCase
 
     public function testEmptySourceYieldsTheInit(): void
     {
-        $op = new ReduceOp(self::generator([]), new VarBinder(), self::constant('init'), new IdentityOp());
+        $op = new ReduceOp(self::generator(), new VarBinder(), self::constant('init'), new IdentityOp());
 
         self::assertSame(['init'], self::outputs($op));
     }
@@ -45,9 +45,9 @@ final class ReduceOpTest extends OpTestCase
     public function testOneResultPerInitOutput(): void
     {
         $op = new ReduceOp(
-            self::generator([1, 2]),
+            self::generator(1, 2),
             new VarBinder(),
-            self::generator([0, 10]),
+            self::generator(0, 10),
             new SingleOperatorOp(new IdentityOp(), new VarOp(0), Arithmetic::add(...)),
         );
 
@@ -56,7 +56,7 @@ final class ReduceOpTest extends OpTestCase
 
     public function testAnEmptyUpdateMakesTheStateNull(): void
     {
-        $op = new ReduceOp(self::generator([1, 2]), new VarBinder(), self::constant(5), new EmptyOp());
+        $op = new ReduceOp(self::generator(1, 2), new VarBinder(), self::constant(5), new EmptyOp());
 
         self::assertSame([null], self::outputs($op));
     }
@@ -64,10 +64,10 @@ final class ReduceOpTest extends OpTestCase
     public function testTheLastUpdateOutputIsTheNewState(): void
     {
         $op = new ReduceOp(
-            self::generator([1]),
+            self::generator(1),
             new VarBinder(),
             self::constant(0),
-            new OperatorOp(new IdentityOp(), self::generator([10, 20]), Arithmetic::add(...)),
+            new OperatorOp(new IdentityOp(), self::generator(10, 20), Arithmetic::add(...)),
         );
 
         self::assertSame([20], self::outputs($op));
@@ -75,14 +75,14 @@ final class ReduceOpTest extends OpTestCase
 
     public function testPathModeCarriesThePathOfTheState(): void
     {
-        $op = new ReduceOp(self::generator([1]), new VarBinder(), new IdentityOp(), new FieldOp('a'));
+        $op = new ReduceOp(self::generator(1), new VarBinder(), new IdentityOp(), new FieldOp('a'));
 
         self::assertSame([[['a'], 5]], self::pathOutputs($op, self::object(['a' => 5])));
     }
 
     public function testPathModeWithAnEmptyUpdateLosesThePath(): void
     {
-        $op = new ReduceOp(self::generator([1]), new VarBinder(), new IdentityOp(), new EmptyOp());
+        $op = new ReduceOp(self::generator(1), new VarBinder(), new IdentityOp(), new EmptyOp());
 
         self::assertSame([[null, null]], self::pathOutputs($op, 5));
     }

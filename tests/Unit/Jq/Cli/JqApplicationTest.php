@@ -829,7 +829,7 @@ final class JqApplicationTest extends JqApplicationTestCase
             }),
             new JsonDecoder(),
             new JsonEncoder(),
-        )->run(['-n', '.'], self::memory(''), $full, $err);
+        )->run(self::memory(''), $full, $err, '-n', '.');
 
         self::assertSame(JqExitCode::USAGE, $status);
         self::assertSame("jq: error: writing output failed: No space left on device\n", self::contents($err));
@@ -851,7 +851,7 @@ final class JqApplicationTest extends JqApplicationTestCase
             }),
             new JsonDecoder(),
             new JsonEncoder(),
-        )->run(['-n', '.'], self::memory(''), $writer, $err);
+        )->run(self::memory(''), $writer, $err, '-n', '.');
 
         self::assertSame(JqExitCode::BROKEN_PIPE, $status);
         self::assertSame('', self::contents($err));

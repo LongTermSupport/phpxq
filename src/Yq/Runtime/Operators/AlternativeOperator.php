@@ -18,7 +18,7 @@ use LTS\PhpXq\Yq\Runtime\NodeOps;
  * When the right side is an assignment (`.a // (.a = 0)`), the updated targets are the result, which
  * makes "update or create" work with the compound assignments.
  */
-final class AlternativeOperator implements BinaryOperatorInterface
+final readonly class AlternativeOperator implements BinaryOperatorInterface
 {
     private const array ASSIGNMENTS = [
         BinaryOperatorEnum::Assign,
@@ -41,7 +41,7 @@ final class AlternativeOperator implements BinaryOperatorInterface
         $out  = [];
         foreach (Cross::units($context) as $unit) {
             $lefts = [];
-            foreach ($evaluator->evaluate($expression->left, $read->withMatches($unit)) as $candidate) {
+            foreach ($evaluator->evaluate($expression->left, $read->withMatches(...$unit)) as $candidate) {
                 if (NodeOps::truthy(Cands::node($candidate))) {
                     $lefts[] = $candidate;
                 }
@@ -55,7 +55,7 @@ final class AlternativeOperator implements BinaryOperatorInterface
                 continue;
             }
 
-            $sub = $context->withMatches($unit);
+            $sub = $context->withMatches(...$unit);
             if ($expression->right instanceof Binary && \in_array($expression->right->operator, self::ASSIGNMENTS, true)) {
                 $evaluator->evaluate($expression->right, $sub);
                 foreach ($evaluator->evaluate($expression->right->left, $sub) as $candidate) {

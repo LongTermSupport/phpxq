@@ -17,18 +17,18 @@ final class SamplingProfilerTest extends TestCase
     public function testSelfAndInclusiveShares(): void
     {
         $profiler = new SamplingProfiler();
-        $profiler->record([
+        $profiler->record(
             ['class' => 'A', 'type' => '->', 'function' => 'leaf'],
             ['class' => 'A', 'type' => '->', 'function' => 'middle'],
             ['function' => 'main'],
-        ]);
-        $profiler->record([
+        );
+        $profiler->record(
             ['class' => 'A', 'type' => '->', 'function' => 'leaf'],
             ['function' => 'main'],
-        ]);
-        $profiler->record([
+        );
+        $profiler->record(
             ['function' => 'main'],
-        ]);
+        );
 
         self::assertSame(3, $profiler->samples());
         self::assertSame(['A->leaf' => 2, 'main' => 1], $profiler->self());
@@ -38,7 +38,7 @@ final class SamplingProfilerTest extends TestCase
     public function testARecursiveFunctionCountsOncePerSampleInclusively(): void
     {
         $profiler = new SamplingProfiler();
-        $profiler->record([['function' => 'f'], ['function' => 'f'], ['function' => 'f']]);
+        $profiler->record(['function' => 'f'], ['function' => 'f'], ['function' => 'f']);
 
         self::assertSame(['f' => 1], $profiler->inclusive());
         self::assertSame(['f' => 1], $profiler->self());
@@ -47,7 +47,7 @@ final class SamplingProfilerTest extends TestCase
     public function testClosuresAreNamedByTheirFile(): void
     {
         $profiler = new SamplingProfiler();
-        $profiler->record([['class' => 'A', 'type' => '->', 'function' => '{closure:A->run():12}', 'file' => '/x/src/Thing.php']]);
+        $profiler->record(['class' => 'A', 'type' => '->', 'function' => '{closure:A->run():12}', 'file' => '/x/src/Thing.php']);
 
         self::assertSame(['A::{closure}@Thing.php' => 1], $profiler->self());
     }
@@ -55,9 +55,9 @@ final class SamplingProfilerTest extends TestCase
     public function testReportListsTheBusiestFirstWithPercentages(): void
     {
         $profiler = new SamplingProfiler();
-        $profiler->record([['function' => 'hot']]);
-        $profiler->record([['function' => 'hot']]);
-        $profiler->record([['function' => 'cold']]);
+        $profiler->record(['function' => 'hot']);
+        $profiler->record(['function' => 'hot']);
+        $profiler->record(['function' => 'cold']);
 
         $report = $profiler->report(5);
 

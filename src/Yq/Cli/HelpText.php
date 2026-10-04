@@ -7,14 +7,8 @@ namespace LTS\PhpXq\Yq\Cli;
 /**
  * The help and usage texts, laid out the way cobra lays them out.
  */
-final class HelpText
+final readonly class HelpText
 {
-    private const string CMD_EVAL       = 'eval';
-
-    private const string CMD_EVAL_ALL   = 'eval-all';
-
-    private const string CMD_COMPLETION = 'completion';
-
     private const string LONG = "yq is a portable command-line data file processor (https://github.com/mikefarah/yq/) \n"
         . 'See https://mikefarah.gitbook.io/yq/ for detailed documentation and examples.';
 
@@ -59,11 +53,11 @@ final class HelpText
      */
     public static function forCommand(string $command): string
     {
-        return match ($command) {
-            self::CMD_EVAL, 'e'      => self::EVAL_LONG . "\n\n" . self::usage(self::CMD_EVAL),
-            self::CMD_EVAL_ALL, 'ea' => self::EVAL_ALL_LONG . "\n\n" . self::usage(self::CMD_EVAL_ALL),
-            self::CMD_COMPLETION     => self::COMPLETION_LONG . "\n\n" . self::usage(self::CMD_COMPLETION),
-            default          => self::root(),
+        return match (CommandEnum::tryFrom($command)?->canonical()) {
+            CommandEnum::Eval       => self::EVAL_LONG . "\n\n" . self::usage(CommandEnum::Eval->value),
+            CommandEnum::EvalAll    => self::EVAL_ALL_LONG . "\n\n" . self::usage(CommandEnum::EvalAll->value),
+            CommandEnum::Completion => self::COMPLETION_LONG . "\n\n" . self::usage(CommandEnum::Completion->value),
+            default                 => self::root(),
         };
     }
 
@@ -72,17 +66,17 @@ final class HelpText
      */
     public static function usage(string $command): string
     {
-        return match ($command) {
-            self::CMD_EVAL, 'e'      => self::commandUsage('eval [expression] [yaml_file1]...', "\n\nAliases:\n  eval, e"),
-            self::CMD_EVAL_ALL, 'ea' => self::commandUsage('eval-all [expression] [yaml_file1]...', "\n\nAliases:\n  eval-all, ea"),
-            self::CMD_COMPLETION     => "Usage:\n  yq completion [command]\n\nAvailable Commands:\n"
+        return match (CommandEnum::tryFrom($command)?->canonical()) {
+            CommandEnum::Eval       => self::commandUsage('eval [expression] [yaml_file1]...', "\n\nAliases:\n  eval, e"),
+            CommandEnum::EvalAll    => self::commandUsage('eval-all [expression] [yaml_file1]...', "\n\nAliases:\n  eval-all, ea"),
+            CommandEnum::Completion => "Usage:\n  yq completion [command]\n\nAvailable Commands:\n"
                 . "  bash        Generate the autocompletion script for bash\n"
                 . "  fish        Generate the autocompletion script for fish\n"
                 . "  powershell  Generate the autocompletion script for powershell\n"
                 . "  zsh         Generate the autocompletion script for zsh\n\n"
                 . "Flags:\n  -h, --help   help for completion\n\n" . self::globalFlags()
                 . "\nUse \"yq completion [command] --help\" for more information about a command.\n",
-            default          => "Usage:\n  yq [flags]\n  yq [command]\n\nExamples:\n" . self::EXAMPLES . "\n"
+            default                 => "Usage:\n  yq [flags]\n  yq [command]\n\nExamples:\n" . self::EXAMPLES . "\n"
                 . "Available Commands:\n"
                 . "  completion  Generate the autocompletion script for the specified shell\n"
                 . "  eval        (default) Apply the expression to each document in each yaml file in sequence\n"

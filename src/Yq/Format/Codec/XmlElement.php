@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Yq\Format\Codec;
 /**
  * One element while the XML reader builds the tree: its text pieces, its children grouped by name in
  * first-seen order (attributes, processing instructions and directives are children too) and the comments
- * that surrounded it.
+ * that surrounded it. `prefixes` maps namespace prefixes to URIs and is inherited from the parent.
  */
 final class XmlElement
 {
@@ -23,12 +23,11 @@ final class XmlElement
 
     public string $footComment = '';
 
-    /** `started` (nothing but comments seen), `chardata` (text seen) or `ended` (a child just closed). */
-    public string $state = 'started';
+    public ElementStateEnum $state = ElementStateEnum::Started;
 
     public ?self $lastChild = null;
 
-    /** @var array<string, string> namespace URIs by prefix, inherited from the parent */
+    /** @var array<string, string> */
     public array $prefixes = [];
 
     public string $defaultNamespace = '';

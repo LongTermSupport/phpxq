@@ -13,7 +13,7 @@ use LTS\PhpXq\Jq\Runtime\JqException;
  *
  * @internal
  */
-final class RegexEngine
+final readonly class RegexEngine
 {
     private const int FLAGS = \PREG_OFFSET_CAPTURE | \PREG_UNMATCHED_AS_NULL;
 

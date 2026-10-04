@@ -10,9 +10,19 @@ namespace LTS\PhpXq\Yq\Cli;
  * `--flag value`, clustered shorthands (`-inP`), `-oy` and `-o=json` value forms, `--` ending the flags,
  * and a lone `-` as a positional (standard input).
  */
-final class ArgumentParser
+final readonly class ArgumentParser
 {
-    public const array COMMANDS = ['eval', 'e', 'eval-all', 'ea', 'completion', 'help', '__complete', '__completeNoDesc'];
+    /** The words that select a subcommand when they come first, aliases included. */
+    public const array COMMANDS = [
+        CommandEnum::Eval->value,
+        CommandEnum::EvalShort->value,
+        CommandEnum::EvalAll->value,
+        CommandEnum::EvalAllShort->value,
+        CommandEnum::Completion->value,
+        CommandEnum::Help->value,
+        CommandEnum::Complete->value,
+        CommandEnum::CompleteNoDescriptions->value,
+    ];
     /** The spellings Go's `strconv.ParseBool` reads as true. */
     private const array TRUE_SPELLINGS = ['1', 't', 'T', 'TRUE', 'true', 'True'];
 
@@ -20,13 +30,11 @@ final class ArgumentParser
     private const array FALSE_SPELLINGS = ['0', 'f', 'F', 'FALSE', 'false', 'False'];
 
     /**
-     * @param list<string> $args
-     *
      * @throws UsageException
      */
-    public function parse(array $args): ParsedArguments
+    public function parse(string ...$args): ParsedArguments
     {
-        [$command, $args] = $this->extractCommand($args);
+        [$command, $args] = $this->extractCommand(...$args);
 
         $values      = [];
         foreach (FlagCatalog::all() as $spec) {
@@ -53,12 +61,12 @@ final class ArgumentParser
             }
 
             if ('-' === $arg[1]) {
-                $i = $this->parseLong($args, $i, $values, $given);
+                $i = $this->parseLong($i, $values, $given, ...$args);
 
                 continue;
             }
 
-            $i = $this->parseShort($args, $i, $values, $given);
+            $i = $this->parseShort($i, $values, $given, ...$args);
         }
 
         $this->applyShortcuts($values, $given);
@@ -70,11 +78,9 @@ final class ArgumentParser
      * Finds the sub-command: the first argument that is neither a flag nor a flag's value, if it names a
      * command. Returns the command ('' for the root) and the arguments without it.
      *
-     * @param list<string> $args
-     *
      * @return array{string, list<string>}
      */
-    private function extractCommand(array $args): array
+    private function extractCommand(string ...$args): array
     {
         $count = \count($args);
         for ($i = 0; $i < $count; ++$i) {
@@ -99,7 +105,7 @@ final class ArgumentParser
             }
         }
 
-        return ['', $args];
+        return ['', array_values($args)];
     }
 
     private function flagTakesNextArgument(string $arg): bool
@@ -134,11 +140,10 @@ final class ArgumentParser
     }
 
     /**
-     * @param list<string>                   $args
      * @param array<string, bool|int|string> $values
      * @param array<string, true>            $given
      */
-    private function parseLong(array $args, int $index, array &$values, array &$given): int
+    private function parseLong(int $index, array &$values, array &$given, string ...$args): int
     {
         $body     = substr($args[$index], 2);
         $equals   = strpos($body, '=');
@@ -171,11 +176,10 @@ final class ArgumentParser
     }
 
     /**
-     * @param list<string>                   $args
      * @param array<string, bool|int|string> $values
      * @param array<string, true>            $given
      */
-    private function parseShort(array $args, int $index, array &$values, array &$given): int
+    private function parseShort(int $index, array &$values, array &$given, string ...$args): int
     {
         $cluster = substr($args[$index], 1);
         $length  = \strlen($cluster);

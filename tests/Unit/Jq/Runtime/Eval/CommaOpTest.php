@@ -17,7 +17,7 @@ final class CommaOpTest extends OpTestCase
 {
     public function testEmitsLeftThenRight(): void
     {
-        self::assertSame([1, 2, 3], self::outputs(new CommaOp(self::generator([1, 2]), self::constant(3))));
+        self::assertSame([1, 2, 3], self::outputs(new CommaOp(self::generator(1, 2), self::constant(3))));
     }
 
     public function testPathModeEmitsBothSides(): void

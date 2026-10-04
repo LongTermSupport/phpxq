@@ -26,7 +26,7 @@ final class IterateOpTest extends OpTestCase
 
     public function testIteratesEveryTargetOutput(): void
     {
-        $op = new IterateOp(self::generator([[1], [2, 3]]));
+        $op = new IterateOp(self::generator([1], [2, 3]));
 
         self::assertSame([1, 2, 3], self::outputs($op));
     }

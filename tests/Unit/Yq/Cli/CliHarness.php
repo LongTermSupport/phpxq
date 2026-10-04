@@ -59,7 +59,7 @@ final readonly class CliHarness
         $err = $this->stream('');
 
         $app  = new YqApplication(evaluator: $this->evaluator, formats: $this->formats);
-        $code = $app->run($args, $in, $out, $err);
+        $code = $app->run($in, $out, $err, ...$args);
 
         return [$code, $this->contents($out), $this->contents($err)];
     }

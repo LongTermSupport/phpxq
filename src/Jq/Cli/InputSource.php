@@ -22,6 +22,10 @@ use RuntimeException;
  * position. An unreadable file is reported and skipped (the run then exits with status 2); a parse
  * error ends the input unless `--seq` is on, which skips to the next record separator.
  *
+ * CHUNK is the bytes asked of standard input per read (a pipe hands over what has arrived, up to this much).
+ * The stream parser is only needed for `--stream` and is built on demand so that other runs do not load its
+ * classes.
+ *
  * @api
  */
 final class InputSource implements InputProviderInterface, InputPositionInterface
@@ -30,7 +34,6 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
 
     private const string BOM ="\xEF\xBB\xBF";
 
-    /** bytes asked of standard input per read; a pipe hands over what has arrived, up to this much */
     private const int CHUNK = 65536;
 
     /** @var ?Generator<int, InputItem> */
@@ -44,7 +47,6 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
 
     private bool $unreadable = false;
 
-    /** only `--stream` needs it: built on demand so that other runs do not load its classes */
     private ?StreamParser $streams = null;
 
     /**

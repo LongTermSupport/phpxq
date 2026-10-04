@@ -26,11 +26,11 @@ final readonly class OptionParser
     }
 
     /**
-     * @param list<string> $args arguments after `jq`
+     * @param string ...$args arguments after `jq`
      *
      * @throws UsageException
      */
-    public function parse(array $args): CliOptions
+    public function parse(string ...$args): CliOptions
     {
         $program         = null;
         $files           = [];

@@ -17,7 +17,7 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * directives, and comments are written as XML comments around the entry they belong to. Indentation is
  * `-I` spaces (none at 0).
  */
-final class XmlEncoder implements EncoderInterface
+final readonly class XmlEncoder implements EncoderInterface
 {
     private const int MAX_DEPTH = 1000;
 

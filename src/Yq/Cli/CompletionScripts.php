@@ -8,9 +8,9 @@ namespace LTS\PhpXq\Yq\Cli;
  * The shell completion scripts printed by `yq completion <shell>`. Every script asks the program itself
  * (`yq __complete ...`, see {@see CompleteCommand}) for candidates, as cobra's generated scripts do.
  */
-final class CompletionScripts
+final readonly class CompletionScripts
 {
-    public const array SHELLS = ['bash', 'zsh', 'fish', 'powershell'];
+    public const array SHELLS = [ShellEnum::Bash->value, ShellEnum::Zsh->value, ShellEnum::Fish->value, ShellEnum::Powershell->value];
 
     private const string BASH = <<<'SCRIPT'
         # bash completion for yq                                   -*- shell-script -*-
@@ -134,12 +134,12 @@ final class CompletionScripts
 
     public static function forShell(string $shell): string
     {
-        return match ($shell) {
-            'bash'       => self::BASH,
-            'zsh'        => self::ZSH,
-            'fish'       => self::FISH,
-            'powershell' => self::POWERSHELL,
-            default      => '',
+        return match (ShellEnum::tryFrom($shell)) {
+            ShellEnum::Bash       => self::BASH,
+            ShellEnum::Zsh        => self::ZSH,
+            ShellEnum::Fish       => self::FISH,
+            ShellEnum::Powershell => self::POWERSHELL,
+            default               => '',
         };
     }
 }

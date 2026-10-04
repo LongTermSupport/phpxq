@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Jq\Cli;
 
 /**
- * The fixed texts of the jq command line, verbatim from jq 1.8.
+ * The fixed texts of the jq command line, verbatim from jq 1.8. TARGET_VERSION is the jq release whose
+ * behaviour phpxq's jq reproduces.
  *
  * @api
  */
-final class UsageText
+final readonly class UsageText
 {
-    /** the jq release whose behaviour phpxq's jq reproduces */
     public const string TARGET_VERSION = '1.8.2';
 
     private const string SHORT = "Usage:\tjq [OPTIONS] FILTER [FILES...]\n\tjq [OPTIONS] --args FILTER [STRINGS...]\n\tjq [OPTIONS] --jsonargs FILTER [JSON_TEXTS...]\n\n";

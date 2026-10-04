@@ -119,11 +119,12 @@ final readonly class JqConformanceSuite implements ConformanceSuiteInterface
 
         try {
             Factory::getInstance()->getComparatorFor($expected, $actual)->assertEquals($expected, $actual);
-        } catch (ComparisonFailure) {
+        } catch (ComparisonFailure $comparisonFailure) {
             return \sprintf(
-                'output mismatch: expected [%s], got [%s]',
+                'output mismatch: expected [%s], got [%s] (%s)',
                 implode(', ', $case->expectedOutputs),
                 implode(', ', $this->outputLines($result->stdout)),
+                $comparisonFailure->getMessage(),
             );
         }
 

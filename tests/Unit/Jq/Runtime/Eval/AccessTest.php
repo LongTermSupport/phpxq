@@ -72,9 +72,9 @@ final class AccessTest extends TestCase
     }
 
     /**
-     * @param array<mixed> $haystack
-     * @param array<mixed> $needle
-     * @param ?list<int>   $expected
+     * @param list<mixed> $haystack
+     * @param list<mixed> $needle
+     * @param ?list<int>  $expected
      */
     #[DataProvider('subarrays')]
     public function testIndices(array $haystack, array $needle, ?array $expected): void

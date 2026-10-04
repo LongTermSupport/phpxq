@@ -10,7 +10,7 @@ use LTS\PhpXq\Yq\Format\FormatException;
  * Low-level scanning helpers for HCL text: finding where an expression ends, splitting a bracketed list
  * or object at its top-level commas, and walking over string literals with their `${ ... }` templates.
  */
-final class HclScanner
+final readonly class HclScanner
 {
     private function __construct()
     {
@@ -41,7 +41,7 @@ final class HclScanner
                 throw new FormatException('hcl: newline in string literal');
             }
 
-            if (('$' === $char || '%' === $char) && '{' === ($text[$pos + 1] ?? '')) {
+            if (('$' === $char || '%' === $char) && '{' === substr($text, $pos + 1, 1)) {
                 if ($pos > 0 && $text[$pos - 1] === $char) {
                     ++$pos;
 
@@ -131,7 +131,7 @@ final class HclScanner
                     }
 
                     break;
-                case '#' === $char || ('/' === $char && '/' === ($text[$pos + 1] ?? '')):
+                case '#' === $char || ('/' === $char && '/' === substr($text, $pos + 1, 1)):
                     if (0 === $depth) {
                         return $pos;
                     }
@@ -139,7 +139,7 @@ final class HclScanner
                     $pos += strcspn($text, "\n", $pos);
 
                     continue 2;
-                case '/' === $char && '*' === ($text[$pos + 1] ?? ''):
+                case '/' === $char && '*' === substr($text, $pos + 1, 1):
                     $close = strpos($text, '*/', $pos + 2);
                     $pos   = false === $close ? $length : $close + 2;
 
@@ -211,7 +211,7 @@ final class HclScanner
                 continue;
             }
 
-            if ('#' === $char || ('/' === $char && ('/' === ($text[$pos + 1] ?? '') || '*' === ($text[$pos + 1] ?? '')))) {
+            if ('#' === $char || ('/' === $char && in_array(substr($text, $pos + 1, 1), ['/', '*'], true))) {
                 return true;
             }
 

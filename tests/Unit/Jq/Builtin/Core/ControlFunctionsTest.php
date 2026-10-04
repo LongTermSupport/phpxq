@@ -156,9 +156,9 @@ final class ControlFunctionsTest extends TestCase
         self::assertInstanceOf(StreamBuiltinInterface::class, $builtin);
 
         try {
-            $builtin->run(new FakeContext(), null, [ClosureFilter::constants(1)], static function () use ($foreign): never {
+            $builtin->run(new FakeContext(), null, static function () use ($foreign): never {
                 throw new BreakException($foreign);
-            });
+            }, ClosureFilter::constants(1));
             self::fail('the foreign break was swallowed');
         } catch (BreakException $breakException) {
             self::assertSame($foreign, $breakException->label);
@@ -447,12 +447,12 @@ final class ControlFunctionsTest extends TestCase
         $out   = new Collector();
 
         try {
-            $builtin->run(new FakeContext(), 1, [ClosureFilter::constants(2, 7)], static function (mixed $value) use ($out, $label): void {
+            $builtin->run(new FakeContext(), 1, static function (mixed $value) use ($out, $label): void {
                 $out->collect($value);
                 if ($out->count() >= 5) {
                     throw new BreakException($label);
                 }
-            });
+            }, ClosureFilter::constants(2, 7));
             self::fail('repeat ended by itself');
         } catch (BreakException $breakException) {
             self::assertSame($label, $breakException->label);
@@ -473,7 +473,7 @@ final class ControlFunctionsTest extends TestCase
         $out = new Collector();
 
         try {
-            $builtin->run(new FakeContext(), 1, [$filter], $out->collect(...));
+            $builtin->run(new FakeContext(), 1, $out->collect(...), $filter);
             self::fail('repeat ended without an error');
         } catch (JqException $jqException) {
             self::assertSame(1, $jqException->value);

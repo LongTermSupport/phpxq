@@ -27,21 +27,28 @@ use LTS\PhpXq\Yq\Runtime\Numbers;
  * Date and time operators: `now`, `from_unix`, `to_unix`, `tz`, `format_datetime` and `with_dtf`, which
  * sets the layout the date operators in its second argument read and write.
  */
-final class DateCalls implements CallOperatorInterface
+final readonly class DateCalls implements CallOperatorInterface
 {
     public function names(): array
     {
-        return ['now', 'from_unix', 'to_unix', 'tz', 'format_datetime', 'with_dtf'];
+        return BuiltinNameEnum::values(
+            BuiltinNameEnum::Now,
+            BuiltinNameEnum::FromUnix,
+            BuiltinNameEnum::ToUnix,
+            BuiltinNameEnum::Tz,
+            BuiltinNameEnum::FormatDatetime,
+            BuiltinNameEnum::WithDtf,
+        );
     }
 
     public function evaluate(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
-        if ('with_dtf' === $call->name) {
+        if (BuiltinNameEnum::WithDtf->value === $call->name) {
             $call = Args::split($call, 2);
             Args::require($call, 2);
             $layout = Args::string($call, 0, $context, $evaluator, $context->matches[0] ?? null) ?? GoTime::RFC3339;
 
-            return $evaluator->evaluate($call->arguments[1], $context->withVariable('__dtf', [new Candidate(NodeOps::str($layout))]));
+            return $evaluator->evaluate($call->arguments[1], $context->withVariable('__dtf', new Candidate(NodeOps::str($layout))));
         }
 
         $out    = [];
@@ -56,11 +63,11 @@ final class DateCalls implements CallOperatorInterface
     private function one(Call $call, Candidate $match, ?string $layout, EvaluationContext $context, EvaluatorInterface $evaluator): Candidate
     {
         $node = NodeOps::deref(Cands::node($match));
-        switch ($call->name) {
-            case 'now':
+        switch (BuiltinNameEnum::tryFrom($call->name)) {
+            case BuiltinNameEnum::Now:
                 return Cands::derive($this->dateNode(new DateTimeImmutable('now'), $layout), $match);
 
-            case 'from_unix':
+            case BuiltinNameEnum::FromUnix:
                 $seconds = Numbers::of($node);
                 if (null === $seconds) {
                     throw new EvaluationException(\sprintf('cannot convert %s to a unix time', $node->value));
@@ -70,10 +77,10 @@ final class DateCalls implements CallOperatorInterface
 
                 return Cands::derive($this->dateNode($time, $layout), $match);
 
-            case 'to_unix':
+            case BuiltinNameEnum::ToUnix:
                 return Cands::derive(NodeOps::int($this->parse($node, $layout)->getTimestamp()), $match);
 
-            case 'tz':
+            case BuiltinNameEnum::Tz:
                 Args::require($call, 1);
                 $zone = Args::string($call, 0, $context, $evaluator, $match) ?? 'UTC';
                 try {

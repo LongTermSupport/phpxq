@@ -29,7 +29,7 @@ final class LabelOpTest extends OpTestCase
 
     public function testNormalCompletionIsUntouched(): void
     {
-        self::assertSame([1, 2], self::outputs(new LabelOp(self::generator([1, 2]))));
+        self::assertSame([1, 2], self::outputs(new LabelOp(self::generator(1, 2))));
     }
 
     public function testAForeignBreakPropagates(): void
@@ -59,7 +59,7 @@ final class LabelOpTest extends OpTestCase
 
     public function testEachActivationHasItsOwnToken(): void
     {
-        $op = new LabelOp(new CommaOp(self::generator([1]), new BreakOp(0)));
+        $op = new LabelOp(new CommaOp(self::generator(1), new BreakOp(0)));
 
         self::assertSame([1], self::outputs($op));
         self::assertSame([1], self::outputs($op));

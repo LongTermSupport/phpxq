@@ -13,7 +13,7 @@ use LTS\PhpXq\Yq\Expression\ExpressionSyntaxException;
  *
  * @internal
  */
-final class StringLiteral
+final readonly class StringLiteral
 {
     private const string UNTERMINATED = 'Bad expression, unterminated string';
 

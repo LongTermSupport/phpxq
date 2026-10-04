@@ -18,7 +18,7 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * comments on their own lines). Aliases and merge keys are expanded. A leading comment of the document is
  * written above the first brace.
  */
-final class KyamlEncoder implements EncoderInterface
+final readonly class KyamlEncoder implements EncoderInterface
 {
     private const int MAX_DEPTH = 1000;
 

@@ -63,7 +63,7 @@ final class CorpusGenerator
             'tiny'  => "a: 1\nb:\n  - 1\n  - 2\n  - 3\nc: x\n",
             'wide'  => $this->yamlMap($this->wide(), 0),
             'deep'  => $this->yamlMap($this->deep(), 0),
-            default => $this->yamlRecords($this->records($this->recordCount($corpus))),
+            default => $this->yamlRecords(...$this->records($this->recordCount($corpus))),
         };
     }
 
@@ -128,9 +128,9 @@ final class CorpusGenerator
     }
 
     /**
-     * @param list<array{id: int, name: string, group: string, active: bool, score: int, tags: list<string>, nested: array{x: int, y: int}}> $records
+     * @param array{id: int, name: string, group: string, active: bool, score: int, tags: list<string>, nested: array{x: int, y: int}} ...$records
      */
-    private function yamlRecords(array $records): string
+    private function yamlRecords(array ...$records): string
     {
         $out = '';
         foreach ($records as $record) {

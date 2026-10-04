@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Yaml\Parser;
 
+use LTS\PhpXq\Tests\Support\SeededRandom;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\Parser\FastBlockParser;
 use LTS\PhpXq\Yaml\Parser\StreamParser;
@@ -120,11 +121,11 @@ final class FastBlockParserTest extends TestCase
 
     public function testGeneratedDocumentsMatchTheFullParserOrAreDeclined(): void
     {
-        mt_srand(2024);
+        $random   = new SeededRandom(2024);
         $accepted = 0;
         for ($i = 0; $i < 400; ++$i) {
             $lines = [];
-            self::generate(0, 0 === mt_rand(0, 2) ? 2 : 0, $lines);
+            self::generate($random, 0, 0 === $random->between(0, 2) ? 2 : 0, $lines);
             $yaml = implode("\n", $lines) . "\n";
             $fast = FastBlockParser::parse($yaml);
             if (!$fast instanceof Node) {
@@ -166,31 +167,31 @@ final class FastBlockParserTest extends TestCase
     /**
      * @param list<string> $lines
      */
-    private static function generate(int $depth, int $indent, array &$lines): void
+    private static function generate(SeededRandom $random, int $depth, int $indent, array &$lines): void
     {
         $pad   = str_repeat(' ', $indent);
-        $isSeq = 0 === mt_rand(0, 2);
-        $count = mt_rand(1, 4);
+        $isSeq = 0 === $random->between(0, 2);
+        $count = $random->between(1, 4);
         $words = ["'q r'", '"s t"', 'u # v', 'w #x', 'alpha', 'beta gamma', '12', '-3', '4.5', 'true', 'null', '~', 'x_y', 'a:b', 'http://h/p', '2001-12-14', '<<', 'k-1', 'a b  c'];
         for ($i = 0; $i < $count; ++$i) {
-            if (0 === mt_rand(0, 15)) {
+            if (0 === $random->between(0, 15)) {
                 $lines[] = '';
             }
 
-            if (0 === mt_rand(0, 9)) {
+            if (0 === $random->between(0, 9)) {
                 $lines[] = $pad . '# note ' . $i;
             }
 
-            $word   = $words[mt_rand(0, \count($words) - 1)];
-            $nested = $depth < 4 && 0 === mt_rand(0, 2);
+            $word   = $random->pick(...$words);
+            $nested = $depth < 4 && 0 === $random->between(0, 2);
             if ($isSeq) {
                 if ($nested) {
-                    if (0 === mt_rand(0, 1)) {
+                    if (0 === $random->between(0, 1)) {
                         $lines[] = $pad . '- k' . $i . ':';
-                        self::generate($depth + 1, $indent + 2 + mt_rand(0, 2), $lines);
+                        self::generate($random, $depth + 1, $indent + 2 + $random->between(0, 2), $lines);
                     } else {
                         $lines[] = $pad . '-';
-                        self::generate($depth + 1, $indent + 2, $lines);
+                        self::generate($random, $depth + 1, $indent + 2, $lines);
                     }
                 } else {
                     $lines[] = $pad . '- ' . (1 === $i % 2 ? $word : 'k' . $i . ': ' . $word);
@@ -201,13 +202,13 @@ final class FastBlockParserTest extends TestCase
 
             if ($nested) {
                 $lines[] = $pad . 'k' . $i . ':';
-                if (0 === mt_rand(0, 3)) {
+                if (0 === $random->between(0, 3)) {
                     $lines[] = $pad . '- ' . $word;
                 } else {
-                    self::generate($depth + 1, $indent + mt_rand(1, 4), $lines);
+                    self::generate($random, $depth + 1, $indent + $random->between(1, 4), $lines);
                 }
             } else {
-                $lines[] = $pad . 'k' . $i . (0 === mt_rand(0, 5) ? ':' : ': ' . $word);
+                $lines[] = $pad . 'k' . $i . (0 === $random->between(0, 5) ? ':' : ': ' . $word);
             }
         }
     }

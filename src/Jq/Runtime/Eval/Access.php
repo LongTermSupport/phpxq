@@ -15,7 +15,7 @@ use LTS\PhpXq\Json\Values;
  *
  * @internal
  */
-final class Access
+final readonly class Access
 {
     private const float INDEX_CLAMP = 4294967296.0;
 

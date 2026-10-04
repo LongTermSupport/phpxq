@@ -44,10 +44,10 @@ final class RunState
             return $this->globals[$name];
         }
 
-        return match ($name) {
-            'ENV'         => $this->environment ??= JsonObject::fromPairs(getenv()),
-            '__prog_args' => [],
-            default       => null,
+        return match (ReservedGlobalEnum::tryFrom($name)) {
+            ReservedGlobalEnum::Env      => $this->environment ??= JsonObject::fromPairs(getenv()),
+            ReservedGlobalEnum::ProgArgs => [],
+            default                      => null,
         };
     }
 

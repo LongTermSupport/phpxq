@@ -20,7 +20,7 @@ use LTS\PhpXq\Json\Values;
  *
  * @internal
  */
-final class ControlFunctions
+final readonly class ControlFunctions
 {
     private const string RANGE   = 'range';
 
@@ -71,10 +71,7 @@ final class ControlFunctions
         throw new JqException($input);
     }
 
-    /**
-     * @param list<FilterInterface> $args
-     */
-    private static function error1(RuntimeContextInterface $c, mixed $input, array $args): void
+    private static function error1(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         $args[0]->run($input, static function (mixed $message): never {
             throw new JqException($message);
@@ -82,19 +79,18 @@ final class ControlFunctions
     }
 
     /**
-     * @param ?list<mixed>          $path
-     * @param list<FilterInterface> $args
+     * @param ?list<mixed> $path
      */
-    private static function error1Paths(RuntimeContextInterface $c, ?array $path, mixed $input, array $args): void
+    private static function error1Paths(RuntimeContextInterface $c, ?array $path, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
-        self::error1($c, $input, $args);
+        self::error1($c, $input, static function (): void {
+        }, ...$args);
     }
 
     /**
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      */
-    private static function select(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
+    private static function select(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         $args[0]->run($input, static function (mixed $condition) use ($input, $emit): void {
             if (null !== $condition && false !== $condition) {
@@ -105,10 +101,9 @@ final class ControlFunctions
 
     /**
      * @param ?list<mixed>                       $path
-     * @param list<FilterInterface>              $args
      * @param Closure(?list<mixed>, mixed): void $emit
      */
-    private static function selectPaths(RuntimeContextInterface $c, ?array $path, mixed $input, array $args, Closure $emit): void
+    private static function selectPaths(RuntimeContextInterface $c, ?array $path, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         $args[0]->run($input, static function (mixed $condition) use ($path, $input, $emit): void {
             if (null !== $condition && false !== $condition) {
@@ -118,10 +113,9 @@ final class ControlFunctions
     }
 
     /**
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      */
-    private static function map(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
+    private static function map(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         $items = $input;
         if ($items instanceof JsonObject) {
@@ -145,10 +139,9 @@ final class ControlFunctions
     }
 
     /**
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      */
-    private static function first(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
+    private static function first(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         EarlyExit::run(static function (object $label) use ($input, $args, $emit): void {
             $args[0]->run($input, static function (mixed $value) use ($emit, $label): never {
@@ -160,10 +153,9 @@ final class ControlFunctions
 
     /**
      * @param ?list<mixed>                       $path
-     * @param list<FilterInterface>              $args
      * @param Closure(?list<mixed>, mixed): void $emit
      */
-    private static function firstPaths(RuntimeContextInterface $c, ?array $path, mixed $input, array $args, Closure $emit): void
+    private static function firstPaths(RuntimeContextInterface $c, ?array $path, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         EarlyExit::run(static function (object $label) use ($path, $input, $args, $emit): void {
             $args[0]->paths($path, $input, static function (?array $where, mixed $value) use ($emit, $label): never {
@@ -174,10 +166,9 @@ final class ControlFunctions
     }
 
     /**
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      */
-    private static function limit(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
+    private static function limit(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         $args[0]->run($input, static function (mixed $count) use ($input, $args, $emit): void {
             $wanted = self::count($count, "limit doesn't support negative count");
@@ -200,10 +191,9 @@ final class ControlFunctions
 
     /**
      * @param ?list<mixed>                       $path
-     * @param list<FilterInterface>              $args
      * @param Closure(?list<mixed>, mixed): void $emit
      */
-    private static function limitPaths(RuntimeContextInterface $c, ?array $path, mixed $input, array $args, Closure $emit): void
+    private static function limitPaths(RuntimeContextInterface $c, ?array $path, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         $args[0]->run($input, static function (mixed $count) use ($path, $input, $args, $emit): void {
             $wanted = self::count($count, "limit doesn't support negative count");
@@ -225,10 +215,9 @@ final class ControlFunctions
     }
 
     /**
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      */
-    private static function skip(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
+    private static function skip(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         $args[0]->run($input, static function (mixed $count) use ($input, $args, $emit): void {
             $skipping = self::count($count, "skip doesn't support negative count");
@@ -247,10 +236,9 @@ final class ControlFunctions
 
     /**
      * @param ?list<mixed>                       $path
-     * @param list<FilterInterface>              $args
      * @param Closure(?list<mixed>, mixed): void $emit
      */
-    private static function skipPaths(RuntimeContextInterface $c, ?array $path, mixed $input, array $args, Closure $emit): void
+    private static function skipPaths(RuntimeContextInterface $c, ?array $path, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         $args[0]->run($input, static function (mixed $count) use ($path, $input, $args, $emit): void {
             $skipping = self::count($count, "skip doesn't support negative count");
@@ -282,10 +270,9 @@ final class ControlFunctions
     }
 
     /**
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      */
-    private static function last(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
+    private static function last(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         $found = false;
         $last  = null;
@@ -299,10 +286,9 @@ final class ControlFunctions
     }
 
     /**
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      */
-    private static function isEmpty(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
+    private static function isEmpty(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         $found = EarlyExit::run(static function (object $label) use ($input, $args): void {
             $args[0]->run($input, static function () use ($label): never {
@@ -314,30 +300,27 @@ final class ControlFunctions
     }
 
     /**
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      */
-    private static function any(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
+    private static function any(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
-        $emit(self::quantify($input, $args, true));
+        $emit(self::quantify($input, true, ...$args));
     }
 
     /**
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      */
-    private static function all(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
+    private static function all(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
-        $emit(!self::quantify($input, $args, false));
+        $emit(!self::quantify($input, false, ...$args));
     }
 
     /**
      * Whether some output of `generator | condition` is truthy ($truthy) or falsy (not $truthy), stopping at the
      * first one that is.
      *
-     * @param list<FilterInterface> $args
      */
-    private static function quantify(mixed $input, array $args, bool $truthy): bool
+    private static function quantify(mixed $input, bool $truthy, FilterInterface ...$args): bool
     {
         return EarlyExit::run(static function (object $label) use ($input, $args, $truthy): void {
             $args[0]->run($input, static function (mixed $item) use ($args, $label, $truthy): void {
@@ -351,10 +334,9 @@ final class ControlFunctions
     }
 
     /**
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      */
-    private static function range1(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
+    private static function range1(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         $args[0]->run($input, static function (mixed $upto) use ($emit): void {
             self::rangeLoop(0, $upto, 1.0, $emit);
@@ -362,10 +344,9 @@ final class ControlFunctions
     }
 
     /**
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      */
-    private static function range2(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
+    private static function range2(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         $args[0]->run($input, static function (mixed $from) use ($input, $args, $emit): void {
             $args[1]->run($input, static function (mixed $upto) use ($from, $emit): void {
@@ -375,10 +356,9 @@ final class ControlFunctions
     }
 
     /**
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      */
-    private static function range3(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
+    private static function range3(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         $args[0]->run($input, static function (mixed $from) use ($input, $args, $emit): void {
             $args[1]->run($input, static function (mixed $upto) use ($from, $input, $args, $emit): void {
@@ -424,10 +404,9 @@ final class ControlFunctions
     }
 
     /**
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      */
-    private static function recurse0(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
+    private static function recurse0(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         self::descend($input, $emit);
     }
@@ -451,10 +430,9 @@ final class ControlFunctions
 
     /**
      * @param ?list<mixed>                       $path
-     * @param list<FilterInterface>              $args
      * @param Closure(?list<mixed>, mixed): void $emit
      */
-    private static function recurse0Paths(RuntimeContextInterface $c, ?array $path, mixed $input, array $args, Closure $emit): void
+    private static function recurse0Paths(RuntimeContextInterface $c, ?array $path, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         self::descendPaths($path, $input, $emit);
     }
@@ -478,10 +456,9 @@ final class ControlFunctions
     }
 
     /**
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      */
-    private static function recurse1(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
+    private static function recurse1(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         $step = $args[0];
         $walk = static function (mixed $value) use (&$walk, $step, $emit): void {
@@ -493,10 +470,9 @@ final class ControlFunctions
 
     /**
      * @param ?list<mixed>                       $path
-     * @param list<FilterInterface>              $args
      * @param Closure(?list<mixed>, mixed): void $emit
      */
-    private static function recurse1Paths(RuntimeContextInterface $c, ?array $path, mixed $input, array $args, Closure $emit): void
+    private static function recurse1Paths(RuntimeContextInterface $c, ?array $path, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         self::walkSteps($args[0], $path, $input, $emit);
     }
@@ -514,10 +490,9 @@ final class ControlFunctions
     }
 
     /**
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      */
-    private static function recurse2(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
+    private static function recurse2(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         [$step, $condition] = $args;
         $walk               = static function (mixed $value) use (&$walk, $step, $condition, $emit): void {
@@ -535,10 +510,9 @@ final class ControlFunctions
 
     /**
      * @param ?list<mixed>                       $path
-     * @param list<FilterInterface>              $args
      * @param Closure(?list<mixed>, mixed): void $emit
      */
-    private static function recurse2Paths(RuntimeContextInterface $c, ?array $path, mixed $input, array $args, Closure $emit): void
+    private static function recurse2Paths(RuntimeContextInterface $c, ?array $path, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         self::walkGuardedSteps($args[0], $args[1], $path, $input, $emit);
     }
@@ -563,10 +537,9 @@ final class ControlFunctions
      * Applies the filter to the same input again and again, emitting everything it produces; it ends only by
      * an error or a break from the caller.
      *
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      */
-    private static function repeat(RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void
+    private static function repeat(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         foreach (new InfiniteIterator(new ArrayIterator([true])) as $ignored) {
             $args[0]->run($input, $emit);

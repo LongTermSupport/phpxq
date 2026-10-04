@@ -8,10 +8,7 @@ use InvalidArgumentException;
 
 final class StatsCalculator
 {
-    /**
-     * @param list<float> $samplesMs
-     */
-    public function summarise(array $samplesMs): SampleStats
+    public function summarise(float ...$samplesMs): SampleStats
     {
         $count = \count($samplesMs);
         if (0 === $count) {
@@ -32,9 +29,9 @@ final class StatsCalculator
         return new SampleStats(
             count: $count,
             minMs: $sorted[0],
-            medianMs: $this->percentile($sorted, 50.0),
+            medianMs: $this->percentile(50.0, ...$sorted),
             meanMs: $mean,
-            p95Ms: $this->percentile($sorted, 95.0),
+            p95Ms: $this->percentile(95.0, ...$sorted),
             maxMs: $sorted[$count - 1],
             stddevMs: $stddev,
         );
@@ -42,10 +39,8 @@ final class StatsCalculator
 
     /**
      * Linear-interpolated percentile of an ascending list.
-     *
-     * @param non-empty-list<float> $sorted
      */
-    private function percentile(array $sorted, float $percent): float
+    private function percentile(float $percent, float ...$sorted): float
     {
         $last = \count($sorted) - 1;
         $rank = $percent / 100.0 * $last;

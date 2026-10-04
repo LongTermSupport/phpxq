@@ -27,20 +27,20 @@ final readonly class NativeStreamOp implements OpInterface
 
     public function run(?Env $env, mixed $input, Closure $emit): void
     {
-        $this->builtin->run($this->state->context(), $input, $this->bind($env), $emit);
+        $this->builtin->run($this->state->context(), $input, $emit, ...$this->bind($env));
     }
 
     public function paths(?Env $env, ?array $path, mixed $input, Closure $emit): void
     {
         if ($this->builtin instanceof PathStreamBuiltinInterface) {
-            $this->builtin->runPaths($this->state->context(), $path, $input, $this->bind($env), $emit);
+            $this->builtin->runPaths($this->state->context(), $path, $input, $emit, ...$this->bind($env));
 
             return;
         }
 
-        $this->builtin->run($this->state->context(), $input, $this->bind($env), static function (mixed $value) use ($emit): void {
+        $this->builtin->run($this->state->context(), $input, static function (mixed $value) use ($emit): void {
             $emit(null, $value);
-        });
+        }, ...$this->bind($env));
     }
 
     /**

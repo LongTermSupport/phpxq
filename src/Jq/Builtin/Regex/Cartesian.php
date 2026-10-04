@@ -13,36 +13,34 @@ use LTS\PhpXq\Jq\Runtime\FilterInterface;
  *
  * @internal
  */
-final class Cartesian
+final readonly class Cartesian
 {
     private function __construct()
     {
     }
 
     /**
-     * @param list<FilterInterface>      $filters
      * @param Closure(list<mixed>): void $body
      */
-    public static function each(array $filters, mixed $input, Closure $body): void
+    public static function each(mixed $input, Closure $body, FilterInterface ...$filters): void
     {
-        self::step($filters, 0, [], $input, $body);
+        self::step(array_values($filters), 0, $input, $body);
     }
 
     /**
      * @param list<FilterInterface>      $filters
-     * @param list<mixed>                $values
      * @param Closure(list<mixed>): void $body
      */
-    private static function step(array $filters, int $index, array $values, mixed $input, Closure $body): void
+    private static function step(array $filters, int $index, mixed $input, Closure $body, mixed ...$values): void
     {
         if ($index === \count($filters)) {
-            $body($values);
+            $body(array_values($values));
 
             return;
         }
 
         $filters[$index]->run($input, static function (mixed $value) use ($filters, $index, $values, $input, $body): void {
-            self::step($filters, $index + 1, [...$values, $value], $input, $body);
+            self::step($filters, $index + 1, $input, $body, ...[...$values, $value]);
         });
     }
 }

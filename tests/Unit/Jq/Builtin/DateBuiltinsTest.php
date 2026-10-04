@@ -193,7 +193,7 @@ final class DateBuiltinsTest extends TestCase
         $builtin = $this->registry()->lookup($name, \count($args));
         self::assertInstanceOf(ValueBuiltinInterface::class, $builtin);
 
-        return $builtin->call($this->context(), $input, array_values($args));
+        return $builtin->call($this->context(), $input, ...$args);
     }
 
     private function errorOf(string $name, mixed $input, mixed ...$args): string

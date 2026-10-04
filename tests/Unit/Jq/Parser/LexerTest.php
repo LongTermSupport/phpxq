@@ -132,14 +132,14 @@ final class LexerTest extends TestCase
     public function testLexerIsReusable(): void
     {
         $lexer  = new Lexer();
-        $failed = false;
+        $failure = null;
         try {
             $lexer->tokenize('"\(1');
-        } catch (JqCompileException) {
-            $failed = true;
+        } catch (JqCompileException $jqCompileException) {
+            $failure = $jqCompileException;
         }
 
-        self::assertTrue($failed);
+        self::assertInstanceOf(JqCompileException::class, $failure);
         self::assertCount(2, $lexer->tokenize('.'));
     }
 

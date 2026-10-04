@@ -14,7 +14,7 @@ use stdClass;
  *
  * @internal
  */
-final class EarlyExit
+final readonly class EarlyExit
 {
     private function __construct()
     {

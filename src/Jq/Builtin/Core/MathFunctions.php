@@ -15,7 +15,7 @@ use RoundingMode;
  *
  * @internal
  */
-final class MathFunctions
+final readonly class MathFunctions
 {
     private const float LN2 = 0.6931471805599453;
 
@@ -661,7 +661,7 @@ final class MathFunctions
             return $a / $b + 0.636619772 * self::j0($x) * log($x);
         }
 
-        return self::yLarge(0, $x, 0.785398164, self::Y0_COSINE_TERMS, self::Y0_SINE_TERMS);
+        return self::yLarge(0, $x, 0.785398164, self::Y0_COSINE_TERMS, ...self::Y0_SINE_TERMS);
     }
 
     /**
@@ -669,9 +669,8 @@ final class MathFunctions
      * Numerical Recipes rational form with the given phase and Horner coefficients in (8/x)^2.
      *
      * @param list<float> $cosineTerms
-     * @param list<float> $sineTerms
      */
-    private static function yLarge(int $order, float $x, float $phase, array $cosineTerms, array $sineTerms): float
+    private static function yLarge(int $order, float $x, float $phase, array $cosineTerms, float ...$sineTerms): float
     {
         if ($x >= self::ASYMPTOTIC_FROM) {
             return self::hankel($order, $x, true);
@@ -680,18 +679,19 @@ final class MathFunctions
         $z  = 8.0 / $x;
         $y  = $z * $z;
         $xx = $x - $phase;
-        $a  = self::horner($cosineTerms, $y);
-        $b  = self::horner($sineTerms, $y);
+        $a  = self::horner($y, ...$cosineTerms);
+        $b  = self::horner($y, ...$sineTerms);
 
         return sqrt(0.636619772 / $x) * (sin($xx) * $a + $z * cos($xx) * $b);
     }
 
     /**
-     * @param list<float> $coefficients lowest power first
+     * @param float ...$coefficients lowest power first
      */
-    private static function horner(array $coefficients, float $y): float
+    private static function horner(float $y, float ...$coefficients): float
     {
-        $sum = 0.0;
+        $coefficients = array_values($coefficients);
+        $sum          = 0.0;
         for ($i = \count($coefficients) - 1; $i >= 0; --$i) {
             $sum = $coefficients[$i] + $y * $sum;
         }
@@ -714,7 +714,7 @@ final class MathFunctions
             return $a / $b + 0.636619772 * (self::j1($x) * log($x) - 1.0 / $x);
         }
 
-        return self::yLarge(1, $x, 2.356194491, self::Y1_COSINE_TERMS, self::Y1_SINE_TERMS);
+        return self::yLarge(1, $x, 2.356194491, self::Y1_COSINE_TERMS, ...self::Y1_SINE_TERMS);
     }
 
     private static function yn(int $order, float $x): float

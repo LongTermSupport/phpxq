@@ -109,7 +109,7 @@ final class Strptime
             }
 
             if ('%' !== $char) {
-                if (($this->input[$this->position] ?? '') !== $char) {
+                if (substr($this->input, $this->position, 1) !== $char) {
                     return false;
                 }
 
@@ -143,7 +143,7 @@ final class Strptime
     {
         switch ($conversion) {
             case '%':
-                if (($this->input[$this->position] ?? '') !== '%') {
+                if ('%' !== substr($this->input, $this->position, 1)) {
                     return false;
                 }
 
@@ -153,19 +153,19 @@ final class Strptime
 
             case 'a':
             case 'A':
-                return $this->matchName(self::DAYS, static function (self $self, int $index): void {
+                return $this->matchName(static function (self $self, int $index): void {
                     $self->weekday     = $index;
                     $self->haveWeekday = true;
-                });
+                }, ...self::DAYS);
 
             case 'b':
             case 'B':
             case 'h':
-                return $this->matchName(self::MONTHS, static function (self $self, int $index): void {
+                return $this->matchName(static function (self $self, int $index): void {
                     $self->month         = $index;
                     $self->haveMonth     = true;
                     $self->wantExtraDays = true;
-                });
+                }, ...self::MONTHS);
 
             case 'c':
                 $this->wantExtraDays = true;
@@ -358,13 +358,13 @@ final class Strptime
     }
 
     /**
-     * @param list<string>              $names lower case full names
      * @param callable(self, int): void $store
+     * @param string                    ...$names lower case full names
      */
-    private function matchName(array $names, callable $store): bool
+    private function matchName(callable $store, string ...$names): bool
     {
         $rest = strtolower(substr($this->input, $this->position, 16));
-        foreach ($names as $index => $name) {
+        foreach (array_values($names) as $index => $name) {
             foreach ([$name, substr($name, 0, 3)] as $candidate) {
                 if (str_starts_with($rest, $candidate)) {
                     $this->position += \strlen($candidate);
@@ -432,7 +432,7 @@ final class Strptime
     private function offset(): bool
     {
         $this->skipSpace();
-        $char = $this->input[$this->position] ?? '';
+        $char = substr($this->input, $this->position, 1);
         if ('Z' === $char) {
             ++$this->position;
 
@@ -451,7 +451,7 @@ final class Strptime
             $value = $value * 10 + (int)$this->input[$this->position];
             ++$this->position;
             ++$digits;
-            if (2 === $digits && ':' === ($this->input[$this->position] ?? '') && ctype_digit($this->input[$this->position + 1] ?? '')) {
+            if (2 === $digits && ':' === substr($this->input, $this->position, 1) && ctype_digit(substr($this->input, $this->position + 1, 1))) {
                 ++$this->position;
             }
         }

@@ -23,27 +23,41 @@ use LTS\PhpXq\Yq\Runtime\Traversal;
  * Filtering and testing operators: `select`, `not`, `has`, `contains`, `any`, `all`, `any_c`, `all_c`,
  * `first`, `last`, `filter`, `with`, `empty`.
  */
-final class SelectionCalls implements CallOperatorInterface
+final readonly class SelectionCalls implements CallOperatorInterface
 {
     private const int MAX_DEPTH = 10000;
 
     public function names(): array
     {
-        return ['select', 'not', 'has', 'contains', 'any', 'all', 'any_c', 'all_c', 'first', 'last', 'filter', 'with', 'empty'];
+        return BuiltinNameEnum::values(
+            BuiltinNameEnum::Select,
+            BuiltinNameEnum::Not,
+            BuiltinNameEnum::Has,
+            BuiltinNameEnum::Contains,
+            BuiltinNameEnum::Any,
+            BuiltinNameEnum::All,
+            BuiltinNameEnum::AnyC,
+            BuiltinNameEnum::AllC,
+            BuiltinNameEnum::First,
+            BuiltinNameEnum::Last,
+            BuiltinNameEnum::Filter,
+            BuiltinNameEnum::With,
+            BuiltinNameEnum::Empty,
+        );
     }
 
     public function evaluate(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
-        return match ($call->name) {
-            'select'                       => $this->select($call, $context, $evaluator),
-            'not'                          => $this->not($context),
-            'has'                          => $this->has($call, $context, $evaluator),
-            'contains'                     => $this->contains($call, $context, $evaluator),
-            'any', 'all', 'any_c', 'all_c' => $this->anyAll($call, $context, $evaluator),
-            'first', 'last'                => $this->firstLast($call, $context, $evaluator),
-            'filter'                       => $this->filter($call, $context, $evaluator),
-            'with'                         => $this->with($call, $context, $evaluator),
-            default                        => [],
+        return match (BuiltinNameEnum::tryFrom($call->name)) {
+            BuiltinNameEnum::Select                                                                 => $this->select($call, $context, $evaluator),
+            BuiltinNameEnum::Not                                                                    => $this->not($context),
+            BuiltinNameEnum::Has                                                                    => $this->has($call, $context, $evaluator),
+            BuiltinNameEnum::Contains                                                               => $this->contains($call, $context, $evaluator),
+            BuiltinNameEnum::Any, BuiltinNameEnum::All, BuiltinNameEnum::AnyC, BuiltinNameEnum::AllC => $this->anyAll($call, $context, $evaluator),
+            BuiltinNameEnum::First, BuiltinNameEnum::Last                                           => $this->firstLast($call, $context, $evaluator),
+            BuiltinNameEnum::Filter                                                                 => $this->filter($call, $context, $evaluator),
+            BuiltinNameEnum::With                                                                   => $this->with($call, $context, $evaluator),
+            default                                                                                 => [],
         };
     }
 
@@ -56,7 +70,7 @@ final class SelectionCalls implements CallOperatorInterface
         $read = $context->withDontAutoCreate(true);
         $out  = [];
         foreach ($context->matches as $match) {
-            foreach ($evaluator->evaluate($call->arguments[0], $read->withMatches([$match])) as $result) {
+            foreach ($evaluator->evaluate($call->arguments[0], $read->withMatches($match)) as $result) {
                 if (NodeOps::truthy(Cands::node($result))) {
                     $out[] = $match;
 
@@ -207,7 +221,7 @@ final class SelectionCalls implements CallOperatorInterface
      */
     private function anyAll(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
-        $all       = 'all' === $call->name || 'all_c' === $call->name;
+        $all       = BuiltinNameEnum::All->value === $call->name || BuiltinNameEnum::AllC->value === $call->name;
         $condition = str_ends_with($call->name, '_c');
         if ($condition) {
             Args::require($call, 1);
@@ -225,7 +239,7 @@ final class SelectionCalls implements CallOperatorInterface
             foreach (Traversal::values($match, false) as $item) {
                 $truthy = false;
                 if ($condition) {
-                    foreach ($evaluator->evaluate($call->arguments[0], $read->withMatches([$item])) as $found) {
+                    foreach ($evaluator->evaluate($call->arguments[0], $read->withMatches($item)) as $found) {
                         $truthy = NodeOps::truthy(Cands::node($found));
 
                         break;
@@ -267,7 +281,7 @@ final class SelectionCalls implements CallOperatorInterface
             }
 
             $children = Traversal::values($match, false);
-            if ('last' === $call->name) {
+            if (BuiltinNameEnum::Last->value === $call->name) {
                 $children = array_reverse($children);
             }
 
@@ -280,7 +294,7 @@ final class SelectionCalls implements CallOperatorInterface
             }
 
             foreach ($children as $child) {
-                foreach ($evaluator->evaluate($call->arguments[0], $read->withMatches([$child])) as $found) {
+                foreach ($evaluator->evaluate($call->arguments[0], $read->withMatches($child)) as $found) {
                     if (NodeOps::truthy(Cands::node($found))) {
                         $out[] = $child;
 
@@ -304,7 +318,7 @@ final class SelectionCalls implements CallOperatorInterface
         foreach ($context->matches as $match) {
             $items = [];
             foreach (Traversal::values($match, false) as $child) {
-                foreach ($evaluator->evaluate($call->arguments[0], $read->withMatches([$child])) as $found) {
+                foreach ($evaluator->evaluate($call->arguments[0], $read->withMatches($child)) as $found) {
                     if (NodeOps::truthy(Cands::node($found))) {
                         $items[] = $child->node->deepCopy();
 
@@ -328,7 +342,7 @@ final class SelectionCalls implements CallOperatorInterface
         Args::require($call, 2);
         $write = $context->withDontAutoCreate(false);
         foreach ($evaluator->evaluate($call->arguments[0], $write) as $target) {
-            $evaluator->evaluate($call->arguments[1], $write->withMatches([$target]));
+            $evaluator->evaluate($call->arguments[1], $write->withMatches($target));
         }
 
         return $context->matches;

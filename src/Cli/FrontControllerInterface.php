@@ -24,12 +24,12 @@ interface FrontControllerInterface
     public const int EXIT_NOT_IMPLEMENTED = 70;
 
     /**
-     * @param list<string> $args   arguments after the program name; the first one is the tool name
-     * @param resource     $stdin
-     * @param resource     $stdout
-     * @param resource     $stderr
+     * @param resource $stdin
+     * @param resource $stdout
+     * @param resource $stderr
+     * @param string   ...$args arguments after the program name; the first one is the tool name
      *
      * @return int the process exit code
      */
-    public function run(array $args, mixed $stdin, mixed $stdout, mixed $stderr): int;
+    public function run(mixed $stdin, mixed $stdout, mixed $stderr, string ...$args): int;
 }

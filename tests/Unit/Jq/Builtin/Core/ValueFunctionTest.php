@@ -27,6 +27,6 @@ final class ValueFunctionTest extends TestCase
         $context  = new FakeContext();
         $function = new ValueFunction('plus', 1, static fn (RuntimeContextInterface $c, mixed $input, array $args): mixed => [$c, $input, $args]);
 
-        self::assertSame([$context, 5, [7]], $function->call($context, 5, [7]));
+        self::assertSame([$context, 5, [7]], $function->call($context, 5, 7));
     }
 }

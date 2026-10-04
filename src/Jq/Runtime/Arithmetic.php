@@ -17,7 +17,7 @@ use LTS\PhpXq\Json\Values;
  *
  * @api
  */
-final class Arithmetic
+final readonly class Arithmetic
 {
     private const int MAX_SAFE = 9007199254740992;
 

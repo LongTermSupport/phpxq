@@ -11,9 +11,9 @@ use Throwable;
  */
 final class FrontController implements FrontControllerInterface
 {
-    public function run(array $args, mixed $stdin, mixed $stdout, mixed $stderr): int
+    public function run(mixed $stdin, mixed $stdout, mixed $stderr, string ...$args): int
     {
-        $tool = ToolEnum::tryFrom($args[0] ?? '');
+        $tool = [] === $args ? null : ToolEnum::tryFrom($args[0]);
         if (null === $tool) {
             fwrite($stderr, ToolEnum::usage());
 
@@ -21,7 +21,7 @@ final class FrontController implements FrontControllerInterface
         }
 
         try {
-            return $tool->run(\array_slice($args, 1), $stdin, $stdout, $stderr);
+            return $tool->run($stdin, $stdout, $stderr, ...\array_slice($args, 1));
         } catch (Throwable $throwable) {
             fwrite($stderr, \sprintf("%s: error (at <unknown>): internal error: %s\n", $tool->value, $throwable->getMessage()));
 

@@ -13,6 +13,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * Text is trimmed and kept in pieces; whitespace-only text is dropped; comments are filed as head, line or
  * foot comments depending on what the surrounding element had seen; processing instructions and directives
  * become children keyed with their prefix. Unknown entities are left as written unless strict mode is on.
+ * `errorLine` is the line of an error found inside decoded text (0 when the reader's position says it all);
+ * `textStart` is the source offset of the text being decoded.
  */
 final class XmlReader
 {
@@ -24,10 +26,8 @@ final class XmlReader
 
     private int $pos = 0;
 
-    /** Line of an error found inside decoded text (0 when the position of the reader says it all). */
     private int $errorLine = 0;
 
-    /** Offset in the source of the text being decoded. */
     private int $textStart = 0;
 
     private readonly int $length;
@@ -98,7 +98,7 @@ final class XmlReader
 
     private function markup(XmlElement $elem): XmlElement
     {
-        $next = $this->source[$this->pos + 1] ?? '';
+        $next = substr($this->source, $this->pos + 1, 1);
         if ('!' === $next) {
             if (str_starts_with(substr($this->source, $this->pos, 4), '<!--')) {
                 $this->comment($elem);
@@ -140,9 +140,9 @@ final class XmlReader
         $text      = substr($this->source, $this->pos + 4, $end - $this->pos - 4);
         $this->pos = $end + 3;
 
-        if ('started' === $elem->state) {
+        if (ElementStateEnum::Started === $elem->state) {
             $elem->headComment = NodeTools::joinComments($elem->headComment, $text);
-        } elseif ('chardata' === $elem->state) {
+        } elseif (ElementStateEnum::Chardata === $elem->state) {
             $elem->lineComment = '' === $elem->lineComment ? $text : $elem->lineComment . ' ' . $text;
         } elseif ($elem->lastChild instanceof XmlElement) {
             $elem->lastChild->footComment = NodeTools::joinComments($elem->lastChild->footComment, $text);
@@ -239,7 +239,7 @@ final class XmlReader
     {
         $child = XmlElement::leaf($key, $text);
         $elem->addChild($key, $child);
-        $elem->state     = 'ended';
+        $elem->state     = ElementStateEnum::Ended;
         $elem->lastChild = $child;
     }
 
@@ -260,7 +260,7 @@ final class XmlReader
             throw new FormatException('XML syntax error: element <' . $elem->rawName . '> closed by </' . $name . '>');
         }
 
-        $elem->parent->state     = 'ended';
+        $elem->parent->state     = ElementStateEnum::Ended;
         $elem->parent->lastChild = $elem;
 
         return $elem->parent;
@@ -292,7 +292,7 @@ final class XmlReader
             }
 
             if ('/' === $char) {
-                if ('>' !== ($this->source[$i + 1] ?? '')) {
+                if ('>' !== substr($this->source, $i + 1, 1)) {
                     throw new FormatException('XML syntax error: expected /> in element');
                 }
 
@@ -323,7 +323,7 @@ final class XmlReader
         }
 
         if ($selfClosing) {
-            $parent->state     = 'ended';
+            $parent->state     = ElementStateEnum::Ended;
             $parent->lastChild = $elem;
 
             return $parent;
@@ -345,7 +345,7 @@ final class XmlReader
         $name = substr($this->source, $i, $n);
         $i   += $n;
         $i   += strspn($this->source, " \t\r\n", $i);
-        if ('=' !== ($this->source[$i] ?? '')) {
+        if ('=' !== substr($this->source, $i, 1)) {
             if ($this->options->xmlStrictMode) {
                 throw new FormatException('XML syntax error: attribute name without = in element');
             }
@@ -355,7 +355,7 @@ final class XmlReader
 
         ++$i;
         $i   += strspn($this->source, " \t\r\n", $i);
-        $quote = $this->source[$i] ?? '';
+        $quote = substr($this->source, $i, 1);
         if ('"' === $quote || "'" === $quote) {
             $end = strpos($this->source, $quote, $i + 1);
             if (false === $end) {
@@ -370,7 +370,7 @@ final class XmlReader
         }
 
         $n = strcspn($this->source, " \t\r\n>", $i);
-        if ('/' === ($this->source[$i + $n - 1] ?? '') && '>' === ($this->source[$i + $n] ?? '')) {
+        if ('/' === substr($this->source, $i + $n - 1, 1) && '>' === substr($this->source, $i + $n, 1)) {
             --$n;
         }
 
@@ -436,7 +436,7 @@ final class XmlReader
         }
 
         $elem->data[] = $text;
-        $elem->state  = 'chardata';
+        $elem->state  = ElementStateEnum::Chardata;
     }
 
     private function normaliseNewlines(string $text): string
@@ -457,7 +457,7 @@ final class XmlReader
                 $this->errorLine = 1 + substr_count($this->source, "\n", 0, $this->textStart) + substr_count($text, "\n", 0, (int)strpos($text, $m[0]));
                 $entity          = $m[1];
                 if ('#' === $entity[0]) {
-                    $code = 'x' === ($entity[1] ?? '') ? (int)hexdec(substr($entity, 2)) : (int)substr($entity, 1);
+                    $code = 'x' === substr($entity, 1, 1) ? (int)hexdec(substr($entity, 2)) : (int)substr($entity, 1);
                     if ($code > 0 && $code <= 0x10FFFF && ($code < 0xD800 || $code > 0xDFFF)) {
                         return mb_chr($code, 'UTF-8');
                     }

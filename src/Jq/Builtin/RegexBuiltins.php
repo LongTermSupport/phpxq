@@ -29,7 +29,7 @@ use LTS\PhpXq\Json\Values;
  *
  * @api
  */
-final class RegexBuiltins implements BuiltinProviderInterface
+final readonly class RegexBuiltins implements BuiltinProviderInterface
 {
     public function registerInto(BuiltinRegistryInterface $registry): void
     {
@@ -64,24 +64,24 @@ final class RegexBuiltins implements BuiltinProviderInterface
         $registry->register(new NativeStream(
             'split',
             2,
-            static function (mixed $input, array $args, Closure $emit): void {
-                Cartesian::each($args, $input, static function (array $values) use ($input, $emit): void {
+            static function (mixed $input, Closure $emit, FilterInterface ...$args): void {
+                Cartesian::each($input, static function (array $values) use ($input, $emit): void {
                     $emit(self::split($input, $values[0], Arithmetic::add('g', $values[1])));
-                });
+                }, ...$args);
             },
         ));
         $registry->register(new NativeStream(
             'scan',
             2,
-            static function (mixed $input, array $args, Closure $emit): void {
-                self::scan($input, $args, $emit);
+            static function (mixed $input, Closure $emit, FilterInterface ...$args): void {
+                self::scan($input, $emit, ...$args);
             },
         ));
         $registry->register(new NativeStream(
             'scan',
             1,
-            static function (mixed $input, array $args, Closure $emit): void {
-                self::scan($input, $args, $emit);
+            static function (mixed $input, Closure $emit, FilterInterface ...$args): void {
+                self::scan($input, $emit, ...$args);
             },
         ));
         foreach ([false, true] as $global) {
@@ -90,8 +90,8 @@ final class RegexBuiltins implements BuiltinProviderInterface
                 $registry->register(new NativeStream(
                     $name,
                     $arity,
-                    static function (mixed $input, array $args, Closure $emit) use ($global): void {
-                        self::sub($global, $input, $args, $emit);
+                    static function (mixed $input, Closure $emit, FilterInterface ...$args) use ($global): void {
+                        self::sub($global, $input, $emit, ...$args);
                     },
                 ));
             }
@@ -159,7 +159,7 @@ final class RegexBuiltins implements BuiltinProviderInterface
         $cursor  = new CodepointCursor($subject, $ascii);
         $objects = [];
         foreach (RegexEngine::find($regex, $subject, $regex->global, $ascii) as $groups) {
-            $objects[] = MatchObjects::match($groups, $regex->groupNames, $cursor);
+            $objects[] = MatchObjects::match($groups, $cursor, ...$regex->groupNames);
         }
 
         return $objects;
@@ -187,14 +187,13 @@ final class RegexBuiltins implements BuiltinProviderInterface
     }
 
     /**
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      *
      * @throws JqException
      */
-    private static function scan(mixed $input, array $args, Closure $emit): void
+    private static function scan(mixed $input, Closure $emit, FilterInterface ...$args): void
     {
-        Cartesian::each($args, $input, static function (array $values) use ($input, $emit): void {
+        Cartesian::each($input, static function (array $values) use ($input, $emit): void {
             [$subject, $regex, $ascii] = self::prepare($input, $values[0], Arithmetic::add('g', $values[1] ?? null));
             $groupCount                = \count($regex->groupNames);
             foreach (RegexEngine::find($regex, $subject, true, $ascii) as $groups) {
@@ -211,7 +210,7 @@ final class RegexBuiltins implements BuiltinProviderInterface
 
                 $emit($strings);
             }
-        });
+        }, ...$args);
     }
 
     /**
@@ -219,18 +218,17 @@ final class RegexBuiltins implements BuiltinProviderInterface
      * yields several values, output number n applies its n-th value to every match, as jq's own
      * definition does; with no match (or no replacement values) the input is the single output.
      *
-     * @param list<FilterInterface> $args
-     * @param Closure(mixed): void  $emit
+     * @param Closure(mixed): void $emit
      *
      * @throws JqException
      */
-    private static function sub(bool $global, mixed $input, array $args, Closure $emit): void
+    private static function sub(bool $global, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         $replacement = $args[1];
         $parameters  = isset($args[2]) ? [$args[0], $args[2]] : [$args[0]];
 
-        Cartesian::each($parameters, $input, static function (array $values) use ($global, $input, $replacement, $emit): void {
-            $flags = $values[1] ?? '';
+        Cartesian::each($input, static function (array $values) use ($global, $input, $replacement, $emit): void {
+            $flags = \count($values) > 1 ? $values[1] : '';
             if ($global) {
                 $flags = Arithmetic::add($flags, 'g');
             }
@@ -247,7 +245,7 @@ final class RegexBuiltins implements BuiltinProviderInterface
 
                 /** @var list<mixed> $inserts */
                 $inserts = [];
-                $replacement->run(MatchObjects::named($groups, $regex->groupNames), static function (mixed $value) use (&$inserts): void {
+                $replacement->run(MatchObjects::named($groups, ...$regex->groupNames), static function (mixed $value) use (&$inserts): void {
                     $inserts[] = $value;
                 });
 
@@ -269,6 +267,6 @@ final class RegexBuiltins implements BuiltinProviderInterface
             for ($index = 0; $index < $count; ++$index) {
                 $emit(Arithmetic::add($results[$index] ?? null, $tail));
             }
-        });
+        }, ...$parameters);
     }
 }

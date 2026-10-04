@@ -11,7 +11,7 @@ use LTS\PhpXq\Jq\Runtime\JqException;
  *
  * @internal
  */
-final class PathErrors
+final readonly class PathErrors
 {
     private function __construct()
     {

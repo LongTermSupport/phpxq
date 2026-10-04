@@ -36,7 +36,7 @@ final class FormatCalls implements CallOperatorInterface
 
     public function names(): array
     {
-        $names = ['@sh', '@uri', '@urid', '@base64', '@base64d', '@base64url', '@base64urld', '@html', '@csv', '@tsv', '@csvd', '@tsvd'];
+        $names = array_map(static fn (StringEncodingEnum $encoding): string => '@' . $encoding->value, StringEncodingEnum::cases());
         foreach (self::DATA_FORMATS as $format) {
             $names[] = '@' . $format;
             $names[] = '@' . $format . 'd';
@@ -72,22 +72,22 @@ final class FormatCalls implements CallOperatorInterface
         }
 
         $bare = substr($name, 1);
-        switch ($bare) {
-            case 'sh':
+        switch (StringEncodingEnum::tryFrom($bare)) {
+            case StringEncodingEnum::Sh:
                 return Cands::derive(NodeOps::str($this->shell($this->text($node, $context))), $match);
-            case 'uri':
+            case StringEncodingEnum::Uri:
                 return Cands::derive(NodeOps::str(str_replace('%7E', '~', urlencode($this->text($node, $context)))), $match);
-            case 'urid':
+            case StringEncodingEnum::Urid:
                 return Cands::derive(NodeOps::str(urldecode($this->text($node, $context))), $match);
-            case 'html':
+            case StringEncodingEnum::Html:
                 return Cands::derive(NodeOps::str(str_replace(["'", '"'], ['&#39;', '&#34;'], htmlspecialchars($this->text($node, $context), \ENT_NOQUOTES))), $match);
-            case 'base64':
+            case StringEncodingEnum::Base64:
                 return Cands::derive(NodeOps::str(base64_encode($this->text($node, $context))), $match);
-            case 'base64d':
+            case StringEncodingEnum::Base64d:
                 return Cands::derive(NodeOps::str($this->base64Decode($this->text($node, $context))), $match);
-            case 'base64url':
+            case StringEncodingEnum::Base64Url:
                 return Cands::derive(NodeOps::str(strtr(base64_encode($this->text($node, $context)), '+/', '-_')), $match);
-            case 'base64urld':
+            case StringEncodingEnum::Base64Urld:
                 return Cands::derive(NodeOps::str($this->base64Decode(strtr($this->text($node, $context), '-_', '+/'))), $match);
             default:
                 break;
@@ -97,13 +97,16 @@ final class FormatCalls implements CallOperatorInterface
             return $this->decode(substr($bare, 0, -1), $node, $match, $context);
         }
 
-        return $this->encode($bare, $node, $match, $context, 'json' === $bare || 'xml' === $bare ? 0 : 2);
+        $exact = FormatEnum::tryFrom($bare);
+
+        return $this->encode($bare, $node, $match, $context, FormatEnum::Json === $exact || FormatEnum::Xml === $exact ? 0 : 2);
     }
 
     private function encode(string $formatName, Node $node, Candidate $match, EvaluationContext $context, int $indent): Candidate
     {
-        if ('csv' === $formatName || 'tsv' === $formatName) {
-            return Cands::derive(NodeOps::str($this->delimited($node, 'csv' === $formatName ? ',' : "\t", 'tsv' === $formatName)), $match);
+        $exact = FormatEnum::tryFrom($formatName);
+        if (FormatEnum::Csv === $exact || FormatEnum::Tsv === $exact) {
+            return Cands::derive(NodeOps::str($this->delimited($node, FormatEnum::Csv === $exact ? ',' : "\t", FormatEnum::Tsv === $exact)), $match);
         }
 
         $format = FormatEnum::fromName($formatName);
@@ -193,10 +196,14 @@ final class FormatCalls implements CallOperatorInterface
                 continue;
             }
 
-            preg_match('/^[A-Za-z0-9_@%+=:,.\/-]*/', $piece, $head);
-            preg_match('/[A-Za-z0-9_@%+=:,.\/-]*$/', $piece, $tail);
-            $prefix = $head[0] ?? '';
-            $suffix = $tail[0] ?? '';
+            if (1 !== preg_match('/^[A-Za-z0-9_@%+=:,.\/-]*/', $piece, $head) || 1 !== preg_match('/[A-Za-z0-9_@%+=:,.\/-]*$/', $piece, $tail)) {
+                $out[] = $piece;
+
+                continue;
+            }
+
+            $prefix = $head[0];
+            $suffix = $tail[0];
             $core   = substr($piece, \strlen($prefix), \strlen($piece) - \strlen($prefix) - \strlen($suffix));
             $out[]  = $prefix . "'" . $core . "'" . $suffix;
         }

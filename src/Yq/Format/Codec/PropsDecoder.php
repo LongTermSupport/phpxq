@@ -17,7 +17,7 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * are filled with nulls), anything else is a map key. Every value is a string. Comment lines above a
  * property become its head comment.
  */
-final class PropsDecoder implements DecoderInterface
+final readonly class PropsDecoder implements DecoderInterface
 {
     private const string BLANKS = " \t\f";
 
@@ -43,7 +43,7 @@ final class PropsDecoder implements DecoderInterface
                 $parts[] = 1 === preg_match('/^[0-9]{1,9}$/D', $part) ? (int)$part : $part;
             }
 
-            $this->assign($root, $parts, Node::scalar($value, CoreSchema::TAG_STR), $comment, $index);
+            $this->assign($root, Node::scalar($value, CoreSchema::TAG_STR), $comment, $index, ...$parts);
         }
 
         yield Node::document($root);
@@ -194,13 +194,13 @@ final class PropsDecoder implements DecoderInterface
     }
 
     /**
-     * @param list<int|string>               $parts
      * @param array<int, array<string, int>> $index key positions per mapping, by object id
      */
-    private function assign(Node $root, array $parts, Node $leaf, string $comment, array &$index): void
+    private function assign(Node $root, Node $leaf, string $comment, array &$index, int|string ...$parts): void
     {
-        $node = $root;
-        $last = \count($parts) - 1;
+        $node  = $root;
+        $parts = array_values($parts);
+        $last  = \count($parts) - 1;
         foreach ($parts as $position => $part) {
             if (NodeKindEnum::Sequence === $node->kind) {
                 if (!\is_int($part)) {

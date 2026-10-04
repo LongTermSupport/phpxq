@@ -33,23 +33,33 @@ enum ExpressionTokenKindEnum
     /** `...` */
     case DotDotDot;
 
+    /** `[` */
     case LeftBracket;
 
+    /** `]` */
     case RightBracket;
 
+    /** `(` */
     case LeftParen;
 
+    /** `)` */
     case RightParen;
 
+    /** `{` */
     case LeftBrace;
 
+    /** `}` */
     case RightBrace;
 
+    /** `;` */
     case Semicolon;
 
+    /** `:` */
     case Colon;
 
+    /** `?` */
     case Question;
 
+    /** The last token of every expression; it carries no text. */
     case EndOfInput;
 }

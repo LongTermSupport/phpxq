@@ -11,7 +11,7 @@ use LTS\PhpXq\Yq\Format\FormatException;
  * and `@sh` expression encoders and the base64, base64url, uri and shell codecs. No trailing newline is
  * added or removed; the expression operators and the codecs decide that.
  */
-final class StringFormats
+final readonly class StringFormats
 {
     private const string SHELL_SAFE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_@%+=:,./-';
 
@@ -108,7 +108,10 @@ final class StringFormats
 
     private static function decodeBase64(string $text, bool $urlSafe): string
     {
-        $clean = preg_replace('/\s+/', '', $text) ?? '';
+        $clean = preg_replace('/\s+/', '', $text);
+        if (null === $clean) {
+            $clean = '';
+        }
         if ($urlSafe) {
             $clean = strtr($clean, '-_', '+/');
         }

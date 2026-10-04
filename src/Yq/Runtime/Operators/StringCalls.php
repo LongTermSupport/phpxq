@@ -26,11 +26,28 @@ use LTS\PhpXq\Yq\Runtime\Numbers;
  * String operators: `upcase`, `downcase`, `trim`, `ltrimstr`, `rtrimstr`, `startswith`, `endswith`,
  * `join`, `split`, `to_string`, `to_number`, `to_bool`.
  */
-final class StringCalls implements CallOperatorInterface
+final readonly class StringCalls implements CallOperatorInterface
 {
     public function names(): array
     {
-        return ['upcase', 'ascii_upcase', 'downcase', 'ascii_downcase', 'trim', 'ltrimstr', 'rtrimstr', 'startswith', 'endswith', 'join', 'split', 'to_string', 'tostring', 'to_number', 'tonumber', 'to_bool'];
+        return BuiltinNameEnum::values(
+            BuiltinNameEnum::Upcase,
+            BuiltinNameEnum::AsciiUpcase,
+            BuiltinNameEnum::Downcase,
+            BuiltinNameEnum::AsciiDowncase,
+            BuiltinNameEnum::Trim,
+            BuiltinNameEnum::Ltrimstr,
+            BuiltinNameEnum::Rtrimstr,
+            BuiltinNameEnum::Startswith,
+            BuiltinNameEnum::Endswith,
+            BuiltinNameEnum::Join,
+            BuiltinNameEnum::Split,
+            BuiltinNameEnum::ToString,
+            BuiltinNameEnum::ToStringFlat,
+            BuiltinNameEnum::ToNumber,
+            BuiltinNameEnum::ToNumberFlat,
+            BuiltinNameEnum::ToBool,
+        );
     }
 
     public function evaluate(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
@@ -51,24 +68,24 @@ final class StringCalls implements CallOperatorInterface
     private function one(Call $call, Candidate $match, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
         $node = NodeOps::deref(Cands::node($match));
-        switch ($call->name) {
-            case 'to_string':
-            case 'tostring':
+        switch (BuiltinNameEnum::tryFrom($call->name)) {
+            case BuiltinNameEnum::ToString:
+            case BuiltinNameEnum::ToStringFlat:
                 return [Cands::derive($this->toString($node, $context), $match)];
 
-            case 'to_number':
-            case 'tonumber':
+            case BuiltinNameEnum::ToNumber:
+            case BuiltinNameEnum::ToNumberFlat:
                 return [Cands::derive($this->toNumber($node), $match)];
 
-            case 'to_bool':
+            case BuiltinNameEnum::ToBool:
                 return [Cands::derive($this->toBool($node), $match)];
 
-            case 'join':
+            case BuiltinNameEnum::Join:
                 return [Cands::derive($this->join($call, $match, $node, $context, $evaluator), $match)];
 
-            case 'split':
+            case BuiltinNameEnum::Split:
                 Args::require($call, 1);
-                $separator = Args::string($call, 0, $context, $evaluator, $match) ?? '';
+                $separator = Args::stringOrEmpty($call, 0, $context, $evaluator, $match);
                 if (NodeOps::isNull($node)) {
                     return [];
                 }
@@ -101,26 +118,26 @@ final class StringCalls implements CallOperatorInterface
         }
 
         $text = $this->text($node, $call);
-        switch ($call->name) {
-            case 'upcase':
-            case 'ascii_upcase':
+        switch (BuiltinNameEnum::tryFrom($call->name)) {
+            case BuiltinNameEnum::Upcase:
+            case BuiltinNameEnum::AsciiUpcase:
                 $value = mb_strtoupper($text);
                 break;
 
-            case 'downcase':
-            case 'ascii_downcase':
+            case BuiltinNameEnum::Downcase:
+            case BuiltinNameEnum::AsciiDowncase:
                 $value = mb_strtolower($text);
                 break;
 
-            case 'trim':
+            case BuiltinNameEnum::Trim:
                 $value = preg_replace('/^\s+|\s+$/u', '', $text) ?? $text;
                 break;
 
-            case 'ltrimstr':
-            case 'rtrimstr':
+            case BuiltinNameEnum::Ltrimstr:
+            case BuiltinNameEnum::Rtrimstr:
                 Args::require($call, 1);
-                $affix = Args::string($call, 0, $context, $evaluator, $match) ?? '';
-                if ('ltrimstr' === $call->name) {
+                $affix = Args::stringOrEmpty($call, 0, $context, $evaluator, $match);
+                if (BuiltinNameEnum::Ltrimstr->value === $call->name) {
                     $value = '' !== $affix && str_starts_with($text, $affix) ? substr($text, \strlen($affix)) : $text;
                 } else {
                     $value = '' !== $affix && str_ends_with($text, $affix) ? substr($text, 0, -\strlen($affix)) : $text;
@@ -130,8 +147,8 @@ final class StringCalls implements CallOperatorInterface
 
             default:
                 Args::require($call, 1);
-                $affix = Args::string($call, 0, $context, $evaluator, $match) ?? '';
-                $found = 'startswith' === $call->name ? str_starts_with($text, $affix) : str_ends_with($text, $affix);
+                $affix = Args::stringOrEmpty($call, 0, $context, $evaluator, $match);
+                $found = BuiltinNameEnum::Startswith->value === $call->name ? str_starts_with($text, $affix) : str_ends_with($text, $affix);
 
                 return [Cands::derive(NodeOps::bool($found), $match)];
         }
@@ -146,7 +163,7 @@ final class StringCalls implements CallOperatorInterface
     private function join(Call $call, Candidate $match, Node $node, EvaluationContext $context, EvaluatorInterface $evaluator): Node
     {
         Args::require($call, 1);
-        $separator = Args::string($call, 0, $context, $evaluator, $match) ?? '';
+        $separator = Args::stringOrEmpty($call, 0, $context, $evaluator, $match);
         if (NodeKindEnum::Sequence !== $node->kind) {
             throw new EvaluationException(\sprintf('Cannot join %s, join only works on arrays', '' === $node->tag ? NodeOps::kindName($node) : $node->tag));
         }

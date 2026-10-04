@@ -33,7 +33,7 @@ final class WalkOpTest extends OpTestCase
 
     public function testArrayElementsKeepEveryOutputOfTheFilter(): void
     {
-        $op = new WalkOp(self::generator([1, 2]));
+        $op = new WalkOp(self::generator(1, 2));
 
         // each element yields 1 and 2; the array itself is then filtered to 1 and 2 as well
         self::assertSame([1, 2], self::outputs($op, [0, 0]));
@@ -41,10 +41,10 @@ final class WalkOpTest extends OpTestCase
 
     public function testObjectMembersTakeTheFirstOutputAndDropWhenEmpty(): void
     {
-        $first = new WalkOp(self::generator([1, 2]));
+        $first = new WalkOp(self::generator(1, 2));
         self::assertSame([1, 2], self::outputs($first, self::object(['a' => 0])));
 
-        $none = new WalkOp(self::generator([]));
+        $none = new WalkOp(self::generator());
         self::assertSame([], self::outputs($none, self::object(['a' => 0])));
     }
 

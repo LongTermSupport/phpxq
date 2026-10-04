@@ -34,7 +34,7 @@ final class OptionParserTest extends TestCase
 
     public function testProgramAndFiles(): void
     {
-        $options = $this->parse(['.a', 'one.json', 'two.json']);
+        $options = $this->parse('.a', 'one.json', 'two.json');
 
         self::assertSame(CliActionEnum::Run, $options->action);
         self::assertSame('.a', $options->program);
@@ -44,13 +44,13 @@ final class OptionParserTest extends TestCase
 
     public function testNoProgramLeavesItNull(): void
     {
-        self::assertNull($this->parse([])->program);
-        self::assertNull($this->parse(['-n'])->program);
+        self::assertNull($this->parse()->program);
+        self::assertNull($this->parse('-n')->program);
     }
 
     public function testShortFlagsCombine(): void
     {
-        $options = $this->parse(['-nrsSae', '.']);
+        $options = $this->parse('-nrsSae', '.');
 
         self::assertTrue($options->nullInput);
         self::assertTrue($options->rawOutput);
@@ -64,7 +64,7 @@ final class OptionParserTest extends TestCase
 
     public function testJoinOutputImpliesRaw(): void
     {
-        $options = $this->parse(['-j', '.']);
+        $options = $this->parse('-j', '.');
 
         self::assertTrue($options->joinOutput);
         self::assertTrue($options->rawOutput);
@@ -72,7 +72,7 @@ final class OptionParserTest extends TestCase
 
     public function testRawOutput0ImpliesRawAndNoNewline(): void
     {
-        $options = $this->parse(['--raw-output0', '.']);
+        $options = $this->parse('--raw-output0', '.');
 
         self::assertTrue($options->rawOutput0);
         self::assertTrue($options->rawOutput);
@@ -81,10 +81,10 @@ final class OptionParserTest extends TestCase
 
     public function testLongFlags(): void
     {
-        $options = $this->parse([
+        $options = $this->parse(
             '--null-input', '--raw-input', '--slurp', '--raw-output', '--ascii-output', '--sort-keys',
             '--exit-status', '--seq', '--unbuffered', '--binary', '--from-file', '--debug-dump-disasm', '--debug-trace=all', '.',
-        ]);
+        );
 
         self::assertTrue($options->nullInput);
         self::assertTrue($options->rawInput);
@@ -101,20 +101,20 @@ final class OptionParserTest extends TestCase
 
     public function testStreamErrorsImpliesStream(): void
     {
-        $options = $this->parse(['--stream-errors', '.']);
+        $options = $this->parse('--stream-errors', '.');
 
         self::assertTrue($options->stream);
         self::assertTrue($options->streamErrors);
-        self::assertFalse($this->parse(['--stream', '.'])->streamErrors);
+        self::assertFalse($this->parse('--stream', '.')->streamErrors);
     }
 
     public function testColorFlagsLastOneWins(): void
     {
-        self::assertTrue($this->parse(['-C', '.'])->color);
-        self::assertFalse($this->parse(['-M', '.'])->color);
-        self::assertFalse($this->parse(['-C', '-M', '.'])->color);
-        self::assertTrue($this->parse(['--monochrome-output', '--color-output', '.'])->color);
-        self::assertNull($this->parse(['.'])->color);
+        self::assertTrue($this->parse('-C', '.')->color);
+        self::assertFalse($this->parse('-M', '.')->color);
+        self::assertFalse($this->parse('-C', '-M', '.')->color);
+        self::assertTrue($this->parse('--monochrome-output', '--color-output', '.')->color);
+        self::assertNull($this->parse('.')->color);
     }
 
     /**
@@ -123,7 +123,7 @@ final class OptionParserTest extends TestCase
     #[DataProvider('provideLayouts')]
     public function testLayoutFlagsActInOrder(array $args, bool $pretty, bool $tab, int $indent): void
     {
-        $options = $this->parse($args);
+        $options = $this->parse(...$args);
 
         self::assertSame($pretty, $options->pretty);
         self::assertSame($tab, $options->tab);
@@ -158,15 +158,15 @@ final class OptionParserTest extends TestCase
 
     public function testIndentLimits(): void
     {
-        self::assertSame(7, $this->parse(['--indent', '7', '.'])->indent);
-        $this->assertRefused(['--indent', '8', '.'], 'jq: Cannot indent more than 7 characters');
-        $this->assertRefused(['--indent', '-2', '.'], 'jq: Cannot indent less than -1 characters');
-        $this->assertRefused(['--indent'], 'jq: --indent takes one parameter');
+        self::assertSame(7, $this->parse('--indent', '7', '.')->indent);
+        $this->assertRefused('jq: Cannot indent more than 7 characters', '--indent', '8', '.');
+        $this->assertRefused('jq: Cannot indent less than -1 characters', '--indent', '-2', '.');
+        $this->assertRefused('jq: --indent takes one parameter', '--indent');
     }
 
     public function testArgsAndJsonargsSwitchTheMeaningOfPositionals(): void
     {
-        $options = $this->parse(['-n', '$ARGS.positional', '--args', 'foo', 'bar', '--jsonargs', '1', '{"a":[]}', '--args', 'baz']);
+        $options = $this->parse('-n', '$ARGS.positional', '--args', 'foo', 'bar', '--jsonargs', '1', '{"a":[]}', '--args', 'baz');
 
         self::assertSame('$ARGS.positional', $options->program);
         self::assertSame([], $options->files);
@@ -180,7 +180,7 @@ final class OptionParserTest extends TestCase
 
     public function testArgsBeforeTheProgramLeavesTheFirstPositionalAsProgram(): void
     {
-        $options = $this->parse(['--args', '-rn', '--', '$ARGS.positional[0]', 'bar']);
+        $options = $this->parse('--args', '-rn', '--', '$ARGS.positional[0]', 'bar');
 
         self::assertSame('$ARGS.positional[0]', $options->program);
         self::assertSame(['bar'], $options->positional);
@@ -188,7 +188,7 @@ final class OptionParserTest extends TestCase
 
     public function testProgramGivenBeforeDoubleDash(): void
     {
-        $options = $this->parse(['--args', '-rn', '1', '--', '$ARGS.positional[0]', 'bar']);
+        $options = $this->parse('--args', '-rn', '1', '--', '$ARGS.positional[0]', 'bar');
 
         self::assertSame('1', $options->program);
         self::assertSame(['$ARGS.positional[0]', 'bar'], $options->positional);
@@ -196,7 +196,7 @@ final class OptionParserTest extends TestCase
 
     public function testDoubleDashEndsOptions(): void
     {
-        $options = $this->parse(['-n', '--', '-x', '--arg']);
+        $options = $this->parse('-n', '--', '-x', '--arg');
 
         self::assertSame('-x', $options->program);
         self::assertSame(['--arg'], $options->files);
@@ -204,20 +204,20 @@ final class OptionParserTest extends TestCase
 
     public function testASingleDashIsAFileName(): void
     {
-        $options = $this->parse(['.', '-']);
+        $options = $this->parse('.', '-');
 
         self::assertSame(['-'], $options->files);
     }
 
     public function testInvalidJsonargIsRefused(): void
     {
-        $this->assertRefused(['-n', '--jsonargs', 'null', 'invalid'], 'jq: Invalid JSON text passed to --jsonargs');
-        $this->assertRefused(['-n', '--jsonargs', 'null', '--', 'invalid'], 'jq: Invalid JSON text passed to --jsonargs');
+        $this->assertRefused('jq: Invalid JSON text passed to --jsonargs', '-n', '--jsonargs', 'null', 'invalid');
+        $this->assertRefused('jq: Invalid JSON text passed to --jsonargs', '-n', '--jsonargs', 'null', '--', 'invalid');
     }
 
     public function testNamedArguments(): void
     {
-        $options = $this->parse(['-n', '--arg', 'a', 'x', '--argjson', 'b', '{"k":1}', '.']);
+        $options = $this->parse('-n', '--arg', 'a', 'x', '--argjson', 'b', '{"k":1}', '.');
 
         self::assertSame(['a', 'b'], array_keys($options->named));
         self::assertSame('x', $options->named['a']);
@@ -228,33 +228,33 @@ final class OptionParserTest extends TestCase
     public function testTheFirstDefinitionOfANamedArgumentWins(): void
     {
         $file    = $this->tempFile("[2]\n");
-        $options = $this->parse(['-n', '--arg', 'a', '1', '--arg', 'a', '2', '--argjson', 'a', '3', '--slurpfile', 'a', $file, '.']);
+        $options = $this->parse('-n', '--arg', 'a', '1', '--arg', 'a', '2', '--argjson', 'a', '3', '--slurpfile', 'a', $file, '.');
 
         self::assertSame(['a' => '1'], $options->named);
 
-        $options = $this->parse(['-n', '--argjson', 'b', '3', '--arg', 'b', '2', '.']);
+        $options = $this->parse('-n', '--argjson', 'b', '3', '--arg', 'b', '2', '.');
 
         self::assertSame(['b' => 3], $options->named);
     }
 
     public function testADuplicateNamedArgumentIsStillValidated(): void
     {
-        $this->assertRefused(['--arg', 'a', '1', '--argjson', 'a', '1x'], 'jq: Invalid JSON text passed to --argjson');
+        $this->assertRefused('jq: Invalid JSON text passed to --argjson', '--arg', 'a', '1', '--argjson', 'a', '1x');
     }
 
     public function testNamedArgumentErrors(): void
     {
-        $this->assertRefused(['--arg', 'a'], 'jq: --arg takes two parameters (e.g. --arg varname value)');
-        $this->assertRefused(['--argjson', 'a', '1x'], 'jq: Invalid JSON text passed to --argjson');
-        $this->assertRefused(['--argjson', 'a'], 'jq: --argjson takes two parameters (e.g. --argjson varname text)');
-        $this->assertRefused(['--slurpfile', 'a'], 'jq: --slurpfile takes two parameters (e.g. --slurpfile varname filename)');
-        $this->assertRefused(['--rawfile', 'a'], 'jq: --rawfile takes two parameters (e.g. --rawfile varname filename)');
+        $this->assertRefused('jq: --arg takes two parameters (e.g. --arg varname value)', '--arg', 'a');
+        $this->assertRefused('jq: Invalid JSON text passed to --argjson', '--argjson', 'a', '1x');
+        $this->assertRefused('jq: --argjson takes two parameters (e.g. --argjson varname text)', '--argjson', 'a');
+        $this->assertRefused('jq: --slurpfile takes two parameters (e.g. --slurpfile varname filename)', '--slurpfile', 'a');
+        $this->assertRefused('jq: --rawfile takes two parameters (e.g. --rawfile varname filename)', '--rawfile', 'a');
     }
 
     public function testSlurpfileAndRawfile(): void
     {
         $file    = $this->tempFile("{\"this\":1}\n[2]\n");
-        $options = $this->parse(['-n', '--slurpfile', 'foo', $file, '--rawfile', 'bar', $file, '.']);
+        $options = $this->parse('-n', '--slurpfile', 'foo', $file, '--rawfile', 'bar', $file, '.');
 
         self::assertIsArray($options->named['foo']);
         self::assertCount(2, $options->named['foo']);
@@ -263,8 +263,8 @@ final class OptionParserTest extends TestCase
 
     public function testUnreadableFileForSlurpfile(): void
     {
-        $this->assertRefused(['--slurpfile', 'a', '/nonexistent/x.json', '.'], 'jq: Bad JSON in --slurpfile a /nonexistent/x.json: Could not open /nonexistent/x.json: No such file or directory');
-        $this->assertRefused(['--rawfile', 'a', '/nonexistent/x.txt', '.'], 'jq: Bad JSON in --rawfile a /nonexistent/x.txt: Could not open /nonexistent/x.txt: No such file or directory');
+        $this->assertRefused('jq: Bad JSON in --slurpfile a /nonexistent/x.json: Could not open /nonexistent/x.json: No such file or directory', '--slurpfile', 'a', '/nonexistent/x.json', '.');
+        $this->assertRefused('jq: Bad JSON in --rawfile a /nonexistent/x.txt: Could not open /nonexistent/x.txt: No such file or directory', '--rawfile', 'a', '/nonexistent/x.txt', '.');
     }
 
     public function testBadJsonInSlurpfile(): void
@@ -272,7 +272,7 @@ final class OptionParserTest extends TestCase
         $file = $this->tempFile('{"a":1} nope');
 
         try {
-            $this->parse(['--slurpfile', 'a', $file, '.']);
+            $this->parse('--slurpfile', 'a', $file, '.');
         } catch (UsageException $usageException) {
             self::assertStringStartsWith('jq: Bad JSON in --slurpfile a ' . $file . ': ', $usageException->getMessage());
 
@@ -284,59 +284,53 @@ final class OptionParserTest extends TestCase
 
     public function testLibraryPathForms(): void
     {
-        self::assertSame(['a', 'b', 'c', 'd'], $this->parse(['-L', 'a', '-Lb', '-nLc', '-n', '-L', 'd', '.'])->libraryPaths);
-        self::assertSame(['.'], $this->parse(['-nL.', '42'])->libraryPaths);
-        self::assertSame(['.'], $this->parse(['-nL', '.', '42'])->libraryPaths);
-        $this->assertRefused(['-L'], 'jq: -L takes a parameter: (e.g. -L /search/path or -L/search/path)');
+        self::assertSame(['a', 'b', 'c', 'd'], $this->parse('-L', 'a', '-Lb', '-nLc', '-n', '-L', 'd', '.')->libraryPaths);
+        self::assertSame(['.'], $this->parse('-nL.', '42')->libraryPaths);
+        self::assertSame(['.'], $this->parse('-nL', '.', '42')->libraryPaths);
+        $this->assertRefused('jq: -L takes a parameter: (e.g. -L /search/path or -L/search/path)', '-L');
     }
 
     public function testHelpAndVersionEndParsingImmediately(): void
     {
-        self::assertSame(CliActionEnum::Help, $this->parse(['-h'])->action);
-        self::assertSame(CliActionEnum::Help, $this->parse(['--help'])->action);
-        self::assertSame(CliActionEnum::Version, $this->parse(['-V'])->action);
-        self::assertSame(CliActionEnum::Version, $this->parse(['--version'])->action);
-        self::assertSame(CliActionEnum::BuildConfiguration, $this->parse(['--build-configuration'])->action);
-        self::assertSame(CliActionEnum::Help, $this->parse(['-hV'])->action);
-        self::assertSame(CliActionEnum::Version, $this->parse(['-Vh'])->action);
-        self::assertSame(CliActionEnum::Help, $this->parse(['-h', '-V'])->action);
-        self::assertSame(CliActionEnum::Version, $this->parse(['-V', '-h'])->action);
-        self::assertSame(CliActionEnum::Help, $this->parse(['-n', '-h', '--bogus'])->action);
+        self::assertSame(CliActionEnum::Help, $this->parse('-h')->action);
+        self::assertSame(CliActionEnum::Help, $this->parse('--help')->action);
+        self::assertSame(CliActionEnum::Version, $this->parse('-V')->action);
+        self::assertSame(CliActionEnum::Version, $this->parse('--version')->action);
+        self::assertSame(CliActionEnum::BuildConfiguration, $this->parse('--build-configuration')->action);
+        self::assertSame(CliActionEnum::Help, $this->parse('-hV')->action);
+        self::assertSame(CliActionEnum::Version, $this->parse('-Vh')->action);
+        self::assertSame(CliActionEnum::Help, $this->parse('-h', '-V')->action);
+        self::assertSame(CliActionEnum::Version, $this->parse('-V', '-h')->action);
+        self::assertSame(CliActionEnum::Help, $this->parse('-n', '-h', '--bogus')->action);
     }
 
     public function testUnknownOptionsAreRefused(): void
     {
-        $this->assertRefused(['--bogus'], 'jq: Unknown option: --bogus');
-        $this->assertRefused(['-nz', '.'], 'jq: Unknown option: -nz');
-        $this->assertRefused(['--null', '.'], 'jq: Unknown option: --null');
+        $this->assertRefused('jq: Unknown option: --bogus', '--bogus');
+        $this->assertRefused('jq: Unknown option: -nz', '-nz', '.');
+        $this->assertRefused('jq: Unknown option: --null', '--null', '.');
     }
 
     public function testRefusalIsReachedAtItsPosition(): void
     {
         $this->expectExceptionObject(new UsageException('jq: Unknown option: --bogus'));
-        $this->parse(['-n', '--bogus', '-h']);
+        $this->parse('-n', '--bogus', '-h');
     }
 
     public function testEmptyArgumentIsTheProgram(): void
     {
-        self::assertSame('', $this->parse([''])->program);
+        self::assertSame('', $this->parse('')->program);
     }
 
-    /**
-     * @param list<string> $args
-     */
-    private function parse(array $args): CliOptions
+    private function parse(string ...$args): CliOptions
     {
-        return new OptionParser(new JsonDecoder())->parse($args);
+        return new OptionParser(new JsonDecoder())->parse(...$args);
     }
 
-    /**
-     * @param list<string> $args
-     */
-    private function assertRefused(array $args, string $message): void
+    private function assertRefused(string $message, string ...$args): void
     {
         try {
-            $this->parse($args);
+            $this->parse(...$args);
         } catch (UsageException $usageException) {
             self::assertSame($message, $usageException->getMessage());
             self::assertFalse($usageException->showShortUsage);

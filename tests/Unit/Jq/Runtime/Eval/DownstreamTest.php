@@ -39,7 +39,8 @@ final class DownstreamTest extends TestCase
         try {
             $guarded(1);
             self::fail('expected an exception');
-        } catch (JqException) {
+        } catch (JqException $jqException) {
+            self::assertSame('x', $jqException->getMessage());
             self::assertTrue($downstream->active());
         }
     }

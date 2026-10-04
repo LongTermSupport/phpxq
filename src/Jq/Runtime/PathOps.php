@@ -17,14 +17,13 @@ use LTS\PhpXq\Json\Values;
  * A path element is a string (object key), an int (array index, negative counts from the end), a slice
  * object {"start": n|null, "end": n|null}, or null (only valid as a getpath step through null).
  *
+ * INDEXED_AS names what a key's type is called in the error for deleting at that key of an array: a string key
+ * would have addressed an object, a number key an array.
+ *
  * @api
  */
-final class PathOps
+final readonly class PathOps
 {
-    /**
-     * What a key's type is called in the error for deleting at that key of an array: a string key would have
-     * addressed an object, a number key an array.
-     */
     private const array INDEXED_AS = [
         'string' => 'object',
         'number' => 'array',
@@ -39,13 +38,11 @@ final class PathOps
     }
 
     /**
-     * @param list<mixed> $path
-     *
      * @throws JqException
      */
-    public static function getPath(mixed $value, array $path): mixed
+    public static function getPath(mixed $value, mixed ...$path): mixed
     {
-        self::assertShallow($path);
+        self::assertShallow(\count($path));
 
         foreach ($path as $key) {
             if (null === $value) {
@@ -59,25 +56,35 @@ final class PathOps
     }
 
     /**
-     * @param list<mixed> $path
-     *
      * @throws JqException
      */
-    public static function setPath(mixed $value, array $path, mixed $new): mixed
+    public static function setPath(mixed $value, mixed $new, mixed ...$path): mixed
     {
-        self::assertShallow($path);
+        $path = array_values($path);
+        self::assertShallow(\count($path));
 
-        return self::setFrom($value, $path, 0, \count($path), $new);
+        $levels = [$value];
+        foreach ($path as $key) {
+            $value    = Access::index($value, $key);
+            $levels[] = $value;
+        }
+
+        $result = $new;
+        for ($i = \count($path) - 1; $i >= 0; --$i) {
+            $result = self::setKey($levels[$i], $path[$i], $result);
+        }
+
+        return $result;
     }
 
     /**
      * Delete every path (sorted and removed from the last to the first so indices stay valid).
      *
-     * @param list<mixed> $paths each element must itself be a path (a list)
+     * @param mixed ...$paths each element must itself be a path (a list)
      *
      * @throws JqException
      */
-    public static function deletePaths(mixed $value, array $paths): mixed
+    public static function deletePaths(mixed $value, mixed ...$paths): mixed
     {
         $sorted = [];
         foreach ($paths as $path) {
@@ -85,7 +92,7 @@ final class PathOps
                 throw new JqException('Path must be specified as an array');
             }
 
-            self::assertShallow($path);
+            self::assertShallow(\count($path));
             $sorted[] = $path;
         }
 
@@ -98,7 +105,7 @@ final class PathOps
             return null;
         }
 
-        return self::deleteSorted($value, $sorted, 0);
+        return self::deleteSorted($value, 0, ...$sorted);
     }
 
     /**
@@ -136,32 +143,13 @@ final class PathOps
     }
 
     /**
-     * @param list<mixed> $path
-     *
      * @throws JqException when the path has more than 10000 steps
      */
-    private static function assertShallow(array $path): void
+    private static function assertShallow(int $steps): void
     {
-        if (\count($path) > self::MAX_PATH_DEPTH) {
+        if ($steps > self::MAX_PATH_DEPTH) {
             throw new JqException('Path too deep');
         }
-    }
-
-    /**
-     * @param list<mixed> $path
-     *
-     * @throws JqException
-     */
-    private static function setFrom(mixed $value, array $path, int $position, int $count, mixed $new): mixed
-    {
-        if ($position === $count) {
-            return $new;
-        }
-
-        $key = $path[$position];
-        $sub = Access::index($value, $key);
-
-        return self::setKey($value, $key, self::setFrom($sub, $path, $position + 1, $count, $new));
     }
 
     /**
@@ -218,12 +206,13 @@ final class PathOps
     }
 
     /**
-     * @param list<list<mixed>> $paths sorted
+     * @param list<mixed> ...$paths sorted
      *
      * @throws JqException
      */
-    private static function deleteSorted(mixed $value, array $paths, int $start): mixed
+    private static function deleteSorted(mixed $value, int $start, array ...$paths): mixed
     {
+        $paths = array_values($paths);
         $keys  = [];
         $total = \count($paths);
         $i     = 0;
@@ -240,22 +229,20 @@ final class PathOps
             } else {
                 $sub = Access::index($value, $key);
                 if (null !== $sub) {
-                    $value = self::setKey($value, $key, self::deleteSorted($sub, \array_slice($paths, $i, $j - $i), $start + 1));
+                    $value = self::setKey($value, $key, self::deleteSorted($sub, $start + 1, ...\array_slice($paths, $i, $j - $i)));
                 }
             }
 
             $i = $j;
         }
 
-        return self::deleteKeys($value, $keys);
+        return self::deleteKeys($value, ...$keys);
     }
 
     /**
-     * @param list<mixed> $keys
-     *
      * @throws JqException
      */
-    private static function deleteKeys(mixed $value, array $keys): mixed
+    private static function deleteKeys(mixed $value, mixed ...$keys): mixed
     {
         if ([] === $keys || null === $value) {
             return $value;
@@ -274,7 +261,7 @@ final class PathOps
         }
 
         if (\is_array($value)) {
-            return self::deleteIndices($value, $keys);
+            return self::deleteIndices($value, ...$keys);
         }
 
         throw new JqException(\sprintf('Cannot delete fields from %s', Values::typeName($value)));
@@ -282,13 +269,12 @@ final class PathOps
 
     /**
      * @param array<array-key, mixed> $array
-     * @param list<mixed>             $keys
      *
      * @return list<mixed>
      *
      * @throws JqException
      */
-    private static function deleteIndices(array $array, array $keys): array
+    private static function deleteIndices(array $array, mixed ...$keys): array
     {
         $count   = \count($array);
         $deleted = [];

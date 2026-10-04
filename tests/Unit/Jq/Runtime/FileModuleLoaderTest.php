@@ -31,7 +31,7 @@ final class FileModuleLoaderTest extends TestCase
 
     public function testFindsAModuleInALibraryDirectory(): void
     {
-        $module = $this->loader([$this->modules])->loadLibrary('a', null, null);
+        $module = $this->loader($this->modules)->loadLibrary('a', null, null);
 
         self::assertSame(realpath($this->modules . '/a.jq'), $module->path);
         self::assertCount(1, $module->program->defs);
@@ -41,7 +41,7 @@ final class FileModuleLoaderTest extends TestCase
 
     public function testFindsADirectoryModuleByItsOwnName(): void
     {
-        $module = $this->loader([$this->modules])->loadLibrary('c', null, null);
+        $module = $this->loader($this->modules)->loadLibrary('c', null, null);
 
         self::assertSame(realpath($this->modules . '/c/c.jq'), $module->path);
     }
@@ -49,7 +49,7 @@ final class FileModuleLoaderTest extends TestCase
     public function testSearchMetadataIsRelativeToTheImportingFile(): void
     {
         $importer = $this->modules . '/c/c.jq';
-        $loader   = $this->loader([]);
+        $loader   = $this->loader();
 
         $module = $loader->loadLibrary('d', './', $importer);
         self::assertSame(realpath($this->modules . '/c/d.jq'), $module->path);
@@ -60,42 +60,42 @@ final class FileModuleLoaderTest extends TestCase
 
     public function testSearchMetadataComesBeforeTheLibraryPath(): void
     {
-        $module = $this->loader([$this->modules . '/b'])->loadLibrary('d', './', $this->modules . '/c/c.jq');
+        $module = $this->loader($this->modules . '/b')->loadLibrary('d', './', $this->modules . '/c/c.jq');
 
         self::assertSame(realpath($this->modules . '/c/d.jq'), $module->path);
     }
 
     public function testLoadsDataFiles(): void
     {
-        $values = $this->loader([$this->modules])->loadData('data', null, null);
+        $values = $this->loader($this->modules)->loadData('data', null, null);
 
         self::assertEquals([new JsonObject(['this' => 'is a test', 'that' => 'is too'])], $values);
     }
 
     public function testMissingModule(): void
     {
-        self::assertRaises(JqCompileException::class, 'module not found: nonexistent (searched: ' . $this->modules . ')', fn (): mixed => $this->loader([$this->modules])->loadLibrary('nonexistent', null, null));
+        self::assertRaises(JqCompileException::class, 'module not found: nonexistent (searched: ' . $this->modules . ')', fn (): mixed => $this->loader($this->modules)->loadLibrary('nonexistent', null, null));
     }
 
     public function testMissingDataFile(): void
     {
-        self::assertRaises(JqCompileException::class, 'module not found: nonexistent (searched: ' . $this->modules . ')', fn (): mixed => $this->loader([$this->modules])->loadData('nonexistent', null, null));
+        self::assertRaises(JqCompileException::class, 'module not found: nonexistent (searched: ' . $this->modules . ')', fn (): mixed => $this->loader($this->modules)->loadData('nonexistent', null, null));
     }
 
     public function testRefusesParentDirectoryTraversal(): void
     {
-        self::assertRaises(JqCompileException::class, 'Relative paths to modules may not traverse to parent directories (../a)', fn (): mixed => $this->loader([$this->modules])->loadLibrary('../a', null, null));
+        self::assertRaises(JqCompileException::class, 'Relative paths to modules may not traverse to parent directories (../a)', fn (): mixed => $this->loader($this->modules)->loadLibrary('../a', null, null));
     }
 
     public function testRefusesEqualConsecutiveComponents(): void
     {
-        self::assertRaises(JqCompileException::class, 'module names must not have equal consecutive components: foo/foo', fn (): mixed => $this->loader([$this->modules])->loadLibrary('foo/foo', null, null));
+        self::assertRaises(JqCompileException::class, 'module names must not have equal consecutive components: foo/foo', fn (): mixed => $this->loader($this->modules)->loadLibrary('foo/foo', null, null));
     }
 
     public function testSyntaxErrorsNameTheModule(): void
     {
         try {
-            $this->loader([$this->modules])->loadLibrary('syntaxerror', null, null);
+            $this->loader($this->modules)->loadLibrary('syntaxerror', null, null);
             self::fail('expected a compile error');
         } catch (JqCompileException $jqCompileException) {
             self::assertStringContainsString('syntaxerror.jq', $jqCompileException->getMessage());
@@ -106,7 +106,7 @@ final class FileModuleLoaderTest extends TestCase
     public function testWithoutLibraryPathsTheDefaultsAreSearched(): void
     {
         try {
-            $this->loader([])->loadLibrary('nonexistent', null, null);
+            $this->loader()->loadLibrary('nonexistent', null, null);
             self::fail('expected a compile error');
         } catch (JqCompileException $jqCompileException) {
             self::assertStringContainsString('/.jq', $jqCompileException->getMessage());
@@ -121,7 +121,7 @@ final class FileModuleLoaderTest extends TestCase
         chdir($this->modules);
 
         try {
-            $module = $this->loader([])->loadLibrary('a', './', null);
+            $module = $this->loader()->loadLibrary('a', './', null);
         } finally {
             chdir($cwd);
         }
@@ -129,11 +129,8 @@ final class FileModuleLoaderTest extends TestCase
         self::assertSame(realpath($this->modules . '/a.jq'), $module->path);
     }
 
-    /**
-     * @param list<string> $libraryPaths
-     */
-    private function loader(array $libraryPaths): FileModuleLoader
+    private function loader(string ...$libraryPaths): FileModuleLoader
     {
-        return new FileModuleLoader($libraryPaths, new Parser(new Lexer()), new JsonDecoder());
+        return new FileModuleLoader(array_values($libraryPaths), new Parser(new Lexer()), new JsonDecoder());
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Jq\Builtin\Core;
 
 use Closure;
+use LTS\PhpXq\Jq\Runtime\FilterInterface;
 use LTS\PhpXq\Jq\Builtin\Core\StreamFunction;
 use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Tests\Unit\Jq\Builtin\Core\Support\ClosureFilter;
@@ -27,15 +28,15 @@ final class StreamFunctionTest extends TestCase
 
     public function testItRunsTheClosureAndPassesTheEmitter(): void
     {
-        $function = new StreamFunction('twice', 1, static function (RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void {
+        $function = new StreamFunction('twice', 1, static function (RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void {
             $emit($input);
             $emit(\count($args));
         });
         $out = [];
 
-        $function->run(new FakeContext(), 'x', [ClosureFilter::identity()], static function (mixed $value) use (&$out): void {
+        $function->run(new FakeContext(), 'x', static function (mixed $value) use (&$out): void {
             $out[] = $value;
-        });
+        }, ClosureFilter::identity());
 
         self::assertSame(['x', 1], $out);
     }

@@ -27,16 +27,13 @@ final readonly class GapList
             throw new InvalidArgumentException('Cannot read known gaps file ' . $path);
         }
 
-        return self::fromLines(explode("\n", $contents));
+        return self::fromLines(...explode("\n", $contents));
     }
 
-    /**
-     * @param list<string> $lines
-     */
-    public static function fromLines(array $lines): self
+    public static function fromLines(string ...$lines): self
     {
         $entries = [];
-        foreach ($lines as $index => $rawLine) {
+        foreach (array_values($lines) as $index => $rawLine) {
             $line = rtrim($rawLine, "\r");
             if ('' === trim($line) || str_starts_with($line, '#')) {
                 continue;

@@ -58,7 +58,7 @@ final readonly class RawResultParser
                 outputBytes: (int)$row[3],
                 note: $row[5],
                 samplesMs: $samples,
-                stats: [] === $samples ? null : $this->calculator->summarise($samples),
+                stats: [] === $samples ? null : $this->calculator->summarise(...$samples),
             );
         }
 

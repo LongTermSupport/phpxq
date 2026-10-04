@@ -31,8 +31,8 @@ final class ArithAssignOp extends AbstractOp
         $this->right->run($env, $input, static function (mixed $operand) use ($left, $operation, $env, $input, $emit): void {
             $emit(Assignment::setAll(
                 $input,
-                Assignment::collect($left, $env, $input),
                 static fn (mixed $old): mixed => $operation($old, $operand),
+                ...Assignment::collect($left, $env, $input),
             ));
         });
     }

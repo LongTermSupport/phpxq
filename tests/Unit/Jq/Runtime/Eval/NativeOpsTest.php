@@ -46,7 +46,7 @@ final class NativeOpsTest extends OpTestCase
     public function testGeneratingArgumentsLoopWithTheLastArgumentOutermost(): void
     {
         $builtin = new CallbackValueBuiltin('pair', 2, static fn (mixed $input, mixed $a, mixed $b): array => [$a, $b]);
-        $op      = new NativeValueOp($builtin, [self::generator(['a1', 'a2']), self::generator(['b1', 'b2'])], $this->state());
+        $op      = new NativeValueOp($builtin, [self::generator('a1', 'a2'), self::generator('b1', 'b2')], $this->state());
 
         self::assertSame(
             [['a1', 'b1'], ['a2', 'b1'], ['a1', 'b2'], ['a2', 'b2']],
@@ -58,17 +58,14 @@ final class NativeOpsTest extends OpTestCase
     {
         $builtin = new CallbackValueBuiltin('id', 1, static fn (mixed $input, mixed $a): mixed => $a);
 
-        self::assertSame([], self::outputs(new NativeValueOp($builtin, [self::generator([])], $this->state())));
+        self::assertSame([], self::outputs(new NativeValueOp($builtin, [self::generator()], $this->state())));
     }
 
     public function testStreamNativeReceivesBoundFilters(): void
     {
         $seen = [];
-        /** @param list<FilterInterface> $filters */
-        $callback = static function (mixed $input, array $filters, Closure $emit) use (&$seen): void {
-            $filter = $filters[0];
-            self::assertInstanceOf(FilterInterface::class, $filter);
-            $filter->run($input, static function (mixed $value) use ($emit, &$seen): void {
+        $callback = static function (mixed $input, Closure $emit, FilterInterface ...$filters) use (&$seen): void {
+            $filters[0]->run($input, static function (mixed $value) use ($emit, &$seen): void {
                 $seen[] = $value;
                 $emit($value);
             });
@@ -82,7 +79,7 @@ final class NativeOpsTest extends OpTestCase
 
     public function testStreamNativeWithoutPathSupportReportsComputedValues(): void
     {
-        $builtin = new CallbackStreamBuiltin('same', 0, static function (mixed $input, array $filters, Closure $emit): void {
+        $builtin = new CallbackStreamBuiltin('same', 0, static function (mixed $input, Closure $emit): void {
             $emit($input);
         });
 

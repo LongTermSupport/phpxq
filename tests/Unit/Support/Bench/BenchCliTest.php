@@ -33,7 +33,7 @@ final class BenchCliTest extends TestCase
 
     public function testPlanGeneratesCorporaAndPrintsTsv(): void
     {
-        [$code, $out] = $this->invoke(['plan', '--corpus-dir', $this->dir, '--tools', 'jq', '--sizes', 'small', '--filter', 'identity']);
+        [$code, $out] = $this->invoke('plan', '--corpus-dir', $this->dir, '--tools', 'jq', '--sizes', 'small', '--filter', 'identity');
 
         self::assertSame(0, $code);
         self::assertSame(
@@ -52,11 +52,23 @@ final class BenchCliTest extends TestCase
         );
         $json = $this->dir . '/run.json';
 
-        [$code, $out] = $this->invoke([
-            'record', '--targets', $this->dir . '/targets.tsv', '--raw', $this->dir . '/raw.tsv',
-            '--label', 'unit', '--started', '2026-10-03T00:00:00+00:00', '--out', $json,
-            '--setting', 'repetitions=2', '--setting', 'warmup=1',
-        ]);
+        [$code, $out] = $this->invoke(
+            'record',
+            '--targets',
+            $this->dir . '/targets.tsv',
+            '--raw',
+            $this->dir . '/raw.tsv',
+            '--label',
+            'unit',
+            '--started',
+            '2026-10-03T00:00:00+00:00',
+            '--out',
+            $json,
+            '--setting',
+            'repetitions=2',
+            '--setting',
+            'warmup=1',
+        );
 
         self::assertSame(0, $code);
         self::assertStringContainsString($json, $out);
@@ -66,14 +78,14 @@ final class BenchCliTest extends TestCase
         self::assertStringContainsString('not-implemented', $report);
         self::assertStringContainsString('repetitions', $report);
 
-        [$reportCode, $reportOut] = $this->invoke(['report', $json, '--baseline', $json]);
+        [$reportCode, $reportOut] = $this->invoke('report', $json, '--baseline', $json);
         self::assertSame(0, $reportCode);
         self::assertStringContainsString('1.00x', $reportOut);
     }
 
     public function testUnknownCommandPrintsUsage(): void
     {
-        [$code, , $err] = $this->invoke(['bogus']);
+        [$code, , $err] = $this->invoke('bogus');
 
         self::assertSame(2, $code);
         self::assertStringContainsString('usage:', $err);
@@ -81,22 +93,20 @@ final class BenchCliTest extends TestCase
 
     public function testMissingRequiredOptionFails(): void
     {
-        [$code, , $err] = $this->invoke(['record']);
+        [$code, , $err] = $this->invoke('record');
 
         self::assertSame(2, $code);
         self::assertStringContainsString('--targets', $err);
     }
 
     /**
-     * @param list<string> $args
-     *
      * @return array{int, string, string}
      */
-    private function invoke(array $args): array
+    private function invoke(string ...$args): array
     {
         $out  = $this->stream();
         $err  = $this->stream();
-        $code = new BenchCli()->run($args, $out, $err);
+        $code = new BenchCli()->run($out, $err, ...$args);
         rewind($out);
         rewind($err);
 

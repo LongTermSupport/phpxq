@@ -52,7 +52,7 @@ final readonly class CsvDecoder implements DecoderInterface
             $content = [];
             foreach ($header as $column => $name) {
                 $content[] = Node::scalar($name, CoreSchema::TAG_STR);
-                $content[] = $this->field($record[$column] ?? '', $options->csvAutoParse);
+                $content[] = $this->field($record[$column], $options->csvAutoParse);
             }
 
             $rows[] = Node::mapping($content);
@@ -108,7 +108,7 @@ final readonly class CsvDecoder implements DecoderInterface
         while ($pos < $length) {
             $lineEnd = strcspn($input, "\r\n", $pos);
             if (0 === $lineEnd) {
-                $pos += "\r" === $input[$pos] && "\n" === ($input[$pos + 1] ?? '') ? 2 : 1;
+                $pos += "\r" === $input[$pos] && "\n" === substr($input, $pos + 1, 1) ? 2 : 1;
 
                 continue;
             }
@@ -139,7 +139,7 @@ final readonly class CsvDecoder implements DecoderInterface
                 }
 
                 if ($pos < $length) {
-                    $pos += "\r" === $input[$pos] && "\n" === ($input[$pos + 1] ?? '') ? 2 : 1;
+                    $pos += "\r" === $input[$pos] && "\n" === substr($input, $pos + 1, 1) ? 2 : 1;
                 }
 
                 break;
@@ -178,7 +178,7 @@ final readonly class CsvDecoder implements DecoderInterface
             }
 
             $out .= substr($input, $pos, $quote - $pos);
-            if ('"' === ($input[$quote + 1] ?? '')) {
+            if ('"' === substr($input, $quote + 1, 1)) {
                 $out .= '"';
                 $pos = $quote + 2;
 

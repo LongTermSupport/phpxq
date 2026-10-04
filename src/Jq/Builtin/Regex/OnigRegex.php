@@ -16,15 +16,14 @@ use LTS\PhpXq\Jq\Runtime\JqException;
  * Limit: `l` picks the longest of the matches PCRE finds at each start position (the first alternative that
  * matches there), where Oniguruma also weighs every alternative at one position against each other.
  *
+ * MESSAGES holds Oniguruma's message for the PCRE compile errors that jq users hit most.
+ *
  * @internal
  */
 final class OnigRegex
 {
     private const int CACHE_LIMIT = 512;
 
-    /**
-     * Oniguruma's message for the PCRE compile errors that jq users hit most.
-     */
     private const array MESSAGES = [
         'quantifier does not follow a repeatable item'  => 'target of repeat operator is not specified',
         'missing closing parenthesis'                   => 'end pattern with unmatched parenthesis',
@@ -75,7 +74,7 @@ final class OnigRegex
         $ignoreCase  = false;
         $extended    = false;
         $modifiers   = 'u';
-        foreach (str_split($flags ?? '') as $flag) {
+        foreach (null === $flags ? [] : str_split($flags) as $flag) {
             switch ($flag) {
                 case 'g':
                     $global = true;

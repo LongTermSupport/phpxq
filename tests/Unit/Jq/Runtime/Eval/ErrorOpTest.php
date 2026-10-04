@@ -45,7 +45,7 @@ final class ErrorOpTest extends OpTestCase
 
     public function testAnEmptyMessageRaisesNothing(): void
     {
-        self::assertSame([], self::outputs(new ErrorOp(self::generator([]))));
+        self::assertSame([], self::outputs(new ErrorOp(self::generator())));
     }
 
     public function testPathModeRaisesToo(): void

@@ -165,15 +165,15 @@ final class RegexBuiltinsTest extends TestCase
     {
         $test = self::value('test', 1);
 
-        self::assertTrue($test->call(self::context(), 'foo', [['FOO', 'i']]));
-        self::assertTrue($test->call(self::context(), 'foo', ['foo']));
-        self::assertFalse($test->call(self::context(), 'foo', [['bar']]));
+        self::assertTrue($test->call(self::context(), 'foo', ['FOO', 'i']));
+        self::assertTrue($test->call(self::context(), 'foo', 'foo'));
+        self::assertFalse($test->call(self::context(), 'foo', ['bar']));
     }
 
     public function testTestWithEmptyArrayIsAnError(): void
     {
-        self::assertSame('array not a string or array', $this->errorOf(static fn (): mixed => self::value('test', 1)->call(self::context(), 'a', [[]])));
-        self::assertSame('number not a string or array', $this->errorOf(static fn (): mixed => self::value('test', 1)->call(self::context(), 'a', [1])));
+        self::assertSame('array not a string or array', $this->errorOf(static fn (): mixed => self::value('test', 1)->call(self::context(), 'a', [])));
+        self::assertSame('number not a string or array', $this->errorOf(static fn (): mixed => self::value('test', 1)->call(self::context(), 'a', 1)));
     }
 
     public function testErrorsForBadArguments(): void
@@ -195,118 +195,118 @@ final class RegexBuiltinsTest extends TestCase
     {
         $impl = self::value('_match_impl', 3);
 
-        self::assertTrue($impl->call(self::context(), 'abc', ['b', null, true]));
-        self::assertFalse($impl->call(self::context(), 'abc', ['x', null, true]));
-        self::assertIsArray($impl->call(self::context(), 'abc', ['b', null, false]));
+        self::assertTrue($impl->call(self::context(), 'abc', 'b', null, true));
+        self::assertFalse($impl->call(self::context(), 'abc', 'x', null, true));
+        self::assertIsArray($impl->call(self::context(), 'abc', 'b', null, false));
     }
 
     public function testSplitByRegex(): void
     {
-        self::assertSame([['ab', 'cd', 'ef']], self::stream('split', 'ab,cd, ef', [FakeFilter::yielding(', *'), FakeFilter::yielding(null)]));
-        self::assertSame([['', 'a', 'b', '']], self::stream('split', 'ab', [FakeFilter::yielding(''), FakeFilter::yielding(null)]));
-        self::assertSame([['ab']], self::stream('split', 'ab', [FakeFilter::yielding('c'), FakeFilter::yielding(null)]));
-        self::assertSame([['', 'b', 'BB', 'b', '']], self::stream('split', 'abAABBabA', [FakeFilter::yielding('a+'), FakeFilter::yielding('i')]));
+        self::assertSame([['ab', 'cd', 'ef']], self::stream('split', 'ab,cd, ef', FakeFilter::yielding(', *'), FakeFilter::yielding(null)));
+        self::assertSame([['', 'a', 'b', '']], self::stream('split', 'ab', FakeFilter::yielding(''), FakeFilter::yielding(null)));
+        self::assertSame([['ab']], self::stream('split', 'ab', FakeFilter::yielding('c'), FakeFilter::yielding(null)));
+        self::assertSame([['', 'b', 'BB', 'b', '']], self::stream('split', 'abAABBabA', FakeFilter::yielding('a+'), FakeFilter::yielding('i')));
     }
 
     public function testSplitFlagsMustBeStringOrNull(): void
     {
         self::assertSame(
             'string ("g") and number (1) cannot be added',
-            $this->errorOf(static fn (): mixed => self::stream('split', 'a', [FakeFilter::yielding('a'), FakeFilter::yielding(1)])),
+            $this->errorOf(static fn (): mixed => self::stream('split', 'a', FakeFilter::yielding('a'), FakeFilter::yielding(1))),
         );
     }
 
     public function testScanEmitsMatchesOrCaptureLists(): void
     {
-        self::assertSame(['c', 'c'], self::stream('scan', 'abcdefabc', [FakeFilter::yielding('c')]));
-        self::assertSame([['a', 'b'], ['aa', 'bb'], ['aaa', 'bbb']], self::stream('scan', 'abaabbaaabbb', [FakeFilter::yielding('(a+)(b+)')]));
-        self::assertSame(['b', 'BBB', 'bbb'], self::stream('scan', 'abcABBBCabbbc', [FakeFilter::yielding('b+'), FakeFilter::yielding('i')]));
-        self::assertSame(['bBb'], self::stream('scan', 'bBb', [FakeFilter::yielding('b+'), FakeFilter::yielding('i')]));
-        self::assertSame([[null]], self::stream('scan', 'b', [FakeFilter::yielding('(a)?b')]));
+        self::assertSame(['c', 'c'], self::stream('scan', 'abcdefabc', FakeFilter::yielding('c')));
+        self::assertSame([['a', 'b'], ['aa', 'bb'], ['aaa', 'bbb']], self::stream('scan', 'abaabbaaabbb', FakeFilter::yielding('(a+)(b+)')));
+        self::assertSame(['b', 'BBB', 'bbb'], self::stream('scan', 'abcABBBCabbbc', FakeFilter::yielding('b+'), FakeFilter::yielding('i')));
+        self::assertSame(['bBb'], self::stream('scan', 'bBb', FakeFilter::yielding('b+'), FakeFilter::yielding('i')));
+        self::assertSame([[null]], self::stream('scan', 'b', FakeFilter::yielding('(a)?b')));
     }
 
     public function testScanWithEmptyMatches(): void
     {
-        self::assertSame(['', '', ''], self::stream('scan', 'ab', [FakeFilter::yielding('')]));
+        self::assertSame(['', '', ''], self::stream('scan', 'ab', FakeFilter::yielding('')));
     }
 
     public function testSubReplacesTheFirstMatch(): void
     {
-        self::assertSame(['a,b:c, d, e,f'], self::stream('sub', 'a,b, c, d, e,f', [FakeFilter::yielding(', '), FakeFilter::yielding(':')]));
-        self::assertSame([':a,b, c, d, e,f, '], self::stream('sub', ', a,b, c, d, e,f, ', [FakeFilter::yielding(', '), FakeFilter::yielding(':')]));
+        self::assertSame(['a,b:c, d, e,f'], self::stream('sub', 'a,b, c, d, e,f', FakeFilter::yielding(', '), FakeFilter::yielding(':')));
+        self::assertSame([':a,b, c, d, e,f, '], self::stream('sub', ', a,b, c, d, e,f, ', FakeFilter::yielding(', '), FakeFilter::yielding(':')));
     }
 
     public function testSubReplacementSeesNamedCaptures(): void
     {
         $replacement = FakeFilter::onCaptures(static fn (JsonObject $captures): array => ['Head=' . self::text($captures, 'head') . ' Tail=']);
 
-        self::assertSame(['Head=a Tail=bcdef'], self::stream('sub', 'abcdef', [FakeFilter::yielding('^(?<head>.)'), $replacement]));
+        self::assertSame(['Head=a Tail=bcdef'], self::stream('sub', 'abcdef', FakeFilter::yielding('^(?<head>.)'), $replacement));
     }
 
     public function testGsubReplacesEveryMatch(): void
     {
-        self::assertSame(['a,b:c:d:e,f'], self::stream('gsub', 'a,b, c, d, e,f', [FakeFilter::yielding(', '), FakeFilter::yielding(':')]));
-        self::assertSame(['bbbbb'], self::stream('gsub', 'aaaaa', [FakeFilter::yielding('a'), FakeFilter::yielding('b')]));
-        self::assertSame(['quux'], self::stream('gsub', 'qux', [FakeFilter::yielding('(?=u)'), FakeFilter::yielding('u')]));
+        self::assertSame(['a,b:c:d:e,f'], self::stream('gsub', 'a,b, c, d, e,f', FakeFilter::yielding(', '), FakeFilter::yielding(':')));
+        self::assertSame(['bbbbb'], self::stream('gsub', 'aaaaa', FakeFilter::yielding('a'), FakeFilter::yielding('b')));
+        self::assertSame(['quux'], self::stream('gsub', 'qux', FakeFilter::yielding('(?=u)'), FakeFilter::yielding('u')));
     }
 
     public function testGsubEmptyMatchRules(): void
     {
-        self::assertSame(['a'], self::stream('gsub', '', [FakeFilter::yielding(''), FakeFilter::yielding('a'), FakeFilter::yielding('g')]));
-        self::assertSame(['a'], self::stream('gsub', 'a', [FakeFilter::yielding('^'), FakeFilter::yielding(''), FakeFilter::yielding('g')]));
-        self::assertSame(['aaa'], self::stream('gsub', 'a', [FakeFilter::yielding(''), FakeFilter::yielding('a'), FakeFilter::yielding('g')]));
-        self::assertSame(['aa'], self::stream('gsub', 'a', [FakeFilter::yielding('$'), FakeFilter::yielding('a'), FakeFilter::yielding('g')]));
-        self::assertSame(['a'], self::stream('gsub', '', [FakeFilter::yielding('^'), FakeFilter::yielding('a')]));
-        self::assertSame([''], self::stream('gsub', '', [FakeFilter::yielding('(.*)'), FakeFilter::yielding(''), FakeFilter::yielding('x')]));
+        self::assertSame(['a'], self::stream('gsub', '', FakeFilter::yielding(''), FakeFilter::yielding('a'), FakeFilter::yielding('g')));
+        self::assertSame(['a'], self::stream('gsub', 'a', FakeFilter::yielding('^'), FakeFilter::yielding(''), FakeFilter::yielding('g')));
+        self::assertSame(['aaa'], self::stream('gsub', 'a', FakeFilter::yielding(''), FakeFilter::yielding('a'), FakeFilter::yielding('g')));
+        self::assertSame(['aa'], self::stream('gsub', 'a', FakeFilter::yielding('$'), FakeFilter::yielding('a'), FakeFilter::yielding('g')));
+        self::assertSame(['a'], self::stream('gsub', '', FakeFilter::yielding('^'), FakeFilter::yielding('a')));
+        self::assertSame([''], self::stream('gsub', '', FakeFilter::yielding('(.*)'), FakeFilter::yielding(''), FakeFilter::yielding('x')));
     }
 
     public function testGsubGreedyAndLazyAnchoredPatterns(): void
     {
-        self::assertSame(['b'], self::stream('gsub', 'aaa', [FakeFilter::yielding('^.*a'), FakeFilter::yielding('b')]));
-        self::assertSame(['baa'], self::stream('gsub', 'aaa', [FakeFilter::yielding('^.*?a'), FakeFilter::yielding('b')]));
+        self::assertSame(['b'], self::stream('gsub', 'aaa', FakeFilter::yielding('^.*a'), FakeFilter::yielding('b')));
+        self::assertSame(['baa'], self::stream('gsub', 'aaa', FakeFilter::yielding('^.*?a'), FakeFilter::yielding('b')));
     }
 
     public function testGsubWithNamedCapturesAndUnicode(): void
     {
         $upper = FakeFilter::onCaptures(static fn (JsonObject $captures): array => ['+' . self::text($captures, 'x') . '-']);
 
-        self::assertSame(['+A-+a-'], self::stream('gsub', 'Abcabc', [FakeFilter::yielding('(?<x>.)[^a]*'), $upper]));
-        self::assertSame(['’!'], self::stream('sub', '’', [FakeFilter::yielding('(?<x>.)'), FakeFilter::onCaptures(static fn (JsonObject $captures): array => [self::text($captures, 'x') . '!'])]));
+        self::assertSame(['+A-+a-'], self::stream('gsub', 'Abcabc', FakeFilter::yielding('(?<x>.)[^a]*'), $upper));
+        self::assertSame(['’!'], self::stream('sub', '’', FakeFilter::yielding('(?<x>.)'), FakeFilter::onCaptures(static fn (JsonObject $captures): array => [self::text($captures, 'x') . '!'])));
     }
 
     public function testGenerativeReplacementsAreAppliedInLockstep(): void
     {
         $replacement = FakeFilter::onCaptures(static fn (JsonObject $captures): array => [strtoupper(self::text($captures, 'a')), strtolower(self::text($captures, 'a')), 'c']);
 
-        self::assertSame(['AB', 'aB', 'cB'], self::stream('sub', 'aB', [FakeFilter::yielding('(?<a>.)'), $replacement]));
-        self::assertSame(['AB', 'ab', 'cc'], self::stream('gsub', 'aB', [FakeFilter::yielding('(?<a>.)'), $replacement]));
-        self::assertSame(['b', 'c'], self::stream('gsub', 'a', [FakeFilter::yielding('a'), FakeFilter::yielding('b', 'c')]));
+        self::assertSame(['AB', 'aB', 'cB'], self::stream('sub', 'aB', FakeFilter::yielding('(?<a>.)'), $replacement));
+        self::assertSame(['AB', 'ab', 'cc'], self::stream('gsub', 'aB', FakeFilter::yielding('(?<a>.)'), $replacement));
+        self::assertSame(['b', 'c'], self::stream('gsub', 'a', FakeFilter::yielding('a'), FakeFilter::yielding('b', 'c')));
     }
 
     public function testSubWithNoMatchReturnsTheInput(): void
     {
-        self::assertSame(['abc'], self::stream('sub', 'abc', [FakeFilter::yielding('x'), FakeFilter::yielding('y')]));
-        self::assertSame(['abc'], self::stream('sub', 'abc', [FakeFilter::yielding('b'), FakeFilter::from(static fn (): array => [])]));
+        self::assertSame(['abc'], self::stream('sub', 'abc', FakeFilter::yielding('x'), FakeFilter::yielding('y')));
+        self::assertSame(['abc'], self::stream('sub', 'abc', FakeFilter::yielding('b'), FakeFilter::from(static fn (): array => [])));
     }
 
     public function testSubReplacementMustBeAString(): void
     {
         self::assertSame(
             'string ("a") and number (1) cannot be added',
-            $this->errorOf(static fn (): mixed => self::stream('sub', 'ab', [FakeFilter::yielding('b'), FakeFilter::yielding(1)])),
+            $this->errorOf(static fn (): mixed => self::stream('sub', 'ab', FakeFilter::yielding('b'), FakeFilter::yielding(1))),
         );
     }
 
     public function testSubFlagsAndGlobalSuffix(): void
     {
-        self::assertSame(['xxxb'], self::stream('gsub', 'aAab', [FakeFilter::yielding('a'), FakeFilter::yielding('x'), FakeFilter::yielding('i')]));
-        self::assertSame(['xAab'], self::stream('sub', 'aAab', [FakeFilter::yielding('a'), FakeFilter::yielding('x'), FakeFilter::yielding(null)]));
-        self::assertSame(['xAxb'], self::stream('gsub', 'aAab', [FakeFilter::yielding('a'), FakeFilter::yielding('x'), FakeFilter::yielding(null)]));
+        self::assertSame(['xxxb'], self::stream('gsub', 'aAab', FakeFilter::yielding('a'), FakeFilter::yielding('x'), FakeFilter::yielding('i')));
+        self::assertSame(['xAab'], self::stream('sub', 'aAab', FakeFilter::yielding('a'), FakeFilter::yielding('x'), FakeFilter::yielding(null)));
+        self::assertSame(['xAxb'], self::stream('gsub', 'aAab', FakeFilter::yielding('a'), FakeFilter::yielding('x'), FakeFilter::yielding(null)));
     }
 
     public function testSubParametersExpandWithTheFirstOutermost(): void
     {
-        $outputs = self::stream('sub', 'aB', [FakeFilter::yielding('a', 'b'), FakeFilter::yielding('X'), FakeFilter::yielding(null, 'i')]);
+        $outputs = self::stream('sub', 'aB', FakeFilter::yielding('a', 'b'), FakeFilter::yielding('X'), FakeFilter::yielding(null, 'i'));
 
         self::assertSame(['XB', 'XB', 'aB', 'aX'], $outputs);
     }
@@ -345,29 +345,27 @@ final class RegexBuiltinsTest extends TestCase
     }
 
     /**
-     * @param list<FilterInterface> $args
-     *
      * @return list<mixed>
      */
-    private static function stream(string $name, mixed $input, array $args): array
+    private static function stream(string $name, mixed $input, FilterInterface ...$args): array
     {
         $builtin = self::registry()->lookup($name, \count($args));
         self::assertInstanceOf(StreamBuiltinInterface::class, $builtin);
 
         $outputs = [];
-        $builtin->run(self::context(), $input, $args, static function (mixed $value) use (&$outputs): void {
+        $builtin->run(self::context(), $input, static function (mixed $value) use (&$outputs): void {
             $outputs[] = self::plain($value);
-        });
+        }, ...$args);
 
         return $outputs;
     }
 
     /**
-     * @return list<array<mixed>>
+     * @return list<array<mixed, mixed>>
      */
     private static function match(mixed $input, mixed $pattern, mixed $flags = null): array
     {
-        $result = self::value('_match_impl', 3)->call(self::context(), $input, [$pattern, $flags, false]);
+        $result = self::value('_match_impl', 3)->call(self::context(), $input, $pattern, $flags, false);
         self::assertIsArray($result);
 
         $plain = self::plain($result);
@@ -392,20 +390,25 @@ final class RegexBuiltinsTest extends TestCase
 
     private function test(mixed $input, mixed $pattern, mixed $flags = null): bool
     {
-        return true === self::value('test', 2)->call(self::context(), $input, [$pattern, $flags]);
+        return true === self::value('test', 2)->call(self::context(), $input, $pattern, $flags);
     }
 
     private static function plain(mixed $value): mixed
     {
         if ($value instanceof JsonObject) {
-            return array_map(self::plain(...), $value->toArray());
+            $value = $value->toArray();
         }
 
-        if (\is_array($value)) {
-            return array_map(self::plain(...), $value);
+        if (!\is_array($value)) {
+            return $value;
         }
 
-        return $value;
+        $plain = [];
+        foreach ($value as $key => $item) {
+            $plain[$key] = self::plain($item);
+        }
+
+        return $plain;
     }
 
     /**

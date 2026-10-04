@@ -25,14 +25,16 @@ final readonly class ParsedArguments
 
     public function bool(string $name): bool
     {
-        $value = $this->values[$name] ?? false;
-
-        return true === $value;
+        return \array_key_exists($name, $this->values) && true === $this->values[$name];
     }
 
     public function string(string $name): string
     {
-        $value = $this->values[$name] ?? '';
+        if (!\array_key_exists($name, $this->values)) {
+            return '';
+        }
+
+        $value = $this->values[$name];
 
         return \is_string($value) ? $value : '';
     }

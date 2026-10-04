@@ -10,14 +10,14 @@ use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Jq\Runtime\StreamBuiltinInterface;
 
 /**
- * A {@see StreamBuiltinInterface} backed by a closure: `(context, input, filters, emit) => void`.
+ * A {@see StreamBuiltinInterface} backed by a closure: `(context, input, emit, ...filters) => void`.
  *
  * @internal
  */
 final readonly class StreamFunction implements StreamBuiltinInterface
 {
     /**
-     * @param Closure(RuntimeContextInterface, mixed, list<FilterInterface>, Closure(mixed): void): void $function
+     * @param Closure(RuntimeContextInterface, mixed, Closure(mixed): void, FilterInterface...): void $function
      */
     public function __construct(
         private string $name,
@@ -36,8 +36,8 @@ final readonly class StreamFunction implements StreamBuiltinInterface
         return $this->arity;
     }
 
-    public function run(RuntimeContextInterface $context, mixed $input, array $args, Closure $emit): void
+    public function run(RuntimeContextInterface $context, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
-        ($this->function)($context, $input, $args, $emit);
+        ($this->function)($context, $input, $emit, ...$args);
     }
 }

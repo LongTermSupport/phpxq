@@ -44,7 +44,7 @@ final class ProductionOnlyRuleTest extends RuleTestCase
     }
 
     /**
-     * @return Rule<InClassNode>
+     * @return ProductionOnlyRule<InClassNode>
      */
     protected function getRule(): Rule
     {

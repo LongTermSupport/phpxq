@@ -134,8 +134,8 @@ final class ProgramHarness
         $value('infinite', 0, static fn (): float => \INF);
         $value('nan', 0, static fn (): float => \NAN);
         $value('reverse', 0, static fn (mixed $input): array => array_reverse((array)$input));
-        $value('setpath', 2, static fn (mixed $input, mixed $path, mixed $new): mixed => PathOps::setPath($input, array_values((array)$path), $new));
-        $value('delpaths', 1, static fn (mixed $input, mixed $paths): mixed => PathOps::deletePaths($input, array_values(array_map(static fn (mixed $path): array => array_values((array)$path), (array)$paths))));
+        $value('setpath', 2, static fn (mixed $input, mixed $path, mixed $new): mixed => PathOps::setPath($input, $new, ...array_values((array)$path)));
+        $value('delpaths', 1, static fn (mixed $input, mixed $paths): mixed => PathOps::deletePaths($input, ...array_values(array_map(static fn (mixed $path): array => array_values((array)$path), (array)$paths))));
         $value('add', 0, static function (mixed $input): mixed {
             $total = null;
             foreach ($input instanceof JsonObject ? $input->values() : (array)$input as $element) {
@@ -150,18 +150,16 @@ final class ProgramHarness
             default  => \is_string($input) ? $input : $encoder->encode($input, EncodeOptions::compact()),
         });
         $value('pair', 2, static fn (mixed $input, mixed $first, mixed $second): array => [$first, $second]);
-        /** @param list<FilterInterface> $filters */
-        $stream('range', 1, static function (mixed $input, array $filters, Closure $emit): void {
-            self::filter($filters, 0)->run($input, static function (mixed $limit) use ($emit): void {
+        $stream('range', 1, static function (mixed $input, Closure $emit, FilterInterface ...$filters): void {
+            self::filter(0, ...$filters)->run($input, static function (mixed $limit) use ($emit): void {
                 for ($i = 0; \is_int($limit) && $i < $limit; ++$i) {
                     $emit($i);
                 }
             });
         });
-        /** @param list<FilterInterface> $filters */
-        $stream('range', 2, static function (mixed $input, array $filters, Closure $emit): void {
-            self::filter($filters, 0)->run($input, static function (mixed $from) use ($input, $filters, $emit): void {
-                self::filter($filters, 1)->run($input, static function (mixed $to) use ($from, $emit): void {
+        $stream('range', 2, static function (mixed $input, Closure $emit, FilterInterface ...$filters): void {
+            self::filter(0, ...$filters)->run($input, static function (mixed $from) use ($input, $filters, $emit): void {
+                self::filter(1, ...$filters)->run($input, static function (mixed $to) use ($from, $emit): void {
                     if (!\is_int($from) || !\is_int($to)) {
                         return;
                     }
@@ -172,11 +170,10 @@ final class ProgramHarness
                 });
             });
         });
-        /** @param list<FilterInterface> $filters */
-        $stream('first', 1, static function (mixed $input, array $filters, Closure $emit): void {
+        $stream('first', 1, static function (mixed $input, Closure $emit, FilterInterface ...$filters): void {
             $token = new stdClass();
             try {
-                self::filter($filters, 0)->run($input, static function (mixed $output) use ($emit, $token): never {
+                self::filter(0, ...$filters)->run($input, static function (mixed $output) use ($emit, $token): never {
                     $emit($output);
 
                     throw new BreakException($token);
@@ -193,16 +190,8 @@ final class ProgramHarness
         return $registry;
     }
 
-    /**
-     * @param array<mixed> $filters
-     */
-    private static function filter(array $filters, int $index): FilterInterface
+    private static function filter(int $index, FilterInterface ...$filters): FilterInterface
     {
-        $filter = $filters[$index] ?? null;
-        if (!$filter instanceof FilterInterface) {
-            throw new LogicException('Missing filter argument ' . $index);
-        }
-
-        return $filter;
+        return $filters[$index] ?? throw new LogicException('Missing filter argument ' . $index);
     }
 }

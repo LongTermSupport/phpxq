@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Runtime;
 
+use LTS\PhpXq\Yaml\Node;
+
 /**
  * The state an evaluation step runs in: the current matches, bound variables and shared services.
  * Immutable; the `with*` methods return modified copies.
@@ -22,23 +24,28 @@ final readonly class EvaluationContext
         public RuntimeServices $services,
         public array $variables = [],
         public bool $dontAutoCreate = false,
+        public ?Node $replacedNode = null,
     ) {
     }
 
-    /**
-     * @param list<Candidate> $matches
-     */
-    public function withMatches(array $matches): self
+    public function withMatches(Candidate ...$matches): self
     {
-        return new self($matches, $this->services, $this->variables, $this->dontAutoCreate);
+        return new self(array_values($matches), $this->services, $this->variables, $this->dontAutoCreate, $this->replacedNode);
+    }
+
+    public function withVariable(string $name, Candidate ...$values): self
+    {
+        return new self($this->matches, $this->services, [...$this->variables, $name => array_values($values)], $this->dontAutoCreate, $this->replacedNode);
     }
 
     /**
-     * @param list<Candidate> $values
+     * The node an enclosing update (`|=`) is about to replace with the value of this evaluation. Arithmetic
+     * on that very node may build its result out of the node's own children instead of copies, because
+     * the result takes the node's place: copies would orphan the matches an outer `..` still holds.
      */
-    public function withVariable(string $name, array $values): self
+    public function withReplacedNode(Node $replacedNode): self
     {
-        return new self($this->matches, $this->services, [...$this->variables, $name => $values], $this->dontAutoCreate);
+        return new self($this->matches, $this->services, $this->variables, $this->dontAutoCreate, $replacedNode);
     }
 
     /**
@@ -51,6 +58,6 @@ final readonly class EvaluationContext
             return $this;
         }
 
-        return new self($this->matches, $this->services, $this->variables, $dontAutoCreate);
+        return new self($this->matches, $this->services, $this->variables, $dontAutoCreate, $this->replacedNode);
     }
 }

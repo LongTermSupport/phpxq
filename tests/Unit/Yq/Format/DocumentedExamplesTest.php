@@ -19,6 +19,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class DocumentedExamplesTest extends TestCase
 {
+    /** The input format of a documentation page's examples, keyed by the page's source, when it is not YAML. */
     private const array NATIVE_FORMATS = [
         'usage/xml.md'  => FormatEnum::Xml,
         'usage/toml.md' => FormatEnum::Toml,
@@ -41,7 +42,7 @@ final class DocumentedExamplesTest extends TestCase
     #[DataProvider('examples')]
     public function testExample(string $name, string $source, string $input, string $expected, array $flags): void
     {
-        [$inFormat, $outFormat, $options] = $this->configure($source, $flags);
+        [$inFormat, $outFormat, $options] = $this->configure($source, ...$flags);
 
         $registry = new FormatRegistry();
         $decoder  = $registry->decoder($inFormat);
@@ -75,12 +76,12 @@ final class DocumentedExamplesTest extends TestCase
 
         foreach ($cases as $number => $case) {
             self::assertIsArray($case);
-            $name       = $case['name']       ?? '';
-            $source     = $case['source']     ?? '';
-            $expression = $case['expression'] ?? '';
+            $name       = \array_key_exists('name', $case) ? $case['name'] : '';
+            $source     = \array_key_exists('source', $case) ? $case['source'] : '';
+            $expression = \array_key_exists('expression', $case) ? $case['expression'] : '';
             $command    = $case['command']    ?? null;
-            $input      = $case['input']      ?? '';
-            $expected   = $case['expected']   ?? '';
+            $input      = \array_key_exists('input', $case) ? $case['input'] : '';
+            $expected   = \array_key_exists('expected', $case) ? $case['expected'] : '';
             $flags      = $case['flags']      ?? [];
             if (!\is_string($name) || !\is_string($source) || !\is_string($expression) || !\is_string($input) || !\is_string($expected) || !\is_array($flags)) {
                 continue;
@@ -106,11 +107,9 @@ final class DocumentedExamplesTest extends TestCase
     }
 
     /**
-     * @param list<string> $flags
-     *
      * @return array{FormatEnum, FormatEnum, FormatOptions}
      */
-    private function configure(string $source, array $flags): array
+    private function configure(string $source, string ...$flags): array
     {
         $input   = null;
         $output  = null;

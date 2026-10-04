@@ -26,7 +26,7 @@ final readonly class GetPathOp implements OpInterface
                 throw new JqException('Path must be specified as an array');
             }
 
-            $emit(PathOps::getPath($input, $path));
+            $emit(PathOps::getPath($input, ...$path));
         });
     }
 
@@ -37,7 +37,7 @@ final readonly class GetPathOp implements OpInterface
                 throw new JqException('Path must be specified as an array');
             }
 
-            $value = PathOps::getPath($input, $steps);
+            $value = PathOps::getPath($input, ...$steps);
             $emit(null === $path ? null : array_merge($path, $steps), $value);
         });
     }

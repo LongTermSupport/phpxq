@@ -207,8 +207,9 @@ final class XmlCodecTest extends TestCase
         $xml = "<!-- before -->\n<a x=\"1\"><!-- first -->\n  <b>1</b><!-- after b -->\n  <c>2</c>\n  <c>3</c>\n</a><!-- after -->\n";
 
         $options = new FormatOptions();
+        $encoder = new XmlEncoder();
         foreach (new XmlDecoder()->decode($xml, $options) as $document) {
-            self::assertSame($xml, new XmlEncoder()->encode($document, $options, 0));
+            self::assertSame($xml, $encoder->encode($document, $options, 0));
         }
     }
 

@@ -29,7 +29,7 @@ final class SetAssignOpTest extends OpTestCase
 
     public function testOneOutputPerRightHandValue(): void
     {
-        $op = new SetAssignOp(new FieldOp('a'), self::generator([1, 2]));
+        $op = new SetAssignOp(new FieldOp('a'), self::generator(1, 2));
 
         self::assertEquals(
             [self::object(['a' => 1]), self::object(['a' => 2])],
@@ -51,7 +51,7 @@ final class SetAssignOpTest extends OpTestCase
 
     public function testEmptyRightHandSideYieldsNothing(): void
     {
-        self::assertSame([], self::outputs(new SetAssignOp(new FieldOp('a'), self::generator([]))));
+        self::assertSame([], self::outputs(new SetAssignOp(new FieldOp('a'), self::generator())));
     }
 
     public function testTheLeftSideMustBeAPathExpression(): void

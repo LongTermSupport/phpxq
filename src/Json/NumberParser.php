@@ -20,7 +20,7 @@ use LTS\PhpXq\Json\Codec\NumberFormatter;
  *
  * @api
  */
-final class NumberParser
+final readonly class NumberParser
 {
     private const int TWO_TO_53 = 9007199254740992;
 

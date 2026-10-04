@@ -32,7 +32,7 @@ final class BindVarOpTest extends OpTestCase
 
     public function testPathModeKeepsTheBodyInPathMode(): void
     {
-        $op = new BindVarOp(self::generator([1, 2]), new IterateOp(null));
+        $op = new BindVarOp(self::generator(1, 2), new IterateOp(null));
 
         self::assertSame(
             [[[0], 'a'], [[0], 'a']],

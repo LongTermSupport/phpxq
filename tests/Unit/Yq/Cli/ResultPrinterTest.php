@@ -67,7 +67,7 @@ final class ResultPrinterTest extends TestCase
             $registry,
             false,
         );
-        $printer->print([new Candidate($document, null, null, 0, 0, '')]);
+        $printer->print(new Candidate($document, null, null, 0, 0, ''));
 
         rewind($out);
 

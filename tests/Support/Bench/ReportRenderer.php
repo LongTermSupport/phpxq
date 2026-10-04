@@ -110,7 +110,12 @@ final class ReportRenderer
 
     private function environmentDiffers(RunRecord $run, RunRecord $baseline): bool
     {
-        return array_any(['cpu_model', 'php_version'], static fn (string $key): bool => ($run->environment[$key] ?? '') !== ($baseline->environment[$key] ?? ''));
+        return array_any(['cpu_model', 'php_version'], fn (string $key): bool => $this->environmentValue($run, $key) !== $this->environmentValue($baseline, $key));
+    }
+
+    private function environmentValue(RunRecord $run, string $key): string
+    {
+        return \array_key_exists($key, $run->environment) ? $run->environment[$key] : '';
     }
 
     /**

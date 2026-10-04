@@ -12,7 +12,7 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
 /**
  * Lua input: a `return { ... }` table or a list of global assignments, read as data (see {@see LuaReader}).
  */
-final class LuaDecoder implements DecoderInterface
+final readonly class LuaDecoder implements DecoderInterface
 {
     public function format(): FormatEnum
     {

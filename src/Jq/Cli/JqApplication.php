@@ -56,14 +56,14 @@ final readonly class JqApplication
     }
 
     /**
-     * @param list<string> $args   arguments after `jq` (flags, program, files), exactly as jq would receive them
-     * @param resource     $stdin
-     * @param resource     $stdout
-     * @param resource     $stderr
+     * @param resource $stdin
+     * @param resource $stdout
+     * @param resource $stderr
+     * @param string   ...$args arguments after `jq` (flags, program, files), exactly as jq would receive them
      *
      * @return int one of the {@see JqExitCode} values, or the status a `halt_error` asked for
      */
-    public function run(array $args, mixed $stdin, mixed $stdout, mixed $stderr): int
+    public function run(mixed $stdin, mixed $stdout, mixed $stderr, string ...$args): int
     {
         // The cycle collector is switched off for the run: jq values are trees, so what it would find is only
         // the evaluator's closure cycles, collected below every GC_INTERVAL inputs. Its automatic runs cost
@@ -73,7 +73,7 @@ final readonly class JqApplication
 
         try {
             $console = new Console($stdout, $stderr);
-            $status  = $this->execute($args, $stdin, $stdout, $console);
+            $status  = $this->execute($stdin, $stdout, $console, ...$args);
             $console->flush();
         } finally {
             if ($collectorWasOn) {
@@ -85,14 +85,13 @@ final readonly class JqApplication
     }
 
     /**
-     * @param list<string> $args
-     * @param resource     $stdin
-     * @param resource     $stdout
+     * @param resource $stdin
+     * @param resource $stdout
      */
-    private function execute(array $args, mixed $stdin, mixed $stdout, Console $console): int
+    private function execute(mixed $stdin, mixed $stdout, Console $console, string ...$args): int
     {
         try {
-            $options = new OptionParser($this->decoder)->parse($args);
+            $options = new OptionParser($this->decoder)->parse(...$args);
         } catch (UsageException $usageException) {
             $console->err($usageException->getMessage() . "\n" . ($usageException->showShortUsage ? UsageText::short() : UsageText::hint()));
 
@@ -177,7 +176,7 @@ final readonly class JqApplication
                 $console->out(implode("\n", ProgramDump::lines($ast)) . "\n");
             }
 
-            return $this->compilers->create($options->libraryPaths)->compile($ast, $options->globalNames());
+            return $this->compilers->create(...$options->libraryPaths)->compile($ast, $options->globalNames());
         } catch (JqCompileException $jqCompileException) {
             $this->reportCompileError($jqCompileException->getMessage(), $source, $console);
 
@@ -192,8 +191,9 @@ final readonly class JqApplication
         foreach ($entries as $entry) {
             $console->err('jq: error: ' . $entry);
             if (1 === preg_match('/ at <top-level>, line (\d+), column (\d+):$/', $entry, $matches)) {
+                $lineIndex = (int)$matches[1] - 1;
                 $console->err("\n" . $this->snippet(
-                    $lines[(int)$matches[1] - 1] ?? '',
+                    \array_key_exists($lineIndex, $lines) ? $lines[$lineIndex] : '',
                     (int)$matches[2],
                     str_starts_with($entry, 'Possibly unterminated'),
                 ));

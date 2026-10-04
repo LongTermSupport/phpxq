@@ -21,10 +21,10 @@ interface YqApplicationInterface
     public const int EXIT_NOT_IMPLEMENTED = 70;
 
     /**
-     * @param list<string> $args   arguments after `yq`
-     * @param resource     $stdin
-     * @param resource     $stdout
-     * @param resource     $stderr
+     * @param resource $stdin
+     * @param resource $stdout
+     * @param resource $stderr
+     * @param string   ...$args arguments after `yq`
      */
-    public function run(array $args, mixed $stdin, mixed $stdout, mixed $stderr): int;
+    public function run(mixed $stdin, mixed $stdout, mixed $stderr, string ...$args): int;
 }

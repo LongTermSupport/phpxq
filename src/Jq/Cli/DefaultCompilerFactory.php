@@ -24,12 +24,12 @@ final readonly class DefaultCompilerFactory implements CompilerFactoryInterface
     ) {
     }
 
-    public function create(array $libraryPaths): CompilerInterface
+    public function create(string ...$libraryPaths): CompilerInterface
     {
         return new Compiler(
             StandardBuiltins::create(),
             $this->parser,
-            new FileModuleLoader($libraryPaths, $this->parser, $this->decoder),
+            new FileModuleLoader(array_values($libraryPaths), $this->parser, $this->decoder),
         );
     }
 }

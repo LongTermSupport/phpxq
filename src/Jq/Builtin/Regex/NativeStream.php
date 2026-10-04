@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Jq\Builtin\Regex;
 
 use Closure;
+use LTS\PhpXq\Jq\Runtime\FilterInterface;
 use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Jq\Runtime\StreamBuiltinInterface;
 
@@ -16,7 +17,7 @@ use LTS\PhpXq\Jq\Runtime\StreamBuiltinInterface;
 final readonly class NativeStream implements StreamBuiltinInterface
 {
     /**
-     * @param Closure(mixed, list<\LTS\PhpXq\Jq\Runtime\FilterInterface>, Closure(mixed): void): void $function receives the input, the closure parameters and the emitter
+     * @param Closure(mixed, Closure(mixed): void, FilterInterface...): void $function receives the input, the emitter and the closure parameters
      */
     public function __construct(
         private string $name,
@@ -35,8 +36,8 @@ final readonly class NativeStream implements StreamBuiltinInterface
         return $this->arity;
     }
 
-    public function run(RuntimeContextInterface $context, mixed $input, array $args, Closure $emit): void
+    public function run(RuntimeContextInterface $context, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
-        ($this->function)($input, $args, $emit);
+        ($this->function)($input, $emit, ...$args);
     }
 }

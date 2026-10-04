@@ -53,11 +53,11 @@ final class DefaultBuiltinRegistryTest extends TestCase
         $calls    = new class {
             public int $count = 0;
         };
-        $registry->registerLazy(['one/0', 'two/1'], function (BuiltinRegistryInterface $target) use ($calls): void {
+        $registry->registerLazy(function (BuiltinRegistryInterface $target) use ($calls): void {
             ++$calls->count;
             $target->register($this->builtin('one', 0));
             $target->register($this->builtin('two', 1));
-        });
+        }, 'one/0', 'two/1');
 
         self::assertSame(0, $calls->count);
         self::assertNull($registry->lookup('one', 1), 'a name the loader does not claim is not loaded');
@@ -71,8 +71,8 @@ final class DefaultBuiltinRegistryTest extends TestCase
     public function testLazyNameThatTheLoaderFailsToRegisterIsNull(): void
     {
         $registry = new DefaultBuiltinRegistry();
-        $registry->registerLazy(['ghost/0'], static function (): void {
-        });
+        $registry->registerLazy(static function (): void {
+        }, 'ghost/0');
 
         self::assertNull($registry->lookup('ghost', 0));
         self::assertNull($registry->lookup('ghost', 0));

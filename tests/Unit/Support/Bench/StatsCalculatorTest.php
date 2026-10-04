@@ -15,7 +15,7 @@ final class StatsCalculatorTest extends TestCase
 {
     public function testSummarisesOddSampleCount(): void
     {
-        $stats = new StatsCalculator()->summarise([5.0, 1.0, 3.0, 2.0, 4.0]);
+        $stats = new StatsCalculator()->summarise(5.0, 1.0, 3.0, 2.0, 4.0);
 
         self::assertSame(5, $stats->count);
         self::assertSame(1.0, $stats->minMs);
@@ -28,12 +28,12 @@ final class StatsCalculatorTest extends TestCase
 
     public function testMedianInterpolatesForEvenCount(): void
     {
-        self::assertSame(2.5, new StatsCalculator()->summarise([1.0, 2.0, 3.0, 4.0])->medianMs);
+        self::assertSame(2.5, new StatsCalculator()->summarise(1.0, 2.0, 3.0, 4.0)->medianMs);
     }
 
     public function testSingleSampleHasNoVariance(): void
     {
-        $stats = new StatsCalculator()->summarise([7.0]);
+        $stats = new StatsCalculator()->summarise(7.0);
 
         self::assertSame(7.0, $stats->medianMs);
         self::assertSame(7.0, $stats->p95Ms);
@@ -43,19 +43,19 @@ final class StatsCalculatorTest extends TestCase
 
     public function testCoefficientOfVariation(): void
     {
-        $stats = new StatsCalculator()->summarise([9.0, 11.0]);
+        $stats = new StatsCalculator()->summarise(9.0, 11.0);
 
         self::assertEqualsWithDelta(14.142, $stats->coefficientOfVariationPercent(), 0.001);
     }
 
     public function testZeroMeanHasZeroCoefficientOfVariation(): void
     {
-        self::assertSame(0.0, new StatsCalculator()->summarise([0.0, 0.0])->coefficientOfVariationPercent());
+        self::assertSame(0.0, new StatsCalculator()->summarise(0.0, 0.0)->coefficientOfVariationPercent());
     }
 
     public function testToArrayExposesEveryField(): void
     {
-        $array = new StatsCalculator()->summarise([1.0, 3.0])->toArray();
+        $array = new StatsCalculator()->summarise(1.0, 3.0)->toArray();
 
         self::assertSame(2, $array['count']);
         self::assertSame(1.0, $array['minMs']);
@@ -67,6 +67,6 @@ final class StatsCalculatorTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        new StatsCalculator()->summarise([]);
+        new StatsCalculator()->summarise();
     }
 }

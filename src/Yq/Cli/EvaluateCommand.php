@@ -35,6 +35,7 @@ use Throwable;
  */
 final readonly class EvaluateCommand
 {
+    /** The format names quoted back to the user when `-p`/`-o` names an unknown one. */
     private const string FORMAT_LIST = 'yaml|json|props|csv|tsv|xml|base64|uri|toml|hcl|shell|lua|kyaml';
 
     /** The `-p`/`-o` values that ask for the format to be detected from the file name. */
@@ -67,7 +68,7 @@ final readonly class EvaluateCommand
         $nullInput            = $args->bool('null-input');
         $inPlace              = $args->bool('inplace');
 
-        $this->validate($args, $files, $splitExpression, $nullInput, $inPlace);
+        $this->validate($args, $splitExpression, $nullInput, $inPlace, ...$files);
 
         if (!$nullInput && [] === $files) {
             if (stream_isatty($stdin)) {
@@ -79,7 +80,7 @@ final readonly class EvaluateCommand
             $files = ['-'];
         }
 
-        [$inputFormat, $autoInput] = $this->inputFormat($args, $files);
+        [$inputFormat, $autoInput] = $this->inputFormat($args, ...$files);
         $outputFormat              = $this->outputFormat($args, $inputFormat, $autoInput);
 
         $colors = $args->bool('colors')
@@ -117,7 +118,7 @@ final readonly class EvaluateCommand
 
         $program = $this->expressions->parse('' === $expression ? '.' : $expression);
 
-        [$inputs, $appendix] = $this->inputs($args, $files, $source, $stdin);
+        [$inputs, $appendix] = $this->inputs($args, $source, $stdin, ...$files);
 
         $target = $inPlace ? new InPlaceTarget($files[0]) : null;
         $split  = '' === $splitExpression
@@ -139,7 +140,7 @@ final readonly class EvaluateCommand
         try {
             if ($nullInput) {
                 $empty = new Candidate(Node::document(new Node(NodeKindEnum::Scalar, '!!null', NodeStyleEnum::Default, '')));
-                $printer->print($this->evaluator->evaluate($program, new EvaluationContext([$empty], $services)));
+                $printer->print(...$this->evaluator->evaluate($program, new EvaluationContext([$empty], $services)));
             } else {
                 $documents = $source->read(
                     $inputs,
@@ -151,10 +152,10 @@ final readonly class EvaluateCommand
                 );
                 if ($evalAll) {
                     $all = iterator_to_array($documents, false);
-                    $printer->print($this->evaluator->evaluate($program, new EvaluationContext($all, $services)));
+                    $printer->print(...$this->evaluator->evaluate($program, new EvaluationContext($all, $services)));
                 } else {
                     foreach ($documents as $candidate) {
-                        $printer->print($this->evaluator->evaluate($program, new EvaluationContext([$candidate], $services)));
+                        $printer->print(...$this->evaluator->evaluate($program, new EvaluationContext([$candidate], $services)));
                     }
                 }
             }
@@ -263,11 +264,9 @@ final readonly class EvaluateCommand
     }
 
     /**
-     * @param list<string> $files
-     *
      * @throws CliException
      */
-    private function validate(ParsedArguments $args, array $files, string $splitExpression, bool $nullInput, bool $inPlace): void
+    private function validate(ParsedArguments $args, string $splitExpression, bool $nullInput, bool $inPlace, string ...$files): void
     {
         if ($inPlace && ([] === $files || '-' === $files[0])) {
             throw new CliException('write in place flag only applicable when giving an expression and at least one file');
@@ -282,19 +281,17 @@ final readonly class EvaluateCommand
         }
 
         $frontMatter = $args->string('front-matter');
-        if ('' !== $frontMatter && !\in_array($frontMatter, ['extract', 'process'], true)) {
+        if ('' !== $frontMatter && !FrontMatterModeEnum::tryFrom($frontMatter) instanceof FrontMatterModeEnum) {
             throw new CliException("front-matter must be 'extract' or 'process'");
         }
     }
 
     /**
-     * @param list<string> $files
-     *
      * @return array{FormatEnum, bool} the input format and whether it was auto-detected
      *
      * @throws CliException
      */
-    private function inputFormat(ParsedArguments $args, array $files): array
+    private function inputFormat(ParsedArguments $args, string ...$files): array
     {
         $name = $args->string('input-format');
         if (\in_array($name, self::AUTO_FORMAT_NAMES, true)) {
@@ -362,22 +359,21 @@ final readonly class EvaluateCommand
     /**
      * The inputs to read, and the content to append after the results (front matter `process`).
      *
-     * @param list<string> $files
-     * @param resource     $stdin
+     * @param resource $stdin
      *
      * @return array{list<FileInput>, string}
      *
      * @throws CliException
      */
-    private function inputs(ParsedArguments $args, array $files, SourceDocuments $source, mixed $stdin): array
+    private function inputs(ParsedArguments $args, SourceDocuments $source, mixed $stdin, string ...$files): array
     {
         $mode = $args->string('front-matter');
         if ('' === $mode || [] === $files) {
-            return [array_map(static fn (string $file): FileInput => new FileInput($file), $files), ''];
+            return [array_values(array_map(static fn (string $file): FileInput => new FileInput($file), $files)), ''];
         }
 
         [$yaml, $rest] = new FrontMatterSplitter()->split($source->contents($files[0], $stdin));
 
-        return [[new FileInput($files[0], $yaml)], 'process' === $mode ? $rest : ''];
+        return [[new FileInput($files[0], $yaml)], FrontMatterModeEnum::Process->value === $mode ? $rest : ''];
     }
 }

@@ -74,7 +74,7 @@ final class BinderTest extends OpTestCase
 
     public function testObjectBinderWithKeyExpressionAndNoVariable(): void
     {
-        $binder = new ObjectBinder([[null, self::generator(['a', 'b']), new VarBinder()]]);
+        $binder = new ObjectBinder([[null, self::generator('a', 'b'), new VarBinder()]]);
 
         $bound = self::bindAll($binder, self::object(['a' => 1, 'b' => 2]));
 

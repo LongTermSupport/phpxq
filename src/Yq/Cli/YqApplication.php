@@ -31,6 +31,7 @@ final readonly class YqApplication implements YqApplicationInterface
     /** The pinned reference release this implementation follows (see tests/Conformance/Yq/fixtures/NOTICE.md). */
     public const string REFERENCE_VERSION = 'v4.54.1';
 
+    /** What every error message written to stderr starts with. */
     private const string ERROR_PREFIX = 'Error: ';
 
     private ArgumentParser $parser;
@@ -48,7 +49,7 @@ final readonly class YqApplication implements YqApplicationInterface
         $this->evaluate = new EvaluateCommand($yamlParser, $emitter, $expressions, $evaluator, $formats);
     }
 
-    public function run(array $args, mixed $stdin, mixed $stdout, mixed $stderr): int
+    public function run(mixed $stdin, mixed $stdout, mixed $stderr, string ...$args): int
     {
         // The cycle collector re-scans the huge, cycle-free node tree every few thousand allocations; a run
         // is short-lived, so it is switched off for its duration (benchmarks yq:identity-medium and
@@ -57,7 +58,7 @@ final readonly class YqApplication implements YqApplicationInterface
         gc_disable();
 
         try {
-            return $this->runCommand($args, $stdin, $stdout, $stderr);
+            return $this->runCommand($stdin, $stdout, $stderr, ...$args);
         } finally {
             if ($collector) {
                 gc_enable();
@@ -66,20 +67,20 @@ final readonly class YqApplication implements YqApplicationInterface
     }
 
     /**
-     * @param list<string> $args
-     * @param resource     $stdin
-     * @param resource     $stdout
-     * @param resource     $stderr
+     * @param resource $stdin
+     * @param resource $stdout
+     * @param resource $stderr
      */
-    private function runCommand(array $args, mixed $stdin, mixed $stdout, mixed $stderr): int
+    private function runCommand(mixed $stdin, mixed $stdout, mixed $stderr, string ...$args): int
     {
-        $first = $args[0] ?? '';
-        if ('__complete' === $first || '__completeNoDesc' === $first) {
-            return new CompleteCommand()->run(\array_slice($args, 1), '__complete' === $first, $stdout, $stderr);
+        $first = [] === $args ? '' : $args[0];
+        $named = CommandEnum::tryFrom($first);
+        if ($named instanceof CommandEnum && $named->isCompletionRequest()) {
+            return new CompleteCommand()->run(CommandEnum::Complete === $named, $stdout, $stderr, ...\array_slice($args, 1));
         }
 
         try {
-            $parsed = $this->parser->parse($args);
+            $parsed = $this->parser->parse(...$args);
         } catch (UsageException $usageException) {
             fwrite($stderr, self::ERROR_PREFIX . $usageException->getMessage() . "\n" . HelpText::usage('') . "\n");
 
@@ -127,11 +128,11 @@ final readonly class YqApplication implements YqApplicationInterface
             return self::EXIT_OK;
         }
 
-        return match ($parsed->command) {
-            'help'           => $this->help($parsed, $stdout),
-            'completion'     => $this->completion($parsed, $stdout),
-            'eval-all', 'ea' => $this->evaluate->run($parsed, true, $stdin, $stdout),
-            default          => $this->evaluate->run($parsed, false, $stdin, $stdout),
+        return match (CommandEnum::tryFrom($parsed->command)?->canonical()) {
+            CommandEnum::Help       => $this->help($parsed, $stdout),
+            CommandEnum::Completion => $this->completion($parsed, $stdout),
+            CommandEnum::EvalAll    => $this->evaluate->run($parsed, true, $stdin, $stdout),
+            default                 => $this->evaluate->run($parsed, false, $stdin, $stdout),
         };
     }
 
@@ -140,7 +141,7 @@ final readonly class YqApplication implements YqApplicationInterface
      */
     private function help(ParsedArguments $parsed, mixed $stdout): int
     {
-        fwrite($stdout, HelpText::forCommand($parsed->positionals[0] ?? ''));
+        fwrite($stdout, HelpText::forCommand([] === $parsed->positionals ? '' : $parsed->positionals[0]));
 
         return self::EXIT_OK;
     }

@@ -53,16 +53,16 @@ enum ToolEnum: string
     }
 
     /**
-     * @param list<string> $args   the tool's own command line, without the tool name
-     * @param resource     $stdin
-     * @param resource     $stdout
-     * @param resource     $stderr
+     * @param resource $stdin
+     * @param resource $stdout
+     * @param resource $stderr
+     * @param string   ...$args the tool's own command line, without the tool name
      */
-    public function run(array $args, mixed $stdin, mixed $stdout, mixed $stderr): int
+    public function run(mixed $stdin, mixed $stdout, mixed $stderr, string ...$args): int
     {
         return match ($this) {
-            self::Jq => JqApplication::create()->run($args, $stdin, $stdout, $stderr),
-            self::Yq => new YqApplication()->run($args, $stdin, $stdout, $stderr),
+            self::Jq => JqApplication::create()->run($stdin, $stdout, $stderr, ...$args),
+            self::Yq => new YqApplication()->run($stdin, $stdout, $stderr, ...$args),
         };
     }
 }

@@ -29,7 +29,7 @@ final class EntryPointTest extends TestCase
         $controller = new RecordingFrontController(7);
 
         $exit = new EntryPoint($controller, self::VERSION_FIXTURE)
-            ->run($argv0, $args, $this->stream(), $this->stream(), $this->stream())
+            ->run($argv0, $this->stream(), $this->stream(), $this->stream(), ...$args)
         ;
 
         self::assertSame(7, $exit);
@@ -58,7 +58,7 @@ final class EntryPointTest extends TestCase
         $stdout     = $this->stream();
 
         $exit = new EntryPoint($controller, self::VERSION_FIXTURE)
-            ->run('phpxq', ['--version'], $this->stream(), $stdout, $this->stream())
+            ->run('phpxq', $this->stream(), $stdout, $this->stream(), '--version')
         ;
 
         self::assertSame(FrontControllerInterface::EXIT_OK, $exit);
@@ -74,7 +74,7 @@ final class EntryPointTest extends TestCase
         $controller = new RecordingFrontController();
 
         new EntryPoint($controller, self::VERSION_FIXTURE)
-            ->run(ToolEnum::Jq->value, ['--version'], $this->stream(), $this->stream(), $this->stream())
+            ->run(ToolEnum::Jq->value, $this->stream(), $this->stream(), $this->stream(), '--version')
         ;
 
         self::assertSame([ToolEnum::Jq->value, '--version'], $controller->received);
@@ -85,7 +85,7 @@ final class EntryPointTest extends TestCase
         $stdout = $this->stream();
 
         new EntryPoint(new FrontController(), '/nonexistent/VERSION')
-            ->run('phpxq', ['--version'], $this->stream(), $stdout, $this->stream())
+            ->run('phpxq', $this->stream(), $stdout, $this->stream(), '--version')
         ;
 
         self::assertStringStartsWith("phpxq unknown\n", $this->contents($stdout));

@@ -411,14 +411,14 @@ final class ParserTest extends TestCase
     public function testParserIsReusable(): void
     {
         $parser  = $this->parser();
-        $failed  = false;
+        $failure = null;
         try {
             $parser->parse('1 +');
-        } catch (JqCompileException) {
-            $failed = true;
+        } catch (JqCompileException $jqCompileException) {
+            $failure = $jqCompileException;
         }
 
-        self::assertTrue($failed);
+        self::assertInstanceOf(JqCompileException::class, $failure);
         $program = $parser->parse('2');
 
         self::assertNotNull($program->body);

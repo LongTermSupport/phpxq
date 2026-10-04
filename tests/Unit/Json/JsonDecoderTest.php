@@ -488,7 +488,12 @@ final class JsonDecoderTest extends TestCase
         }
 
         if (\is_array($value)) {
-            return '[' . implode(',', array_map(self::describe(...), $value)) . ']';
+            $items = [];
+            foreach ($value as $item) {
+                $items[] = self::describe($item);
+            }
+
+            return '[' . implode(',', $items) . ']';
         }
 
         self::assertInstanceOf(JsonObject::class, $value);

@@ -23,7 +23,7 @@ final class ArrayOpTest extends OpTestCase
     public function testCollectsEveryOutput(): void
     {
         self::assertSame([[1, 2, 3]], self::outputs(new ArrayOp(new IterateOp(null)), [1, 2, 3]));
-        self::assertSame([[]], self::outputs(new ArrayOp(self::generator([]))));
+        self::assertSame([[]], self::outputs(new ArrayOp(self::generator())));
     }
 
     public function testSingleBody(): void

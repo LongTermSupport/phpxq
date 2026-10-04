@@ -154,9 +154,9 @@ final class JqConformanceSuiteTest extends TestCase
             {
             }
 
-            public function run(array $args, mixed $stdin, mixed $stdout, mixed $stderr): int
+            public function run(mixed $stdin, mixed $stdout, mixed $stderr, string ...$args): int
             {
-                return ($this->handler)($args, (string)stream_get_contents($stdin), $stdout, $stderr);
+                return ($this->handler)(array_values($args),(string)stream_get_contents($stdin), $stdout, $stderr);
             }
         };
     }

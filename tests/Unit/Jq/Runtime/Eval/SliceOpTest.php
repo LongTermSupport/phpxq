@@ -32,7 +32,7 @@ final class SliceOpTest extends OpTestCase
 
     public function testFromIsTheOuterLoop(): void
     {
-        $op = new SliceOp(new IdentityOp(), self::generator([0, 1]), self::generator([1, 2]));
+        $op = new SliceOp(new IdentityOp(), self::generator(0, 1), self::generator(1, 2));
 
         self::assertSame([[0], [0, 1], [], [1]], self::outputs($op, [0, 1, 2]));
     }

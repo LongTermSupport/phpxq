@@ -26,7 +26,7 @@ final class ArithAssignOpTest extends OpTestCase
 
     public function testOneOutputPerRightHandValue(): void
     {
-        $op = new ArithAssignOp(new FieldOp('a'), self::generator([1, 10]), Arithmetic::add(...));
+        $op = new ArithAssignOp(new FieldOp('a'), self::generator(1, 10), Arithmetic::add(...));
 
         self::assertEquals(
             [self::object(['a' => 2]), self::object(['a' => 11])],

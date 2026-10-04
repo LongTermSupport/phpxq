@@ -9,7 +9,9 @@ use DateTimeZone;
 
 /**
  * Go's `time` layouts and durations on top of DateTimeImmutable: formatting and parsing with
- * reference-time layouts such as `Monday, 02-Jan-06 at 3:04PM MST`, and `ParseDuration` strings.
+ * reference-time layouts such as `Monday, 02-Jan-06 at 3:04PM MST`, and `ParseDuration` strings. Layout
+ * tokens made of digits get symbolic names (SYMBOLS): `switch` compares numeric strings numerically, so `3`
+ * and `03` would otherwise be the same case.
  */
 final class GoTime
 {
@@ -74,10 +76,6 @@ final class GoTime
 
     private const array STD_LONG_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-    /**
-     * Layout tokens made of digits get symbolic names: `switch` compares numeric strings numerically, so
-     * `3` and `03` would otherwise be the same case.
-     */
     private const array SYMBOLS = [
         '2006' => 'Y4', '06' => 'Y2', '01' => 'M2', '1' => 'M1', '02' => 'D2', '2' => 'D1', '002' => 'YD',
         '15'   => 'H24', '03' => 'H2', '3' => 'H1', '04' => 'I2', '4' => 'I1', '05' => 'S2', '5' => 'S1',
@@ -157,7 +155,7 @@ final class GoTime
                     $d = self::digits($value, $p, 1, 2);
                     break;
                 case '_2':
-                    if (' ' === ($value[$p] ?? '')) {
+                    if (' ' === substr($value, $p, 1)) {
                         ++$p;
                     }
 
@@ -193,7 +191,7 @@ final class GoTime
                     }
 
                     $nextIsFraction = isset($tokens[$index + 1]) && self::KIND_STANDARD === $tokens[$index + 1][0] && \in_array($tokens[$index + 1][1][0], ['.', ','], true);
-                    if (!$nextIsFraction && '.' === ($value[$p] ?? '') && $p + 1 < $n && ctype_digit($value[$p + 1])) {
+                    if (!$nextIsFraction && '.' === substr($value, $p, 1) && $p + 1 < $n && ctype_digit($value[$p + 1])) {
                         $ns = self::fraction($value, $p);
                     }
 
@@ -249,7 +247,8 @@ final class GoTime
                         return null;
                     }
 
-                    if (($value[$p] ?? '') !== $text[0] && ('.' !== ($value[$p] ?? '') || ',' !== $text[0])) {
+                    $current = substr($value, $p, 1);
+                    if ($current !== $text[0] && ('.' !== $current || ',' !== $text[0])) {
                         return null;
                     }
 
@@ -419,7 +418,7 @@ final class GoTime
     private static function stdAt(string $layout, int $i, int $n): ?string
     {
         $c    = $layout[$i];
-        $next = $layout[$i + 1] ?? '';
+        $next = substr($layout, $i + 1, 1);
         switch ($c) {
             case 'J':
                 if (self::SHORT_MONTH === substr($layout, $i, 3)) {
@@ -492,7 +491,7 @@ final class GoTime
                         ++$j;
                     }
 
-                    $after = $layout[$j] ?? '';
+                    $after = substr($layout, $j, 1);
                     if ($after < '0' || $after > '9') {
                         return substr($layout, $i, $j - $i);
                     }
@@ -636,7 +635,7 @@ final class GoTime
 
     private static function parseOffset(string $value, int &$p, string $std): ?DateTimeZone
     {
-        if ('Z' === $std[0] && 'Z' === ($value[$p] ?? '')) {
+        if ('Z' === $std[0] && 'Z' === substr($value, $p, 1)) {
             ++$p;
 
             return new DateTimeZone(self::UTC);

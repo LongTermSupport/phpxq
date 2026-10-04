@@ -14,7 +14,7 @@ use LTS\PhpXq\Json\Codec\DecimalLiteral;
  *
  * @api
  */
-final class Values
+final readonly class Values
 {
     private const array TYPE_ORDER = [
         'null'    => 0,

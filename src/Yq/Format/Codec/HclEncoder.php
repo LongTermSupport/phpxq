@@ -18,7 +18,7 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * labels as its keys), a sequence of mappings becomes repeated blocks. Strings are double-quoted unless the
  * reader flagged them as raw expressions. Two spaces per level, no blank lines.
  */
-final class HclEncoder implements EncoderInterface
+final readonly class HclEncoder implements EncoderInterface
 {
     private const int MAX_DEPTH = 500;
 
@@ -60,10 +60,10 @@ final class HclEncoder implements EncoderInterface
             $out     .= $this->comment($key->headComment, $indent);
 
             if (NodeKindEnum::Mapping === $resolved->kind && !$resolved->explicitStart) {
-                $this->block($out, $name, $resolved, [], $level, $depth);
+                $this->block($out, $name, $resolved, $level, $depth);
             } elseif ($this->isBlockList($resolved)) {
                 foreach ($resolved->content as $item) {
-                    $this->block($out, $name, NodeTools::unwrap($item), [], $level, $depth);
+                    $this->block($out, $name, NodeTools::unwrap($item), $level, $depth);
                 }
             } else {
                 $out .= $indent . $name . self::ASSIGN . $this->value($resolved, $level, false, $depth + 1) . $this->trailing($key->lineComment, $value->lineComment, $resolved->lineComment) . "\n";
@@ -73,10 +73,7 @@ final class HclEncoder implements EncoderInterface
         }
     }
 
-    /**
-     * @param list<string> $labels
-     */
-    private function block(string &$out, string $type, Node $map, array $labels, int $level, int $depth): void
+    private function block(string &$out, string $type, Node $map, int $level, int $depth, string ...$labels): void
     {
         $indent = str_repeat('  ', $level);
         if ($map->explicitEnd) {
@@ -86,7 +83,7 @@ final class HclEncoder implements EncoderInterface
                     throw new FormatException('hcl: a block label must hold a map');
                 }
 
-                $this->block($out, $type, $inner, [...$labels, NodeTools::keyText($labelKey)], $level, $depth + 1);
+                $this->block($out, $type, $inner, $level, $depth + 1, ...[...$labels, NodeTools::keyText($labelKey)]);
             }
 
             return;

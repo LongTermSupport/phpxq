@@ -122,7 +122,10 @@ final class JqApplicationInputSegmenterTest extends TestCase
             $segmenter = new InputSegmenter(true);
             $joined    = '';
             foreach (str_split($text, $size) as $chunk) {
-                $joined .= $segmenter->push($chunk) ?? '';
+                $pushed = $segmenter->push($chunk);
+                if (null !== $pushed) {
+                    $joined .= $pushed;
+                }
             }
 
             self::assertSame($text, $joined . $segmenter->finish());

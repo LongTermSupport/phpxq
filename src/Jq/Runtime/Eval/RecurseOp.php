@@ -12,7 +12,7 @@ use LTS\PhpXq\Json\JsonObject;
  *
  * @internal
  */
-final class RecurseOp implements OpInterface
+final readonly class RecurseOp implements OpInterface
 {
     public function run(?Env $env, mixed $input, Closure $emit): void
     {
@@ -30,7 +30,7 @@ final class RecurseOp implements OpInterface
             return;
         }
 
-        self::walkPaths($path, $input, $emit);
+        self::walkPaths($input, $emit, ...$path);
     }
 
     /**
@@ -51,23 +51,19 @@ final class RecurseOp implements OpInterface
     }
 
     /**
-     * @param list<mixed>                        $path
      * @param Closure(?list<mixed>, mixed): void $emit
      */
-    private static function walkPaths(array $path, mixed $value, Closure $emit): void
+    private static function walkPaths(mixed $value, Closure $emit, mixed ...$path): void
     {
+        $path = array_values($path);
         $emit($path, $value);
         if (\is_array($value)) {
             foreach ($value as $index => $child) {
-                $childPath   = $path;
-                $childPath[] = $index;
-                self::walkPaths($childPath, $child, $emit);
+                self::walkPaths($child, $emit, ...[...$path, $index]);
             }
         } elseif ($value instanceof JsonObject) {
             foreach ($value->entries() as $key => $child) {
-                $childPath   = $path;
-                $childPath[] = $key;
-                self::walkPaths($childPath, $child, $emit);
+                self::walkPaths($child, $emit, ...[...$path, $key]);
             }
         }
     }

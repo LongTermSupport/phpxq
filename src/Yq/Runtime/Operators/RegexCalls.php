@@ -20,16 +20,21 @@ use LTS\PhpXq\Yq\Runtime\NodeOps;
 /**
  * Regular-expression operators: `test`, `match`, `capture` and `sub`, with Go (RE2) syntax.
  */
-final class RegexCalls implements CallOperatorInterface
+final readonly class RegexCalls implements CallOperatorInterface
 {
     public function names(): array
     {
-        return ['test', 'match', 'capture', 'sub'];
+        return BuiltinNameEnum::values(
+            BuiltinNameEnum::Test,
+            BuiltinNameEnum::Match,
+            BuiltinNameEnum::Capture,
+            BuiltinNameEnum::Sub,
+        );
     }
 
     public function evaluate(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
-        $call = Args::split($call, 'sub' === $call->name ? 2 : 1);
+        $call = Args::split($call, BuiltinNameEnum::Sub->value === $call->name ? 2 : 1);
         Args::require($call, 1);
         $out = [];
         foreach ($context->matches as $match) {
@@ -38,9 +43,9 @@ final class RegexCalls implements CallOperatorInterface
                 throw new EvaluationException(\sprintf('cannot use %s on a %s', $call->name, NodeOps::kindName($node)));
             }
 
-            $pattern = Args::string($call, 0, $context, $evaluator, $match) ?? '';
-            $flagArg = 'sub' === $call->name ? 2 : 1;
-            $flags   = Args::string($call, $flagArg, $context, $evaluator, $match) ?? '';
+            $pattern = Args::stringOrEmpty($call, 0, $context, $evaluator, $match);
+            $flagArg = BuiltinNameEnum::Sub->value === $call->name ? 2 : 1;
+            $flags   = Args::stringOrEmpty($call, $flagArg, $context, $evaluator, $match);
             $regex   = GoRegex::compile($pattern, $flags);
             foreach ($this->one($call, $match, $node, $regex, $flags, $context, $evaluator) as $result) {
                 $out[] = $result;
@@ -56,11 +61,11 @@ final class RegexCalls implements CallOperatorInterface
     private function one(Call $call, Candidate $match, Node $node, string $regex, string $flags, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
         $global = str_contains($flags, 'g');
-        switch ($call->name) {
-            case 'test':
+        switch (BuiltinNameEnum::tryFrom($call->name)) {
+            case BuiltinNameEnum::Test:
                 return [Cands::derive(NodeOps::bool(GoRegex::test($regex, $node->value)), $match)];
 
-            case 'match':
+            case BuiltinNameEnum::Match:
                 $out = [];
                 foreach (GoRegex::matches($regex, $node->value, $global) as $record) {
                     $out[] = Cands::derive($this->record($record), $match);
@@ -68,7 +73,7 @@ final class RegexCalls implements CallOperatorInterface
 
                 return $out;
 
-            case 'capture':
+            case BuiltinNameEnum::Capture:
                 $flat = [];
                 foreach (GoRegex::matches($regex, $node->value, false) as $record) {
                     foreach ($record['captures'] as $capture) {
@@ -85,7 +90,7 @@ final class RegexCalls implements CallOperatorInterface
 
             default:
                 Args::require($call, 2);
-                $replacement = Args::string($call, 1, $context, $evaluator, $match) ?? '';
+                $replacement = Args::stringOrEmpty($call, 1, $context, $evaluator, $match);
                 $out         = $node->deepCopy();
                 $out->value  = GoRegex::replace($regex, $replacement, $node->value, !str_contains($flags, 'n'));
                 $out->anchor = '';

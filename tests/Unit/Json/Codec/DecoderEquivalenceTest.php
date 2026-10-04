@@ -8,6 +8,7 @@ use Generator;
 use LTS\PhpXq\Json\JsonDecoder;
 use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Json\PreciseNumber;
+use LTS\PhpXq\Tests\Support\SeededRandom;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 
@@ -34,12 +35,12 @@ final class DecoderEquivalenceTest extends TestCase
 
     public function testRandomDocumentsAgree(): void
     {
-        mt_srand(2024);
+        $random  = new SeededRandom(2024);
         $decoder = new JsonDecoder();
         for ($i = 0; $i < 1500; ++$i) {
-            $text = self::randomValue(0);
+            $text = self::randomValue($random, 0);
             $fast = self::describe($decoder->decodeOne($text));
-            $slow = $this->scanned($text);
+            $slow = self::scanned($decoder, $text);
 
             self::assertCount(1, $slow, $text);
             self::assertSame($fast, self::describe($slow[0]), $text);
@@ -48,20 +49,20 @@ final class DecoderEquivalenceTest extends TestCase
 
     public function testRandomStreamsAgree(): void
     {
-        mt_srand(99);
+        $random  = new SeededRandom(99);
         $decoder = new JsonDecoder();
         for ($i = 0; $i < 300; ++$i) {
             $lines = [];
-            $count = mt_rand(1, 8);
+            $count = $random->between(1, 8);
             for ($k = 0; $k < $count; ++$k) {
-                $lines[] = self::randomValue(1);
+                $lines[] = self::randomValue($random, 1);
             }
 
             $text = implode(0 === $i % 3 ? "\r\n" : "\n", $lines);
             $text .= 0 === $i % 2 ? "\n" : '';
 
             $fast = array_map(self::describe(...), iterator_to_array($decoder->decodeAll($text), false));
-            $slow = array_map(self::describe(...), $this->scanned($text));
+            $slow = array_map(self::describe(...), self::scanned($decoder, $text));
 
             self::assertCount($count, $fast, $text);
             self::assertSame($fast, $slow, $text);
@@ -73,40 +74,40 @@ final class DecoderEquivalenceTest extends TestCase
      *
      * @return list<mixed>
      */
-    private function scanned(string $text): array
+    private static function scanned(JsonDecoder $decoder, string $text): array
     {
         $method = new ReflectionMethod(JsonDecoder::class, 'scan');
-        $values = $method->invoke(new JsonDecoder(), $text, false, 0);
+        $values = $method->invoke($decoder, $text, false, 0);
         self::assertInstanceOf(Generator::class, $values);
 
         return iterator_to_array($values, false);
     }
 
-    private static function randomValue(int $depth): string
+    private static function randomValue(SeededRandom $random, int $depth): string
     {
-        $kind = mt_rand(0, $depth > 3 ? 5 : 9);
+        $kind = $random->between(0, $depth > 3 ? 5 : 9);
         if ($kind <= 1) {
-            return self::NUMBERS[mt_rand(0, \count(self::NUMBERS) - 1)];
+            return $random->pick(...self::NUMBERS);
         }
 
         if ($kind <= 3) {
-            return self::STRINGS[mt_rand(0, \count(self::STRINGS) - 1)];
+            return $random->pick(...self::STRINGS);
         }
 
         if (4 === $kind) {
-            return ['true', 'false', 'null'][mt_rand(0, 2)];
+            return $random->pick('true', 'false', 'null');
         }
 
         if (5 === $kind) {
-            return 0 === mt_rand(0, 1) ? '[]' : '{}';
+            return 0 === $random->between(0, 1) ? '[]' : '{}';
         }
 
-        $space = ['', ' ', "\t", "\n  "][mt_rand(0, 3)];
-        $count = mt_rand(0, 4);
+        $space = $random->pick('', ' ', "\t", "\n  ");
+        $count = $random->between(0, 4);
         if ($kind <= 7) {
             $items = [];
             for ($k = 0; $k < $count; ++$k) {
-                $items[] = $space . self::randomValue($depth + 1) . $space;
+                $items[] = $space . self::randomValue($random, $depth + 1) . $space;
             }
 
             return '[' . implode(',', $items) . ']';
@@ -115,7 +116,7 @@ final class DecoderEquivalenceTest extends TestCase
         $keys  = ['a', 'b', 'c', '1', '01', '', 'a b', "k\u{e9}", 'a'];
         $items = [];
         for ($k = 0; $k < $count; ++$k) {
-            $items[] = $space . '"' . $keys[mt_rand(0, \count($keys) - 1)] . '"' . $space . ':' . $space . self::randomValue($depth + 1) . $space;
+            $items[] = $space . '"' . $random->pick(...$keys) . '"' . $space . ':' . $space . self::randomValue($random, $depth + 1) . $space;
         }
 
         return '{' . implode(',', $items) . '}';
@@ -144,7 +145,12 @@ final class DecoderEquivalenceTest extends TestCase
         }
 
         if (\is_array($value)) {
-            return '[' . implode(',', array_map(self::describe(...), $value)) . ']';
+            $items = [];
+            foreach ($value as $item) {
+                $items[] = self::describe($item);
+            }
+
+            return '[' . implode(',', $items) . ']';
         }
 
         self::assertInstanceOf(JsonObject::class, $value);

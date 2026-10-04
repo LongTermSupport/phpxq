@@ -91,7 +91,7 @@ final class ShellWords
                 continue;
             }
 
-            if (str_contains(self::META, $char) || ('$' === $char && '(' === ($command[$i + 1] ?? ''))) {
+            if (str_contains(self::META, $char) || ('$' === $char && '(' === substr($command, $i + 1, 1))) {
                 return null;
             }
 
@@ -128,7 +128,7 @@ final class ShellWords
                 continue;
             }
 
-            if ('$' === $char && '(' === ($command[$i + 1] ?? '')) {
+            if ('$' === $char && '(' === substr($command, $i + 1, 1)) {
                 return null;
             }
 

@@ -10,7 +10,7 @@ use LTS\PhpXq\Yaml\NodeKindEnum;
 /**
  * Helpers for building and inspecting {@see Candidate}s.
  */
-final class Cands
+final readonly class Cands
 {
     private function __construct()
     {
@@ -168,10 +168,8 @@ final class Cands
     /**
      * True when the matches are the roots of several documents (the eval-all shape): operators then see
      * the whole list instead of one match at a time.
-     *
-     * @param list<Candidate> $matches
      */
-    public static function together(array $matches): bool
+    public static function together(Candidate ...$matches): bool
     {
         if (\count($matches) < 2) {
             return false;

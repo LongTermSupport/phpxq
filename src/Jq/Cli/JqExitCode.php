@@ -9,7 +9,7 @@ namespace LTS\PhpXq\Jq\Cli;
  *
  * @api
  */
-final class JqExitCode
+final readonly class JqExitCode
 {
     /** all outputs produced; with -e, the last output was neither false nor null */
     public const int OK = 0;

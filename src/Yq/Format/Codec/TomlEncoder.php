@@ -19,7 +19,7 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * every other array is written inline. Scalars come before sub-tables inside a section, a blank line
  * precedes each `[table]`, and comments are written above entries and after values.
  */
-final class TomlEncoder implements EncoderInterface
+final readonly class TomlEncoder implements EncoderInterface
 {
     private const int MAX_DEPTH = 500;
 
@@ -76,7 +76,7 @@ final class TomlEncoder implements EncoderInterface
         foreach ($tables as [$key, $value]) {
             $childPath = [...$path, $this->name($key)];
             if (NodeKindEnum::Mapping === $value->kind) {
-                $this->table($out, $key, $value, $childPath, $depth);
+                $this->table($out, $key, $value, $depth, ...$childPath);
 
                 continue;
             }
@@ -94,10 +94,7 @@ final class TomlEncoder implements EncoderInterface
         }
     }
 
-    /**
-     * @param list<string> $path
-     */
-    private function table(string &$out, Node $key, Node $map, array $path, int $depth): void
+    private function table(string &$out, Node $key, Node $map, int $depth, string ...$path): void
     {
         $pairs      = NodeTools::pairs($map);
         $hasScalars = false;
@@ -114,7 +111,7 @@ final class TomlEncoder implements EncoderInterface
             $out .= ('' === $out ? '' : "\n") . $this->comments($key->headComment) . '[' . implode('.', $path) . "]\n";
         }
 
-        $this->section($out, $map, $path, $depth + 1);
+        $this->section($out, $map, array_values($path), $depth + 1);
     }
 
     private function isTable(Node $node): bool

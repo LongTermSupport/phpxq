@@ -76,6 +76,20 @@ final class BuildsOnceOrPerInput
         return new DefaultBuiltinRegistry();
     }
 
+    /**
+     * @param list<int> $days
+     */
+    public function firstElementOnly(array $days): int
+    {
+        foreach ($days as $day) {
+            $registry = new DefaultBuiltinRegistry();
+
+            return null === $registry->lookup('x', $day) ? 0 : 1;
+        }
+
+        return -1;
+    }
+
     private function registry(): DefaultBuiltinRegistry
     {
         if (!$this->registry instanceof DefaultBuiltinRegistry) {

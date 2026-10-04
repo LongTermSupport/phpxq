@@ -8,6 +8,7 @@ use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Expression\Ast\Call;
+use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 use LTS\PhpXq\Yq\Runtime\Args;
 use LTS\PhpXq\Yq\Runtime\CallOperatorInterface;
 use LTS\PhpXq\Yq\Runtime\Candidate;
@@ -24,11 +25,21 @@ use LTS\PhpXq\Yq\Runtime\Traversal;
  * Ordering operators: `sort`, `sort_by`, `group_by`, `unique`, `unique_by`, `min`, `max`, `reverse`,
  * `shuffle`. On a mapping `sort` and `sort_by` reorder the entries.
  */
-final class SortingCalls implements CallOperatorInterface
+final readonly class SortingCalls implements CallOperatorInterface
 {
     public function names(): array
     {
-        return ['sort', 'sort_by', 'group_by', 'unique', 'unique_by', 'min', 'max', 'reverse', 'shuffle'];
+        return BuiltinNameEnum::values(
+            BuiltinNameEnum::Sort,
+            BuiltinNameEnum::SortBy,
+            BuiltinNameEnum::GroupBy,
+            BuiltinNameEnum::Unique,
+            BuiltinNameEnum::UniqueBy,
+            BuiltinNameEnum::Min,
+            BuiltinNameEnum::Max,
+            BuiltinNameEnum::Reverse,
+            BuiltinNameEnum::Shuffle,
+        );
     }
 
     public function evaluate(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
@@ -49,7 +60,7 @@ final class SortingCalls implements CallOperatorInterface
     private function one(Call $call, Candidate $match, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
         $node = NodeOps::deref(Cands::node($match));
-        if (NodeOps::isNull($node) && 'min' !== $call->name && 'max' !== $call->name) {
+        if (NodeOps::isNull($node) && BuiltinNameEnum::Min->value !== $call->name && BuiltinNameEnum::Max->value !== $call->name) {
             return [$match];
         }
 
@@ -63,30 +74,30 @@ final class SortingCalls implements CallOperatorInterface
 
         $layout = Cands::dateLayout($context);
         $items  = Traversal::values($match, false);
-        switch ($call->name) {
-            case 'sort':
-                return [Cands::deriveInDocument($this->rebuild($node, $this->sorted($items, [], $layout, $context, $evaluator)), $match)];
+        switch (BuiltinNameEnum::tryFrom($call->name)) {
+            case BuiltinNameEnum::Sort:
+                return [Cands::deriveInDocument($this->rebuild($node, ...$this->sorted($items, $layout, $context, $evaluator)), $match)];
 
-            case 'sort_by':
+            case BuiltinNameEnum::SortBy:
                 Args::require($call, 1);
 
-                return [Cands::deriveInDocument($this->rebuild($node, $this->sorted($items, $call->arguments, $layout, $context, $evaluator)), $match)];
+                return [Cands::deriveInDocument($this->rebuild($node, ...$this->sorted($items, $layout, $context, $evaluator, ...$call->arguments)), $match)];
 
-            case 'group_by':
+            case BuiltinNameEnum::GroupBy:
                 Args::require($call, 1);
 
-                return [Cands::derive($this->groupBy($items, $call, $context, $evaluator), $match)];
+                return [Cands::derive($this->groupBy($call, $context, $evaluator, ...$items), $match)];
 
-            case 'unique':
-                return [Cands::derive($this->unique($items, null, $context, $evaluator), $match)];
+            case BuiltinNameEnum::Unique:
+                return [Cands::derive($this->unique(null, $context, $evaluator, ...$items), $match)];
 
-            case 'unique_by':
+            case BuiltinNameEnum::UniqueBy:
                 Args::require($call, 1);
 
-                return [Cands::derive($this->unique($items, $call, $context, $evaluator), $match)];
+                return [Cands::derive($this->unique($call, $context, $evaluator, ...$items), $match)];
 
-            case 'min':
-            case 'max':
+            case BuiltinNameEnum::Min:
+            case BuiltinNameEnum::Max:
                 $best = null;
                 foreach ($items as $item) {
                     if (!$best instanceof Candidate) {
@@ -96,14 +107,14 @@ final class SortingCalls implements CallOperatorInterface
                     }
 
                     $order = Compare::order($item->node, $best->node, $layout);
-                    if (('min' === $call->name && $order < 0) || ('max' === $call->name && $order > 0)) {
+                    if ((BuiltinNameEnum::Min->value === $call->name && $order < 0) || (BuiltinNameEnum::Max->value === $call->name && $order > 0)) {
                         $best = $item;
                     }
                 }
 
                 return $best instanceof Candidate ? [$best] : [];
 
-            case 'reverse':
+            case BuiltinNameEnum::Reverse:
                 if (NodeKindEnum::Sequence !== $node->kind) {
                     return [$match];
                 }
@@ -131,12 +142,11 @@ final class SortingCalls implements CallOperatorInterface
     }
 
     /**
-     * @param list<Candidate>                                        $items
-     * @param list<\LTS\PhpXq\Yq\Expression\ExpressionNodeInterface> $keyExpressions
+     * @param list<Candidate> $items
      *
      * @return list<Candidate>
      */
-    private function sorted(array $items, array $keyExpressions, ?string $layout, EvaluationContext $context, EvaluatorInterface $evaluator): array
+    private function sorted(array $items, ?string $layout, EvaluationContext $context, EvaluatorInterface $evaluator, ExpressionNodeInterface ...$keyExpressions): array
     {
         $read   = $context->withDontAutoCreate(true);
         $keyed  = [];
@@ -146,7 +156,7 @@ final class SortingCalls implements CallOperatorInterface
                 $keys[] = $item->node;
             } else {
                 foreach ($keyExpressions as $expression) {
-                    foreach ($evaluator->evaluate($expression, $read->withMatches([$item])) as $found) {
+                    foreach ($evaluator->evaluate($expression, $read->withMatches($item)) as $found) {
                         $keys[] = Cands::node($found);
                     }
                 }
@@ -166,7 +176,7 @@ final class SortingCalls implements CallOperatorInterface
             $single[] = $entry[2][0];
         }
 
-        $fast = null === $single ? null : $this->nativeOrder($single, $layout);
+        $fast = null === $single ? null : $this->nativeOrder($layout, ...$single);
         if (null !== $fast) {
             return array_map(static fn (int $position): Candidate => $keyed[$position][1], $fast);
         }
@@ -195,20 +205,17 @@ final class SortingCalls implements CallOperatorInterface
      *
      * Hot path (benchmarks yq:group-medium, yq:group-large): a user-space comparator costs a closure call
      * and several lookups per comparison, which dominated group_by and sort_by on large sequences.
-     *
-     * @param list<Node> $keys
-     *
      * @return list<int>|null
      */
-    private function nativeOrder(array $keys, ?string $layout): ?array
+    private function nativeOrder(?string $layout, Node ...$keys): ?array
     {
         if (null !== $layout || [] === $keys) {
             return null;
         }
 
         $values = [];
-        $kind   = null;
-        foreach ($keys as $position => $key) {
+        $strings = null;
+        foreach (array_values($keys) as $position => $key) {
             $key = NodeOps::deref($key);
             if (NodeKindEnum::Scalar !== $key->kind) {
                 return null;
@@ -217,26 +224,26 @@ final class SortingCalls implements CallOperatorInterface
             $tag = NodeOps::effectiveTag($key);
             if (CoreSchema::TAG_INT === $tag || CoreSchema::TAG_FLOAT === $tag) {
                 $number = Numbers::of($key);
-                if (null === $number || (\is_float($number) && is_nan($number)) || (null !== $kind && 'number' !== $kind)) {
+                if (null === $number || (\is_float($number) && is_nan($number)) || true === $strings) {
                     return null;
                 }
 
-                $kind                = 'number';
+                $strings             = false;
                 $values[$position]   = $number;
 
                 continue;
             }
 
             $text = $key->value;
-            if (CoreSchema::TAG_STR !== $tag || (null !== $kind && 'string' !== $kind) || ('' !== $text && $text[0] >= '0' && $text[0] <= '9')) {
+            if (CoreSchema::TAG_STR !== $tag || false === $strings || ('' !== $text && $text[0] >= '0' && $text[0] <= '9')) {
                 return null;
             }
 
-            $kind              = 'string';
+            $strings           = true;
             $values[$position] = $text;
         }
 
-        if ('string' === $kind) {
+        if (true === $strings) {
             asort($values, \SORT_STRING);
         } else {
             asort($values);
@@ -245,10 +252,7 @@ final class SortingCalls implements CallOperatorInterface
         return array_keys($values);
     }
 
-    /**
-     * @param list<Candidate> $ordered
-     */
-    private function rebuild(Node $node, array $ordered): Node
+    private function rebuild(Node $node, Candidate ...$ordered): Node
     {
         if (NodeKindEnum::Mapping === $node->kind) {
             $flat = [];
@@ -277,17 +281,14 @@ final class SortingCalls implements CallOperatorInterface
         return $new;
     }
 
-    /**
-     * @param list<Candidate> $items
-     */
-    private function groupBy(array $items, Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): Node
+    private function groupBy(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator, Candidate ...$items): Node
     {
         $read = $context->withDontAutoCreate(true);
 
         // The reference groups by the key's scalar text in order of first appearance (it does not sort).
         $groups = [];
         foreach ($items as $item) {
-            $results = $evaluator->evaluate($call->arguments[0], $read->withMatches([$item]));
+            $results = $evaluator->evaluate($call->arguments[0], $read->withMatches($item));
             $key     = []                   === $results ? NodeOps::null() : Cands::node($results[0]);
             $text    = NodeKindEnum::Scalar === $key->kind ? $key->value : '';
 
@@ -297,17 +298,14 @@ final class SortingCalls implements CallOperatorInterface
         return NodeOps::seq(array_map(NodeOps::seq(...), array_values($groups)));
     }
 
-    /**
-     * @param list<Candidate> $items
-     */
-    private function unique(array $items, ?Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): Node
+    private function unique(?Call $call, EvaluationContext $context, EvaluatorInterface $evaluator, Candidate ...$items): Node
     {
         $read = $context->withDontAutoCreate(true);
         $seen = [];
         $kept = [];
         foreach ($items as $item) {
             if ($call instanceof Call) {
-                $results = $evaluator->evaluate($call->arguments[0], $read->withMatches([$item]));
+                $results = $evaluator->evaluate($call->arguments[0], $read->withMatches($item));
                 $key     = [] === $results ? 'null' : Compare::canonical(Cands::node($results[0]));
             } else {
                 $key = Compare::canonical($item->node);

@@ -9,7 +9,7 @@ namespace LTS\PhpXq\Yaml\Token;
  * comment block that precedes content, `line` a comment after a token on its line, `foot` a block that
  * trails earlier content. Exactly one of the three is non-empty.
  */
-final class ScanComment
+final readonly class ScanComment
 {
     public function __construct(
         public int $scanIndex,
@@ -24,23 +24,5 @@ final class ScanComment
         public string $line = '',
         public string $foot = '',
     ) {
-    }
-
-    /**
-     * Resets the record once its text has been handed to the parser.
-     */
-    public function consume(): void
-    {
-        $this->scanIndex   = 0;
-        $this->tokenIndex  = 0;
-        $this->startIndex  = 0;
-        $this->startLine   = 0;
-        $this->startColumn = 0;
-        $this->endIndex    = \PHP_INT_MIN;
-        $this->endLine     = 0;
-        $this->endColumn   = 0;
-        $this->head        = '';
-        $this->line        = '';
-        $this->foot        = '';
     }
 }

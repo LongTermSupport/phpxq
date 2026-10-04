@@ -9,7 +9,7 @@ namespace LTS\PhpXq\Yaml\Token;
  * one small object per token and no enums or per-character values. {@see YamlTokenizer} maps these to
  * the public {@see Token}. Lines are 0-based, columns are 0-based and count characters.
  */
-final class ScanToken
+final readonly class ScanToken
 {
     public const int STREAM_START = 1;
 

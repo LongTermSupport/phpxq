@@ -58,12 +58,10 @@ abstract class OpTestCase extends TestCase
 
     /**
      * An op that emits each of $values, in order (a generator that is not a {@see SingleOpInterface}).
-     *
-     * @param list<mixed> $values
      */
-    protected static function generator(array $values): OpInterface
+    protected static function generator(mixed ...$values): OpInterface
     {
-        return new GeneratorOp($values);
+        return new GeneratorOp(array_values($values));
     }
 
     /**

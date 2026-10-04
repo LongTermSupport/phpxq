@@ -61,12 +61,9 @@ final class DefSet
         $this->aliases[$name][] = $set;
     }
 
-    /**
-     * @param list<mixed> $values
-     */
-    public function addData(string $name, array $values): void
+    public function addData(string $name, mixed ...$values): void
     {
-        $this->data[$name] = $values;
+        $this->data[$name] = array_values($values);
     }
 
     /**

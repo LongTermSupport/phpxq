@@ -55,7 +55,7 @@ final class ForeachOpTest extends OpTestCase
         $op = new ForeachOp(
             new IterateOp(null),
             new VarBinder(),
-            self::generator([0, 1]),
+            self::generator(0, 1),
             new SingleOperatorOp(new IdentityOp(), new VarOp(0), Arithmetic::add(...)),
             null,
         );
@@ -66,7 +66,7 @@ final class ForeachOpTest extends OpTestCase
     public function testEveryUpdateOutputIsEmittedAndTheLastBecomesTheState(): void
     {
         $op = new ForeachOp(
-            self::generator([1, 2]),
+            self::generator(1, 2),
             new VarBinder(),
             self::constant(0),
             new CommaOp(new IdentityOp(), new SingleOperatorOp(new IdentityOp(), self::constant(10), Arithmetic::add(...))),
@@ -79,14 +79,14 @@ final class ForeachOpTest extends OpTestCase
 
     public function testAnEmptyUpdateEmitsNothingAndResetsTheState(): void
     {
-        $op = new ForeachOp(self::generator([1, 2]), new VarBinder(), self::constant(5), new EmptyOp(), null);
+        $op = new ForeachOp(self::generator(1, 2), new VarBinder(), self::constant(5), new EmptyOp(), null);
 
         self::assertSame([], self::outputs($op));
     }
 
     public function testPathModeFollowsTheUpdateAndExtractPaths(): void
     {
-        $op = new ForeachOp(self::generator([1]), new VarBinder(), new IdentityOp(), new FieldOp('a'), new FieldOp('b'));
+        $op = new ForeachOp(self::generator(1), new VarBinder(), new IdentityOp(), new FieldOp('a'), new FieldOp('b'));
 
         self::assertSame(
             [[['a', 'b'], 2]],
@@ -96,7 +96,7 @@ final class ForeachOpTest extends OpTestCase
 
     public function testPathModeWithoutExtract(): void
     {
-        $op = new ForeachOp(self::generator([1]), new VarBinder(), new IdentityOp(), new FieldOp('a'), null);
+        $op = new ForeachOp(self::generator(1), new VarBinder(), new IdentityOp(), new FieldOp('a'), null);
 
         self::assertSame([[['a'], 1]], self::pathOutputs($op, self::object(['a' => 1])));
     }

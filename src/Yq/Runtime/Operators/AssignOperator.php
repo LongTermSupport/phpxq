@@ -15,6 +15,7 @@ use LTS\PhpXq\Yq\Runtime\Anchors;
 use LTS\PhpXq\Yq\Runtime\BinaryOperatorInterface;
 use LTS\PhpXq\Yq\Runtime\Candidate;
 use LTS\PhpXq\Yq\Runtime\Cands;
+use LTS\PhpXq\Yq\Runtime\CommentKindEnum;
 use LTS\PhpXq\Yq\Runtime\Comments;
 use LTS\PhpXq\Yq\Runtime\Detached;
 use LTS\PhpXq\Yq\Runtime\EvaluationContext;
@@ -28,20 +29,20 @@ use LTS\PhpXq\Yq\Runtime\NodeOps;
  * (and `tag`, `anchor`, `alias`, `comments`, `head_comment`, `line_comment`, `foot_comment`) set a property
  * of the matched nodes instead of their value.
  */
-final class AssignOperator implements BinaryOperatorInterface
+final readonly class AssignOperator implements BinaryOperatorInterface
 {
     private const array PROPERTY_SETTERS = [
-        'style'        => 'style',
-        'tag'          => 'tag',
-        'anchor'       => 'anchor',
-        'alias'        => 'alias',
-        'comments'     => 'comments',
-        'head_comment' => 'head',
-        'headComment'  => 'head',
-        'line_comment' => 'line',
-        'lineComment'  => 'line',
-        'foot_comment' => 'foot',
-        'footComment'  => 'foot',
+        'style'        => SettablePropertyEnum::Style,
+        'tag'          => SettablePropertyEnum::Tag,
+        'anchor'       => SettablePropertyEnum::Anchor,
+        'alias'        => SettablePropertyEnum::Alias,
+        'comments'     => SettablePropertyEnum::Comments,
+        'head_comment' => SettablePropertyEnum::Head,
+        'headComment'  => SettablePropertyEnum::Head,
+        'line_comment' => SettablePropertyEnum::Line,
+        'lineComment'  => SettablePropertyEnum::Line,
+        'foot_comment' => SettablePropertyEnum::Foot,
+        'footComment'  => SettablePropertyEnum::Foot,
     ];
 
     public function operators(): array
@@ -84,7 +85,7 @@ final class AssignOperator implements BinaryOperatorInterface
 
             case BinaryOperatorEnum::Update:
                 foreach ($targets as $target) {
-                    $values = $evaluator->evaluate($expression->right, $read->withMatches([$target]));
+                    $values = $evaluator->evaluate($expression->right, $read->withMatches($target)->withReplacedNode(Cands::node($target)));
                     if ([] !== $values) {
                         self::replace($target, $values[0]->node, 'c' === $expression->modifiers, !$values[0]->parent instanceof Candidate);
                     }
@@ -96,7 +97,7 @@ final class AssignOperator implements BinaryOperatorInterface
                 $values = $evaluator->evaluate($expression->right, $read);
                 $value  = $values[0] ?? null;
                 foreach ($targets as $target) {
-                    $result = ArithmeticOperator::apply($expression->operator, $target->node, $value?->node, $expression->modifiers, $layout);
+                    $result = ArithmeticOperator::apply($expression->operator, $target->node, $value?->node, $expression->modifiers, $layout, Cands::node($target));
                     if ($result instanceof Node) {
                         self::replace($target, $result, str_contains($expression->modifiers, 'c'), true);
                     }
@@ -115,7 +116,7 @@ final class AssignOperator implements BinaryOperatorInterface
     }
 
     /**
-     * @return array{ExpressionNodeInterface, string}|null the property target expression and the property to set
+     * @return array{ExpressionNodeInterface, SettablePropertyEnum}|null the property target expression and the property to set
      */
     private static function propertySetter(ExpressionNodeInterface $left): ?array
     {
@@ -129,7 +130,7 @@ final class AssignOperator implements BinaryOperatorInterface
     /**
      * @return list<Candidate>
      */
-    private function setProperty(Binary $expression, ExpressionNodeInterface $targetExpression, string $property, EvaluationContext $context, EvaluatorInterface $evaluator): array
+    private function setProperty(Binary $expression, ExpressionNodeInterface $targetExpression, SettablePropertyEnum $property, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
         $targets = $evaluator->evaluate($targetExpression, $context);
         $read    = $context->withDontAutoCreate(true);
@@ -142,7 +143,7 @@ final class AssignOperator implements BinaryOperatorInterface
         foreach ($targets as $target) {
             $source = $fixed;
             if (BinaryOperatorEnum::Update === $expression->operator) {
-                $values = $evaluator->evaluate($expression->right, $read->withMatches([$target]));
+                $values = $evaluator->evaluate($expression->right, $read->withMatches($target));
                 $source = $values[0]->node ?? null;
             }
 
@@ -158,39 +159,39 @@ final class AssignOperator implements BinaryOperatorInterface
         return $context->matches;
     }
 
-    private static function apply(Candidate $target, string $property, string $value): void
+    private static function apply(Candidate $target, SettablePropertyEnum $property, string $value): void
     {
         $node = $target->node;
         switch ($property) {
-            case 'style':
+            case SettablePropertyEnum::Style:
                 self::setStyle($node->root(), $value);
 
                 return;
 
-            case 'tag':
+            case SettablePropertyEnum::Tag:
                 $node->tag = $value;
 
                 return;
 
-            case 'anchor':
+            case SettablePropertyEnum::Anchor:
                 $node->anchor = $value;
 
                 return;
 
-            case 'alias':
+            case SettablePropertyEnum::Alias:
                 self::setAlias($target, $value);
 
                 return;
 
             default:
                 $kind = match ($property) {
-                    'head'  => 'head',
-                    'foot'  => 'foot',
-                    'line'  => 'line',
-                    default => 'all',
+                    SettablePropertyEnum::Head => CommentKindEnum::Head,
+                    SettablePropertyEnum::Foot => CommentKindEnum::Foot,
+                    SettablePropertyEnum::Line => CommentKindEnum::Line,
+                    default                    => CommentKindEnum::All,
                 };
                 Comments::set($node, $kind, $value);
-                if ('head' === $kind || 'all' === $kind) {
+                if (CommentKindEnum::Head === $kind || CommentKindEnum::All === $kind) {
                     // A document's slurped leading content is its head comment: setting one replaces it.
                     $parentNode = $target->parent instanceof Candidate ? $target->parent->node : null;
                     $parentDoc  = $parentNode instanceof Node && NodeKindEnum::Document === $parentNode->kind ? $parentNode : null;
@@ -203,7 +204,7 @@ final class AssignOperator implements BinaryOperatorInterface
 
                 if ('' === $value && Cands::isRoot($target) && $target->parent instanceof Candidate) {
                     Comments::set($target->parent->node, $kind, '');
-                    if ('head' === $kind || 'all' === $kind) {
+                    if (CommentKindEnum::Head === $kind || CommentKindEnum::All === $kind) {
                         $target->parent->node->commentsCleared = true;
                     }
                 }
@@ -214,16 +215,10 @@ final class AssignOperator implements BinaryOperatorInterface
 
     private static function setStyle(Node $node, string $style): void
     {
-        $node->tagExplicit = 'tagged'              === $style;
+        $name              = StyleNameEnum::tryFrom($style);
+        $node->tagExplicit = StyleNameEnum::Tagged === $name;
         $collection        = NodeKindEnum::Mapping === $node->kind || NodeKindEnum::Sequence === $node->kind;
-        $new               = match ($style) {
-            'double'  => NodeStyleEnum::DoubleQuoted,
-            'single'  => NodeStyleEnum::SingleQuoted,
-            'literal' => NodeStyleEnum::Literal,
-            'folded'  => NodeStyleEnum::Folded,
-            'flow'    => NodeStyleEnum::Flow,
-            default   => NodeStyleEnum::Default,
-        };
+        $new               = $name instanceof StyleNameEnum ? $name->nodeStyle() : NodeStyleEnum::Default;
         if ($collection && NodeStyleEnum::Flow !== $new) {
             $new = NodeStyleEnum::Default;
         }

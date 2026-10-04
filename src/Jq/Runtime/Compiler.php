@@ -31,6 +31,6 @@ final class Compiler implements CompilerInterface
     {
         $core = $this->core ??= new Core($this->builtins, $this->parser, $this->modules);
 
-        return new CompiledJq($core->compileMain($program, $globalVariables), $core->state);
+        return new CompiledJq($core->compileMain($program, ...$globalVariables), $core->state);
     }
 }

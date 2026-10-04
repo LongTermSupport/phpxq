@@ -12,7 +12,7 @@ use LTS\PhpXq\Json\PreciseNumber;
  *
  * @internal
  */
-final class Num
+final readonly class Num
 {
     private const float TWO_TO_53 = 9007199254740992.0;
 

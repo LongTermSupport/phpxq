@@ -21,32 +21,39 @@ use LTS\PhpXq\Yq\Runtime\PathOps;
 /**
  * Operators that reshape a tree: `pick`, `omit`, `del` (`delete`), `delpaths`, `setpath`.
  */
-final class StructureCalls implements CallOperatorInterface
+final readonly class StructureCalls implements CallOperatorInterface
 {
     public function names(): array
     {
-        return ['pick', 'omit', 'del', 'delete', 'delpaths', 'setpath'];
+        return BuiltinNameEnum::values(
+            BuiltinNameEnum::Pick,
+            BuiltinNameEnum::Omit,
+            BuiltinNameEnum::Del,
+            BuiltinNameEnum::Delete,
+            BuiltinNameEnum::Delpaths,
+            BuiltinNameEnum::Setpath,
+        );
     }
 
     public function evaluate(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
-        $call = Args::split($call, 'setpath' === $call->name ? 2 : 1);
-        Args::require($call, 'setpath' === $call->name ? 2 : 1);
+        $call = Args::split($call, BuiltinNameEnum::Setpath->value === $call->name ? 2 : 1);
+        Args::require($call, BuiltinNameEnum::Setpath->value === $call->name ? 2 : 1);
         $fixed = $context->services->yamlFixMergeAnchorToSpec;
-        switch ($call->name) {
-            case 'del':
-            case 'delete':
-                PathOps::delete($evaluator->evaluate($call->arguments[0], $context->withDontAutoCreate(true)));
+        switch (BuiltinNameEnum::tryFrom($call->name)) {
+            case BuiltinNameEnum::Del:
+            case BuiltinNameEnum::Delete:
+                PathOps::delete(...$evaluator->evaluate($call->arguments[0], $context->withDontAutoCreate(true)));
 
                 return $context->matches;
 
-            case 'delpaths':
+            case BuiltinNameEnum::Delpaths:
                 $targets = [];
                 foreach ($context->matches as $match) {
                     foreach (Args::results($call, 0, $context, $evaluator, $match) as $paths) {
                         $list = NodeOps::deref(Cands::node($paths));
                         foreach (NodeKindEnum::Sequence === $list->kind ? $list->content : [] as $path) {
-                            $target = PathOps::follow($match, PathOps::elements($path), false, $fixed);
+                            $target = PathOps::follow($match, false, $fixed, ...PathOps::elements($path));
                             if ($target instanceof Candidate) {
                                 $targets[] = $target;
                             }
@@ -54,17 +61,17 @@ final class StructureCalls implements CallOperatorInterface
                     }
                 }
 
-                PathOps::delete($targets);
+                PathOps::delete(...$targets);
 
                 return $context->matches;
 
-            case 'setpath':
+            case BuiltinNameEnum::Setpath:
                 foreach ($context->matches as $match) {
                     $path   = Args::node($call, 0, $context, $evaluator, $match);
                     $values = Args::results($call, 1, $context, $evaluator, $match);
                     $value  = [] === $values ? NodeOps::null() : Cands::node($values[0]);
                     if ($path instanceof Node) {
-                        PathOps::set($match, PathOps::elements($path), $value, $fixed);
+                        PathOps::set($match, $value, $fixed, ...PathOps::elements($path));
                     }
                 }
 
@@ -95,22 +102,19 @@ final class StructureCalls implements CallOperatorInterface
             }
         }
 
-        $pick = 'pick' === $call->name;
+        $pick = BuiltinNameEnum::Pick->value === $call->name;
         if (NodeKindEnum::Mapping === $node->kind) {
-            return $this->mapping($node, $keys, $pick);
+            return $this->mapping($node, $pick, ...$keys);
         }
 
         if (NodeKindEnum::Sequence === $node->kind) {
-            return $this->sequence($node, $keys, $pick);
+            return $this->sequence($node, $pick, ...$keys);
         }
 
         throw new EvaluationException(\sprintf('Cannot %s from %s', $call->name, '' === $node->tag ? NodeOps::kindName($node) : $node->tag));
     }
 
-    /**
-     * @param list<Node> $keys
-     */
-    private function mapping(Node $node, array $keys, bool $pick): Node
+    private function mapping(Node $node, bool $pick, Node ...$keys): Node
     {
         $flat = [];
         if ($pick) {
@@ -144,10 +148,7 @@ final class StructureCalls implements CallOperatorInterface
         return $new;
     }
 
-    /**
-     * @param list<Node> $keys
-     */
-    private function sequence(Node $node, array $keys, bool $pick): Node
+    private function sequence(Node $node, bool $pick, Node ...$keys): Node
     {
         $count   = \count($node->content);
         $indices = [];

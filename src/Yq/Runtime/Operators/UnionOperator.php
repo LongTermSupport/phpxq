@@ -13,7 +13,7 @@ use LTS\PhpXq\Yq\Runtime\EvaluatorInterface;
 /**
  * `lhs, rhs`: both sides against the same matches, results concatenated.
  */
-final class UnionOperator implements BinaryOperatorInterface
+final readonly class UnionOperator implements BinaryOperatorInterface
 {
     public function operators(): array
     {

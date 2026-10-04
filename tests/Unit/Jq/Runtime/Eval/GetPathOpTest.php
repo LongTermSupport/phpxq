@@ -28,7 +28,7 @@ final class GetPathOpTest extends OpTestCase
 
     public function testEveryPathOutputIsLookedUp(): void
     {
-        $op = new GetPathOp(self::generator([[0], [1]]));
+        $op = new GetPathOp(self::generator([0], [1]));
 
         self::assertSame([5, 6], self::outputs($op, [5, 6]));
     }

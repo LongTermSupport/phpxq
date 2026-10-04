@@ -56,7 +56,7 @@ abstract class JqApplicationTestCase extends TestCase
         $out = self::memory('');
         $err = self::memory('');
 
-        $status = $application->run($args, $in, $out, $err);
+        $status = $application->run($in, $out, $err, ...$args);
 
         return [$status, self::contents($out), self::contents($err)];
     }

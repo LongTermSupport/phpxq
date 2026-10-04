@@ -12,7 +12,7 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
 /**
  * TOML input: one Document holding the table tree (see {@see TomlParser} for the node shapes).
  */
-final class TomlDecoder implements DecoderInterface
+final readonly class TomlDecoder implements DecoderInterface
 {
     public function format(): FormatEnum
     {

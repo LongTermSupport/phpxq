@@ -24,18 +24,31 @@ use LTS\PhpXq\Yq\Runtime\Traversal;
  * Collection-shaping operators: `length`, `keys`, `to_entries`, `from_entries`, `with_entries`, `map`,
  * `map_values`, `flatten`, `add`, `pivot`, `array_to_map`, `range`.
  */
-final class CollectionCalls implements CallOperatorInterface
+final readonly class CollectionCalls implements CallOperatorInterface
 {
     private const int MAX_DEPTH = 10000;
 
     public function names(): array
     {
-        return ['length', 'keys', 'to_entries', 'from_entries', 'with_entries', 'map', 'map_values', 'flatten', 'add', 'pivot', 'array_to_map', 'range'];
+        return BuiltinNameEnum::values(
+            BuiltinNameEnum::Length,
+            BuiltinNameEnum::Keys,
+            BuiltinNameEnum::ToEntries,
+            BuiltinNameEnum::FromEntries,
+            BuiltinNameEnum::WithEntries,
+            BuiltinNameEnum::Map,
+            BuiltinNameEnum::MapValues,
+            BuiltinNameEnum::Flatten,
+            BuiltinNameEnum::Add,
+            BuiltinNameEnum::Pivot,
+            BuiltinNameEnum::ArrayToMap,
+            BuiltinNameEnum::Range,
+        );
     }
 
     public function evaluate(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
-        if ('map_values' === $call->name) {
+        if (BuiltinNameEnum::MapValues->value === $call->name) {
             return $this->mapValues($call, $context, $evaluator);
         }
 
@@ -55,28 +68,28 @@ final class CollectionCalls implements CallOperatorInterface
     private function one(Call $call, Candidate $match, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
         $node = NodeOps::deref(Cands::node($match));
-        switch ($call->name) {
-            case 'length':
+        switch (BuiltinNameEnum::tryFrom($call->name)) {
+            case BuiltinNameEnum::Length:
                 $aliased = NodeKindEnum::Alias === Cands::node($match)->kind;
 
                 return [Cands::derive(NodeOps::int($aliased ? 0 : $this->length($node)), $match)];
 
-            case 'keys':
+            case BuiltinNameEnum::Keys:
                 return [Cands::derive($this->keys($node), $match)];
 
-            case 'to_entries':
+            case BuiltinNameEnum::ToEntries:
                 return NodeOps::isNull($node) ? [] : [Cands::deriveHeaded($this->toEntries($node, $match), $match)];
 
-            case 'from_entries':
+            case BuiltinNameEnum::FromEntries:
                 return [Cands::derive($this->fromEntries($node), $match)];
 
-            case 'with_entries':
+            case BuiltinNameEnum::WithEntries:
                 return $this->withEntries($call, $match, $node, $context, $evaluator);
 
-            case 'map':
+            case BuiltinNameEnum::Map:
                 return $this->map($call, $match, $node, $context, $evaluator);
 
-            case 'flatten':
+            case BuiltinNameEnum::Flatten:
                 $depth = [] === $call->arguments ? -1 : (Args::int($call, 0, $context, $evaluator, $match) ?? -1);
                 if (NodeKindEnum::Sequence !== $node->kind) {
                     throw new EvaluationException('Cannot flatten ' . $node->tag);
@@ -89,13 +102,13 @@ final class CollectionCalls implements CallOperatorInterface
 
                 return [Cands::deriveInDocument($new, $match)];
 
-            case 'add':
+            case BuiltinNameEnum::Add:
                 return $this->add($call, $match, $node, $context, $evaluator);
 
-            case 'pivot':
+            case BuiltinNameEnum::Pivot:
                 return [Cands::derive($this->pivot($node), $match)];
 
-            case 'array_to_map':
+            case BuiltinNameEnum::ArrayToMap:
                 return [Cands::derive($this->arrayToMap($node), $match)];
 
             default:
@@ -214,7 +227,7 @@ final class CollectionCalls implements CallOperatorInterface
         $read       = $context->withDontAutoCreate(true);
         $kept       = [];
         foreach (Traversal::values($entriesCan, false) as $entry) {
-            foreach ($evaluator->evaluate($call->arguments[0], $read->withMatches([$entry])) as $result) {
+            foreach ($evaluator->evaluate($call->arguments[0], $read->withMatches($entry)) as $result) {
                 $kept[] = $result->node;
             }
         }
@@ -235,7 +248,7 @@ final class CollectionCalls implements CallOperatorInterface
         $read  = $context->withDontAutoCreate(true);
         $items = [];
         foreach (Traversal::values($match, false) as $child) {
-            foreach ($evaluator->evaluate($call->arguments[0], $read->withMatches([$child])) as $result) {
+            foreach ($evaluator->evaluate($call->arguments[0], $read->withMatches($child)) as $result) {
                 $items[] = $result->node->deepCopy();
             }
         }
@@ -257,7 +270,7 @@ final class CollectionCalls implements CallOperatorInterface
         $read = $context->withDontAutoCreate(true);
         foreach ($context->matches as $match) {
             foreach (Traversal::values($match, false) as $child) {
-                $results = $evaluator->evaluate($call->arguments[0], $read->withMatches([$child]));
+                $results = $evaluator->evaluate($call->arguments[0], $read->withMatches($child));
                 if ([] !== $results) {
                     Detached::attach($child);
                     NodeOps::updateFrom($child->node, $results[0]->node);

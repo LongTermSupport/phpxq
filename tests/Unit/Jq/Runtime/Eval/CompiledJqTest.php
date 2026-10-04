@@ -43,7 +43,8 @@ final class CompiledJqTest extends TestCase
                 throw new JqException('stop');
             });
             self::fail('expected an error');
-        } catch (JqException) {
+        } catch (JqException $jqException) {
+            self::assertSame('stop', $jqException->getMessage());
             self::assertSame('outer', $state->global('x'));
         }
     }

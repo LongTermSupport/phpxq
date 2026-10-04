@@ -22,15 +22,15 @@ final class AltOpTest extends OpTestCase
 
     public function testEmitsEveryTruthyLeftOutput(): void
     {
-        $op = new AltOp(self::generator([false, 1, null, 2]), self::constant(9));
+        $op = new AltOp(self::generator(false, 1, null, 2), self::constant(9));
 
         self::assertSame([1, 2], self::outputs($op));
     }
 
     public function testFallsBackWhenNothingIsTruthy(): void
     {
-        self::assertSame([9], self::outputs(new AltOp(self::generator([false, null]), self::constant(9))));
-        self::assertSame([9], self::outputs(new AltOp(self::generator([]), self::constant(9))));
+        self::assertSame([9], self::outputs(new AltOp(self::generator(false, null), self::constant(9))));
+        self::assertSame([9], self::outputs(new AltOp(self::generator(), self::constant(9))));
     }
 
     public function testErrorsInTheLeftOperandAreSwallowed(): void

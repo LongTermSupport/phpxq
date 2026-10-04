@@ -20,11 +20,11 @@ final class NegateOpTest extends OpTestCase
 
     public function testNegatesEveryOutput(): void
     {
-        self::assertSame([-1, 2], self::outputs(new NegateOp(self::generator([1, -2]))));
+        self::assertSame([-1, 2], self::outputs(new NegateOp(self::generator(1, -2))));
     }
 
     public function testRejectsNonNumbers(): void
     {
-        self::assertRaises(JqException::class, 'string ("a") cannot be negated', static fn (): mixed => self::outputs(new NegateOp(self::generator(['a']))));
+        self::assertRaises(JqException::class, 'string ("a") cannot be negated', static fn (): mixed => self::outputs(new NegateOp(self::generator('a'))));
     }
 }

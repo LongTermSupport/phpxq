@@ -106,7 +106,7 @@ final readonly class Evaluator implements EvaluatorInterface
             $source = $this->evaluate($expression->source, $context);
             $values = $expression->reference ? $source : array_map(Cands::copyOf(...), $source);
 
-            return $this->evaluate($expression->body, $context->withVariable($expression->name, $values));
+            return $this->evaluate($expression->body, $context->withVariable($expression->name, ...$values));
         }
 
         if ($expression instanceof Reduce) {
@@ -284,7 +284,7 @@ final readonly class Evaluator implements EvaluatorInterface
             $items = [];
             if ($collect->inner instanceof ExpressionNodeInterface) {
                 foreach ($unit as $match) {
-                    foreach ($this->evaluate($collect->inner, $read->withMatches([$match])) as $found) {
+                    foreach ($this->evaluate($collect->inner, $read->withMatches($match)) as $found) {
                         $items[] = $found->node->deepCopy();
                     }
                 }
@@ -304,8 +304,8 @@ final readonly class Evaluator implements EvaluatorInterface
         $read = $context->withDontAutoCreate(true);
         $out  = [];
         foreach ($context->matches as $match) {
-            $single    = $context->withMatches([$match]);
-            $decisions = $this->evaluate($conditional->condition, $read->withMatches([$match]));
+            $single    = $context->withMatches($match);
+            $decisions = $this->evaluate($conditional->condition, $read->withMatches($match));
             if ([] === $decisions) {
                 $decisions = [Cands::derive(NodeOps::null(), $match)];
             }
@@ -359,7 +359,7 @@ final readonly class Evaluator implements EvaluatorInterface
         $matches = [] === $context->matches ? [null] : $context->matches;
         $out     = [];
         foreach ($matches as $match) {
-            $sub    = $read->withMatches(null === $match ? [] : [$match]);
+            $sub    = $read->withMatches(...(null === $match ? [] : [$match]));
             $combos = [[]];
             foreach ($construct->entries as $entry) {
                 $keys   = $this->evaluate($entry->key, $sub);
@@ -403,7 +403,7 @@ final readonly class Evaluator implements EvaluatorInterface
         $items       = $this->evaluate($reduce->source, $context);
         $accumulator = $this->evaluate($reduce->initial, $context);
         foreach ($items as $item) {
-            $accumulator = $this->evaluate($reduce->update, $context->withMatches($accumulator)->withVariable($reduce->name, [$item]));
+            $accumulator = $this->evaluate($reduce->update, $context->withMatches(...$accumulator)->withVariable($reduce->name, $item));
         }
 
         return $accumulator;
@@ -425,7 +425,7 @@ final readonly class Evaluator implements EvaluatorInterface
                     continue;
                 }
 
-                $results = $this->evaluate($part, $read->withMatches([$match]));
+                $results = $this->evaluate($part, $read->withMatches($match));
                 if ([] === $results) {
                     continue;
                 }

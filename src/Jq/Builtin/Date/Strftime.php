@@ -11,7 +11,7 @@ namespace LTS\PhpXq\Jq\Builtin\Date;
  *
  * @internal
  */
-final class Strftime
+final readonly class Strftime
 {
     private const array DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 

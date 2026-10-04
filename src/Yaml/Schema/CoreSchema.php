@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Yaml\Schema;
 /**
  * YAML 1.2 core schema tag resolution for plain scalars, as the reference yq (go-yaml v3) applies it.
  */
-final class CoreSchema
+final readonly class CoreSchema
 {
     public const string TAG_NULL      = '!!null';
 

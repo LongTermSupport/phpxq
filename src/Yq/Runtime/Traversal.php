@@ -13,7 +13,7 @@ use LTS\PhpXq\Yaml\Schema\CoreSchema;
  * the legacy and the spec-fixed resolution order), splat, recursive descent and the null placeholders
  * (see {@see Detached}) for paths that do not exist.
  */
-final class Traversal
+final readonly class Traversal
 {
     private const int MAX_MERGE_DEPTH = 32;
 

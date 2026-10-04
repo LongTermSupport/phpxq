@@ -30,6 +30,6 @@ final class SingleNativeOp extends AbstractSingleOp
             $values[] = $argument->value($env, $input);
         }
 
-        return $this->builtin->call($this->state->context(), $input, $values);
+        return $this->builtin->call($this->state->context(), $input, ...$values);
     }
 }

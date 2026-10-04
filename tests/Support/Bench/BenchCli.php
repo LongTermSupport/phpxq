@@ -21,19 +21,18 @@ final class BenchCli
     private const string USAGE = "usage: bench.php plan|record|report [options]\n";
 
     /**
-     * @param list<string> $args
-     * @param resource     $stdout
-     * @param resource     $stderr
+     * @param resource $stdout
+     * @param resource $stderr
      */
-    public function run(array $args, mixed $stdout, mixed $stderr): int
+    public function run(mixed $stdout, mixed $stderr, string ...$args): int
     {
-        $command = $args[0] ?? '';
+        $command = [] === $args ? '' : $args[0];
 
         try {
             return match ($command) {
-                'plan'   => $this->plan($this->options(\array_slice($args, 1)), $stdout),
-                'record' => $this->record($this->options(\array_slice($args, 1)), $stdout),
-                'report' => $this->report($args[1] ?? '', $this->options(\array_slice($args, 2)), $stdout),
+                'plan'   => $this->plan($this->options(...\array_slice($args, 1)), $stdout),
+                'record' => $this->record($this->options(...\array_slice($args, 1)), $stdout),
+                'report' => $this->report(\count($args) > 1 ? $args[1] : '',$this->options(...\array_slice($args, 2)), $stdout),
                 default  => $this->fail(self::USAGE, $stderr),
             };
         } catch (InvalidArgumentException $invalidArgumentException) {
@@ -50,8 +49,8 @@ final class BenchCli
         $directory = $this->required($options, 'corpus-dir');
         $defaults  = new WorkloadSelection();
         $selection = new WorkloadSelection(
-            sizes: $this->csv($options['sizes'][0] ?? null, $defaults->sizes),
-            tools: $this->csv($options['tools'][0] ?? null, $defaults->tools),
+            sizes: $this->csv($options['sizes'][0] ?? null, ...$defaults->sizes),
+            tools: $this->csv($options['tools'][0] ?? null, ...$defaults->tools),
             nameContains: $options['filter'][0] ?? null,
         );
 
@@ -123,11 +122,9 @@ final class BenchCli
     }
 
     /**
-     * @param list<string> $args
-     *
      * @return array<string, list<string>>
      */
-    private function options(array $args): array
+    private function options(string ...$args): array
     {
         $options = [];
         $count   = \count($args);
@@ -162,14 +159,12 @@ final class BenchCli
     }
 
     /**
-     * @param list<string> $default
-     *
      * @return list<string>
      */
-    private function csv(?string $value, array $default): array
+    private function csv(?string $value, string ...$default): array
     {
         if (null === $value || '' === $value) {
-            return $default;
+            return array_values($default);
         }
 
         return array_values(array_filter(explode(',', $value), static fn (string $item): bool => '' !== $item));

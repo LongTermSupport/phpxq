@@ -23,4 +23,4 @@ ErrorGuard::install('phpxq', STDERR);
 
 /** @var list<string> $argv */
 exit(new EntryPoint(new FrontController(), \dirname(__DIR__) . '/VERSION')
-    ->run($argv[0], \array_slice($argv, 1), STDIN, STDOUT, STDERR));
+    ->run($argv[0], STDIN, STDOUT, STDERR, ...\array_slice($argv, 1)));

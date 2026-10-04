@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Jq\Ast;
 
 /**
- * Binary operators with their source spelling as value.
+ * Binary operators with their source spelling as value. `and` and `or` short-circuit; `//` is the alternative
+ * operator.
  *
  * @api
  */
@@ -22,13 +23,7 @@ enum BinaryOpEnum: string
     case Le  = '<=';
     case Gt  = '>';
     case Ge  = '>=';
-
-    /** short-circuiting `and` */
     case And = 'and';
-
-    /** short-circuiting `or` */
-    case Or = 'or';
-
-    /** alternative operator `//` */
+    case Or  = 'or';
     case Alt = '//';
 }

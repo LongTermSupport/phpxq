@@ -13,7 +13,7 @@ use SplObjectStorage;
  * Paths as data: building a path sequence from a match, following a path (optionally creating it),
  * setting a value at a path and deleting matches.
  */
-final class PathOps
+final readonly class PathOps
 {
     private function __construct()
     {
@@ -34,10 +34,8 @@ final class PathOps
 
     /**
      * Follows a path from `$root`; the result is empty when a step does not exist and `$create` is false.
-     *
-     * @param list<Node> $elements
      */
-    public static function follow(Candidate $root, array $elements, bool $create, bool $fixedMerge): ?Candidate
+    public static function follow(Candidate $root, bool $create, bool $fixedMerge, Node ...$elements): ?Candidate
     {
         $current = Cands::rooted($root);
         foreach ($elements as $element) {
@@ -54,12 +52,10 @@ final class PathOps
 
     /**
      * Sets the value at a path, creating the containers on the way.
-     *
-     * @param list<Node> $elements
      */
-    public static function set(Candidate $root, array $elements, Node $value, bool $fixedMerge): void
+    public static function set(Candidate $root, Node $value, bool $fixedMerge, Node ...$elements): void
     {
-        $target = self::follow($root, $elements, true, $fixedMerge);
+        $target = self::follow($root, true, $fixedMerge, ...$elements);
         if (!$target instanceof Candidate) {
             return;
         }
@@ -85,10 +81,8 @@ final class PathOps
 
     /**
      * Removes the matched entries from their parents.
-     *
-     * @param list<Candidate> $candidates
      */
-    public static function delete(array $candidates): void
+    public static function delete(Candidate ...$candidates): void
     {
         /** @var SplObjectStorage<Node, SplObjectStorage<Node, true>> $groups */
         $groups = new SplObjectStorage();

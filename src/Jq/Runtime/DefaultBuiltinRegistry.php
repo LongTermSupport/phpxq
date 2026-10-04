@@ -41,10 +41,9 @@ final class DefaultBuiltinRegistry implements BuiltinRegistryInterface
      * Declare that $loader registers every one of $signatures (`name/arity`), and call it the first time one
      * of them is looked up. Keeps rarely used builtin classes from being loaded at start-up.
      *
-     * @param list<string>                            $signatures
-     * @param Closure(BuiltinRegistryInterface): void $loader     receives this registry
+     * @param Closure(BuiltinRegistryInterface): void $loader receives this registry
      */
-    public function registerLazy(array $signatures, Closure $loader): void
+    public function registerLazy(Closure $loader, string ...$signatures): void
     {
         foreach ($signatures as $signature) {
             $this->lazy[$signature] = $loader;

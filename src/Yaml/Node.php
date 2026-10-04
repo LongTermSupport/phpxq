@@ -16,11 +16,12 @@ use SplObjectStorage;
  *
  * Mapping `content` is the flat list key0, value0, key1, value1, ...; key nodes keep their own
  * comments, style and anchors. An Alias node keeps the shared target in `aliasTarget` (an object
- * reference, not a copy); its `value` is the anchor name.
+ * reference, not a copy); its `value` is the anchor name. `leadingContent` is the comment and blank lines
+ * the CLI slurped ahead of a first document, `# ` markers included; `commentsCleared` is set on a Document
+ * whose comments were assigned empty, so that slurped header is dropped with them.
  */
 final class Node
 {
-    /** Set on a Document node whose comments were assigned empty: the slurped file header is dropped with them. */
     public bool $commentsCleared = false;
 
     // The rarely used properties are plain declarations with defaults rather than promoted constructor
@@ -44,7 +45,6 @@ final class Node
 
     public string $directives = '';
 
-    /** The comment and blank lines slurped ahead of a first document by the CLI, `# ` markers included. */
     public string $leadingContent = '';
 
     /**

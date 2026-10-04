@@ -199,8 +199,9 @@ final class HclCodecTest extends TestCase
     public function testRejectsNonMapRoots(): void
     {
         $this->expectException(FormatException::class);
+        $encoder = new HclEncoder();
         foreach (new YamlParser()->parse("- a\n") as $document) {
-            new HclEncoder()->encode($document, new FormatOptions(), 0);
+            $encoder->encode($document, new FormatOptions(), 0);
         }
     }
 

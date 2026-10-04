@@ -18,7 +18,7 @@ use LTS\PhpXq\Json\Values;
  *
  * @internal
  */
-final class StringFunctions
+final readonly class StringFunctions
 {
     private function __construct()
     {

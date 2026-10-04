@@ -48,11 +48,9 @@ final class ResultPrinter
     /**
      * A separator goes between results whose file or document index differs, as in the reference.
      *
-     * @param list<Candidate> $results
-     *
      * @throws CliException
      */
-    public function print(array $results): void
+    public function print(Candidate ...$results): void
     {
         foreach ($results as $result) {
             $this->printOne($result, $result->fileIndex . ':' . $result->documentIndex);

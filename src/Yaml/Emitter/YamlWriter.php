@@ -16,6 +16,11 @@ use LTS\PhpXq\Yaml\Schema\CoreSchema;
  * whitespace and indention flags) driven directly by the Node tree, so indentation, quoting and comment
  * placement match the reference byte for byte. Lines are never wrapped (yq disables go-yaml's folding).
  *
+ * Emitter state worth knowing: the indent step is 2 whenever libyaml would reject the option (outside 2..9);
+ * a line comment stays pending until its node's line is finished; after a foot comment the next line at the
+ * same indent is preceded by a blank line. RESERVED_WORDS are plain words the core schema resolves to
+ * something other than a string; OLD_BOOLS are YAML 1.1 booleans that `-P` keeps quoted.
+ *
  * @internal
  */
 final class YamlWriter
@@ -46,18 +51,12 @@ final class YamlWriter
 
     private const string DOUBLE_QUOTE_SPECIALS = '/["\\\\\x00-\x1F\x7F]|\xC2[\x80-\x9F]|\xE2\x80[\xA8\xA9]|\xEF\xBB\xBF|\xEF\xBF[\xBE\xBF]|[\xF0-\xF7][\x80-\xBF]{3}/';
 
-    /**
-     * Plain words the core schema resolves to something other than a string.
-     */
     private const array RESERVED_WORDS = [
         'null'  => true, 'Null' => true, 'NULL' => true,
         'true'  => true, 'True' => true, 'TRUE' => true,
         'false' => true, 'False' => true, 'FALSE' => true,
     ];
 
-    /**
-     * YAML 1.1 booleans: `-P` keeps them quoted so a YAML 1.1 reader still sees strings.
-     */
     private const array OLD_BOOLS = [
         'y'   => true, 'Y' => true, 'yes' => true, 'Yes' => true, 'YES' => true,
         'n'   => true, 'N' => true, 'no' => true, 'No' => true, 'NO' => true,
@@ -81,13 +80,10 @@ final class YamlWriter
 
     private int $indent = -1;
 
-    /** Line comment of the node being emitted that has not been written yet. */
     private string $pendingLineComment = '';
 
-    /** True while the next block collection or scalar opens directly inside a "- " sequence item. */
     private bool $inSequenceItem = false;
 
-    /** Indent of the foot comment just written, or -1; the next line at that indent is preceded by a blank line. */
     private int $footIndent = -1;
 
     private int $flowLevel = 0;
@@ -95,7 +91,6 @@ final class YamlWriter
     /** @var array<int, true> the collections being emitted right now, to refuse a structure that contains itself */
     private array $onPath = [];
 
-    /** Spaces per level; libyaml falls back to 2 for anything outside 2..9. */
     private readonly int $step;
 
     public function __construct(private readonly EmitOptions $options)
@@ -314,7 +309,7 @@ final class YamlWriter
 
             $head  = '';
             $carry = $valueBlock ? '' : $value->headComment;
-            $this->writeHeadComments($heads);
+            $this->writeHeadComments(...$heads);
 
             $this->writeIndent();
             $plan = NodeKindEnum::Scalar === $key->kind ? $this->planScalar($key) : null;
@@ -332,7 +327,7 @@ final class YamlWriter
             $this->emitNode($value, false, null, null, $valueBlock ? $lineComment : '', $valueBlock ? '' : $lineComment);
             $this->flushLineComment();
 
-            $this->writeFootComments([$key->footComment, $value->footComment, $i + 2 >= $count ? $carry : '']);
+            $this->writeFootComments($key->footComment, $value->footComment, $i + 2 >= $count ? $carry : '');
         }
 
         $this->indent = $saved;
@@ -372,7 +367,7 @@ final class YamlWriter
             }
 
             $nextLine = false;
-            $this->writeHeadComments([$head, $item->headComment]);
+            $this->writeHeadComments($head, $item->headComment);
             $head = '';
 
             $this->writeIndent();
@@ -385,7 +380,7 @@ final class YamlWriter
             $this->inSequenceItem = false;
             $this->flushLineComment();
 
-            $this->writeFootComments([$item->footComment]);
+            $this->writeFootComments($item->footComment);
         }
 
         $this->indent = $saved;
@@ -918,10 +913,7 @@ final class YamlWriter
     // ----------------------------------------------------------------------------------------------
     // comments
 
-    /**
-     * @param list<string> $comments
-     */
-    private function writeHeadComments(array $comments): void
+    private function writeHeadComments(string ...$comments): void
     {
         $text = implode("\n", array_filter($comments, static fn (string $c): bool => '' !== $c));
         if ('' !== $text) {
@@ -930,10 +922,7 @@ final class YamlWriter
         }
     }
 
-    /**
-     * @param list<string> $comments
-     */
-    private function writeFootComments(array $comments): void
+    private function writeFootComments(string ...$comments): void
     {
         foreach ($comments as $comment) {
             if ('' !== $comment) {

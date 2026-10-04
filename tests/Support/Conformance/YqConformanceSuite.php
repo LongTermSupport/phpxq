@@ -73,7 +73,7 @@ final readonly class YqConformanceSuite implements ConformanceSuiteInterface
             }
 
             $source = $row['source'] ?? null;
-            foreach ($this->fileExtensionFlags(\is_string($source) ? $source : '', $stringFlags) as $flag) {
+            foreach ($this->fileExtensionFlags(\is_string($source) ? $source : '', ...$stringFlags) as $flag) {
                 $args[] = $flag;
             }
 
@@ -114,11 +114,9 @@ final readonly class YqConformanceSuite implements ConformanceSuiteInterface
      * input format, and to pick the output format too unless one is given. The cases carry stdin only,
      * so the equivalent explicit flags are supplied for the format-specific usage pages.
      *
-     * @param list<string> $flags
-     *
      * @return list<string>
      */
-    private function fileExtensionFlags(string $source, array $flags): array
+    private function fileExtensionFlags(string $source, string ...$flags): array
     {
         $format = match ($source) {
             'usage/toml.md' => 'toml',

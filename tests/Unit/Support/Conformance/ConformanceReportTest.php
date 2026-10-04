@@ -25,7 +25,7 @@ final class ConformanceReportTest extends TestCase
             'gap.passes'  => null,
             'also.passes' => null,
         ]);
-        $gaps = GapList::fromLines(["gap.*\tknown", "stale.glob\told"]);
+        $gaps = GapList::fromLines("gap.*\tknown", "stale.glob\told");
 
         $result = new ConformanceReport()->run($suite, new CliRunner(), $gaps);
 
@@ -44,7 +44,7 @@ final class ConformanceReportTest extends TestCase
         $result = new ConformanceReport()->run(
             $this->suite(['a' => 'x', 'b' => 'y']),
             new CliRunner(),
-            GapList::fromLines(["*\tblanket"]),
+            GapList::fromLines("*\tblanket"),
         );
 
         self::assertFalse($result->hasProblems());
@@ -60,7 +60,7 @@ final class ConformanceReportTest extends TestCase
         $result = new ConformanceReport()->run(
             $this->suite(['a' => null]),
             new CliRunner(),
-            GapList::fromLines(["shell:foo\tbelongs to the shell runner", "unused\tstale"]),
+            GapList::fromLines("shell:foo\tbelongs to the shell runner", "unused\tstale"),
         );
 
         self::assertSame(['unused'], $result->staleGlobs);
@@ -72,7 +72,7 @@ final class ConformanceReportTest extends TestCase
         $result = new ConformanceReport()->run(
             $this->suite(['shell:x' => 'fails']),
             new CliRunner(),
-            GapList::fromLines(["shell:*\tshell"]),
+            GapList::fromLines("shell:*\tshell"),
         );
 
         self::assertSame(1, $result->total());
@@ -84,7 +84,7 @@ final class ConformanceReportTest extends TestCase
         $result = new ConformanceReport()->run(
             $this->suite(['bad' => str_repeat('m', 500), 'p' => null]),
             new CliRunner(),
-            GapList::fromLines(["p\tgap", "stale\told"]),
+            GapList::fromLines("p\tgap", "stale\told"),
         );
 
         $lines = $result->summaryLines();
@@ -98,7 +98,7 @@ final class ConformanceReportTest extends TestCase
 
     public function testFailureMessageIsCollapsedToOneLine(): void
     {
-        $result = new ConformanceReport()->run($this->suite(['bad' => "line1\nline2"]), new CliRunner(), GapList::fromLines([]));
+        $result = new ConformanceReport()->run($this->suite(['bad' => "line1\nline2"]), new CliRunner(), GapList::fromLines());
 
         self::assertStringContainsString('bad: line1 line2', $result->summaryLines()[1]);
         self::assertSame(['bad' => "line1\nline2"], $result->unexpectedFailures);
@@ -111,7 +111,7 @@ final class ConformanceReportTest extends TestCase
             $outcomes['c' . $i] = 'x';
         }
 
-        $lines = new ConformanceReport()->run($this->suite($outcomes), new CliRunner(), GapList::fromLines([]))->summaryLines();
+        $lines = new ConformanceReport()->run($this->suite($outcomes), new CliRunner(), GapList::fromLines())->summaryLines();
 
         self::assertCount(1 + 20 + 1, $lines);
         self::assertSame('... and 5 more', $lines[21]);

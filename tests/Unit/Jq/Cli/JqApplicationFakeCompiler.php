@@ -35,9 +35,9 @@ final class JqApplicationFakeCompiler implements CompilerFactoryInterface, Compi
     ) {
     }
 
-    public function create(array $libraryPaths): CompilerInterface
+    public function create(string ...$libraryPaths): CompilerInterface
     {
-        $this->libraryPaths = $libraryPaths;
+        $this->libraryPaths = array_values($libraryPaths);
 
         return $this;
     }

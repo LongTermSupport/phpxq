@@ -30,7 +30,7 @@ use LTS\PhpXq\Json\Values;
  *
  * @api
  */
-final class DateBuiltins implements BuiltinProviderInterface
+final readonly class DateBuiltins implements BuiltinProviderInterface
 {
     public function registerInto(BuiltinRegistryInterface $registry): void
     {

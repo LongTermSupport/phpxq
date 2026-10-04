@@ -6,17 +6,15 @@ namespace LTS\PhpXq\Jq\Builtin\Date;
 
 /**
  * Proleptic Gregorian calendar arithmetic on integers (no DateTime objects), the way C's `timegm` and
- * `gmtime` work: out-of-range fields are normalised, negative values floor.
+ * `gmtime` work: out-of-range fields are normalised, negative values floor. MONTH_START is the 0-based
+ * day-of-year of the first day of each month, for a common and a leap year.
  *
  * @internal
  */
-final class Civil
+final readonly class Civil
 {
     public const int SECONDS_PER_DAY = 86400;
 
-    /**
-     * Day-of-year (0 based) of the first day of each month, for a common and a leap year.
-     */
     private const array MONTH_START = [
         [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365],
         [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366],

@@ -10,8 +10,10 @@ namespace LTS\PhpXq\Yaml\Token;
  */
 enum TokenTypeEnum
 {
+    /** The first token of every stream; it carries no text. */
     case StreamStart;
 
+    /** The last token of every stream; it carries no text. */
     case StreamEnd;
 
     /** A `%YAML` or `%TAG` directive line; `value` is the whole line without the `%`. */
@@ -23,18 +25,25 @@ enum TokenTypeEnum
     /** `...` */
     case DocumentEnd;
 
+    /** Opens a block sequence; closed by {@see self::BlockEnd}. */
     case BlockSequenceStart;
 
+    /** Opens a block mapping; closed by {@see self::BlockEnd}. */
     case BlockMappingStart;
 
+    /** Closes the innermost block sequence or mapping. */
     case BlockEnd;
 
+    /** `[` */
     case FlowSequenceStart;
 
+    /** `]` */
     case FlowSequenceEnd;
 
+    /** `{` */
     case FlowMappingStart;
 
+    /** `}` */
     case FlowMappingEnd;
 
     /** `- ` */

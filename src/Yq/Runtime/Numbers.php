@@ -12,7 +12,7 @@ use LTS\PhpXq\Yaml\Schema\CoreSchema;
  * Number text <-> PHP number conversion with the formatting the reference (Go) uses: integers verbatim,
  * floats as the shortest decimal that round-trips without an exponent, `+Inf`, `-Inf` and `NaN`.
  */
-final class Numbers
+final readonly class Numbers
 {
     private function __construct()
     {

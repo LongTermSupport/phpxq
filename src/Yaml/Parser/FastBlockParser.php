@@ -26,7 +26,7 @@ use LTS\PhpXq\Yaml\Schema\CoreSchema;
  *  - a value line may not be followed by a more indented line (a plain scalar would continue there);
  *  - a line starting at column 0 with `---` or `...` is a document marker, so it is declined.
  */
-final class FastBlockParser
+final readonly class FastBlockParser
 {
     /** First character of a scalar. */
     private const string FIRST = '(?:[A-Za-z0-9_.\/+~$()=<^;]|-(?=[\x21-\x7E]))';
@@ -187,7 +187,7 @@ final class FastBlockParser
             $target = $nodes[$depth];
             $column = $indent;
             if ($dash) {
-                $column = $indent + 1 + \strlen($m[4] ?? '');
+                $column = $indent + 1 + (null === $m[4] ? 0 : \strlen($m[4]));
                 if (null === $key) {
                     $text   = (string)$valueOnly;
                     $scalar = clone $scalarProto;
@@ -264,7 +264,7 @@ final class FastBlockParser
                 }
 
                 $scalar->line   = $line;
-                $scalar->column = $column + \strlen($keyText) + 2 + \strlen($m[6] ?? '');
+                $scalar->column = $column + \strlen($keyText) + 2 + (null === $m[6] ? 0 : \strlen($m[6]));
                 if (null !== $comment) {
                     $scalar->lineComment = $comment;
                 }

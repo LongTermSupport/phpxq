@@ -32,7 +32,7 @@ final class BrokenPipeTest extends TestCase
         });
 
         try {
-            $code = new YqApplication()->run(['-n', '[1, 2, 3]'], $stdin, $writer, $stderr);
+            $code = new YqApplication()->run($stdin, $writer, $stderr, '-n', '[1, 2, 3]');
         } finally {
             restore_error_handler();
         }

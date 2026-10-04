@@ -23,6 +23,7 @@ use LTS\PhpXq\Yaml\Token\ScanToken;
  */
 final class StreamParser
 {
+    /** What the `!!` tag handle expands to. */
     private const string LONG_TAG_PREFIX = 'tag:yaml.org,2002:';
 
     /** Tokens after which a block sequence entry has no node. */
@@ -516,7 +517,7 @@ final class StreamParser
                 $prior = \strlen($sc->headComment);
                 $sc->skip();
                 $this->splitStem($prior);
-                $node->content[] = $this->nodeOrEmpty($mark, self::SEQUENCE_STOPS, false);
+                $node->content[] = $this->nodeOrEmpty($mark, false, ...self::SEQUENCE_STOPS);
 
                 continue;
             }
@@ -544,7 +545,7 @@ final class StreamParser
             $prior = \strlen($sc->headComment);
             $sc->skip();
             $this->splitStem($prior);
-            $node->content[] = $this->nodeOrEmpty($mark, self::INDENTLESS_STOPS, false);
+            $node->content[] = $this->nodeOrEmpty($mark, false, ...self::INDENTLESS_STOPS);
         }
     }
 
@@ -552,9 +553,9 @@ final class StreamParser
      * The node after a block indicator, or an empty scalar placed at the indicator's end when the next
      * token is one of $stops.
      *
-     * @param list<int> $stops
+     * @param int ...$stops
      */
-    private function nodeOrEmpty(ScanToken $mark, array $stops, bool $mapping): Node
+    private function nodeOrEmpty(ScanToken $mark, bool $mapping, int ...$stops): Node
     {
         if (\in_array($this->sc->peek()->type, $stops, true)) {
             return $this->emptyScalar($mark->endLine, $mark->endColumn);
@@ -572,7 +573,7 @@ final class StreamParser
             if (ScanToken::KEY === $t->type) {
                 $mark = $t;
                 $sc->skip();
-                $key = $this->nodeOrEmpty($mark, self::MAPPING_STOPS, true);
+                $key = $this->nodeOrEmpty($mark, true, ...self::MAPPING_STOPS);
             } elseif (ScanToken::BLOCK_END === $t->type) {
                 $this->takeEnd($node);
                 $sc->skip();
@@ -596,7 +597,7 @@ final class StreamParser
             if (ScanToken::VALUE === $t->type) {
                 $mark = $t;
                 $sc->skip();
-                $value = $this->nodeOrEmpty($mark, self::MAPPING_STOPS, true);
+                $value = $this->nodeOrEmpty($mark, true, ...self::MAPPING_STOPS);
             } else {
                 $value = $this->emptyScalar($t->startLine, $t->startColumn);
             }

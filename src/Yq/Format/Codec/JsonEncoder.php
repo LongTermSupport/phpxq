@@ -15,12 +15,12 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
 /**
  * Writes JSON the way the reference does: `-I n` spaces of indentation (compact at 0), aliases and merge
  * keys resolved, comments dropped, number text kept, no HTML escaping. A top-level string stays quoted.
+ * Colour output uses the reference's palette: keys cyan, strings green, numbers and booleans magenta.
  */
-final class JsonEncoder implements EncoderInterface
+final readonly class JsonEncoder implements EncoderInterface
 {
     private const int MAX_DEPTH = 1000;
 
-    /** ANSI colours of the reference's palette: keys cyan, strings green, numbers and booleans magenta. */
     private const int COLOR_KEY = 36;
 
     private const int COLOR_STRING = 32;

@@ -10,7 +10,7 @@ use LTS\PhpXq\Yq\Format\FormatEnum;
  * Chooses a format from a file name's extension, as the reference does for `-p auto` / `-o auto`.
  * Unknown extensions (and standard input) are YAML.
  */
-final class FormatDetector
+final readonly class FormatDetector
 {
     public function fromFilename(string $filename): FormatEnum
     {

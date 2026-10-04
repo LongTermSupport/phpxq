@@ -10,7 +10,7 @@ namespace LTS\PhpXq\Jq\Runtime\Eval;
  *
  * @internal
  */
-final class Text
+final readonly class Text
 {
     private function __construct()
     {

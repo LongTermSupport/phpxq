@@ -20,6 +20,11 @@ use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
  * current block, is a foot comment of the preceding token; any other block is a head comment of the
  * next token. The scanner runs two tokens ahead of the parser so foot comments are known when the
  * token they trail is consumed.
+ *
+ * PLAIN_LINE matches the first line of a block-context plain scalar (a colon not followed by a blank, inner
+ * blanks not followed by a hash); PLAIN_START lists the bytes that can only start a plain scalar, so no
+ * indicator test is needed; `crlf` holds the line break offsets of the normalised text that were CRLF in the
+ * source.
  */
 final class Scanner
 {
@@ -27,10 +32,8 @@ final class Scanner
 
     private const string NON_PRINTABLE = '/[^\x09\x0A\x0D\x20-\x7E\x{85}\x{A0}-\x{D7FF}\x{E000}-\x{FEFE}\x{FF00}-\x{FFFD}\x{10000}-\x{10FFFF}]/u';
 
-    /** The first line of a block-context plain scalar: runs of non-blank bytes, a colon not followed by a blank, and inner blanks not followed by a hash. */
     private const string PLAIN_LINE = '/\G(?:[^ \t\n\0:]++|:(?![ \t\n\0]))++(?:[ \t]++(?!#)(?:[^ \t\n\0:]++|:(?![ \t\n\0]))++)*+/';
 
-    /** First bytes that can only start a plain scalar, so no indicator test is needed. */
     private const array PLAIN_START = [
         'a' => true, 'b' => true, 'c' => true, 'd' => true, 'e' => true, 'f' => true, 'g' => true, 'h' => true, 'i' => true,
         'j' => true, 'k' => true, 'l' => true, 'm' => true, 'n' => true, 'o' => true, 'p' => true, 'q' => true, 'r' => true,
@@ -117,11 +120,7 @@ final class Scanner
     /** @var list<ScanComment>|null */
     private ?array $log = null;
 
-    /**
-     * Line break offsets (in the normalised text) that were CRLF in the source.
-     *
-     * @var array<int, true>
-     */
+    /** @var array<int, true> */
     private array $crlf = [];
 
     /**
@@ -299,7 +298,6 @@ final class Scanner
                 $this->lineComment = '' === $this->lineComment ? $comment->line : $this->lineComment . "\n" . $comment->line;
             }
 
-            $comment->consume();
             ++$this->commentsHead;
         }
 

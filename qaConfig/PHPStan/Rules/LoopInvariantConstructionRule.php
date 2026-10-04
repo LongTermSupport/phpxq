@@ -34,6 +34,8 @@ use PhpParser\Node\Scalar;
 use PhpParser\Node\Scalar\InterpolatedString;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Do_;
+use PhpParser\Node\Stmt\Break_;
+use PhpParser\Node\Stmt\Continue_;
 use PhpParser\Node\Stmt\For_;
 use PhpParser\Node\Stmt\Foreach_;
 use PhpParser\Node\Stmt\Return_;
@@ -408,11 +410,37 @@ final readonly class LoopInvariantConstructionRule implements Rule
     private function exitingNodes(Node $loop): array
     {
         $ids = [];
+        if ($this->runsAtMostOnce($loop)) {
+            foreach ($this->bodyNodes($loop) as $inside) {
+                $ids[spl_object_id($inside)] = true;
+            }
+
+            return $ids;
+        }
+
         foreach (new NodeFinder()->findInstanceOf($this->bodyNodes($loop), Return_::class) as $return) {
             $ids += $this->idsWithin($return);
         }
 
         return $ids;
+    }
+
+    /**
+     * A statement loop whose body ends in a `return` or `break` and never `continue`s takes its first element
+     * and leaves (the idiom for "the first document of this iterator"), so nothing in it repeats.
+     */
+    private function runsAtMostOnce(Node $loop): bool
+    {
+        if (!$loop instanceof For_ && !$loop instanceof Foreach_ && !$loop instanceof While_) {
+            return false;
+        }
+
+        $last = end($loop->stmts);
+        if (!$last instanceof Return_ && !$last instanceof Break_) {
+            return false;
+        }
+
+        return [] === new NodeFinder()->findInstanceOf($loop->stmts, Continue_::class);
     }
 
     /**

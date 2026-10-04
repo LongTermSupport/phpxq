@@ -11,7 +11,7 @@ namespace LTS\PhpXq\Json\Codec;
  *
  * @internal
  */
-final class NumberFormatter
+final readonly class NumberFormatter
 {
     private const string MAX_DOUBLE = '1.7976931348623157e+308';
 

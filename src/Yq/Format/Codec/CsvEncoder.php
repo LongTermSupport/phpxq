@@ -48,7 +48,7 @@ final readonly class CsvEncoder implements EncoderInterface
         $first     = NodeTools::unwrap($root->content[0]);
 
         if (NodeKindEnum::Scalar === $first->kind) {
-            return $this->record($root->content, $separator);
+            return $this->record($separator, ...$root->content);
         }
 
         if (NodeKindEnum::Sequence === $first->kind) {
@@ -59,7 +59,7 @@ final readonly class CsvEncoder implements EncoderInterface
                     throw new FormatException('csv: every row must be an array');
                 }
 
-                $out .= $this->record($row->content, $separator);
+                $out .= $this->record($separator, ...$row->content);
             }
 
             return $out;
@@ -75,7 +75,7 @@ final readonly class CsvEncoder implements EncoderInterface
             $header[] = NodeTools::keyText($key);
         }
 
-        $out = 0 === $resultIndex ? $this->fields($header, $separator) : '';
+        $out = 0 === $resultIndex ? $this->fields($separator, ...$header) : '';
         foreach ($root->content as $item) {
             $item = NodeTools::unwrap($item);
             if (NodeKindEnum::Mapping !== $item->kind) {
@@ -92,23 +92,20 @@ final readonly class CsvEncoder implements EncoderInterface
                 $cells[] = isset($values[$name]) ? $this->cell($values[$name]) : '';
             }
 
-            $out .= $this->fields($cells, $separator);
+            $out .= $this->fields($separator, ...$cells);
         }
 
         return $out;
     }
 
-    /**
-     * @param list<Node> $cells
-     */
-    private function record(array $cells, string $separator): string
+    private function record(string $separator, Node ...$cells): string
     {
         $texts = [];
         foreach ($cells as $cell) {
             $texts[] = $this->cell($cell);
         }
 
-        return $this->fields($texts, $separator);
+        return $this->fields($separator, ...$texts);
     }
 
     private function cell(Node $node): string
@@ -121,10 +118,7 @@ final readonly class CsvEncoder implements EncoderInterface
         return $node->value;
     }
 
-    /**
-     * @param list<string> $fields
-     */
-    private function fields(array $fields, string $separator): string
+    private function fields(string $separator, string ...$fields): string
     {
         $quoted = [];
         foreach ($fields as $field) {

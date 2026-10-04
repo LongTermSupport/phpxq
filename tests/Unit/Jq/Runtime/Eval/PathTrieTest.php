@@ -18,7 +18,7 @@ final class PathTrieTest extends TestCase
 {
     public function testGroupsPathsByTheirFirstKey(): void
     {
-        $trie = PathTrie::build([['a', 'x'], ['a', 'y'], ['b']]);
+        $trie = PathTrie::build(['a', 'x'], ['a', 'y'], ['b']);
 
         self::assertNotNull($trie);
         self::assertCount(2, $trie->children);
@@ -32,7 +32,7 @@ final class PathTrieTest extends TestCase
 
     public function testIntegerKeys(): void
     {
-        $trie = PathTrie::build([[0], [1]]);
+        $trie = PathTrie::build([0], [1]);
 
         self::assertNotNull($trie);
         self::assertTrue($trie->hasIntKeys());
@@ -45,7 +45,7 @@ final class PathTrieTest extends TestCase
     #[DataProvider('unsupported')]
     public function testRefusesPathSetsThatAreNotIndependent(array $paths): void
     {
-        self::assertNull(PathTrie::build($paths));
+        self::assertNull(PathTrie::build(...$paths));
     }
 
     /**

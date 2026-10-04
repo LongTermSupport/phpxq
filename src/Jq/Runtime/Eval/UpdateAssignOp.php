@@ -29,14 +29,14 @@ final class UpdateAssignOp extends AbstractSingleOp
         $paths  = Assignment::collect($this->left, $env, $input);
         $single = $this->single;
         if ($single instanceof SingleOpInterface) {
-            return Assignment::setAll($input, $paths, static fn (mixed $old): mixed => $single->value($env, $old));
+            return Assignment::setAll($input, static fn (mixed $old): mixed => $single->value($env, $old), ...$paths);
         }
 
         $update = $this->update;
         $token  = new stdClass();
         $stop   = new BreakException($token);
 
-        return Assignment::updateAll($input, $paths, static function (mixed $old) use ($update, $env, $token, $stop): array {
+        return Assignment::updateAll($input, static function (mixed $old) use ($update, $env, $token, $stop): array {
             $outcome = [];
             try {
                 $update->run($env, $old, static function (mixed $value) use (&$outcome, $stop): never {
@@ -51,6 +51,6 @@ final class UpdateAssignOp extends AbstractSingleOp
             }
 
             return $outcome;
-        });
+        }, ...$paths);
     }
 }

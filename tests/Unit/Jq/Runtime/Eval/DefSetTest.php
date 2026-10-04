@@ -99,7 +99,7 @@ final class DefSetTest extends TestCase
     public function testDataImports(): void
     {
         $set = new DefSet();
-        $set->addData('d', [1, 2]);
+        $set->addData('d', 1, 2);
 
         self::assertSame([1, 2], $set->data('d'));
         self::assertNull($set->data('other'));

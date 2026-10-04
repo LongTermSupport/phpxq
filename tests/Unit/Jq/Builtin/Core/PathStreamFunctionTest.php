@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Jq\Builtin\Core;
 
 use Closure;
+use LTS\PhpXq\Jq\Runtime\FilterInterface;
 use LTS\PhpXq\Jq\Builtin\Core\PathStreamFunction;
 use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Tests\Unit\Jq\Builtin\Core\Support\FakeContext;
@@ -30,7 +31,7 @@ final class PathStreamFunctionTest extends TestCase
         $function = new PathStreamFunction(
             'f',
             0,
-            static function (RuntimeContextInterface $c, mixed $input, array $args, Closure $emit): void {
+            static function (RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void {
                 $emit($input);
             },
             static function (): never {
@@ -39,7 +40,7 @@ final class PathStreamFunctionTest extends TestCase
         );
         $out = [];
 
-        $function->run(new FakeContext(), 4, [], static function (mixed $value) use (&$out): void {
+        $function->run(new FakeContext(), 4, static function (mixed $value) use (&$out): void {
             $out[] = $value;
         });
 
@@ -54,13 +55,13 @@ final class PathStreamFunctionTest extends TestCase
             static function (): never {
                 self::fail('value mode must not run');
             },
-            static function (RuntimeContextInterface $c, ?array $path, mixed $input, array $args, Closure $emit): void {
+            static function (RuntimeContextInterface $c, ?array $path, mixed $input, Closure $emit, FilterInterface ...$args): void {
                 $emit($path, $input);
             },
         );
         $out = [];
 
-        $function->runPaths(new FakeContext(), ['a'], 4, [], static function (?array $path, mixed $value) use (&$out): void {
+        $function->runPaths(new FakeContext(), ['a'], 4, static function (?array $path, mixed $value) use (&$out): void {
             $out[] = [$path, $value];
         });
 

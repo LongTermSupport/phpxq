@@ -183,14 +183,14 @@ final class GoRegex
                 continue;
             }
 
-            if ('$' === ($template[$i + 1] ?? '')) {
+            if ('$' === substr($template, $i + 1, 1)) {
                 $out .= '$';
                 $i += 2;
 
                 continue;
             }
 
-            if ('{' === ($template[$i + 1] ?? '')) {
+            if ('{' === substr($template, $i + 1, 1)) {
                 $end = strpos($template, '}', $i + 2);
                 if (false === $end) {
                     $out .= $c;
@@ -231,9 +231,11 @@ final class GoRegex
     private static function group(array $groups, string $name): string
     {
         if (ctype_digit($name)) {
-            return $groups[(int)$name] ?? '';
+            $index = (int)$name;
+
+            return \array_key_exists($index, $groups) ? $groups[$index] : '';
         }
 
-        return $groups[$name] ?? '';
+        return \array_key_exists($name, $groups) ? $groups[$name] : '';
     }
 }

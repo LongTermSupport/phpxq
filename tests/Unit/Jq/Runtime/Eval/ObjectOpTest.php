@@ -22,8 +22,8 @@ final class ObjectOpTest extends OpTestCase
     public function testLastEntryVariesFastest(): void
     {
         $op = new ObjectOp([
-            [self::constant('a'), self::generator([1, 2])],
-            [self::constant('b'), self::generator([3, 4])],
+            [self::constant('a'), self::generator(1, 2)],
+            [self::constant('b'), self::generator(3, 4)],
         ]);
 
         self::assertEquals(
@@ -39,7 +39,7 @@ final class ObjectOpTest extends OpTestCase
 
     public function testKeyIsTheOuterLoopOfAnEntry(): void
     {
-        $op = new ObjectOp([[self::generator(['a', 'b']), self::generator([1, 2])]]);
+        $op = new ObjectOp([[self::generator('a', 'b'), self::generator(1, 2)]]);
 
         self::assertEquals(
             [self::object(['a' => 1]), self::object(['a' => 2]), self::object(['b' => 1]), self::object(['b' => 2])],
@@ -51,7 +51,7 @@ final class ObjectOpTest extends OpTestCase
     {
         $op = new ObjectOp([
             [self::constant('x'), self::constant(0)],
-            [self::constant('y'), self::generator([1, 2])],
+            [self::constant('y'), self::generator(1, 2)],
             [self::constant('z'), self::constant(9)],
         ]);
 
@@ -63,14 +63,14 @@ final class ObjectOpTest extends OpTestCase
 
     public function testAnEmptyValueYieldsNoObject(): void
     {
-        self::assertSame([], self::outputs(new ObjectOp([[self::constant('a'), self::generator([])]])));
+        self::assertSame([], self::outputs(new ObjectOp([[self::constant('a'), self::generator()]])));
     }
 
     public function testDuplicateKeysKeepTheFirstPositionAndTheLastValue(): void
     {
         $op = new ObjectOp([
             [self::constant('a'), self::constant(1)],
-            [self::constant('b'), self::generator([2])],
+            [self::constant('b'), self::generator(2)],
             [self::constant('a'), self::constant(3)],
         ]);
 
@@ -83,13 +83,13 @@ final class ObjectOpTest extends OpTestCase
 
     public function testRejectsNonStringKeys(): void
     {
-        self::assertRaises(JqException::class, 'Object keys must be strings', static fn (): mixed => self::outputs(new ObjectOp([[self::generator([1]), self::constant(1)]])));
+        self::assertRaises(JqException::class, 'Object keys must be strings', static fn (): mixed => self::outputs(new ObjectOp([[self::generator(1), self::constant(1)]])));
     }
 
     public function testRejectsNonStringKeysInSingleEntries(): void
     {
         $this->expectException(JqException::class);
 
-        self::outputs(new ObjectOp([[self::constant(1), self::constant(1)], [self::constant('b'), self::generator([1])]]));
+        self::outputs(new ObjectOp([[self::constant(1), self::constant(1)], [self::constant('b'), self::generator(1)]]));
     }
 }

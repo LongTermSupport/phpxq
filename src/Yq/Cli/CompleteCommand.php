@@ -22,16 +22,16 @@ final class CompleteCommand
     ];
 
     /**
-     * @param list<string> $words  everything after `__complete`; the last word is the one being completed
-     * @param resource     $stdout
-     * @param resource     $stderr
+     * @param resource $stdout
+     * @param resource $stderr
+     * @param string   ...$words everything after `__complete`; the last word is the one being completed
      */
-    public function run(array $words, bool $withDescriptions, mixed $stdout, mixed $stderr): int
+    public function run(bool $withDescriptions, mixed $stdout, mixed $stderr, string ...$words): int
     {
         $toComplete = [] === $words ? '' : array_last($words);
         $previous   = \array_slice($words, 0, max(0, \count($words) - 1));
 
-        $candidates = $this->candidates($previous, $toComplete);
+        $candidates = $this->candidates($toComplete, ...$previous);
         $directive  = [] === $candidates ? self::DIRECTIVE_DEFAULT : self::DIRECTIVE_NO_FILE_COMP;
 
         foreach ($candidates as $name => $description) {
@@ -45,11 +45,9 @@ final class CompleteCommand
     }
 
     /**
-     * @param list<string> $previous
-     *
      * @return array<string, string> candidate to description
      */
-    private function candidates(array $previous, string $toComplete): array
+    private function candidates(string $toComplete, string ...$previous): array
     {
         if (str_starts_with($toComplete, '-')) {
             return $this->flagCandidates($toComplete);

@@ -62,7 +62,7 @@ final class Harness
             throw new InvalidArgumentException($name . '/' . \count($args) . ' is not a value builtin');
         }
 
-        return $builtin->call($context ?? new FakeContext(), $input, $args);
+        return $builtin->call($context ?? new FakeContext(), $input, ...$args);
     }
 
     /**
@@ -112,9 +112,9 @@ final class Harness
         }
 
         $out = [];
-        $builtin->run($context ?? new FakeContext(), $input, $filters, static function (mixed $value) use (&$out): void {
+        $builtin->run($context ?? new FakeContext(), $input, static function (mixed $value) use (&$out): void {
             $out[] = $value;
-        });
+        }, ...$filters);
 
         return $out;
     }
@@ -135,9 +135,9 @@ final class Harness
         }
 
         $out = [];
-        $builtin->runPaths(new FakeContext(), $path, $input, $filters, static function (?array $where, mixed $value) use (&$out): void {
+        $builtin->runPaths(new FakeContext(), $path, $input, static function (?array $where, mixed $value) use (&$out): void {
             $out[] = [$where, $value];
-        });
+        }, ...$filters);
 
         return $out;
     }

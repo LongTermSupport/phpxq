@@ -59,7 +59,7 @@ final readonly class BindAltOp implements OpInterface
             $names      = $this->events[$index];
             try {
                 $binder->bind($env, $value, function (?Env $matched) use ($env, $names, $runBody, $downstream): void {
-                    $runBody($this->body, $this->canonical($env, $matched, $names), $downstream);
+                    $runBody($this->body, $this->canonical($env, $matched, ...$names), $downstream);
                 });
 
                 return;
@@ -73,10 +73,8 @@ final readonly class BindAltOp implements OpInterface
 
     /**
      * Rebuild the environment with the canonical variable layout from the entries one alternative pushed.
-     *
-     * @param list<string> $names
      */
-    private function canonical(?Env $base, ?Env $matched, array $names): ?Env
+    private function canonical(?Env $base, ?Env $matched, string ...$names): ?Env
     {
         $seen = [];
         $walk = $matched;

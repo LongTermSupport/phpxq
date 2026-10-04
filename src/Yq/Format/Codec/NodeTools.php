@@ -14,7 +14,7 @@ use LTS\PhpXq\Yq\Format\FormatException;
  * Small helpers shared by the format codecs: reading through documents, aliases and merge keys, scalar
  * number normalisation and comment text conversion.
  */
-final class NodeTools
+final readonly class NodeTools
 {
     private const int MAX_ALIAS_DEPTH = 64;
 
@@ -236,7 +236,7 @@ final class NodeTools
         $out = '';
         foreach (explode("\n", $comment) as $line) {
             $line = trim($line);
-            $out .= $indent . ('#' === ($line[0] ?? '') ? $line : '# ' . $line) . "\n";
+            $out .= $indent . (str_starts_with($line, '#') ? $line : '# ' . $line) . "\n";
         }
 
         return $out;

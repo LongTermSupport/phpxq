@@ -25,14 +25,14 @@ final class SelectOpTest extends OpTestCase
 
     public function testEveryTruthyConditionOutputEmitsTheInput(): void
     {
-        $op = new SelectOp(self::generator([true, false, 1]));
+        $op = new SelectOp(self::generator(true, false, 1));
 
         self::assertSame(['x', 'x'], self::outputs($op, 'x'));
     }
 
     public function testPathModeKeepsThePath(): void
     {
-        $op = new SelectOp(self::generator([true, false, 1]));
+        $op = new SelectOp(self::generator(true, false, 1));
 
         self::assertSame([[['p'], 'x'], [['p'], 'x']], self::pathOutputs($op, 'x', ['p']));
     }

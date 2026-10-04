@@ -13,7 +13,7 @@ use LTS\PhpXq\Jq\Runtime\DefaultBuiltinRegistry;
  *
  * @api
  */
-final class StandardBuiltins
+final readonly class StandardBuiltins
 {
     private function __construct()
     {

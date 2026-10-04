@@ -11,7 +11,7 @@ use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
  * all matches at once when they are the roots of several documents, as in eval-all) and combines every
  * left result with every right result. A side with no result is passed as null.
  */
-final class Cross
+final readonly class Cross
 {
     private function __construct()
     {
@@ -24,7 +24,7 @@ final class Cross
      */
     public static function units(EvaluationContext $context): array
     {
-        if (Cands::together($context->matches)) {
+        if (Cands::together(...$context->matches)) {
             return [$context->matches];
         }
 
@@ -47,7 +47,7 @@ final class Cross
         $read = $context->withDontAutoCreate(true);
         $out  = [];
         foreach (self::units($context) as $unit) {
-            $sub    = $read->withMatches($unit);
+            $sub    = $read->withMatches(...$unit);
             $lefts  = $evaluator->evaluate($left, $sub);
             $rights = $evaluator->evaluate($right, $sub);
             $from   = $unit[0] ?? null;
