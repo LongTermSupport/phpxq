@@ -243,9 +243,9 @@ final readonly class LoopInvariantConstructionRule implements Rule
     private function isInvariant(Expr $expression, array $written, bool $allowLocals): bool
     {
         $pending = [$expression];
-        $counter = \count($pending);
-        for ($index = 0; $index < $counter; ++$index) {
-            $current = $pending[$index];
+        $index   = 0;
+        while (isset($pending[$index])) {
+            $current = $pending[$index++];
             if ($current instanceof Expr\Array_) {
                 foreach ($current->items as $item) {
                     $pending[] = $item->value;
