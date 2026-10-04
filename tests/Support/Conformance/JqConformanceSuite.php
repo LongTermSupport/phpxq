@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Support\Conformance;
 
 use JsonException;
+use LTS\PhpXq\Cli\ToolEnum;
 use LTS\PhpXq\Tests\Support\CliRunner;
 use LTS\PhpXq\Tests\Support\Jq\JqTestCase;
 use LTS\PhpXq\Tests\Support\Jq\JqTestFileParser;
@@ -49,7 +50,7 @@ final readonly class JqConformanceSuite implements ConformanceSuiteInterface
 
     public function name(): string
     {
-        return 'jq';
+        return ToolEnum::Jq->value;
     }
 
     public function cases(): iterable

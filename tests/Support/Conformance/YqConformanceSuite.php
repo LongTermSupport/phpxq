@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Support\Conformance;
 
+use LTS\PhpXq\Cli\ToolEnum;
 use LTS\PhpXq\Tests\Support\CliRunner;
 use RuntimeException;
 use UnexpectedValueException;
@@ -26,7 +27,7 @@ final readonly class YqConformanceSuite implements ConformanceSuiteInterface
 
     public function name(): string
     {
-        return 'yq';
+        return ToolEnum::Yq->value;
     }
 
     public function cases(): iterable

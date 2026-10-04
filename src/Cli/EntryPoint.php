@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Cli;
 
-use LTS\PhpXq\Jq\Cli\UsageText;
-use LTS\PhpXq\Yq\Cli\YqApplication;
 
 /**
  * Process-level dispatch shared by `bin/phpxq`, the PHAR and the static binary.
@@ -20,8 +18,6 @@ use LTS\PhpXq\Yq\Cli\YqApplication;
  */
 final readonly class EntryPoint
 {
-    private const array TOOLS = ['jq', 'yq'];
-
     public function __construct(
         private FrontControllerInterface $controller,
         private string $versionFile,
@@ -36,9 +32,9 @@ final readonly class EntryPoint
      */
     public function run(string $argv0, array $args, mixed $stdin, mixed $stdout, mixed $stderr): int
     {
-        $tool = $this->toolFromProgramName($argv0);
+        $tool = ToolEnum::fromProgramName($argv0);
         if (null !== $tool) {
-            return $this->controller->run([$tool, ...$args], $stdin, $stdout, $stderr);
+            return $this->controller->run([$tool->value, ...$args], $stdin, $stdout, $stderr);
         }
 
         if (['--version'] === $args) {
@@ -68,17 +64,6 @@ final readonly class EntryPoint
     private function versionReport(): string
     {
         return 'phpxq ' . $this->version() . "\n"
-            . 'jq-' . UsageText::TARGET_VERSION . " compatible (jq)\n"
-            . 'yq ' . YqApplication::REFERENCE_VERSION . " compatible (yq)\n";
-    }
-
-    private function toolFromProgramName(string $argv0): ?string
-    {
-        $name = strtolower(basename(str_replace('\\', '/', $argv0)));
-        if (str_ends_with($name, '.exe')) {
-            $name = substr($name, 0, -4);
-        }
-
-        return \in_array($name, self::TOOLS, true) ? $name : null;
+            . implode('', array_map(static fn (ToolEnum $tool): string => $tool->versionLine(), ToolEnum::cases()));
     }
 }

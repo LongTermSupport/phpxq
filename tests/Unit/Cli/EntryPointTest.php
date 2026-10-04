@@ -7,6 +7,7 @@ namespace LTS\PhpXq\Tests\Unit\Cli;
 use LTS\PhpXq\Cli\EntryPoint;
 use LTS\PhpXq\Cli\FrontController;
 use LTS\PhpXq\Cli\FrontControllerInterface;
+use LTS\PhpXq\Cli\ToolEnum;
 use LTS\PhpXq\Tests\Support\RecordingFrontController;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -40,12 +41,15 @@ final class EntryPointTest extends TestCase
      */
     public static function provideInvocations(): iterable
     {
-        yield 'phpxq passes args through' => ['/usr/bin/phpxq', ['jq', '.a'], ['jq', '.a']];
-        yield 'jq name prepends tool' => ['/usr/local/bin/jq', ['.a'], ['jq', '.a']];
-        yield 'yq name prepends tool' => ['yq', ['.a', 'f.yaml'], ['yq', '.a', 'f.yaml']];
-        yield 'windows exe suffix' => ['C:\bin\jq.exe', ['.'], ['jq', '.']];
-        yield 'phar name is not a tool' => ['phpxq.phar', ['yq', '.'], ['yq', '.']];
-        yield 'jq name with no args' => ['jq', [], ['jq']];
+        $jq = ToolEnum::Jq->value;
+        $yq = ToolEnum::Yq->value;
+
+        yield 'phpxq passes args through' => ['/usr/bin/phpxq', [$jq, '.a'], [$jq, '.a']];
+        yield 'jq name prepends tool' => ["/usr/local/bin/{$jq}", ['.a'], [$jq, '.a']];
+        yield 'yq name prepends tool' => [$yq, ['.a', 'f.yaml'], [$yq, '.a', 'f.yaml']];
+        yield 'windows exe suffix' => ["C:\\bin\\{$jq}.exe", ['.'], [$jq, '.']];
+        yield 'phar name is not a tool' => ['phpxq.phar', [$yq, '.'], [$yq, '.']];
+        yield 'jq name with no args' => [$jq, [], [$jq]];
     }
 
     public function testVersionFlagPrintsVersionWithoutDispatching(): void
@@ -70,10 +74,10 @@ final class EntryPointTest extends TestCase
         $controller = new RecordingFrontController();
 
         new EntryPoint($controller, self::VERSION_FIXTURE)
-            ->run('jq', ['--version'], $this->stream(), $this->stream(), $this->stream())
+            ->run(ToolEnum::Jq->value, ['--version'], $this->stream(), $this->stream(), $this->stream())
         ;
 
-        self::assertSame(['jq', '--version'], $controller->received);
+        self::assertSame([ToolEnum::Jq->value, '--version'], $controller->received);
     }
 
     public function testMissingVersionFileReportsUnknown(): void

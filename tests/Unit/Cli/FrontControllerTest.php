@@ -6,6 +6,7 @@ namespace LTS\PhpXq\Tests\Unit\Cli;
 
 use LTS\PhpXq\Cli\FrontController;
 use LTS\PhpXq\Cli\FrontControllerInterface;
+use LTS\PhpXq\Cli\ToolEnum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -38,7 +39,7 @@ final class FrontControllerTest extends TestCase
 
     public function testYqIsDelegatedToTheYqApplication(): void
     {
-        [$exit, $stdout, $stderr] = $this->invoke(['yq', '--version']);
+        [$exit, $stdout, $stderr] = $this->invoke([ToolEnum::Yq->value, '--version']);
 
         self::assertSame(FrontControllerInterface::EXIT_OK, $exit);
         self::assertStringStartsWith('yq (https://github.com/mikefarah/yq/) version v', $stdout);
@@ -55,7 +56,7 @@ final class FrontControllerTest extends TestCase
         self::assertIsResource($stderr);
         fclose($stdout);
 
-        $exit = new FrontController()->run(['jq', '-n', '1'], $stdin, $stdout, $stderr);
+        $exit = new FrontController()->run([ToolEnum::Jq->value, '-n', '1'], $stdin, $stdout, $stderr);
 
         rewind($stderr);
 
