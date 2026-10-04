@@ -4,15 +4,17 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Cli;
 
+use LTS\PhpXq\Jq\Cli\UsageText;
+use LTS\PhpXq\Yq\Cli\YqApplication;
+
 /**
  * Process-level dispatch shared by `bin/phpxq`, the PHAR and the static binary.
  *
  * Busybox style: when the program is called `jq` or `yq` (a symlink, a copy, or `jq.exe`) the tool is
  * implied and every argument belongs to it. Under any other name the first argument names the tool,
- * and `--version` as the sole argument reports the phpxq release from the VERSION file.
- *
- * Hook for the CLI owners: `jq --version` / `yq --version` reach the tool unchanged and are theirs to
- * answer; the packaged release number is available from {@see self::version()}.
+ * and `--version` as the sole argument reports the phpxq release from the VERSION file followed by the
+ * jq and yq releases the tools are compatible with. `jq --version` / `yq --version` reach the tool
+ * unchanged and print exactly what upstream prints.
  *
  * @api
  */
@@ -40,7 +42,7 @@ final readonly class EntryPoint
         }
 
         if (['--version'] === $args) {
-            fwrite($stdout, 'phpxq ' . $this->version() . "\n");
+            fwrite($stdout, $this->versionReport());
 
             return FrontControllerInterface::EXIT_OK;
         }
@@ -57,6 +59,17 @@ final readonly class EntryPoint
         $contents = trim((string)file_get_contents($this->versionFile));
 
         return '' === $contents ? 'unknown' : $contents;
+    }
+
+    /**
+     * The first line is always `phpxq X.Y.Z` (scripts and the installer match on it); the following lines
+     * name the upstream releases the tools are compatible with, in the shape those tools print themselves.
+     */
+    private function versionReport(): string
+    {
+        return 'phpxq ' . $this->version() . "\n"
+            . 'jq-' . UsageText::TARGET_VERSION . " compatible (jq)\n"
+            . 'yq ' . YqApplication::REFERENCE_VERSION . " compatible (yq)\n";
     }
 
     private function toolFromProgramName(string $argv0): ?string
