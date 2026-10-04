@@ -115,7 +115,7 @@ final class CollectionCalls implements CallOperatorInterface
         if (NodeKindEnum::Mapping === $node->kind) {
             $keys = [];
             for ($i = 0, $n = \count($node->content); $i < $n; $i += 2) {
-                $keys[] = self::keyCopy($node->content[$i]);
+                $keys[] = $this->keyCopy($node->content[$i]);
             }
 
             return NodeOps::seq($keys);
@@ -136,7 +136,7 @@ final class CollectionCalls implements CallOperatorInterface
     /**
      * A plain scalar copy of a mapping key that keeps the key's comments.
      */
-    private static function keyCopy(Node $key): Node
+    private function keyCopy(Node $key): Node
     {
         $copy              = new Node(NodeKindEnum::Scalar, $key->tag, NodeStyleEnum::Default, $key->value);
         $copy->headComment = $key->headComment;
@@ -151,7 +151,7 @@ final class CollectionCalls implements CallOperatorInterface
         $entries = [];
         foreach (Traversal::values($match, false) as $child) {
             $key       = $child->key;
-            $keyCopy   = $key instanceof Node ? self::keyCopy($key) : NodeOps::null();
+            $keyCopy   = $key instanceof Node ? $this->keyCopy($key) : NodeOps::null();
             $entries[] = NodeOps::map([NodeOps::str('key'), $keyCopy, NodeOps::str('value'), $child->node]);
         }
 
@@ -190,7 +190,7 @@ final class CollectionCalls implements CallOperatorInterface
             }
 
             $key    = NodeOps::deref($key);
-            $flat[] = self::keyCopy($key);
+            $flat[] = $this->keyCopy($key);
             $flat[] = $value instanceof Node ? $value : NodeOps::null();
         }
 

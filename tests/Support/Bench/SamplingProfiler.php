@@ -31,7 +31,7 @@ final class SamplingProfiler
         ++$this->samples;
         $seen = [];
         foreach ($frames as $position => $frame) {
-            $name = self::name($frame);
+            $name = $this->name($frame);
             if (0 === $position) {
                 $this->self[$name] = ($this->self[$name] ?? 0) + 1;
             }
@@ -53,7 +53,7 @@ final class SamplingProfiler
      */
     public function self(): array
     {
-        return self::ranked($this->self);
+        return $this->ranked($this->self);
     }
 
     /**
@@ -61,7 +61,7 @@ final class SamplingProfiler
      */
     public function inclusive(): array
     {
-        return self::ranked($this->inclusive);
+        return $this->ranked($this->inclusive);
     }
 
     /**
@@ -83,7 +83,7 @@ final class SamplingProfiler
     /**
      * @param array{class?: string, type?: string, function: string, file?: string} $frame
      */
-    private static function name(array $frame): string
+    private function name(array $frame): string
     {
         if (str_contains($frame['function'], '{closure')) {
             return ($frame['class'] ?? '') . ('' !== ($frame['class'] ?? '') ? '::' : '') . '{closure}@' . basename($frame['file'] ?? '?');
@@ -97,7 +97,7 @@ final class SamplingProfiler
      *
      * @return array<string, int>
      */
-    private static function ranked(array $counts): array
+    private function ranked(array $counts): array
     {
         arsort($counts);
 

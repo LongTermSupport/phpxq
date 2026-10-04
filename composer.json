@@ -12,18 +12,18 @@
         "query",
         "filter"
     ],
-    "homepage": "https://github.com/LongTermSupport/php-xq",
-    "support": {
-        "issues": "https://github.com/LongTermSupport/php-xq/issues",
-        "source": "https://github.com/LongTermSupport/php-xq",
-        "docs": "https://github.com/LongTermSupport/php-xq#readme"
-    },
     "authors": [
         {
             "name": "LongTermSupport",
             "homepage": "https://github.com/LongTermSupport"
         }
     ],
+    "homepage": "https://github.com/LongTermSupport/php-xq",
+    "support": {
+        "issues": "https://github.com/LongTermSupport/php-xq/issues",
+        "source": "https://github.com/LongTermSupport/php-xq",
+        "docs": "https://github.com/LongTermSupport/php-xq#readme"
+    },
     "require": {
         "php": "^8.5",
         "ext-ctype": "*",

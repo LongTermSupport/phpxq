@@ -67,9 +67,8 @@ final class FormatCalls implements CallOperatorInterface
 
         if (str_starts_with($name, 'to_')) {
             $indent = Args::int($call, 0, $context, $evaluator, $match);
-            $result = $this->encode(substr($name, 3), $node, $match, $context, $indent ?? 2);
 
-            return $result;
+            return $this->encode(substr($name, 3), $node, $match, $context, $indent ?? 2);
         }
 
         $bare = substr($name, 1);

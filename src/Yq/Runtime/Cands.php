@@ -66,22 +66,6 @@ final class Cands
     }
 
     /**
-     * The leading content of the document `$from` is the root of, or '' for any other match.
-     */
-    private static function leadingContentOf(Candidate $from): string
-    {
-        if (NodeKindEnum::Document === $from->node->kind) {
-            return $from->node->commentsCleared ? '' : $from->node->leadingContent;
-        }
-
-        if ($from->parent instanceof Candidate && NodeKindEnum::Document === $from->parent->node->kind && !$from->parent->node->commentsCleared) {
-            return $from->parent->node->leadingContent;
-        }
-
-        return '';
-    }
-
-    /**
      * A match located under `$parent` at `$key`.
      */
     public static function child(Node $node, Candidate $parent, Node $key): Candidate
@@ -208,5 +192,21 @@ final class Cands
         }
 
         return true;
+    }
+
+    /**
+     * The leading content of the document `$from` is the root of, or '' for any other match.
+     */
+    private static function leadingContentOf(Candidate $from): string
+    {
+        if (NodeKindEnum::Document === $from->node->kind) {
+            return $from->node->commentsCleared ? '' : $from->node->leadingContent;
+        }
+
+        if ($from->parent instanceof Candidate && NodeKindEnum::Document === $from->parent->node->kind && !$from->parent->node->commentsCleared) {
+            return $from->parent->node->leadingContent;
+        }
+
+        return '';
     }
 }

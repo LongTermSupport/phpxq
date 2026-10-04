@@ -107,7 +107,7 @@ final class MetaCalls implements CallOperatorInterface
 
         $text = Comments::get($document, $kind);
         if ('' === $text && $document === $match->node && isset($document->content[0])) {
-            $text = Comments::get($document->content[0], $kind);
+            return Comments::get($document->content[0], $kind);
         }
 
         return $text;
