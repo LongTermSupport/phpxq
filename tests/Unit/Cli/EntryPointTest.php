@@ -58,7 +58,10 @@ final class EntryPointTest extends TestCase
         ;
 
         self::assertSame(FrontControllerInterface::EXIT_OK, $exit);
-        self::assertSame("phpxq 1.2.3\n", $this->contents($stdout));
+        self::assertSame(
+            "phpxq 1.2.3\njq-1.8.2 compatible (jq)\nyq v4.54.1 compatible (yq)\n",
+            $this->contents($stdout),
+        );
         self::assertNull($controller->received);
     }
 
@@ -81,7 +84,7 @@ final class EntryPointTest extends TestCase
             ->run('phpxq', ['--version'], $this->stream(), $stdout, $this->stream())
         ;
 
-        self::assertSame("phpxq unknown\n", $this->contents($stdout));
+        self::assertStringStartsWith("phpxq unknown\n", $this->contents($stdout));
     }
 
     /**

@@ -1,6 +1,6 @@
 # Plan 00006: static binary packaging
 
-**Status**: Not Started
+**Status**: In Progress
 **Created**: 2026-10-03
 **Owner**: joseph
 **Priority**: Medium
@@ -43,19 +43,19 @@ Parent epic: Plan 00001.
 
 ### Phase 1: Design
 
-- [ ] ⬜ **Task 1.1**: Verify current static-php-cli and Box usage; record exact versions and commands in a supporting doc
-- [ ] ⬜ **Task 1.2**: Decide the extension set and platform matrix; record decisions
+- [x] ✅ **Task 1.1**: Verify current static-php-cli and Box usage; record exact versions and commands in a supporting doc
+- [x] ✅ **Task 1.2**: Decide the extension set and platform matrix; record decisions
 
 ### Phase 2: Build
 
-- [ ] ⬜ **Task 2.1**: `bin/phpxq` entry point and `box.json`; PHAR builds and runs
-- [ ] ⬜ **Task 2.2**: Local binary build script using static-php-cli; binary runs on a machine without PHP
+- [x] ✅ **Task 2.1**: `bin/phpxq` entry point and `box.json`; PHAR builds and runs
+- [x] ✅ **Task 2.2**: Local binary build script using static-php-cli; binary runs on a machine without PHP
 - [ ] ⬜ **Task 2.3**: GitHub Actions matrix building and releasing per-platform artefacts
 - [ ] ⬜ **Task 2.4**: Install script and (optional) Homebrew tap
 
 ### Phase 3: Verify
 
-- [ ] ⬜ **Task 3.1**: Run the conformance harness (Plan 00002) against the packaged binary, not only the PHP entry point
+- [x] ✅ **Task 3.1**: Run the conformance harness (Plan 00002) against the packaged binary, not only the PHP entry point
 - [ ] ⬜ **Task 3.2**: Smoke-test install on clean containers
 - [ ] ⬜ **Task 3.3**: This project's QA gate passes (`vendor/bin/qa`)
 
@@ -74,10 +74,10 @@ Parent epic: Plan 00001.
 
 ## Risks & Mitigations
 
-| Risk | Impact | Probability | Mitigation |
-| ---- | ------ | ----------- | ---------- |
-| Static build differs from the distro PHP (extensions, behaviour) | Medium | Medium | Run the full conformance suite on the binary |
-| Cross-platform CI cost and flakiness | Low | Medium | Start with Linux, add platforms incrementally |
+| Risk                                                             | Impact | Probability | Mitigation                                    |
+| ---------------------------------------------------------------- | ------ | ----------- | --------------------------------------------- |
+| Static build differs from the distro PHP (extensions, behaviour) | Medium | Medium      | Run the full conformance suite on the binary  |
+| Cross-platform CI cost and flakiness                             | Low    | Medium      | Start with Linux, add platforms incrementally |
 
 ## Delivery & Milestones
 

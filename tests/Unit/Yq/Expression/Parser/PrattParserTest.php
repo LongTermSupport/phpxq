@@ -229,6 +229,9 @@ final class PrattParserTest extends TestCase
         yield 'lone colon'           => ['.a : 1', 'Bad expression'];
         yield 'slice no close'       => ['.[1:2', 'could not find matching `]`'];
         yield 'destructuring'        => ['. as [$a] | $a', 'Bad expression'];
+        yield 'open brace at end'    => ['{', 'Bad expression'];
+        yield 'nested open brace'    => ['.[{', 'Bad expression'];
+        yield 'call open brace'      => ['contains({contains({', 'Bad expression'];
     }
 
     public function testInterpolationErrorOffsetIsAbsolute(): void

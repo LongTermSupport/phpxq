@@ -38,18 +38,19 @@ final readonly class SourceDocuments
     /**
      * @param list<FileInput> $inputs
      * @param resource        $stdin
+     * @param bool            $wholeHeader take the whole leading comment run as the header (YAML output)
      *
      * @return Generator<int, Candidate>
      *
      * @throws CliException
      */
-    public function read(array $inputs, mixed $stdin, FormatEnum $format, FormatOptions $options, HeaderModeEnum $mode): Generator
+    public function read(array $inputs, mixed $stdin, FormatEnum $format, FormatOptions $options, HeaderModeEnum $mode, bool $wholeHeader = true): Generator
     {
         foreach ($inputs as $fileIndex => $input) {
             $content = $input->content ?? $this->contents($input->name, $stdin);
             $header  = '';
             if (FormatEnum::Yaml === $format && (HeaderModeEnum::PerFile === $mode || (HeaderModeEnum::FirstFile === $mode && 0 === $fileIndex))) {
-                [$header, $content] = $this->headers->split($content);
+                [$header, $content] = $this->headers->split($content, $wholeHeader);
             }
 
             $docIndex = 0;

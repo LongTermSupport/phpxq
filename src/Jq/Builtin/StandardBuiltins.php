@@ -22,9 +22,7 @@ final class StandardBuiltins
     public static function create(): BuiltinRegistryInterface
     {
         $registry = new DefaultBuiltinRegistry();
-        foreach ([new CoreBuiltins(), new RegexBuiltins(), new DateBuiltins()] as $provider) {
-            $provider->registerInto($registry);
-        }
+        BuiltinCatalog::registerLazily($registry);
 
         return $registry;
     }

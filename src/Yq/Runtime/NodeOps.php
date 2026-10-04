@@ -208,13 +208,19 @@ final class NodeOps
 
         $copy = $adopt ? $source : $source->deepCopy();
 
-        if ((NodeKindEnum::Scalar !== $target->kind && [] === $target->content) || (NodeKindEnum::Scalar === $target->kind && '' === $target->value) || self::effectiveTag($target) !== self::effectiveTag($copy)) {
+        $sameTag = self::effectiveTag($target) === self::effectiveTag($copy);
+        if (
+            (NodeKindEnum::Scalar !== $target->kind && [] === $target->content)
+            || (NodeKindEnum::Scalar === $target->kind && '' === $target->value)
+            || !$sameTag
+            || NodeStyleEnum::Default !== $copy->style
+        ) {
             $target->style = $copy->style;
         }
 
         if ($clobberTags || '' === $target->tag || str_starts_with($target->tag, '!!')) {
             $target->tag         = $copy->tag;
-            $target->tagExplicit = $copy->tagExplicit;
+            $target->tagExplicit = $copy->tagExplicit || ($sameTag && $target->tagExplicit);
         }
 
         $target->kind        = $copy->kind;

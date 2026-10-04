@@ -430,7 +430,7 @@ final class PrattParser
     private function parseObjectEntry(): ObjectEntry
     {
         $token = $this->tokens[$this->pos];
-        $next  = $this->tokens[$this->pos + 1];
+        $next  = $this->tokens[$this->pos + 1] ?? $token;
         $key   = null;
         if (ExpressionTokenKindEnum::Word === $token->kind && !isset(self::RESERVED[$token->text]) && $this->endsEntryKey($next)) {
             $key = $this->literalString($token->text);

@@ -49,7 +49,8 @@ final class CallsTest extends TestCase
         yield 'select with and' => ['.[] | select(. > 1 and . < 3)', "- 1\n- 2\n- 3\n", "2\n"];
         yield 'and with an empty side selects nothing' => ['.. | select(kind == "scalar" and parent | kind != "seq")', "a: 1\nb:\n  - 2\n", "1\n"];
         yield 'document head comment keeps the blank line' => ['head_comment', "# hi\n\na: 1\n", "hi\n\n"];
-        yield 'head comment of a first key' => ['head_comment', "# bob\na: 1\n", "bob\n"];
+        yield 'head comment of a first key' => ['(.a | key) | head_comment', "# bob\na: 1\n", "bob\n"];
+        yield 'head comment of a root reads nothing of the first key' => ['head_comment', "# bob\na: 1\n", "\n"];
         yield 'has' => ['has("a")', "a: 1\n", "true\n"];
         yield 'not has' => ['has("b")', "a: 1\n", "false\n"];
         yield 'contains' => ['contains(["a"])', "- a\n- b\n", "true\n"];
@@ -115,7 +116,7 @@ final class CallsTest extends TestCase
         yield 'tz' => ['tz("Asia/Tokyo")', "\"1970-01-01T00:00:00Z\"\n", "1970-01-01T09:00:00+09:00\n"];
         yield 'format_datetime' => ['format_datetime("2006")', "\"2001-12-15T02:59:43Z\"\n", "2001\n"];
         yield 'split_doc' => ['.[] | split_doc', "- a: 1\n- b: 2\n", "a: 1\n---\nb: 2\n"];
-        yield 'document_index' => ['document_index', "a: 1\n---\nb: 2\n", "0\n---\n1\n"];
+        yield 'document_index' => ['document_index', "a: 1\n---\nb: 2\n", "0\n1\n"];
         yield 'explode' => ['explode(.)', "a: &x\n  c: 1\nb: *x\n", "a:\n  c: 1\nb:\n  c: 1\n"];
         yield 'getpath' => ['getpath(["a", "b"])', "a:\n  b: 1\n", "1\n"];
         yield 'setpath' => ['setpath(["a", "b"]; 2)', "a:\n  b: 1\n", "a:\n  b: 2\n"];
@@ -124,7 +125,13 @@ final class CallsTest extends TestCase
         yield 'last' => ['last', "- 1\n- 2\n", "2\n"];
         yield 'pivot' => ['pivot', "- [a, b]\n- [c, d]\n", "- - a\n  - c\n- - b\n  - d\n"];
         yield 'shuffle keeps length' => ['shuffle | length', "- 1\n- 2\n- 3\n", "3\n"];
-        yield 'toyaml' => ['to_yaml', "a: 1\n", "a: 1\n"];
+        yield 'toyaml' => ['to_yaml', "a: 1\n", "a: 1\n\n"];
+        yield 'to_yaml of a scalar keeps its newline' => ['.a | to_yaml', "a: 1\n", "1\n\n"];
+        yield 'to_yaml after a decode without final newline' => ['.a | from_yaml | to_yaml', "a: 'b: 1'\n", "b: 1\n"];
+        yield 'from_json keeps flow style' => ['.a | from_json', "a: '{\"x\": [1, 2]}'\n", "{\"x\": [1, 2]}\n"];
+        yield 'group_by keeps first-appearance order' => ['group_by(.n) | length', "- {n: 3}\n- {n: 1}\n- {n: 3}\n", "2\n"];
+        yield 'multiple documents print no separator for a computed root value' => ['length', "a: 1\n---\nb: 2\n", "1\n1\n"];
+        yield 'multiple documents print a separator for an object construction' => ['{"x": .a}', "a: 1\n---\na: 2\n", "x: 1\n---\nx: 2\n"];
         yield 'ireduce style' => ['[.[] | select(. != "b")]', "- a\n- b\n", "- a\n"];
         yield 'alternative' => ['.z // "d"', "a: 1\n", "d\n"];
         yield 'and or not' => ['(true and false) or (false | not)', '', "true\n"];

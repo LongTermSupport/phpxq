@@ -71,7 +71,32 @@ final class ResultPrinter
     {
         $this->split?->close();
         if ('' !== $appendix) {
-            fwrite($this->out, $appendix);
+            $this->write($this->out, $appendix);
+        }
+    }
+
+    /**
+     * @param resource $sink
+     *
+     * @throws CliException
+     */
+    private function write(mixed $sink, string $text): void
+    {
+        $length  = \strlen($text);
+        $written = 0;
+        set_error_handler(static fn (): bool => true);
+
+        try {
+            while ($written < $length) {
+                $chunk = fwrite($sink, 0 === $written ? $text : substr($text, $written));
+                if (false === $chunk || 0 === $chunk) {
+                    throw new CliException('write failed', CliException::BROKEN_PIPE);
+                }
+
+                $written += $chunk;
+            }
+        } finally {
+            restore_error_handler();
         }
     }
 
@@ -91,7 +116,7 @@ final class ResultPrinter
             $text = (str_ends_with($text, "\n") ? substr($text, 0, -1) : $text) . "\0";
         }
 
-        fwrite($sink, $text);
+        $this->write($sink, $text);
 
         $this->previousKey = $key;
         ++$this->index;
@@ -104,7 +129,7 @@ final class ResultPrinter
     {
         $text     = '';
         $document = NodeKindEnum::Document === $node->kind;
-        $header   = $document && !$node->commentsCleared ? $this->registry->headerFor($node) : '';
+        $header   = $node->commentsCleared ? '' : $node->leadingContent;
 
         if ($separator && !$this->emitOptions->noDocSeparator && !str_starts_with($header, HeaderSplitter::SEPARATOR_MARKER)) {
             $text .= "---\n";

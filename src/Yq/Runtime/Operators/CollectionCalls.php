@@ -55,13 +55,15 @@ final class CollectionCalls implements CallOperatorInterface
         $node = NodeOps::deref(Cands::node($match));
         switch ($call->name) {
             case 'length':
-                return [Cands::derive(NodeOps::int($this->length($node)), $match)];
+                $aliased = NodeKindEnum::Alias === Cands::node($match)->kind;
+
+                return [Cands::derive(NodeOps::int($aliased ? 0 : $this->length($node)), $match)];
 
             case 'keys':
                 return [Cands::derive($this->keys($node), $match)];
 
             case 'to_entries':
-                return NodeOps::isNull($node) ? [] : [Cands::derive($this->toEntries($node, $match), $match)];
+                return NodeOps::isNull($node) ? [] : [Cands::deriveHeaded($this->toEntries($node, $match), $match)];
 
             case 'from_entries':
                 return [Cands::derive($this->fromEntries($node), $match)];
@@ -83,7 +85,7 @@ final class CollectionCalls implements CallOperatorInterface
                 $new        = NodeOps::seq($flat);
                 $new->style = $node->style;
 
-                return [Cands::derive($new, $match)];
+                return [Cands::deriveInDocument($new, $match)];
 
             case 'add':
                 return $this->add($call, $match, $node, $context, $evaluator);
@@ -113,8 +115,7 @@ final class CollectionCalls implements CallOperatorInterface
         if (NodeKindEnum::Mapping === $node->kind) {
             $keys = [];
             for ($i = 0, $n = \count($node->content); $i < $n; $i += 2) {
-                $key    = $node->content[$i];
-                $keys[] = new Node(NodeKindEnum::Scalar, $key->tag, NodeStyleEnum::Default, $key->value);
+                $keys[] = self::keyCopy($node->content[$i]);
             }
 
             return NodeOps::seq($keys);
@@ -132,12 +133,25 @@ final class CollectionCalls implements CallOperatorInterface
         throw new EvaluationException('Cannot get keys of ' . ('' === $node->tag ? NodeOps::kindName($node) : $node->tag) . ', keys only works on maps and arrays');
     }
 
+    /**
+     * A plain scalar copy of a mapping key that keeps the key's comments.
+     */
+    private static function keyCopy(Node $key): Node
+    {
+        $copy              = new Node(NodeKindEnum::Scalar, $key->tag, NodeStyleEnum::Default, $key->value);
+        $copy->headComment = $key->headComment;
+        $copy->lineComment = $key->lineComment;
+        $copy->footComment = $key->footComment;
+
+        return $copy;
+    }
+
     private function toEntries(Node $node, Candidate $match): Node
     {
         $entries = [];
         foreach (Traversal::values($match, false) as $child) {
             $key       = $child->key;
-            $keyCopy   = $key instanceof Node ? new Node(NodeKindEnum::Scalar, $key->tag, NodeStyleEnum::Default, $key->value) : NodeOps::null();
+            $keyCopy   = $key instanceof Node ? self::keyCopy($key) : NodeOps::null();
             $entries[] = NodeOps::map([NodeOps::str('key'), $keyCopy, NodeOps::str('value'), $child->node]);
         }
 
@@ -176,7 +190,7 @@ final class CollectionCalls implements CallOperatorInterface
             }
 
             $key    = NodeOps::deref($key);
-            $flat[] = new Node(NodeKindEnum::Scalar, $key->tag, NodeStyleEnum::Default, $key->value);
+            $flat[] = self::keyCopy($key);
             $flat[] = $value instanceof Node ? $value : NodeOps::null();
         }
 
@@ -203,7 +217,7 @@ final class CollectionCalls implements CallOperatorInterface
             }
         }
 
-        return [Cands::derive($this->fromEntries(NodeOps::seq($kept)), $match)];
+        return [Cands::deriveHeaded($this->fromEntries(NodeOps::seq($kept)), $match)];
     }
 
     /**

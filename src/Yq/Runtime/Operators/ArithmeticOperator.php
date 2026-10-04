@@ -56,7 +56,7 @@ final class ArithmeticOperator implements BinaryOperatorInterface
             static function (?Candidate $left, ?Candidate $right, ?Candidate $from) use ($operator, $modifiers, $layout): ?Candidate {
                 $result = self::apply($operator, $left instanceof Candidate ? $left->node : null, $right instanceof Candidate ? $right->node : null, $modifiers, $layout);
 
-                return $result instanceof Node ? Cands::derive($result, $from) : null;
+                return $result instanceof Node ? Cands::deriveInDocument($result, $from) : null;
             },
         );
     }

@@ -10,6 +10,8 @@ use LTS\PhpXq\Jq\Cli\JqExitCode;
 use LTS\PhpXq\Jq\Runtime\HaltException;
 use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
+use LTS\PhpXq\Json\JsonDecoder;
+use LTS\PhpXq\Json\JsonEncoder;
 use LTS\PhpXq\Json\JsonObject;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -24,6 +26,36 @@ final class JqApplicationTest extends JqApplicationTestCase
 
         self::assertSame($application->parser, $application->parser);
         self::assertNotSame($application, JqApplication::create());
+    }
+
+    public function testTheCycleCollectorIsOffDuringARunAndRestoredAfterwards(): void
+    {
+        $wasEnabled = gc_enabled();
+        gc_enable();
+
+        try {
+            [$status] = $this->jq(['.'], '1');
+            self::assertSame(0, $status);
+            self::assertTrue(gc_enabled());
+
+            gc_disable();
+            $this->jq(['.'], '1');
+            self::assertFalse(gc_enabled(), 'a collector the caller switched off stays off');
+        } finally {
+            if ($wasEnabled) {
+                gc_enable();
+            } else {
+                gc_disable();
+            }
+        }
+    }
+
+    public function testManyInputsRunThroughTheManualCollectionInterval(): void
+    {
+        [$status, $out] = $this->jq(['-c', '.'], str_repeat("1\n", 9000));
+
+        self::assertSame(0, $status);
+        self::assertSame(9000, substr_count($out, "1\n"));
     }
 
     public function testIdentityPrettyPrintsEveryInput(): void
@@ -778,6 +810,51 @@ final class JqApplicationTest extends JqApplicationTestCase
 
         self::assertSame(2, $status);
         self::assertStringContainsString('Could not open /nonexistent/x.json', $err);
+    }
+
+    public function testOutputThatCannotBeWrittenAtTheEndFailsTheRun(): void
+    {
+        if (!is_writable('/dev/full')) {
+            self::markTestSkipped('/dev/full is not available');
+        }
+
+        $full = fopen('/dev/full', 'wb');
+        self::assertIsResource($full);
+        $err = self::memory('');
+
+        $status = new JqApplication(
+            new JqApplicationFakeParser(),
+            new JqApplicationFakeCompiler(static function (RuntimeContextInterface $context, mixed $input, Closure $emit): void {
+                $emit('x');
+            }),
+            new JsonDecoder(),
+            new JsonEncoder(),
+        )->run(['-n', '.'], self::memory(''), $full, $err);
+
+        self::assertSame(JqExitCode::USAGE, $status);
+        self::assertSame("jq: error: writing output failed: No space left on device\n", self::contents($err));
+        fclose($full);
+    }
+
+    public function testAReaderThatWentAwayEndsTheRunQuietlyLikeSigpipe(): void
+    {
+        $pair = stream_socket_pair(\STREAM_PF_UNIX, \STREAM_SOCK_STREAM, \STREAM_IPPROTO_IP);
+        self::assertIsArray($pair);
+        [$reader, $writer] = $pair;
+        fclose($reader);
+        $err = self::memory('');
+
+        $status = new JqApplication(
+            new JqApplicationFakeParser(),
+            new JqApplicationFakeCompiler(static function (RuntimeContextInterface $context, mixed $input, Closure $emit): void {
+                $emit('x');
+            }),
+            new JsonDecoder(),
+            new JsonEncoder(),
+        )->run(['-n', '.'], self::memory(''), $writer, $err);
+
+        self::assertSame(JqExitCode::BROKEN_PIPE, $status);
+        self::assertSame('', self::contents($err));
     }
 
     /**

@@ -44,6 +44,9 @@ final class Node
 
     public string $directives = '';
 
+    /** The comment and blank lines slurped ahead of a first document by the CLI, `# ` markers included. */
+    public string $leadingContent = '';
+
     /**
      * @param list<Node> $content
      */

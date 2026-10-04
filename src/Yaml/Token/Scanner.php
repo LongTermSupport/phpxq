@@ -206,6 +206,8 @@ final class Scanner
     {
         if (str_starts_with($yaml, "\xEF\xBB\xBF")) {
             $yaml = substr($yaml, 3);
+        } elseif (str_starts_with($yaml, "\xFF\xFE") || str_starts_with($yaml, "\xFE\xFF")) {
+            $yaml = self::decodeUtf16($yaml);
         }
 
         $found = preg_match(self::NON_PRINTABLE, $yaml, $match, \PREG_OFFSET_CAPTURE);
@@ -246,6 +248,26 @@ final class Scanner
         }
 
         return $yaml;
+    }
+
+    /**
+     * UTF-16 input announced by its BOM, which go-yaml decodes before scanning.
+     *
+     * @throws YamlSyntaxException
+     */
+    private static function decodeUtf16(string $yaml): string
+    {
+        $body = substr($yaml, 2);
+        if (1 === \strlen($body) % 2) {
+            throw new YamlSyntaxException('invalid UTF-16 stream: truncated character', 1, 0);
+        }
+
+        $decoded = mb_convert_encoding($body, 'UTF-8', "\xFF" === $yaml[0] ? 'UTF-16LE' : 'UTF-16BE');
+        if (!mb_check_encoding($body, "\xFF" === $yaml[0] ? 'UTF-16LE' : 'UTF-16BE')) {
+            throw new YamlSyntaxException('invalid UTF-16 stream: unexpected low surrogate area', 1, 0);
+        }
+
+        return $decoded;
     }
 
     // ---------------------------------------------------------------- comments

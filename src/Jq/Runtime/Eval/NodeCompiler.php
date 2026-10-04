@@ -417,10 +417,18 @@ final readonly class NodeCompiler
             'path/1'            => new PathOp($this->compile($node->args[0], $scope)),
             'getpath/1'         => new GetPathOp($this->compile($node->args[0], $scope)),
             'recurse/0'         => new RecurseOp(),
+            'walk/1'            => $this->walk($node, $scope),
             'modulemeta/0'      => new ModuleMetaOp($this->core->loader),
             'get_search_list/0' => new SearchListOp($this->core->state),
             default             => null,
         };
+    }
+
+    private function walk(FunctionCall $node, ?Scope $scope): OpInterface
+    {
+        $filter = $this->compile($node->args[0], $scope);
+
+        return $filter instanceof SingleOpInterface ? new SingleWalkOp($filter) : new WalkOp($filter);
     }
 
     private function bind(Bind $node, ?Scope $scope): OpInterface

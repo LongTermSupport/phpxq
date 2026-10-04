@@ -388,7 +388,7 @@ final readonly class Evaluator implements EvaluatorInterface
                     $flat[] = $value->deepCopy();
                 }
 
-                $out[] = Cands::derive(NodeOps::map($flat), $match);
+                $out[] = Cands::deriveInDocument(NodeOps::map($flat), $match, false);
             }
         }
 

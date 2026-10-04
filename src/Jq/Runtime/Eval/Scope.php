@@ -37,7 +37,7 @@ final readonly class Scope
 
     public static function func(?self $parent, FuncInfo $function): self
     {
-        return new self($parent, ScopeKindEnum::Func, $function->definition->name, $function->definition->arity(), $function);
+        return new self($parent, ScopeKindEnum::Func, $function->definition()->name, $function->definition()->arity(), $function);
     }
 
     /**

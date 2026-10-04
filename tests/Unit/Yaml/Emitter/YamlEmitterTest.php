@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Yaml\Emitter;
 
+use LogicException;
 use LTS\PhpXq\Yaml\Emitter\EmitOptions;
 use LTS\PhpXq\Yaml\Emitter\YamlEmitter;
 use LTS\PhpXq\Yaml\Node;
@@ -282,7 +283,12 @@ final class YamlEmitterTest extends TestCase
 
         yield 'folded style is preserved' => [
             Node::mapping([Node::scalar('a'), Node::scalar("x\ny\n", '!!str', NodeStyleEnum::Folded)]),
-            "a: >\n  x\n\n  y\n",
+            "a: >\n  x\n\n  y\n\n",
+        ];
+
+        yield 'folded scalar whose value starts with a space gets no extra break' => [
+            Node::mapping([Node::scalar('a'), Node::scalar(" x\n", '!!str', NodeStyleEnum::Folded)]),
+            "a: >2\n   x\n",
         ];
 
         yield 'multi-line key becomes a complex key' => [
@@ -381,6 +387,39 @@ final class YamlEmitterTest extends TestCase
         self::assertSame("# a1\na: 1\n# a2\n\n# b1\nb: 2\n", new YamlEmitter()->emit($node));
     }
 
+    public function testACyclicStructureIsRefusedInsteadOfExhaustingMemory(): void
+    {
+        $inner            = Node::mapping([Node::scalar('b'), Node::scalar('1')]);
+        $root             = Node::mapping([Node::scalar('a'), $inner]);
+        $inner->content[] = Node::scalar('c');
+        $inner->content[] = $root;
+
+        try {
+            new YamlEmitter()->emit($root);
+            self::fail('a cyclic structure must be refused');
+        } catch (LogicException $logicException) {
+            self::assertStringContainsString('cyclic', $logicException->getMessage());
+        }
+    }
+
+    public function testADocumentHoldingItselfIsRefused(): void
+    {
+        $document          = new Node(NodeKindEnum::Document);
+        $document->content = [$document];
+
+        $this->expectException(LogicException::class);
+
+        new YamlEmitter()->emit($document);
+    }
+
+    public function testASharedNodeThatIsNotACycleStillEmitsTwice(): void
+    {
+        $shared = Node::mapping([Node::scalar('x'), Node::scalar('1')]);
+        $root   = Node::mapping([Node::scalar('a'), $shared, Node::scalar('b'), $shared]);
+
+        self::assertSame("a:\n  x: 1\nb:\n  x: 1\n", new YamlEmitter()->emit($root));
+    }
+
     public function testHeadCommentAfterAKeyWithoutFootCommentFollowsDirectly(): void
     {
         $second              = Node::scalar('b');
@@ -402,7 +441,22 @@ final class YamlEmitterTest extends TestCase
     {
         $node = Node::sequence([self::map(['a', '1'], ['b', '2'])]);
 
-        self::assertSame("-   a: 1\n    b: 2\n", new YamlEmitter()->emit($node, new EmitOptions(indent: 4)));
+        self::assertSame("- a: 1\n  b: 2\n", new YamlEmitter()->emit($node, new EmitOptions(indent: 4)));
+    }
+
+    public function testIndentRoundsNestedLevelsUpToAMultipleOfTheStep(): void
+    {
+        $inner = Node::mapping([Node::scalar('m'), Node::scalar('1'), Node::scalar('n'), Node::sequence([Node::scalar('o')])]);
+        $node  = Node::sequence([Node::mapping([Node::scalar('k'), Node::sequence([$inner])])]);
+
+        self::assertSame("- k:\n   - m: 1\n     n:\n      - o\n", new YamlEmitter()->emit($node, new EmitOptions(indent: 3)));
+    }
+
+    public function testIndentOutsideTwoToNineFallsBackToTwo(): void
+    {
+        $node = Node::mapping([Node::scalar('a'), Node::mapping([Node::scalar('b'), Node::scalar('1')])]);
+
+        self::assertSame("a:\n  b: 1\n", new YamlEmitter()->emit($node, new EmitOptions(indent: 0)));
     }
 
     public function testIndentOptionNestedMappings(): void
@@ -579,7 +633,8 @@ final class YamlEmitterTest extends TestCase
 
         $doc               = Node::document($root);
 
-        self::assertSame("# only\n# comments\n", new YamlEmitter()->emit($doc));
+        // A bare scalar prints as its value alone, as the reference does: its comments are not printed.
+        self::assertSame("\n", new YamlEmitter()->emit($doc));
     }
 
     public function testStreamSeparators(): void

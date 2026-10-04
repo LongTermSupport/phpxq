@@ -46,4 +46,9 @@ final readonly class Console
     {
         return $this->out->hasFailed();
     }
+
+    public function failureReason(): string
+    {
+        return $this->out->failureReason();
+    }
 }

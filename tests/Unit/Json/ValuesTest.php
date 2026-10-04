@@ -70,6 +70,23 @@ final class ValuesTest extends TestCase
         self::assertSame(1, Values::compare(0, NAN));
     }
 
+    public function testSameTypeShortcutsKeepTheGeneralSemantics(): void
+    {
+        // integers compare as doubles, as jq does: beyond 2^53 neighbours are equal
+        self::assertSame(0, Values::compare(9007199254740993, 9007199254740992));
+        self::assertSame(-1, Values::compare(-5, 3));
+        self::assertSame(1, Values::compare(7, 3));
+        self::assertSame(0, Values::compare(4, 4));
+        // strings compare as bytes, never numerically
+        self::assertSame(-1, Values::compare('10', '9'));
+        self::assertSame(1, Values::compare('b', 'a'));
+        self::assertSame(0, Values::compare('', ''));
+        // a string and an int still order by type, either way round
+        self::assertSame(-1, Values::compare(5, 'a'));
+        self::assertSame(1, Values::compare('a', 5));
+        self::assertSame(-1, Values::compare(null, 'a'));
+    }
+
     public function testStringsCompareByCodepoint(): void
     {
         self::assertSame(-1, Values::compare('Z', 'a'));

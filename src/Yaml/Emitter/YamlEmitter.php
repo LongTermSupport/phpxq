@@ -45,7 +45,7 @@ final class YamlEmitter implements YamlEmitterInterface
             $out .= '' !== $directives ? "...\n" : "---\n";
         }
 
-        if ($options->unwrapScalar && NodeKindEnum::Scalar === $root->kind && !$this->hasComments($node, $root)) {
+        if ($options->unwrapScalar && NodeKindEnum::Scalar === $root->kind) {
             return $out . $root->value . "\n";
         }
 
@@ -82,11 +82,5 @@ final class YamlEmitter implements YamlEmitterInterface
         }
 
         return $hasHeadComment || 0 === $index || '' !== $directives;
-    }
-
-    private function hasComments(Node $node, Node $root): bool
-    {
-        return '' !== $root->headComment || '' !== $root->lineComment || '' !== $root->footComment
-                                         || (NodeKindEnum::Document === $node->kind && ('' !== $node->headComment || '' !== $node->footComment));
     }
 }

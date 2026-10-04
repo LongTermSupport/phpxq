@@ -150,10 +150,124 @@ final class CollectionFunctions
             }
         }
 
+        $order = self::nativeOrder($keys);
+        if (null !== $order) {
+            return $order;
+        }
+
         $order = array_keys($keys);
         usort($order, static fn (int|string $left, int|string $right): int => Values::compare($keys[$left], $keys[$right]));
 
         return $order;
+    }
+
+    /**
+     * The same order as the generic comparison, from PHP's native multi-column sort, when every key is a
+     * list of the same length whose column holds only strings, only plain numbers, or only null and booleans.
+     * Null otherwise. Hot path of sort_by and group_by (bench `group-medium`, `sort_by`: results.md of Plan
+     * 00007): array_multisort is C, usort calling Values::compare is not.
+     *
+     * @param array<array-key, mixed> $keys
+     *
+     * @return ?list<array-key>
+     */
+    private static function nativeOrder(array $keys): ?array
+    {
+        $count = \count($keys);
+        if ($count < 2) {
+            return array_keys($keys);
+        }
+
+        $columns = [];
+        $width   = -1;
+        foreach ($keys as $key) {
+            if (!\is_array($key)) {
+                return null;
+            }
+
+            if (-1 === $width) {
+                $width = \count($key);
+            } elseif (\count($key) !== $width) {
+                return null;
+            }
+
+            foreach ($key as $position => $element) {
+                $columns[$position][] = $element;
+            }
+        }
+
+        $sortable = [];
+        $flags    = [];
+        foreach ($columns as $column) {
+            $converted = self::columnFlag($column);
+            if (null === $converted) {
+                return null;
+            }
+
+            $sortable[] = $converted[0];
+            $flags[]    = $converted[1];
+        }
+
+        $order = array_keys($keys);
+        // array_multisort wants its columns by reference, so they are spread from a list of references
+        if ([] === $sortable) {
+            return $order;
+        }
+
+        $rest = [$flags[0]];
+        for ($index = 1, $last = \count($sortable); $index < $last; ++$index) {
+            $rest[] = &$sortable[$index];
+            $rest[] = \SORT_ASC;
+            $rest[] = $flags[$index];
+        }
+
+        $rest[] = &$order;
+        array_multisort($sortable[0], \SORT_ASC, ...$rest);
+
+        return $order;
+    }
+
+    /**
+     * [column, sort flag] for a column PHP can sort natively exactly as Values::compare would, else null.
+     * Booleans and nulls are mapped to 0, 1, 2 inside the column array (null < false < true).
+     *
+     * @param array<array-key, mixed> $column
+     *
+     * @return ?array{array<array-key, mixed>, int}
+     */
+    private static function columnFlag(array $column): ?array
+    {
+        $first = $column[0] ?? null;
+        if (\is_string($first)) {
+            return array_all($column, static fn (mixed $element): bool => \is_string($element)) ? [$column, \SORT_STRING] : null;
+        }
+
+        if (\is_int($first) || \is_float($first)) {
+            foreach ($column as $element) {
+                if (!(\is_int($element) && $element <= self::TWO_TO_53 && $element >= -self::TWO_TO_53) && (!\is_float($element) || is_nan($element))) {
+                    return null;
+                }
+            }
+
+            return [$column, \SORT_NUMERIC];
+        }
+
+        if (null === $first || \is_bool($first)) {
+            $ranks = [];
+            foreach ($column as $element) {
+                if (null === $element) {
+                    $ranks[] = 0;
+                } elseif (\is_bool($element)) {
+                    $ranks[] = $element ? 2 : 1;
+                } else {
+                    return null;
+                }
+            }
+
+            return [$ranks, \SORT_NUMERIC];
+        }
+
+        return null;
     }
 
     /**

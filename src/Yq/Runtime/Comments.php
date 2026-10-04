@@ -41,6 +41,22 @@ final class Comments
     }
 
     /**
+     * The comment a first document's slurped leading content stands for, in stored form: its comment and blank
+     * lines, without the trailing line break (document separators in it do not count).
+     */
+    public static function fromLeadingContent(string $leading): string
+    {
+        $lines = [];
+        foreach (explode("\n", substr($leading, 0, -1)) as $line) {
+            if ('' === $line || '#' === ltrim($line)[0]) {
+                $lines[] = $line;
+            }
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
      * Puts the `# ` marker in front of every line that lacks one.
      */
     public static function write(string $text): string

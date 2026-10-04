@@ -226,7 +226,12 @@ final class JsonReader
             }
         }
 
-        $text = $this->goFloat((float)$text);
+        $number = (float)$text;
+        if (is_infinite($number)) {
+            throw new FormatException(\sprintf('json: cannot unmarshal number %s into Go value of type float64', $text));
+        }
+
+        $text = $this->goFloat($number);
 
         return new Node(NodeKindEnum::Scalar, 1 === preg_match('/^-?\d+$/D', $text) ? CoreSchema::TAG_INT : CoreSchema::TAG_FLOAT, NodeStyleEnum::Default, $text);
     }
