@@ -201,7 +201,7 @@ final readonly class EvaluateCommand
 
         $first = $positionals[0] ?? null;
         if ('' === $expression && null !== $first && '-' !== $first) {
-            if (file_exists($first)) {
+            if (file_exists($first) && !is_dir($first)) {
                 if (is_file($first) && is_executable($first) && str_starts_with((string)file_get_contents($first), '#!')) {
                     $expression = $this->readExpressionFile($first);
                     array_shift($positionals);
