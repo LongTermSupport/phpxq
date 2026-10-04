@@ -10,6 +10,7 @@ use PHPStan\Reflection\ReflectionProvider;
 use PHPStan\Rules\Rule;
 use QaConfig\PHPStan\Rules\LoopInvariantConstructionRule;
 use QaConfig\PHPStan\Rules\RecursionThroughNativeCallbackRule;
+use QaConfig\PHPStan\Rules\StringDiscriminatorRule;
 use QaConfig\PHPStan\Rules\UnguardedAliasRecursionRule;
 
 /**
@@ -25,11 +26,14 @@ final readonly class AllDefencesRule implements Rule
 
     private LoopInvariantConstructionRule $loopConstruction;
 
+    private StringDiscriminatorRule $stringDiscriminator;
+
     public function __construct(ReflectionProvider $reflectionProvider)
     {
-        $this->aliasRecursion   = new UnguardedAliasRecursionRule();
-        $this->nativeCallback   = new RecursionThroughNativeCallbackRule($reflectionProvider);
-        $this->loopConstruction = new LoopInvariantConstructionRule();
+        $this->aliasRecursion      = new UnguardedAliasRecursionRule();
+        $this->nativeCallback      = new RecursionThroughNativeCallbackRule($reflectionProvider);
+        $this->loopConstruction    = new LoopInvariantConstructionRule();
+        $this->stringDiscriminator = new StringDiscriminatorRule();
     }
 
     public function getNodeType(): string
@@ -46,6 +50,7 @@ final readonly class AllDefencesRule implements Rule
             ...$this->aliasRecursion->processNode($node, $scope),
             ...$this->nativeCallback->processNode($node, $scope),
             ...$this->loopConstruction->processNode($node, $scope),
+            ...$this->stringDiscriminator->processNode($node, $scope),
         ];
     }
 }

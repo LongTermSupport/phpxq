@@ -11,11 +11,12 @@ vendor/bin/phpstan-rule phpxq.recursionThroughNativeCallback src
 The index is declared in `qaConfig/rule-docs.json`. Identifiers prefixed `phpqaci.` belong to the
 php-qa-ci bundle and resolve from its own index.
 
-| Identifier                             | Rule class                           | Forbids                                                                                                        | Page                                                                         |
-| -------------------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `phpxq.recursionThroughNativeCallback` | `RecursionThroughNativeCallbackRule` | A recursive method whose recursive call sits in a callback given to a native function                          | [recursion-through-native-callback.md](recursion-through-native-callback.md) |
-| `phpxq.unguardedAliasRecursion`        | `UnguardedAliasRecursionRule`        | Recursion into a node reached through a YAML alias with no compared depth bound                                | [unguarded-alias-recursion.md](unguarded-alias-recursion.md)                 |
-| `phpxq.loopInvariantConstruction`      | `LoopInvariantConstructionRule`      | An engine object (registry, compiler, parser, encoder) built with unchanging arguments on every pass of a loop | [loop-invariant-construction.md](loop-invariant-construction.md)             |
+| Identifier                             | Rule class                           | Forbids                                                                                                            | Page                                                                         |
+| -------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| `phpxq.recursionThroughNativeCallback` | `RecursionThroughNativeCallbackRule` | A recursive method whose recursive call sits in a callback given to a native function                              | [recursion-through-native-callback.md](recursion-through-native-callback.md) |
+| `phpxq.unguardedAliasRecursion`        | `UnguardedAliasRecursionRule`        | Recursion into a node reached through a YAML alias with no compared depth bound                                    | [unguarded-alias-recursion.md](unguarded-alias-recursion.md)                 |
+| `phpxq.loopInvariantConstruction`      | `LoopInvariantConstructionRule`      | An engine object (registry, compiler, parser, encoder) built with unchanging arguments on every pass of a loop     | [loop-invariant-construction.md](loop-invariant-construction.md)             |
+| `phpxq.stringDiscriminator`            | `StringDiscriminatorRule`            | A variable or property told apart by comparing it with two or more different name literals (closed set as strings) | [string-discriminator.md](string-discriminator.md)                           |
 
 ## Production-only scope
 
