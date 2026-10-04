@@ -25,6 +25,8 @@ use LTS\PhpXq\Yq\Runtime\Traversal;
  */
 final class SelectionCalls implements CallOperatorInterface
 {
+    private const int MAX_DEPTH = 10000;
+
     public function names(): array
     {
         return ['select', 'not', 'has', 'contains', 'any', 'all', 'any_c', 'all_c', 'first', 'last', 'filter', 'with', 'empty'];
@@ -135,8 +137,12 @@ final class SelectionCalls implements CallOperatorInterface
         return $out;
     }
 
-    private static function containsNode(Node $left, Node $right): bool
+    private static function containsNode(Node $left, Node $right, int $depth = 0): bool
     {
+        if ($depth > self::MAX_DEPTH) {
+            throw new EvaluationException('contains exceeded max depth (alias cycle?)');
+        }
+
         $left  = NodeOps::deref($left);
         $right = NodeOps::deref($right);
         if ($left->kind !== $right->kind) {
@@ -157,7 +163,15 @@ final class SelectionCalls implements CallOperatorInterface
 
             case NodeKindEnum::Sequence:
                 foreach ($right->content as $wanted) {
-                    $found = array_any($left->content, static fn (Node $item): bool => self::containsNode($item, $wanted));
+                    $found = false;
+                    foreach ($left->content as $item) {
+                        if (self::containsNode($item, $wanted, $depth + 1)) {
+                            $found = true;
+
+                            break;
+                        }
+                    }
+
                     if (!$found) {
                         return false;
                     }
@@ -170,7 +184,7 @@ final class SelectionCalls implements CallOperatorInterface
                     $found = false;
                     for ($j = 0, $m = \count($left->content); $j < $m; $j += 2) {
                         if ($left->content[$j]->value === $right->content[$i]->value) {
-                            $found = self::containsNode($left->content[$j + 1], $right->content[$i + 1]);
+                            $found = self::containsNode($left->content[$j + 1], $right->content[$i + 1], $depth + 1);
 
                             break;
                         }

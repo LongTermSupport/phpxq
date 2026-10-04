@@ -14,6 +14,8 @@ use LTS\PhpXq\Yaml\Schema\CoreSchema;
  */
 final class Compare
 {
+    private const int MAX_DEPTH = 10000;
+
     /** @var array<string, string> */
     private static array $globs = [];
 
@@ -78,8 +80,12 @@ final class Compare
     /**
      * Structural equality: mappings ignore key order, scalars compare by value text.
      */
-    public static function deepEquals(Node $left, Node $right): bool
+    public static function deepEquals(Node $left, Node $right, int $depth = 0): bool
     {
+        if ($depth > self::MAX_DEPTH) {
+            throw new EvaluationException('Comparison exceeded max depth (alias cycle?)');
+        }
+
         $left  = NodeOps::deref($left);
         $right = NodeOps::deref($right);
         if ($left->kind !== $right->kind) {
@@ -105,7 +111,13 @@ final class Compare
                     return false;
                 }
 
-                return array_all($left->content, static fn (Node $item, $i): bool => self::deepEquals($item, $right->content[$i]));
+                foreach ($left->content as $i => $item) {
+                    if (!self::deepEquals($item, $right->content[$i], $depth + 1)) {
+                        return false;
+                    }
+                }
+
+                return true;
 
             case NodeKindEnum::Mapping:
                 if (\count($left->content) !== \count($right->content)) {
@@ -119,7 +131,7 @@ final class Compare
 
                 for ($i = 0, $n = \count($left->content); $i < $n; $i += 2) {
                     $other = $index[$left->content[$i]->value] ?? null;
-                    if (!$other instanceof Node || !self::deepEquals($left->content[$i + 1], $other)) {
+                    if (!$other instanceof Node || !self::deepEquals($left->content[$i + 1], $other, $depth + 1)) {
                         return false;
                     }
                 }
@@ -135,8 +147,12 @@ final class Compare
      * A canonical text for grouping and de-duplication: the text of a scalar, the encoded form of a
      * collection.
      */
-    public static function canonical(Node $node): string
+    public static function canonical(Node $node, int $depth = 0): string
     {
+        if ($depth > self::MAX_DEPTH) {
+            throw new EvaluationException('Canonical form exceeded max depth (alias cycle?)');
+        }
+
         $node = NodeOps::deref($node);
         if (NodeKindEnum::Scalar === $node->kind) {
             return $node->value;
@@ -145,14 +161,14 @@ final class Compare
         $parts = [];
         if (NodeKindEnum::Sequence === $node->kind) {
             foreach ($node->content as $item) {
-                $parts[] = self::canonical($item);
+                $parts[] = self::canonical($item, $depth + 1);
             }
 
             return '[' . implode("\x1f", $parts) . ']';
         }
 
         for ($i = 0, $n = \count($node->content); $i < $n; $i += 2) {
-            $parts[$node->content[$i]->value] = $node->content[$i]->value . "\x1e" . self::canonical($node->content[$i + 1]);
+            $parts[$node->content[$i]->value] = $node->content[$i]->value . "\x1e" . self::canonical($node->content[$i + 1], $depth + 1);
         }
 
         ksort($parts);

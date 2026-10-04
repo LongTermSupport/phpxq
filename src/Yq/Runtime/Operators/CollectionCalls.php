@@ -26,6 +26,8 @@ use LTS\PhpXq\Yq\Runtime\Traversal;
  */
 final class CollectionCalls implements CallOperatorInterface
 {
+    private const int MAX_DEPTH = 10000;
+
     public function names(): array
     {
         return ['length', 'keys', 'to_entries', 'from_entries', 'with_entries', 'map', 'map_values', 'flatten', 'add', 'pivot', 'array_to_map', 'range'];
@@ -269,12 +271,16 @@ final class CollectionCalls implements CallOperatorInterface
     /**
      * @param list<Node> $out
      */
-    private static function flatten(Node $seq, int $depth, array &$out): void
+    private static function flatten(Node $seq, int $depth, array &$out, int $nesting = 0): void
     {
+        if ($nesting > self::MAX_DEPTH) {
+            throw new EvaluationException('flatten exceeded max depth (alias cycle?)');
+        }
+
         foreach ($seq->content as $item) {
             $target = NodeOps::deref($item);
             if (NodeKindEnum::Sequence === $target->kind && 0 !== $depth) {
-                self::flatten($target, $depth - 1, $out);
+                self::flatten($target, $depth - 1, $out, $nesting + 1);
             } else {
                 $out[] = $item->deepCopy();
             }

@@ -57,6 +57,8 @@ final class PrattParser
 
     private bool $union = true;
 
+    private ?ExpressionLexer $subLexer = null;
+
     /**
      * @param list<ExpressionToken> $tokens     always ends with an EndOfInput token
      * @param int                   $baseOffset added to error offsets so a nested expression reports absolute positions
@@ -591,7 +593,8 @@ final class PrattParser
     private function subParse(string $source, int $base): ExpressionNodeInterface
     {
         try {
-            $tokens = new ExpressionLexer()->tokenize($source);
+            $this->subLexer ??= new ExpressionLexer();
+            $tokens         = $this->subLexer->tokenize($source);
         } catch (ExpressionSyntaxException $expressionSyntaxException) {
             throw new ExpressionSyntaxException($expressionSyntaxException->getMessage(), $expressionSyntaxException->offset + $base);
         }
