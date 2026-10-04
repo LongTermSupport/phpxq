@@ -1,8 +1,8 @@
 #!/bin/sh
 # phpxq installer: downloads a release binary and verifies it against the release's SHA256SUMS.
 #
-#   curl -fsSL https://github.com/LongTermSupport/php-xq/releases/latest/download/install.sh | sh
-#   curl -fsSL https://github.com/LongTermSupport/php-xq/releases/latest/download/install.sh | sh -s -- --links
+#   curl -fsSL https://github.com/LongTermSupport/phpxq/releases/latest/download/install.sh | sh
+#   curl -fsSL https://github.com/LongTermSupport/phpxq/releases/latest/download/install.sh | sh -s -- --links
 #
 # Options (or the matching environment variable):
 #   --version X.Y.Z   release to install              PHPXQ_VERSION      (default: latest)
@@ -15,7 +15,7 @@
 # Nothing is installed unless the SHA-256 of the download matches the published checksum.
 set -eu
 
-repo="${PHPXQ_REPO:-LongTermSupport/php-xq}"
+repo="${PHPXQ_REPO:-LongTermSupport/phpxq}"
 version="${PHPXQ_VERSION:-latest}"
 install_dir="${PHPXQ_INSTALL_DIR:-${HOME:-.}/.local/bin}"
 links="${PHPXQ_LINKS:-0}"

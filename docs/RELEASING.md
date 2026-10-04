@@ -33,7 +33,7 @@ The first public version is `0.1.0`.
 
 5. Check the Releases page: `v0.1.0` with `phpxq.phar`, `phpxq-linux-x86_64`, `phpxq-linux-aarch64`
    (plus the macOS binaries when they built), `install.sh`, `SHA256SUMS` and generated notes. Test the
-   installer: `curl -fsSL https://github.com/LongTermSupport/php-xq/releases/latest/download/install.sh | sh`.
+   installer: `curl -fsSL https://github.com/LongTermSupport/phpxq/releases/latest/download/install.sh | sh`.
 
 6. Afterwards move the `[Unreleased]` heading's contents into the next version section as you work, and
    bump `VERSION` on `main` for the next release.

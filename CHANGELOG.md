@@ -53,5 +53,5 @@ justified lists are `tests/Conformance/Jq/known-gaps.txt` and `tests/Conformance
   unsupported (it spawns processes), one decodes without yq's header preprocessing, and two upstream
   fixtures are damaged (base64 and base64url expected output swallowed trailing markdown).
 
-[0.1.0]: https://github.com/LongTermSupport/php-xq/releases/tag/v0.1.0
-[unreleased]: https://github.com/LongTermSupport/php-xq/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/LongTermSupport/phpxq/releases/tag/v0.1.0
+[unreleased]: https://github.com/LongTermSupport/phpxq/compare/v0.1.0...HEAD

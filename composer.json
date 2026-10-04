@@ -18,11 +18,11 @@
             "homepage": "https://github.com/LongTermSupport"
         }
     ],
-    "homepage": "https://github.com/LongTermSupport/php-xq",
+    "homepage": "https://github.com/LongTermSupport/phpxq",
     "support": {
-        "issues": "https://github.com/LongTermSupport/php-xq/issues",
-        "source": "https://github.com/LongTermSupport/php-xq",
-        "docs": "https://github.com/LongTermSupport/php-xq#readme"
+        "issues": "https://github.com/LongTermSupport/phpxq/issues",
+        "source": "https://github.com/LongTermSupport/phpxq",
+        "docs": "https://github.com/LongTermSupport/phpxq#readme"
     },
     "require": {
         "php": "^8.5",

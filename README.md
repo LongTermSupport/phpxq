@@ -31,9 +31,9 @@ Releases ship static binaries for Linux (x86_64, aarch64) and, best effort, macO
 `SHA256SUMS` file. The installer verifies the SHA-256 checksum before installing anything:
 
 ```bash
-curl -fsSL https://github.com/LongTermSupport/php-xq/releases/latest/download/install.sh | sh
+curl -fsSL https://github.com/LongTermSupport/phpxq/releases/latest/download/install.sh | sh
 # also create jq and yq links (they would shadow a real jq or yq, so this is opt-in):
-curl -fsSL https://github.com/LongTermSupport/php-xq/releases/latest/download/install.sh | sh -s -- --links
+curl -fsSL https://github.com/LongTermSupport/phpxq/releases/latest/download/install.sh | sh -s -- --links
 ```
 
 Options: `--version X.Y.Z`, `--dir DIR`, `--links`, `--phar` (see `install.sh --help`). You can also
@@ -55,7 +55,7 @@ Needs PHP 8.5 with `ctype`, `json` and `mbstring`.
 ```bash
 composer global require lts/phpxq     # once listed on Packagist
 # or straight from the repository:
-composer global config repositories.phpxq vcs https://github.com/LongTermSupport/php-xq
+composer global config repositories.phpxq vcs https://github.com/LongTermSupport/phpxq
 composer global require lts/phpxq:dev-main
 ```
 
@@ -64,7 +64,7 @@ Composer places `phpxq` in its global `bin` directory.
 ### From a checkout
 
 ```bash
-git clone https://github.com/LongTermSupport/php-xq && cd php-xq
+git clone https://github.com/LongTermSupport/phpxq && cd phpxq
 composer install --no-dev
 bin/phpxq jq --version
 ```

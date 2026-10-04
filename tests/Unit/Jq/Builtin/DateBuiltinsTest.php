@@ -158,13 +158,19 @@ final class DateBuiltinsTest extends TestCase
         self::assertSame('date "2015-03-05tail" does not match format "%Y-%m-%d"', $this->errorOf('strptime', '2015-03-05tail', '%Y-%m-%d'));
     }
 
+    /**
+     * Every 11th day (coprime to 7, so every weekday and every year is hit) plus the final day; the daily
+     * sweep is the upstream jq.test case run by the conformance suite.
+     */
     public function testDayOfWeekAndYearRoundTripAcrossSixtySevenYears(): void
     {
         $base = $this->call('mktime', $this->call('strptime', '1970-03-01T01:02:03Z', '%Y-%m-%dT%H:%M:%SZ'));
         self::assertIsInt($base);
 
-        $last = null;
-        for ($day = 0; $day < 365 * 67; ++$day) {
+        $lastDay = 365 * 67 - 1;
+        $days    = [...range(0, $lastDay, 11), $lastDay];
+        $last    = null;
+        foreach ($days as $day) {
             $text = $this->call('strftime', $this->call('gmtime', $base + 86400 * $day), '%Y-%m-%dT%H:%M:%SZ');
             $last = $this->call('strptime', $text, '%Y-%m-%dT%H:%M:%SZ');
         }
