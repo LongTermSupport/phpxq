@@ -24,6 +24,8 @@ final class TomlParser
 
     private const int MAX_DEPTH = 500;
 
+    private const string KEY_PREFIX = 'key ';
+
     private int $pos = 0;
 
     private readonly int $length;
@@ -138,7 +140,7 @@ final class TomlParser
         }
 
         if (NodeKindEnum::Mapping !== $child->kind || isset($this->sealed[spl_object_id($child)])) {
-            throw $this->error('key ' . $part . ' is not a table');
+            throw $this->error(self::KEY_PREFIX . $part . ' is not a table');
         }
 
         return $child;
@@ -185,7 +187,7 @@ final class TomlParser
 
         $existing = $parent->content[$at + 1];
         if (NodeKindEnum::Sequence !== $existing->kind || isset($this->sealed[spl_object_id($existing)])) {
-            throw $this->error('key ' . $part . ' is not an array of tables');
+            throw $this->error(self::KEY_PREFIX . $part . ' is not an array of tables');
         }
 
         $existing->content[] = $item;
@@ -227,7 +229,7 @@ final class TomlParser
             $at = $this->find($node, $part);
             if ($position === $last) {
                 if (null !== $at) {
-                    throw $this->error('key ' . $part . ' is already defined');
+                    throw $this->error(self::KEY_PREFIX . $part . ' is already defined');
                 }
 
                 $key              = Node::scalar($part, CoreSchema::TAG_STR);
@@ -248,7 +250,7 @@ final class TomlParser
 
             $child = $node->content[$at + 1];
             if (NodeKindEnum::Mapping !== $child->kind || isset($this->sealed[spl_object_id($child)])) {
-                throw $this->error('key ' . $part . ' is not a table');
+                throw $this->error(self::KEY_PREFIX . $part . ' is not a table');
             }
 
             $node = $child;

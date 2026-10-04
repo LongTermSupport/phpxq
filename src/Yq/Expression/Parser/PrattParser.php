@@ -45,6 +45,10 @@ use LTS\PhpXq\Yq\Expression\ExpressionTokenKindEnum;
  */
 final class PrattParser
 {
+    private const string MISSING_PAREN = 'Bad expression, could not find matching `)`';
+
+    private const string MISSING_BRACKET = 'Bad expression, could not find matching `]`';
+
     private const string GENERIC = 'Bad expression, please check expression syntax';
 
     private const array RESERVED = [
@@ -201,7 +205,7 @@ final class PrattParser
             $initial = $this->parseFull();
             $this->expect(ExpressionTokenKindEnum::Semicolon, self::GENERIC);
             $update = $this->parseFull();
-            $this->expect(ExpressionTokenKindEnum::RightParen, 'Bad expression, could not find matching `)`');
+            $this->expect(ExpressionTokenKindEnum::RightParen, self::MISSING_PAREN);
 
             return new Reduce($source, $variable->text, $initial, $update);
         }
@@ -243,7 +247,7 @@ final class PrattParser
             case ExpressionTokenKindEnum::LeftParen:
                 ++$this->pos;
                 $inner = $this->parseFull();
-                $this->expect(ExpressionTokenKindEnum::RightParen, 'Bad expression, could not find matching `)`');
+                $this->expect(ExpressionTokenKindEnum::RightParen, self::MISSING_PAREN);
 
                 return $inner;
             case ExpressionTokenKindEnum::LeftBracket:
@@ -360,7 +364,7 @@ final class PrattParser
         $initial = $this->parseFull();
         $this->expect(ExpressionTokenKindEnum::Semicolon, self::GENERIC);
         $update = $this->parseFull();
-        $this->expect(ExpressionTokenKindEnum::RightParen, 'Bad expression, could not find matching `)`');
+        $this->expect(ExpressionTokenKindEnum::RightParen, self::MISSING_PAREN);
 
         return new Reduce($source, $variable->text, $initial, $update);
     }
@@ -384,7 +388,7 @@ final class PrattParser
             $arguments[] = $this->parseFull();
         }
 
-        $this->expect(ExpressionTokenKindEnum::RightParen, 'Bad expression, could not find matching `)`');
+        $this->expect(ExpressionTokenKindEnum::RightParen, self::MISSING_PAREN);
 
         return new Call($name, $arguments);
     }
@@ -399,7 +403,7 @@ final class PrattParser
         }
 
         $inner = $this->parseFull();
-        $this->expect(ExpressionTokenKindEnum::RightBracket, 'Bad expression, could not find matching `]`');
+        $this->expect(ExpressionTokenKindEnum::RightBracket, self::MISSING_BRACKET);
 
         return new Collect($inner);
     }
@@ -513,12 +517,12 @@ final class PrattParser
         if (ExpressionTokenKindEnum::Colon === $this->tokens[$this->pos]->kind) {
             ++$this->pos;
             $to = ExpressionTokenKindEnum::RightBracket === $this->tokens[$this->pos]->kind ? null : $this->parseFull();
-            $this->expect(ExpressionTokenKindEnum::RightBracket, 'Bad expression, could not find matching `]`');
+            $this->expect(ExpressionTokenKindEnum::RightBracket, self::MISSING_BRACKET);
 
             return new Slice($base, $from, $to, $this->optional());
         }
 
-        $this->expect(ExpressionTokenKindEnum::RightBracket, 'Bad expression, could not find matching `]`');
+        $this->expect(ExpressionTokenKindEnum::RightBracket, self::MISSING_BRACKET);
 
         return $this->field($base, $from ?? throw $this->fail(self::GENERIC));
     }

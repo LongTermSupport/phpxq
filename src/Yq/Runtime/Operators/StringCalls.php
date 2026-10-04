@@ -211,8 +211,8 @@ final class StringCalls implements CallOperatorInterface
         }
 
         $text = strtolower($node->value);
-        if ('true' === $text || 'false' === $text) {
-            return NodeOps::bool('true' === $text);
+        if (NodeOps::TRUE_TEXT === $text || NodeOps::FALSE_TEXT === $text) {
+            return NodeOps::bool(NodeOps::TRUE_TEXT === $text);
         }
 
         throw new EvaluationException(\sprintf('cannot convert %s to a boolean', $node->value));

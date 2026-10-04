@@ -16,6 +16,10 @@ use LTS\PhpXq\Yaml\Schema\CoreSchema;
  */
 final class NodeOps
 {
+    public const string TRUE_TEXT = 'true';
+
+    public const string FALSE_TEXT = 'false';
+
     private const int MAX_ALIAS_DEPTH = 64;
 
     private function __construct()
@@ -53,7 +57,7 @@ final class NodeOps
 
     public static function bool(bool $value): Node
     {
-        return new Node(NodeKindEnum::Scalar, CoreSchema::TAG_BOOL, NodeStyleEnum::Default, $value ? 'true' : 'false');
+        return new Node(NodeKindEnum::Scalar, CoreSchema::TAG_BOOL, NodeStyleEnum::Default, $value ? self::TRUE_TEXT : self::FALSE_TEXT);
     }
 
     public static function null(): Node
@@ -141,7 +145,7 @@ final class NodeOps
 
     public static function isTrue(Node $node): bool
     {
-        return NodeKindEnum::Scalar === $node->kind && CoreSchema::TAG_BOOL === self::effectiveTag($node) && 'true' === strtolower($node->value);
+        return NodeKindEnum::Scalar === $node->kind && CoreSchema::TAG_BOOL === self::effectiveTag($node) && self::TRUE_TEXT === strtolower($node->value);
     }
 
     /**
@@ -158,7 +162,7 @@ final class NodeOps
         }
 
         if (CoreSchema::TAG_BOOL === $node->tag) {
-            return 'true' === strtolower($node->value);
+            return self::TRUE_TEXT === strtolower($node->value);
         }
 
         return true;

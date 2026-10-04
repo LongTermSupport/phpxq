@@ -34,6 +34,44 @@ final class GoTime
         'h'  => 3600000000000,
     ];
 
+    private const string KIND_LITERAL = 'lit';
+
+    private const string KIND_STANDARD = 'std';
+
+    private const string UTC = 'UTC';
+
+    private const string YEAR_FOUR_DIGITS = '2006';
+
+    private const string SHORT_MONTH = 'Jan';
+
+    private const string LONG_MONTH = 'January';
+
+    private const string SHORT_WEEKDAY = 'Mon';
+
+    private const string LONG_WEEKDAY = 'Monday';
+
+    private const string ZONE_NAME = 'MST';
+
+    private const string OFFSET_HOURS_MINUTES = '-0700';
+
+    private const string OFFSET_HOURS_COLON_MINUTES = '-07:00';
+
+    private const string OFFSET_HOURS = '-07';
+
+    private const string OFFSET_HOURS_MINUTES_SECONDS = '-070000';
+
+    private const string OFFSET_HOURS_COLON_MINUTES_COLON_SECONDS = '-07:00:00';
+
+    private const string ZULU_HOURS_MINUTES = 'Z0700';
+
+    private const string ZULU_HOURS_COLON_MINUTES = 'Z07:00';
+
+    private const string ZULU_HOURS = 'Z07';
+
+    private const string ZULU_HOURS_MINUTES_SECONDS = 'Z070000';
+
+    private const string ZULU_HOURS_COLON_MINUTES_COLON_SECONDS = 'Z07:00:00';
+
     private const array STD_LONG_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
     /**
@@ -56,7 +94,7 @@ final class GoTime
     {
         $out = '';
         foreach (self::tokens($layout) as [$kind, $text]) {
-            $out .= 'lit' === $kind ? $text : self::formatStd($time, $text);
+            $out .= self::KIND_LITERAL === $kind ? $text : self::formatStd($time, $text);
         }
 
         return $out;
@@ -81,7 +119,7 @@ final class GoTime
         $tokens = self::tokens($layout);
         $count  = \count($tokens);
         foreach ($tokens as $index => [$kind, $text]) {
-            if ('lit' === $kind) {
+            if (self::KIND_LITERAL === $kind) {
                 if (substr($value, $p, \strlen($text)) !== $text) {
                     return null;
                 }
@@ -108,9 +146,9 @@ final class GoTime
                 case 'M1':
                     $mo = self::digits($value, $p, 1, 2);
                     break;
-                case 'Jan':
-                case 'January':
-                    $mo = self::monthName($value, $p, 'Jan' === $text);
+                case self::SHORT_MONTH:
+                case self::LONG_MONTH:
+                    $mo = self::monthName($value, $p, self::SHORT_MONTH === $text);
                     break;
                 case 'D2':
                     $d = self::digits($value, $p, 2, 2);
@@ -154,7 +192,7 @@ final class GoTime
                         return null;
                     }
 
-                    $nextIsFraction = isset($tokens[$index + 1]) && 'std' === $tokens[$index + 1][0] && \in_array($tokens[$index + 1][1][0], ['.', ','], true);
+                    $nextIsFraction = isset($tokens[$index + 1]) && self::KIND_STANDARD === $tokens[$index + 1][0] && \in_array($tokens[$index + 1][1][0], ['.', ','], true);
                     if (!$nextIsFraction && '.' === ($value[$p] ?? '') && $p + 1 < $n && ctype_digit($value[$p + 1])) {
                         $ns = self::fraction($value, $p);
                     }
@@ -170,8 +208,8 @@ final class GoTime
                     $pm = 'PM' === $word;
                     $p += 2;
                     break;
-                case 'Mon':
-                case 'Monday':
+                case self::SHORT_WEEKDAY:
+                case self::LONG_WEEKDAY:
                     $len = 0;
                     while ($p + $len < $n && ctype_alpha($value[$p + $len])) {
                         ++$len;
@@ -183,23 +221,23 @@ final class GoTime
 
                     $p += $len;
                     break;
-                case 'MST':
+                case self::ZONE_NAME:
                     $tz = self::parseZoneName($value, $p);
                     if (!$tz instanceof DateTimeZone) {
                         return null;
                     }
 
                     break;
-                case '-0700':
-                case '-07:00':
-                case '-07':
-                case '-070000':
-                case '-07:00:00':
-                case 'Z0700':
-                case 'Z07:00':
-                case 'Z07':
-                case 'Z070000':
-                case 'Z07:00:00':
+                case self::OFFSET_HOURS_MINUTES:
+                case self::OFFSET_HOURS_COLON_MINUTES:
+                case self::OFFSET_HOURS:
+                case self::OFFSET_HOURS_MINUTES_SECONDS:
+                case self::OFFSET_HOURS_COLON_MINUTES_COLON_SECONDS:
+                case self::ZULU_HOURS_MINUTES:
+                case self::ZULU_HOURS_COLON_MINUTES:
+                case self::ZULU_HOURS:
+                case self::ZULU_HOURS_MINUTES_SECONDS:
+                case self::ZULU_HOURS_COLON_MINUTES_COLON_SECONDS:
                     $tz = self::parseOffset($value, $p, $text);
                     if (!$tz instanceof DateTimeZone) {
                         return null;
@@ -238,7 +276,7 @@ final class GoTime
             return null;
         }
 
-        $zone = $tz ?? new DateTimeZone('UTC');
+        $zone = $tz ?? new DateTimeZone(self::UTC);
         if ($d < 1 || $d > 31 || ($y > 0 && !checkdate($mo, $d, $y))) {
             return null;
         }
@@ -357,16 +395,16 @@ final class GoTime
             }
 
             if ('' !== $lit) {
-                $tokens[] = ['lit', $lit];
+                $tokens[] = [self::KIND_LITERAL, $lit];
                 $lit      = '';
             }
 
-            $tokens[] = ['std', self::SYMBOLS[$std] ?? $std];
+            $tokens[] = [self::KIND_STANDARD, self::SYMBOLS[$std] ?? $std];
             $i += \strlen($std);
         }
 
         if ('' !== $lit) {
-            $tokens[] = ['lit', $lit];
+            $tokens[] = [self::KIND_LITERAL, $lit];
         }
 
         if (\count(self::$layouts) > 128) {
@@ -384,18 +422,18 @@ final class GoTime
         $next = $layout[$i + 1] ?? '';
         switch ($c) {
             case 'J':
-                if ('Jan' === substr($layout, $i, 3)) {
-                    return 'January' === substr($layout, $i, 7) ? 'January' : 'Jan';
+                if (self::SHORT_MONTH === substr($layout, $i, 3)) {
+                    return self::LONG_MONTH === substr($layout, $i, 7) ? self::LONG_MONTH : self::SHORT_MONTH;
                 }
 
                 return null;
 
             case 'M':
-                if ('Mon' === substr($layout, $i, 3)) {
-                    return 'Monday' === substr($layout, $i, 6) ? 'Monday' : 'Mon';
+                if (self::SHORT_WEEKDAY === substr($layout, $i, 3)) {
+                    return self::LONG_WEEKDAY === substr($layout, $i, 6) ? self::LONG_WEEKDAY : self::SHORT_WEEKDAY;
                 }
 
-                return 'MST' === substr($layout, $i, 3) ? 'MST' : null;
+                return self::ZONE_NAME === substr($layout, $i, 3) ? self::ZONE_NAME : null;
 
             case '0':
                 if ($next >= '1' && $next <= '6') {
@@ -408,11 +446,11 @@ final class GoTime
                 return '5' === $next ? '15' : '1';
 
             case '2':
-                return '2006' === substr($layout, $i, 4) ? '2006' : '2';
+                return self::YEAR_FOUR_DIGITS === substr($layout, $i, 4) ? self::YEAR_FOUR_DIGITS : '2';
 
             case '_':
                 if ('2' === $next) {
-                    return '2006' === substr($layout, $i + 1, 4) ? null : '_2';
+                    return self::YEAR_FOUR_DIGITS === substr($layout, $i + 1, 4) ? null : '_2';
                 }
 
                 return null;
@@ -429,7 +467,7 @@ final class GoTime
                 return 'm' === $next ? 'pm' : null;
 
             case '-':
-                foreach (['-070000', '-07:00:00', '-0700', '-07:00', '-07'] as $std) {
+                foreach ([self::OFFSET_HOURS_MINUTES_SECONDS, self::OFFSET_HOURS_COLON_MINUTES_COLON_SECONDS, self::OFFSET_HOURS_MINUTES, self::OFFSET_HOURS_COLON_MINUTES, self::OFFSET_HOURS] as $std) {
                     if (substr($layout, $i, \strlen($std)) === $std) {
                         return $std;
                     }
@@ -438,7 +476,7 @@ final class GoTime
                 return null;
 
             case 'Z':
-                foreach (['Z070000', 'Z07:00:00', 'Z0700', 'Z07:00', 'Z07'] as $std) {
+                foreach ([self::ZULU_HOURS_MINUTES_SECONDS, self::ZULU_HOURS_COLON_MINUTES_COLON_SECONDS, self::ZULU_HOURS_MINUTES, self::ZULU_HOURS_COLON_MINUTES, self::ZULU_HOURS] as $std) {
                     if (substr($layout, $i, \strlen($std)) === $std) {
                         return $std;
                     }
@@ -470,39 +508,39 @@ final class GoTime
     private static function formatStd(DateTimeImmutable $t, string $std): string
     {
         return match ($std) {
-            'Y4'        => $t->format('Y'),
-            'Y2'        => $t->format('y'),
-            'M2'        => $t->format('m'),
-            'M1'        => $t->format('n'),
-            'Jan'       => $t->format('M'),
-            'January'   => $t->format('F'),
-            'D2'        => $t->format('d'),
-            'D1'        => $t->format('j'),
-            '_2'        => str_pad($t->format('j'), 2, ' ', \STR_PAD_LEFT),
-            'YD'        => str_pad((string)((int)$t->format('z') + 1), 3, '0', \STR_PAD_LEFT),
-            'H24'       => $t->format('H'),
-            'H2'        => $t->format('h'),
-            'H1'        => $t->format('g'),
-            'I2'        => $t->format('i'),
-            'I1'        => (string)(int)$t->format('i'),
-            'S2'        => $t->format('s'),
-            'S1'        => (string)(int)$t->format('s'),
-            'PM'        => $t->format('A'),
-            'pm'        => $t->format('a'),
-            'Mon'       => $t->format('D'),
-            'Monday'    => $t->format('l'),
-            'MST'       => self::zoneName($t),
-            '-0700'     => $t->format('O'),
-            '-07:00'    => $t->format('P'),
-            '-07'       => substr($t->format('O'), 0, 3),
-            '-070000'   => $t->format('O') . '00',
-            '-07:00:00' => $t->format('P') . ':00',
-            'Z0700'     => 0       === $t->getOffset() ? 'Z' : $t->format('O'),
-            'Z07:00'    => 0       === $t->getOffset() ? 'Z' : $t->format('P'),
-            'Z07'       => 0       === $t->getOffset() ? 'Z' : substr($t->format('O'), 0, 3),
-            'Z070000'   => 0       === $t->getOffset() ? 'Z' : $t->format('O') . '00',
-            'Z07:00:00' => 0       === $t->getOffset() ? 'Z' : $t->format('P') . ':00',
-            default     => self::formatFraction($t, $std),
+            'Y4'                                           => $t->format('Y'),
+            'Y2'                                           => $t->format('y'),
+            'M2'                                           => $t->format('m'),
+            'M1'                                           => $t->format('n'),
+            self::SHORT_MONTH                              => $t->format('M'),
+            self::LONG_MONTH                               => $t->format('F'),
+            'D2'                                           => $t->format('d'),
+            'D1'                                           => $t->format('j'),
+            '_2'                                           => str_pad($t->format('j'), 2, ' ', \STR_PAD_LEFT),
+            'YD'                                           => str_pad((string)((int)$t->format('z') + 1), 3, '0', \STR_PAD_LEFT),
+            'H24'                                          => $t->format('H'),
+            'H2'                                           => $t->format('h'),
+            'H1'                                           => $t->format('g'),
+            'I2'                                           => $t->format('i'),
+            'I1'                                           => (string)(int)$t->format('i'),
+            'S2'                                           => $t->format('s'),
+            'S1'                                           => (string)(int)$t->format('s'),
+            'PM'                                           => $t->format('A'),
+            'pm'                                           => $t->format('a'),
+            self::SHORT_WEEKDAY                            => $t->format('D'),
+            self::LONG_WEEKDAY                             => $t->format('l'),
+            self::ZONE_NAME                                => self::zoneName($t),
+            self::OFFSET_HOURS_MINUTES                     => $t->format('O'),
+            self::OFFSET_HOURS_COLON_MINUTES               => $t->format('P'),
+            self::OFFSET_HOURS                             => substr($t->format('O'), 0, 3),
+            self::OFFSET_HOURS_MINUTES_SECONDS             => $t->format('O') . '00',
+            self::OFFSET_HOURS_COLON_MINUTES_COLON_SECONDS => $t->format('P') . ':00',
+            self::ZULU_HOURS_MINUTES                       => 0                       === $t->getOffset() ? 'Z' : $t->format('O'),
+            self::ZULU_HOURS_COLON_MINUTES                 => 0                  === $t->getOffset() ? 'Z' : $t->format('P'),
+            self::ZULU_HOURS                               => 0                             === $t->getOffset() ? 'Z' : substr($t->format('O'), 0, 3),
+            self::ZULU_HOURS_MINUTES_SECONDS               => 0                 === $t->getOffset() ? 'Z' : $t->format('O') . '00',
+            self::ZULU_HOURS_COLON_MINUTES_COLON_SECONDS   => 0       === $t->getOffset() ? 'Z' : $t->format('P') . ':00',
+            default                                        => self::formatFraction($t, $std),
         };
     }
 
@@ -523,10 +561,10 @@ final class GoTime
     {
         $name = $t->format('T');
         if ('+' === $name[0] || '-' === $name[0]) {
-            return 0 === $t->getOffset() ? 'UTC' : substr($t->format('O'), 0, 3);
+            return 0 === $t->getOffset() ? self::UTC : substr($t->format('O'), 0, 3);
         }
 
-        return 'Z' === $name ? 'UTC' : $name;
+        return 'Z' === $name ? self::UTC : $name;
     }
 
     private static function digits(string $value, int &$p, int $min, int $max): ?int
@@ -581,8 +619,8 @@ final class GoTime
 
         $p += \strlen($m[1]);
         $name = $m[1];
-        if ('UTC' === $name) {
-            return new DateTimeZone('UTC');
+        if (self::UTC === $name) {
+            return new DateTimeZone(self::UTC);
         }
 
         // timezone_open() answers false for an unknown zone, where the constructor would throw
@@ -593,7 +631,7 @@ final class GoTime
             restore_error_handler();
         }
 
-        return false === $zone ? new DateTimeZone('UTC') : $zone;
+        return false === $zone ? new DateTimeZone(self::UTC) : $zone;
     }
 
     private static function parseOffset(string $value, int &$p, string $std): ?DateTimeZone
@@ -601,7 +639,7 @@ final class GoTime
         if ('Z' === $std[0] && 'Z' === ($value[$p] ?? '')) {
             ++$p;
 
-            return new DateTimeZone('UTC');
+            return new DateTimeZone(self::UTC);
         }
 
         $colon = str_contains($std, ':');
@@ -619,7 +657,7 @@ final class GoTime
         $p += \strlen($m[0]);
         $seconds = ((int)$m[2]) * 3600 + ((int)$m[3]) * 60 + (int)$m[4];
         if (0 === $seconds) {
-            return new DateTimeZone('UTC');
+            return new DateTimeZone(self::UTC);
         }
 
         $sign = $m[1];

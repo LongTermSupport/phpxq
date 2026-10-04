@@ -18,6 +18,10 @@ final class JsonReader
 {
     private const int MAX_DEPTH = 1000;
 
+    private const string END_OF_INPUT = 'json: unexpected end of JSON input';
+
+    private const string DIGITS = '0123456789';
+
     /** Bytes that end a run of plain string characters: `"`, `\` and the control characters. */
     private const string STRING_STOP = "\"\\\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f";
 
@@ -92,7 +96,7 @@ final class JsonReader
             ++$this->pos;
             $this->skipWhitespace();
             if ($this->pos >= $this->length) {
-                throw new FormatException('json: unexpected end of JSON input');
+                throw new FormatException(self::END_OF_INPUT);
             }
 
             $value    = $this->value($depth + 1);
@@ -136,7 +140,7 @@ final class JsonReader
         while (true) {
             $this->skipWhitespace();
             if ($this->pos >= $this->length) {
-                throw new FormatException('json: unexpected end of JSON input');
+                throw new FormatException(self::END_OF_INPUT);
             }
 
             $items[] = $this->value($depth + 1);
@@ -166,7 +170,7 @@ final class JsonReader
             ++$i;
         }
 
-        $digits = strspn($source, '0123456789', $i);
+        $digits = strspn($source, self::DIGITS, $i);
         if (0 === $digits) {
             $this->pos = $i;
 
@@ -182,7 +186,7 @@ final class JsonReader
         $i += $digits;
         $float = false;
         if ('.' === ($source[$i] ?? '')) {
-            $fraction = strspn($source, '0123456789', $i + 1);
+            $fraction = strspn($source, self::DIGITS, $i + 1);
             if (0 === $fraction) {
                 $this->pos = $i + 1;
 
@@ -199,7 +203,7 @@ final class JsonReader
                 ++$j;
             }
 
-            $exponent = strspn($source, '0123456789', $j);
+            $exponent = strspn($source, self::DIGITS, $j);
             if (0 === $exponent) {
                 $this->pos = $j;
 
@@ -311,7 +315,7 @@ final class JsonReader
             }
 
             if ($this->pos >= $this->length) {
-                throw new FormatException('json: unexpected end of JSON input');
+                throw new FormatException(self::END_OF_INPUT);
             }
 
             $char = $this->source[$this->pos];
@@ -410,7 +414,7 @@ final class JsonReader
     private function unexpected(string $context): FormatException
     {
         if ($this->pos >= $this->length) {
-            return new FormatException('json: unexpected end of JSON input');
+            return new FormatException(self::END_OF_INPUT);
         }
 
         return new FormatException(\sprintf("json: invalid character '%s' %s", $this->source[$this->pos], $context));

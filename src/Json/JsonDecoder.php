@@ -49,6 +49,10 @@ final class JsonDecoder implements JsonDecoderInterface
 
     private const string CONTROL_MESSAGE = 'Invalid string: control characters from U+0000 through U+001F must be escaped';
 
+    private const string SEPARATOR_MESSAGE = 'Expected separator between values';
+
+    private const string LITERAL_MESSAGE = 'Invalid literal';
+
     private const string PAIR_MESSAGE = 'Invalid \uXXXX\uXXXX surrogate pair escape';
 
     private const string RS = "\x1e";
@@ -391,7 +395,7 @@ final class JsonDecoder implements JsonDecoderInterface
                         if (null !== $pending) {
                             $value = $this->literal($pending, $i + 1, false, true);
                             if ($hasNext) {
-                                throw new ParseFailure('Expected separator between values', $i + 1, false, true);
+                                throw new ParseFailure(self::SEPARATOR_MESSAGE, $i + 1, false, true);
                             }
 
                             $next    = $value;
@@ -419,7 +423,7 @@ final class JsonDecoder implements JsonDecoderInterface
                             ? (int)$pending
                             : $this->literal($pending, $i + 1, false, false);
                         if ($hasNext) {
-                            throw new ParseFailure('Expected separator between values', $i + 1);
+                            throw new ParseFailure(self::SEPARATOR_MESSAGE, $i + 1);
                         }
 
                         $next    = $value;
@@ -458,7 +462,7 @@ final class JsonDecoder implements JsonDecoderInterface
                         if (1 === preg_match(self::SIMPLE_STRING, $text, $match, 0, $i)) {
                             // printable ASCII without escapes: no unescaping or UTF-8 repair needed
                             if ($hasNext) {
-                                throw new ParseFailure('Expected separator between values', $i + \strlen($match[1]) + 2);
+                                throw new ParseFailure(self::SEPARATOR_MESSAGE, $i + \strlen($match[1]) + 2);
                             }
 
                             $next    = $match[1];
@@ -503,7 +507,7 @@ final class JsonDecoder implements JsonDecoderInterface
 
                             $string = $this->string($raw, $end + 1);
                             if ($hasNext) {
-                                throw new ParseFailure('Expected separator between values', $end + 1);
+                                throw new ParseFailure(self::SEPARATOR_MESSAGE, $end + 1);
                             }
 
                             $next    = $string;
@@ -536,7 +540,7 @@ final class JsonDecoder implements JsonDecoderInterface
                         }
 
                         if ($hasNext) {
-                            throw new ParseFailure('Expected separator between values', $i + 1);
+                            throw new ParseFailure(self::SEPARATOR_MESSAGE, $i + 1);
                         }
 
                         $kinds[$sp] = '[' === $c ? self::KIND_ARRAY : self::KIND_OBJECT;
@@ -613,7 +617,7 @@ final class JsonDecoder implements JsonDecoderInterface
                 if (null !== $pending) {
                     $value = $this->literal($pending, $n, true, false);
                     if ($hasNext) {
-                        throw new ParseFailure('Expected separator between values', $n, true);
+                        throw new ParseFailure(self::SEPARATOR_MESSAGE, $n, true);
                     }
 
                     $next    = $value;
@@ -686,15 +690,15 @@ final class JsonDecoder implements JsonDecoderInterface
     {
         $first = $token[0];
         if ('t' === $first) {
-            return 'true' === $token ? true : throw new ParseFailure('Invalid literal', $consumed, $eof, $onRs);
+            return 'true' === $token ? true : throw new ParseFailure(self::LITERAL_MESSAGE, $consumed, $eof, $onRs);
         }
 
         if ('f' === $first) {
-            return 'false' === $token ? false : throw new ParseFailure('Invalid literal', $consumed, $eof, $onRs);
+            return 'false' === $token ? false : throw new ParseFailure(self::LITERAL_MESSAGE, $consumed, $eof, $onRs);
         }
 
         if ('n' === $first && isset($token[1]) && 'u' === $token[1]) {
-            return 'null' === $token ? null : throw new ParseFailure('Invalid literal', $consumed, $eof, $onRs);
+            return 'null' === $token ? null : throw new ParseFailure(self::LITERAL_MESSAGE, $consumed, $eof, $onRs);
         }
 
         if ("'" === $first) {
