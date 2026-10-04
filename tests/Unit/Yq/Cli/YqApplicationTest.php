@@ -25,6 +25,27 @@ final class YqApplicationTest extends TestCase
         $this->cli->cleanup();
     }
 
+    public function testTheCycleCollectorStateIsRestoredAfterARun(): void
+    {
+        $before = gc_enabled();
+
+        try {
+            gc_enable();
+            $this->cli->run(['--version']);
+            self::assertTrue(gc_enabled());
+
+            gc_disable();
+            $this->cli->run(['--version']);
+            self::assertFalse(gc_enabled());
+        } finally {
+            if ($before) {
+                gc_enable();
+            } else {
+                gc_disable();
+            }
+        }
+    }
+
     public function testVersionNamesTheReferenceRelease(): void
     {
         [$code, $out] = $this->cli->run(['--version']);

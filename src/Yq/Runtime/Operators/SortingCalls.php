@@ -6,6 +6,7 @@ namespace LTS\PhpXq\Yq\Runtime\Operators;
 
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Expression\Ast\Call;
 use LTS\PhpXq\Yq\Runtime\Args;
 use LTS\PhpXq\Yq\Runtime\CallOperatorInterface;
@@ -16,6 +17,7 @@ use LTS\PhpXq\Yq\Runtime\EvaluationContext;
 use LTS\PhpXq\Yq\Runtime\EvaluationException;
 use LTS\PhpXq\Yq\Runtime\EvaluatorInterface;
 use LTS\PhpXq\Yq\Runtime\NodeOps;
+use LTS\PhpXq\Yq\Runtime\Numbers;
 use LTS\PhpXq\Yq\Runtime\Traversal;
 
 /**
@@ -153,6 +155,22 @@ final class SortingCalls implements CallOperatorInterface
             $keyed[] = [$index, $item, $keys];
         }
 
+        $single = [];
+        foreach ($keyed as $entry) {
+            if (1 !== \count($entry[2])) {
+                $single = null;
+
+                break;
+            }
+
+            $single[] = $entry[2][0];
+        }
+
+        $fast = null === $single ? null : $this->nativeOrder($single, $layout);
+        if (null !== $fast) {
+            return array_map(static fn (int $position): Candidate => $keyed[$position][1], $fast);
+        }
+
         usort($keyed, static function (array $a, array $b) use ($layout): int {
             $length = max(\count($a[2]), \count($b[2]));
             for ($i = 0; $i < $length; ++$i) {
@@ -168,6 +186,63 @@ final class SortingCalls implements CallOperatorInterface
         });
 
         return array_map(static fn (array $entry): Candidate => $entry[1], $keyed);
+    }
+
+    /**
+     * The stable ascending order of the keys, as positions, using PHP's native sort when that gives exactly
+     * the order of {@see Compare::order()}: every key a plain string that cannot be a date, or every key a
+     * number that is not NaN. Null when the keys are mixed or need the general comparison.
+     *
+     * Hot path (benchmarks yq:group-medium, yq:group-large): a user-space comparator costs a closure call
+     * and several lookups per comparison, which dominated group_by and sort_by on large sequences.
+     *
+     * @param list<Node> $keys
+     *
+     * @return list<int>|null
+     */
+    private function nativeOrder(array $keys, ?string $layout): ?array
+    {
+        if (null !== $layout || [] === $keys) {
+            return null;
+        }
+
+        $values = [];
+        $kind   = null;
+        foreach ($keys as $position => $key) {
+            $key = NodeOps::deref($key);
+            if (NodeKindEnum::Scalar !== $key->kind) {
+                return null;
+            }
+
+            $tag = NodeOps::effectiveTag($key);
+            if (CoreSchema::TAG_INT === $tag || CoreSchema::TAG_FLOAT === $tag) {
+                $number = Numbers::of($key);
+                if (null === $number || (\is_float($number) && is_nan($number)) || (null !== $kind && 'number' !== $kind)) {
+                    return null;
+                }
+
+                $kind                = 'number';
+                $values[$position]   = $number;
+
+                continue;
+            }
+
+            $text = $key->value;
+            if (CoreSchema::TAG_STR !== $tag || (null !== $kind && 'string' !== $kind) || ('' !== $text && $text[0] >= '0' && $text[0] <= '9')) {
+                return null;
+            }
+
+            $kind              = 'string';
+            $values[$position] = $text;
+        }
+
+        if ('string' === $kind) {
+            asort($values, \SORT_STRING);
+        } else {
+            asort($values);
+        }
+
+        return array_keys($values);
     }
 
     /**
@@ -215,11 +290,21 @@ final class SortingCalls implements CallOperatorInterface
             $keyed[] = [$index, $item, $key];
         }
 
-        usort($keyed, static function (array $a, array $b) use ($layout): int {
-            $order = Compare::order($a[2], $b[2], $layout);
+        $fast = $this->nativeOrder(array_column($keyed, 2), $layout);
+        if (null !== $fast) {
+            $reordered = [];
+            foreach ($fast as $position) {
+                $reordered[] = $keyed[$position];
+            }
 
-            return 0 !== $order ? $order : $a[0] <=> $b[0];
-        });
+            $keyed = $reordered;
+        } else {
+            usort($keyed, static function (array $a, array $b) use ($layout): int {
+                $order = Compare::order($a[2], $b[2], $layout);
+
+                return 0 !== $order ? $order : $a[0] <=> $b[0];
+            });
+        }
 
         $groups = [];
         $last   = null;

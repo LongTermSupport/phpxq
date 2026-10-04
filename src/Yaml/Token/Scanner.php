@@ -515,10 +515,11 @@ final class Scanner
         // instead of array_splice, which is several times slower (benchmark yq:identity-medium).
         $at   = $this->head + $position;
         $last = \count($this->tokens) - 1;
-        if ($at === $last) {
-            $displaced           = $this->tokens[$last];
-            $this->tokens[$last] = $token;
-            $this->tokens[]      = $displaced;
+        if ($at === $last && $last >= 0) {
+            $displaced = $this->tokens[$last];
+            array_pop($this->tokens);
+            $this->tokens[] = $token;
+            $this->tokens[] = $displaced;
 
             return;
         }
@@ -1405,7 +1406,7 @@ final class Scanner
                 } elseif (' ' === $c) {
                     $p += strspn($s, ' ', $p);
                 } elseif ("\t" === $c) {
-                    if ($leading && "\t" === $c && $this->colAt($p, $ls) < $indent) {
+                    if ($leading && $this->colAt($p, $ls) < $indent) {
                         $this->sync($p, $line, $ls);
                         $this->error('found a tab character that violates indentation', $startLine);
                     }

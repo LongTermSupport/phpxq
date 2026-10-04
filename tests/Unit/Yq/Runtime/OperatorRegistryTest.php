@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Yq\Runtime;
 
-use LTS\PhpXq\Yq\Expression\Ast\Call;
 use LTS\PhpXq\Yq\Expression\Ast\BinaryOperatorEnum;
+use LTS\PhpXq\Yq\Expression\Ast\Call;
 use LTS\PhpXq\Yq\Runtime\CallOperatorInterface;
 use LTS\PhpXq\Yq\Runtime\EvaluationContext;
 use LTS\PhpXq\Yq\Runtime\EvaluatorInterface;

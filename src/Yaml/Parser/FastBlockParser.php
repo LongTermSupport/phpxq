@@ -75,6 +75,12 @@ final class FastBlockParser
         $indentless = [];
         $depth      = -1;
 
+        // Hot path (benchmark yq:identity-medium): a clone of a prototype plus a few property writes costs a
+        // fraction of a constructor call, and the parser builds one scalar per key and per value.
+        $tagMemo      = [];
+        $scalarProto  = new Node(NodeKindEnum::Scalar);
+        $mappingProto = new Node(NodeKindEnum::Mapping, CoreSchema::TAG_MAP);
+
         $pending       = null;
         $pendingIndent = 0;
         $pendingLine   = 0;
@@ -86,20 +92,19 @@ final class FastBlockParser
 
         while ($position < $length) {
             if (1 !== preg_match(self::LINE, $yaml, $m, \PREG_UNMATCHED_AS_NULL, $position)) {
-                if (null === $root || strspn($yaml, " \n", $position) !== $length - $position) {
+                if (!$root instanceof Node || strspn($yaml, " \n", $position) !== $length - $position) {
                     return null;
                 }
 
                 break;
             }
 
-            $position += \strlen($m[0] ?? '');
-            $blank = $m[1] ?? '';
-            if ('' !== $blank) {
-                $line += substr_count($blank, "\n");
+            $position += \strlen($m[0]);
+            if ('' !== $m[1]) {
+                $line += substr_count($m[1], "\n");
             }
 
-            $indent    = \strlen($m[2] ?? '');
+            $indent    = \strlen($m[2]);
             $dash      = null !== ($m[3] ?? null);
             $key       = $m[5] ?? null;
             $valueOnly = $m[8] ?? null;
@@ -168,13 +173,20 @@ final class FastBlockParser
                 $column = $indent + 1 + \strlen($m[4] ?? '');
                 if (null === $key) {
                     $text              = (string)$valueOnly;
-                    $target->content[] = new Node(NodeKindEnum::Scalar, ScalarResolver::resolve($text), NodeStyleEnum::Default, $text, line: $line, column: $column + 1);
+                    $scalar            = clone $scalarProto;
+                    $scalar->tag       = $tagMemo[$text] ?? self::resolveMemo($text, $tagMemo);
+                    $scalar->value     = $text;
+                    $scalar->line      = $line;
+                    $scalar->column    = $column + 1;
+                    $target->content[] = $scalar;
                     ++$line;
 
                     continue;
                 }
 
-                $item              = new Node(NodeKindEnum::Mapping, CoreSchema::TAG_MAP, NodeStyleEnum::Default, line: $line, column: $column + 1);
+                $item              = clone $mappingProto;
+                $item->line        = $line;
+                $item->column      = $column + 1;
                 $target->content[] = $item;
                 $indents[]         = $column;
                 $isSequence[]      = false;
@@ -184,18 +196,21 @@ final class FastBlockParser
                 $target = $item;
             }
 
-            $keyText           = (string)$key;
-            $target->content[] = new Node(NodeKindEnum::Scalar, ScalarResolver::resolve($keyText), NodeStyleEnum::Default, $keyText, line: $line, column: $column + 1);
+            $keyText           = $key;
+            $scalar            = clone $scalarProto;
+            $scalar->tag       = $tagMemo[$keyText] ?? self::resolveMemo($keyText, $tagMemo);
+            $scalar->value     = $keyText;
+            $scalar->line      = $line;
+            $scalar->column    = $column + 1;
+            $target->content[] = $scalar;
             $valueText         = $m[7] ?? null;
             if (null !== $valueText) {
-                $target->content[] = new Node(
-                    NodeKindEnum::Scalar,
-                    ScalarResolver::resolve($valueText),
-                    NodeStyleEnum::Default,
-                    $valueText,
-                    line: $line,
-                    column: $column + \strlen($keyText) + 2 + \strlen($m[6] ?? ''),
-                );
+                $scalar            = clone $scalarProto;
+                $scalar->tag       = $tagMemo[$valueText] ?? self::resolveMemo($valueText, $tagMemo);
+                $scalar->value     = $valueText;
+                $scalar->line      = $line;
+                $scalar->column    = $column + \strlen($keyText) + 2 + \strlen($m[6] ?? '');
+                $target->content[] = $scalar;
             } else {
                 $pending       = $target;
                 $pendingIndent = $column;
@@ -206,7 +221,7 @@ final class FastBlockParser
             ++$line;
         }
 
-        if (null === $root) {
+        if (!$root instanceof Node) {
             return null;
         }
 
@@ -215,5 +230,22 @@ final class FastBlockParser
         }
 
         return new Node(NodeKindEnum::Document, '', NodeStyleEnum::Default, '', [$root], line: $rootLine, column: 1);
+    }
+
+    /**
+     * The implicit tag of a plain scalar, remembered for the next occurrence of the same text: keys and many
+     * values repeat constantly in data files, and a hit costs a fraction of ScalarResolver::resolve()
+     * (benchmark yq:identity-medium). The memo stops growing at 2048 entries so unique values cannot bloat it.
+     *
+     * @param array<string, string> $memo
+     */
+    private static function resolveMemo(string $text, array &$memo): string
+    {
+        $tag = ScalarResolver::resolve($text);
+        if (\count($memo) < 2048) {
+            $memo[$text] = $tag;
+        }
+
+        return $tag;
     }
 }

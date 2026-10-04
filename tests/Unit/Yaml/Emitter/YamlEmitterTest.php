@@ -30,6 +30,41 @@ final class YamlEmitterTest extends TestCase
     {
         yield 'flat mapping' => [self::map(['a', '1'], ['b', 'two']), "a: 1\nb: two\n"];
 
+        yield 'plain lines before and after nested blocks keep their indentation' => [
+            Node::mapping([
+                Node::scalar('a'), Node::scalar('1'),
+                Node::scalar('b'), Node::mapping([
+                    Node::scalar('c'), Node::scalar('2'),
+                    Node::scalar('d'), Node::sequence([Node::scalar('x'), Node::scalar('y')]),
+                    Node::scalar('e'), Node::scalar('3'),
+                    Node::scalar('f'), Node::scalar('4'),
+                ]),
+                Node::scalar('g'), Node::scalar('5'),
+                Node::scalar('h'), Node::scalar('6'),
+            ]),
+            "a: 1\nb:\n  c: 2\n  d:\n    - x\n    - y\n  e: 3\n  f: 4\ng: 5\nh: 6\n",
+        ];
+
+        yield 'a head comment on a later key interrupts the plain-line run' => [
+            Node::mapping([
+                Node::scalar('a'), Node::scalar('1'),
+                self::commented(Node::scalar('b'), 'about b'), Node::scalar('2'),
+                Node::scalar('c'), Node::scalar('3'),
+            ]),
+            "a: 1\n# about b\nb: 2\nc: 3\n",
+        ];
+
+        yield 'plain sequence items after a nested item' => [
+            Node::sequence([
+                Node::scalar('a'),
+                Node::scalar('b'),
+                Node::sequence([Node::scalar('c')]),
+                Node::scalar('d'),
+                Node::scalar('e'),
+            ]),
+            "- a\n- b\n- - c\n- d\n- e\n",
+        ];
+
         yield 'nested mapping' => [
             Node::mapping([Node::scalar('a'), self::map(['b', '1'])]),
             "a:\n  b: 1\n",
@@ -692,6 +727,13 @@ final class YamlEmitterTest extends TestCase
     private static function anchored(Node $node, string $anchor): Node
     {
         $node->anchor = $anchor;
+
+        return $node;
+    }
+
+    private static function commented(Node $node, string $head): Node
+    {
+        $node->headComment = '# ' . $head;
 
         return $node;
     }

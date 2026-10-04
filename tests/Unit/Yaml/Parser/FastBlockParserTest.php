@@ -30,34 +30,6 @@ final class FastBlockParserTest extends TestCase
         self::assertSame(self::dump($documents[0]), self::dump($fast));
     }
 
-    #[DataProvider('declined')]
-    public function testDeclinedDocuments(string $yaml): void
-    {
-        self::assertNull(FastBlockParser::parse($yaml));
-    }
-
-    public function testGeneratedDocumentsMatchTheFullParserOrAreDeclined(): void
-    {
-        mt_srand(2024);
-        $accepted = 0;
-        for ($i = 0; $i < 400; ++$i) {
-            $lines = [];
-            self::generate(0, mt_rand(0, 2) === 0 ? 2 : 0, $lines);
-            $yaml = implode("\n", $lines) . "\n";
-            $fast = FastBlockParser::parse($yaml);
-            if (!$fast instanceof Node) {
-                continue;
-            }
-
-            ++$accepted;
-            $documents = iterator_to_array(new StreamParser($yaml)->documents(), false);
-            self::assertCount(1, $documents, $yaml);
-            self::assertSame(self::dump($documents[0]), self::dump($fast), $yaml);
-        }
-
-        self::assertGreaterThan(150, $accepted, 'the generator should mostly produce fast-path documents');
-    }
-
     /**
      * @return iterable<string, array{string}>
      */
@@ -75,9 +47,16 @@ final class FastBlockParserTest extends TestCase
         yield 'wide spacing' => ["a:    1\nb:\n    c:   d e   f\n"];
         yield 'dash with extra spaces' => ["-   a: 1\n    b: 2\n-   c\n"];
         yield 'special scalars' => ["a: -5\nb: .5\nc: 0x1F\nd: 2001-12-14\ne: a:b\nf: http://x.y/z\ng: a\"b'c\nh: <<\n"];
+        yield 'repeated texts resolve alike' => ["a: 1\nb: 1\nc: true\nd: true\ne: 1.5\nf: 1.5\ng: ~\nh: ~\ni: 007\nj: 007\n"];
         yield 'null value then dedent' => ["a:\n  b:\nc: 1\n"];
         yield 'nested empty then sibling' => ["a:\n  b:\n  c: 1\n"];
         yield 'deep' => ["a:\n  b:\n    c:\n      d:\n        - 1\n        - e: 2\n          f:\n            - g\n"];
+    }
+
+    #[DataProvider('declined')]
+    public function testDeclinedDocuments(string $yaml): void
+    {
+        self::assertNull(FastBlockParser::parse($yaml));
     }
 
     /**
@@ -125,6 +104,51 @@ final class FastBlockParserTest extends TestCase
         yield 'comment after key' => ["a: # c\n  b: 1\n"];
     }
 
+    public function testGeneratedDocumentsMatchTheFullParserOrAreDeclined(): void
+    {
+        mt_srand(2024);
+        $accepted = 0;
+        for ($i = 0; $i < 400; ++$i) {
+            $lines = [];
+            self::generate(0, 0 === mt_rand(0, 2) ? 2 : 0, $lines);
+            $yaml = implode("\n", $lines) . "\n";
+            $fast = FastBlockParser::parse($yaml);
+            if (!$fast instanceof Node) {
+                continue;
+            }
+
+            ++$accepted;
+            $documents = iterator_to_array(new StreamParser($yaml)->documents(), false);
+            self::assertCount(1, $documents, $yaml);
+            self::assertSame(self::dump($documents[0]), self::dump($fast), $yaml);
+        }
+
+        self::assertGreaterThan(150, $accepted, 'the generator should mostly produce fast-path documents');
+    }
+
+    public function testManyDistinctScalarsStillMatchTheFullParser(): void
+    {
+        // more distinct texts than the tag memo holds, with repeats before and after it fills up
+        $lines = [];
+        for ($i = 0; $i < 2600; ++$i) {
+            $value = match ($i % 4) {
+                0       => (string)$i,
+                1       => 'v' . $i,
+                2       => 'true',
+                default => '1.5',
+            };
+
+            $lines[] = 'key' . $i . ': ' . $value;
+        }
+
+        $yaml = implode("\n", $lines) . "\n";
+        $fast = FastBlockParser::parse($yaml);
+
+        self::assertNotNull($fast);
+        $documents = iterator_to_array(new StreamParser($yaml)->documents(), false);
+        self::assertSame(self::dump($documents[0]), self::dump($fast));
+    }
+
     /**
      * @param list<string> $lines
      */
@@ -139,7 +163,7 @@ final class FastBlockParserTest extends TestCase
                 $lines[] = '';
             }
 
-            $word   = $words[mt_rand(0, count($words) - 1)];
+            $word   = $words[mt_rand(0, \count($words) - 1)];
             $nested = $depth < 4 && 0 === mt_rand(0, 2);
             if ($isSeq) {
                 if ($nested) {
@@ -151,7 +175,7 @@ final class FastBlockParserTest extends TestCase
                         self::generate($depth + 1, $indent + 2, $lines);
                     }
                 } else {
-                    $lines[] = $pad . '- ' . ($i % 2 ? $word : 'k' . $i . ': ' . $word);
+                    $lines[] = $pad . '- ' . (1 === $i % 2 ? $word : 'k' . $i . ': ' . $word);
                 }
 
                 continue;
