@@ -19,19 +19,35 @@ final class LoopInvariantConstructionRuleTest extends RuleTestCase
 {
     private const string FIXTURES = __DIR__ . '/../../../../Fixtures/Defence/LoopConstruction';
 
+    private const string REGISTRY = 'DefaultBuiltinRegistry';
+
     public function testItFlagsInvariantConstructionAndUncachedBuilderCallsInsideLoops(): void
     {
         $this->analyse([self::FIXTURES . '/ConstructsPerIteration.php'], [
-            [$this->direct('DefaultBuiltinRegistry'), 22],
+            [$this->direct(self::REGISTRY), 22],
             [$this->direct('JsonEncoder'), 36],
-            [$this->direct('DefaultBuiltinRegistry'), 49],
-            [$this->helper('call', 'DefaultBuiltinRegistry'), 55],
+            [$this->direct(self::REGISTRY), 49],
+            [$this->helper('call', self::REGISTRY), 55],
         ]);
     }
 
     public function testItAcceptsHoistedMemoisedCheapAndIterationDependentConstruction(): void
     {
         $this->analyse([self::FIXTURES . '/BuildsOnceOrPerInput.php'], []);
+    }
+
+    public function testItFlagsNamedArgumentsStaticClosuresAndCallbacksGivenByName(): void
+    {
+        $this->analyse([self::FIXTURES . '/OddSyntaxConstruction.php'], [
+            [$this->direct('JsonDecoder'), 21],
+            [$this->direct(self::REGISTRY), 31],
+            [$this->helper('build', self::REGISTRY), 42],
+        ]);
+    }
+
+    public function testItSurvivesDynamicClassesSpreadsAnonymousClassesAndFirstClassCallables(): void
+    {
+        $this->analyse([self::FIXTURES . '/OddSyntaxNotReported.php'], []);
     }
 
     protected function getRule(): Rule

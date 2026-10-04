@@ -59,7 +59,7 @@ final class UnconditionalNodes extends NodeVisitorAbstract
     {
         $this->found[] = $node;
 
-        $always = self::alwaysEvaluatedChildren($node);
+        $always = $this->alwaysEvaluatedChildren($node);
         if (null === $always) {
             return null;
         }
@@ -82,16 +82,16 @@ final class UnconditionalNodes extends NodeVisitorAbstract
      *
      * @return list<Node>|null
      */
-    private static function alwaysEvaluatedChildren(Node $node): ?array
+    private function alwaysEvaluatedChildren(Node $node): ?array
     {
         return match (true) {
-            $node instanceof If_, $node instanceof ElseIf_, $node instanceof Switch_, $node instanceof Ternary, $node instanceof Match_ => [$node->cond],
-            $node instanceof Foreach_ => [$node->expr],
-            $node instanceof For_ => array_values($node->init),
-            $node instanceof TryCatch => array_values($node->stmts),
-            $node instanceof BooleanAnd, $node instanceof BooleanOr, $node instanceof LogicalAnd, $node instanceof LogicalOr, $node instanceof Coalesce => [$node->left],
+            $node instanceof If_, $node instanceof ElseIf_, $node instanceof Switch_, $node instanceof Ternary, $node instanceof Match_                                                                => [$node->cond],
+            $node instanceof Foreach_                                                                                                                                                                  => [$node->expr],
+            $node instanceof For_                                                                                                                                                                      => array_values($node->init),
+            $node instanceof TryCatch                                                                                                                                                                  => array_values($node->stmts),
+            $node instanceof BooleanAnd, $node instanceof BooleanOr, $node instanceof LogicalAnd, $node instanceof LogicalOr, $node instanceof Coalesce                                                => [$node->left],
             $node instanceof While_, $node instanceof Do_, $node instanceof Closure, $node instanceof ArrowFunction, $node instanceof Class_, $node instanceof Function_, $node instanceof ClassMethod => [],
-            default => null,
+            default                                                                                                                                                                                    => null,
         };
     }
 }

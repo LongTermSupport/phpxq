@@ -16,6 +16,7 @@ use PhpParser\Node\Expr\BinaryOp\Identical;
 use PhpParser\Node\Expr\BinaryOp\Smaller;
 use PhpParser\Node\Expr\BinaryOp\SmallerOrEqual;
 use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\NullsafePropertyFetch;
 use PhpParser\Node\Expr\PropertyFetch;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Variable;
@@ -102,13 +103,7 @@ final readonly class UnguardedAliasRecursionRule implements Rule
      */
     private function cycleIsBounded(string $name, ClassCallGraph $graph): bool
     {
-        foreach ($graph->methods() as $candidate) {
-            if ($graph->inSameCycle($name, $candidate->name->toString()) && $this->comparesDepth($candidate)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($graph->methods(), fn (ClassMethod $candidate): bool => $graph->inSameCycle($name, $candidate->name->toString()) && $this->comparesDepth($candidate));
     }
 
     private function comparesDepth(ClassMethod $method): bool
@@ -129,8 +124,8 @@ final readonly class UnguardedAliasRecursionRule implements Rule
                 continue;
             }
 
-            foreach ([$comparison->left, $comparison->right] as $operand) {
-                if ($operand instanceof Variable && \in_array($operand->name, $guards, true)) {
+            foreach ([[$comparison->left, $comparison->right], [$comparison->right, $comparison->left]] as [$operand, $limit]) {
+                if ($operand instanceof Variable && \in_array($operand->name, $guards, true) && ($limit instanceof Expr\ClassConstFetch || $limit instanceof Expr\ConstFetch)) {
                     return true;
                 }
             }
@@ -147,6 +142,10 @@ final readonly class UnguardedAliasRecursionRule implements Rule
 
         foreach (new NodeFinder()->find($body, static fn (Node $found): bool => $found instanceof MethodCall || $found instanceof StaticCall) as $call) {
             if (!$call instanceof MethodCall && !$call instanceof StaticCall) {
+                continue;
+            }
+
+            if ($call->isFirstClassCallable()) {
                 continue;
             }
 
@@ -244,12 +243,12 @@ final readonly class UnguardedAliasRecursionRule implements Rule
             return \is_string($expression->name) && isset($tree[$expression->name]) && !isset($tainted[$expression->name]);
         }
 
-        if (!$expression instanceof PropertyFetch && !$expression instanceof ArrayDimFetch) {
+        if (!$expression instanceof PropertyFetch && !$expression instanceof NullsafePropertyFetch && !$expression instanceof ArrayDimFetch) {
             return false;
         }
 
-        for ($link = $expression; $link instanceof PropertyFetch || $link instanceof ArrayDimFetch; $link = $link->var) {
-            if ($link instanceof PropertyFetch && $link->name instanceof Identifier && self::ALIAS_PROPERTY === strtolower($link->name->toString())) {
+        for ($link = $expression; $link instanceof PropertyFetch || $link instanceof NullsafePropertyFetch || $link instanceof ArrayDimFetch; $link = $link->var) {
+            if (!$link instanceof ArrayDimFetch && $link->name instanceof Identifier && self::ALIAS_PROPERTY === strtolower($link->name->toString())) {
                 return false;
             }
         }
@@ -262,7 +261,7 @@ final readonly class UnguardedAliasRecursionRule implements Rule
      */
     private function rootedIn(Expr $expression, array $tree): bool
     {
-        while ($expression instanceof PropertyFetch || $expression instanceof ArrayDimFetch) {
+        while ($expression instanceof PropertyFetch || $expression instanceof NullsafePropertyFetch || $expression instanceof ArrayDimFetch) {
             $expression = $expression->var;
         }
 
@@ -279,7 +278,7 @@ final readonly class UnguardedAliasRecursionRule implements Rule
                 return \is_string($inside->name) && isset($tainted[$inside->name]);
             }
 
-            if ($inside instanceof PropertyFetch) {
+            if ($inside instanceof PropertyFetch || $inside instanceof NullsafePropertyFetch) {
                 return $inside->name instanceof Identifier && self::ALIAS_PROPERTY === strtolower($inside->name->toString());
             }
 
@@ -298,8 +297,8 @@ final readonly class UnguardedAliasRecursionRule implements Rule
      */
     private function boundNames(Expr $target): array
     {
-        if ($target instanceof ArrayDimFetch || $target instanceof PropertyFetch) {
-            return $target->var instanceof Expr ? $this->boundNames($target->var) : [];
+        if ($target instanceof ArrayDimFetch || $target instanceof PropertyFetch || $target instanceof NullsafePropertyFetch) {
+            return $this->boundNames($target->var);
         }
 
         if ($target instanceof Variable) {

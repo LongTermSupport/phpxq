@@ -6,7 +6,6 @@ namespace QaConfig\PHPStan\Rules;
 
 use PhpParser\Node;
 use PhpParser\Node\Arg;
-use PhpParser\Node\ArrayItem;
 use PhpParser\Node\ClosureUse;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\ArrayDimFetch;
@@ -232,8 +231,42 @@ final readonly class LoopInvariantConstructionRule implements Rule
      */
     private function argumentsAreInvariant(New_ $new, array $written, bool $allowLocals): bool
     {
-        foreach ($new->args as $argument) {
-            if (!$argument instanceof Arg || !$this->isInvariant($argument->value, $written, $allowLocals)) {
+        return $this->isInvariant($new, $written, $allowLocals);
+    }
+
+    /**
+     * Whether the expression, and every array item and constructor argument inside it, is invariant. Walks a
+     * worklist rather than recursing, so a deeply nested literal cannot exhaust the native stack.
+     *
+     * @param array<string, true> $written
+     */
+    private function isInvariant(Expr $expression, array $written, bool $allowLocals): bool
+    {
+        $pending = [$expression];
+        $counter = \count($pending);
+        for ($index = 0; $index < $counter; ++$index) {
+            $current = $pending[$index];
+            if ($current instanceof Expr\Array_) {
+                foreach ($current->items as $item) {
+                    $pending[] = $item->value;
+                }
+
+                continue;
+            }
+
+            if ($current instanceof New_) {
+                foreach ($current->args as $argument) {
+                    if (!$argument instanceof Arg) {
+                        return false;
+                    }
+
+                    $pending[] = $argument->value;
+                }
+
+                continue;
+            }
+
+            if (!$this->isLeafInvariant($current, $written, $allowLocals)) {
                 return false;
             }
         }
@@ -244,7 +277,7 @@ final readonly class LoopInvariantConstructionRule implements Rule
     /**
      * @param array<string, true> $written
      */
-    private function isInvariant(Expr $expression, array $written, bool $allowLocals): bool
+    private function isLeafInvariant(Expr $expression, array $written, bool $allowLocals): bool
     {
         if ($expression instanceof InterpolatedString) {
             return false;
@@ -262,17 +295,7 @@ final readonly class LoopInvariantConstructionRule implements Rule
             return $expression->var instanceof Variable && 'this' === $expression->var->name && $expression->name instanceof Identifier;
         }
 
-        if ($expression instanceof Expr\Array_) {
-            foreach ($expression->items as $item) {
-                if (!$this->isInvariant($item->value, $written, $allowLocals)) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        return $expression instanceof New_ && $this->argumentsAreInvariant($expression, $written, $allowLocals);
+        return false;
     }
 
     /**
@@ -367,11 +390,11 @@ final readonly class LoopInvariantConstructionRule implements Rule
     private function bodyNodes(Node $loop): array
     {
         $roots = match (true) {
-            $loop instanceof For_          => [...$loop->cond, ...$loop->loop, ...$loop->stmts],
-            $loop instanceof While_, $loop instanceof Do_ => [$loop->cond, ...$loop->stmts],
+            $loop instanceof For_                               => [...$loop->cond, ...$loop->loop, ...$loop->stmts],
+            $loop instanceof While_, $loop instanceof Do_       => [$loop->cond, ...$loop->stmts],
             $loop instanceof Foreach_, $loop instanceof Closure => $loop->stmts,
-            $loop instanceof ArrowFunction => [$loop->expr],
-            default                        => [],
+            $loop instanceof ArrowFunction                      => [$loop->expr],
+            default                                             => [],
         };
 
         return array_values(new NodeFinder()->find($roots, static fn (): bool => true));
@@ -433,11 +456,11 @@ final readonly class LoopInvariantConstructionRule implements Rule
     private function writtenBy(Node $writer): array
     {
         return match (true) {
-            $writer instanceof Foreach_ => $writer->keyVar instanceof Expr ? [$writer->valueVar, $writer->keyVar] : [$writer->valueVar],
-            $writer instanceof Unset_   => array_values($writer->vars),
-            $writer instanceof Closure  => array_map(static fn (ClosureUse $use): Expr => $use->var, $writer->uses),
+            $writer instanceof Foreach_                                                                                                                                                                        => $writer->keyVar instanceof Expr ? [$writer->valueVar, $writer->keyVar] : [$writer->valueVar],
+            $writer instanceof Unset_                                                                                                                                                                          => array_values($writer->vars),
+            $writer instanceof Closure                                                                                                                                                                         => array_values(array_map(static fn (ClosureUse $use): Expr => $use->var, $writer->uses)),
             $writer instanceof Assign, $writer instanceof AssignOp, $writer instanceof AssignRef, $writer instanceof PreInc, $writer instanceof PostInc, $writer instanceof PreDec, $writer instanceof PostDec => [$writer->var],
-            default                     => [],
+            default                                                                                                                                                                                            => [],
         };
     }
 }

@@ -110,12 +110,6 @@ final readonly class RecursionThroughNativeCallbackRule implements Rule
             return false;
         }
 
-        foreach (ClassCallGraph::targetsIn($inside, $shortName) as $target) {
-            if ($graph->inSameCycle($method->name->toString(), $target)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any(ClassCallGraph::targetsIn($inside, $shortName), static fn (string $target): bool => $graph->inSameCycle($method->name->toString(), $target));
     }
 }

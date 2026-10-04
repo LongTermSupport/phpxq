@@ -19,18 +19,36 @@ final class RecursionThroughNativeCallbackRuleTest extends RuleTestCase
 {
     private const string FIXTURES = __DIR__ . '/../../../../Fixtures/Defence/NativeCallback';
 
+    private const string CALLBACK_CLASS = 'RecursesThroughCallback';
+
+    private const string MAP = 'array_map';
+
     public function testItFlagsRecursionThroughAClosureAFirstClassCallableAndAMutualCycle(): void
     {
         $this->analyse([self::FIXTURES . '/RecursesThroughCallback.php'], [
-            [$this->message('RecursesThroughCallback', 'equals', 'array_all'), 18],
-            [$this->message('RecursesThroughCallback', 'mapFirstClass', 'array_map'), 28],
-            [$this->message('RecursesThroughCallback', 'mutualA', 'array_map'), 38],
+            [$this->message(self::CALLBACK_CLASS, 'equals', 'array_all'), 18],
+            [$this->message(self::CALLBACK_CLASS, 'mapFirstClass', self::MAP), 28],
+            [$this->message(self::CALLBACK_CLASS, 'mutualA', self::MAP), 38],
         ]);
     }
 
     public function testItLeavesLoopsAndCallbacksThatDoNotRecurseAlone(): void
     {
         $this->analyse([self::FIXTURES . '/RecursesWithoutCallback.php'], []);
+    }
+
+    public function testItFlagsNamedArgumentsStaticClosuresAndEnums(): void
+    {
+        $this->analyse([self::FIXTURES . '/RecursesInOddSyntax.php'], [
+            [$this->message('RecursesInOddSyntax', 'namedArguments', self::MAP), 19],
+            [$this->message('RecursesInOddSyntax', 'staticClosure', self::MAP), 29],
+            [$this->message('RecursiveEnum', 'walk', self::MAP), 46],
+        ]);
+    }
+
+    public function testItSurvivesFirstClassNativesSpreadsDynamicCallablesInterfacesAndTraits(): void
+    {
+        $this->analyse([self::FIXTURES . '/OddSyntaxNotRecursing.php'], []);
     }
 
     protected function getRule(): Rule
