@@ -63,17 +63,17 @@ final class SortingCalls implements CallOperatorInterface
         $items  = Traversal::values($match, false);
         switch ($call->name) {
             case 'sort':
-                return [Cands::derive($this->rebuild($node, $this->sorted($items, [], $layout, $context, $evaluator)), $match)];
+                return [Cands::deriveInDocument($this->rebuild($node, $this->sorted($items, [], $layout, $context, $evaluator)), $match)];
 
             case 'sort_by':
                 Args::require($call, 1);
 
-                return [Cands::derive($this->rebuild($node, $this->sorted($items, $call->arguments, $layout, $context, $evaluator)), $match)];
+                return [Cands::deriveInDocument($this->rebuild($node, $this->sorted($items, $call->arguments, $layout, $context, $evaluator)), $match)];
 
             case 'group_by':
                 Args::require($call, 1);
 
-                return [Cands::derive($this->groupBy($items, $call, $layout, $context, $evaluator), $match)];
+                return [Cands::derive($this->groupBy($items, $call, $context, $evaluator), $match)];
 
             case 'unique':
                 return [Cands::derive($this->unique($items, null, $context, $evaluator), $match)];
@@ -124,7 +124,7 @@ final class SortingCalls implements CallOperatorInterface
 
                 shuffle($copies);
 
-                return [Cands::derive(NodeOps::seq($copies), $match)];
+                return [Cands::deriveInDocument(NodeOps::seq($copies), $match)];
         }
     }
 
@@ -205,36 +205,21 @@ final class SortingCalls implements CallOperatorInterface
     /**
      * @param list<Candidate> $items
      */
-    private function groupBy(array $items, Call $call, ?string $layout, EvaluationContext $context, EvaluatorInterface $evaluator): Node
+    private function groupBy(array $items, Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): Node
     {
-        $read  = $context->withDontAutoCreate(true);
-        $keyed = [];
-        foreach ($items as $index => $item) {
+        $read = $context->withDontAutoCreate(true);
+
+        // The reference groups by the key's scalar text in order of first appearance (it does not sort).
+        $groups = [];
+        foreach ($items as $item) {
             $results = $evaluator->evaluate($call->arguments[0], $read->withMatches([$item]));
             $key     = [] === $results ? NodeOps::null() : Cands::node($results[0]);
-            $keyed[] = [$index, $item, $key];
+            $text    = NodeKindEnum::Scalar === $key->kind ? $key->value : '';
+
+            $groups[$text][] = $item->node->deepCopy();
         }
 
-        usort($keyed, static function (array $a, array $b) use ($layout): int {
-            $order = Compare::order($a[2], $b[2], $layout);
-
-            return 0 !== $order ? $order : $a[0] <=> $b[0];
-        });
-
-        $groups = [];
-        $last   = null;
-        $index  = -1;
-        foreach ($keyed as [, $item, $key]) {
-            if (!$last instanceof Node || NodeOps::isNull($last) !== NodeOps::isNull($key) || !Compare::deepEquals($last, $key)) {
-                $groups[] = [];
-                ++$index;
-                $last = $key;
-            }
-
-            $groups[$index][] = $item->node->deepCopy();
-        }
-
-        return NodeOps::seq(array_map(NodeOps::seq(...), $groups));
+        return NodeOps::seq(array_map(NodeOps::seq(...), array_values($groups)));
     }
 
     /**

@@ -66,6 +66,10 @@ final readonly class YqApplication implements YqApplicationInterface
         } catch (UsageException $e) {
             fwrite($stderr, 'Error: ' . $e->getMessage() . "\n" . HelpText::usage($parsed->command) . "\n");
         } catch (CliException|EvaluationException|ExpressionSyntaxException|FormatException|YamlSyntaxException|LogicException $e) {
+            if ($e instanceof CliException && CliException::BROKEN_PIPE === $e->getCode()) {
+                return CliException::BROKEN_PIPE_EXIT;
+            }
+
             fwrite($stderr, 'Error: ' . $e->getMessage() . "\n");
         }
 

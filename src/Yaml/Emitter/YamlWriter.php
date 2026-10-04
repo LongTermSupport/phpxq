@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yaml\Emitter;
 
+use LogicException;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\NodeStyleEnum;
+use LTS\PhpXq\Yaml\Parser\ScalarResolver;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 
 /**
@@ -71,13 +73,26 @@ final class YamlWriter
 
     private int $indent = -1;
 
+    /** Line comment of the node being emitted that has not been written yet. */
+    private string $pendingLineComment = '';
+
+    /** True while the next block collection or scalar opens directly inside a "- " sequence item. */
+    private bool $inSequenceItem = false;
+
     /** Indent of the foot comment just written, or -1; the next line at that indent is preceded by a blank line. */
     private int $footIndent = -1;
 
     private int $flowLevel = 0;
 
+    /** @var array<int, true> the collections being emitted right now, to refuse a structure that contains itself */
+    private array $onPath = [];
+
+    /** Spaces per level; libyaml falls back to 2 for anything outside 2..9. */
+    private readonly int $step;
+
     public function __construct(private readonly EmitOptions $options)
     {
+        $this->step = $options->indent < 2 || $options->indent > 9 ? 2 : $options->indent;
     }
 
     /**
@@ -92,10 +107,8 @@ final class YamlWriter
             $this->writeComment($root->headComment);
         }
 
-        $this->emitNode($root, false, null, null, $block ? $root->lineComment : '');
-        if (!$block && '' !== $root->lineComment) {
-            $this->writeLineComment($root->lineComment);
-        }
+        $this->emitNode($root, false, null, null, $block ? $root->lineComment : '', $block ? '' : $root->lineComment);
+        $this->flushLineComment();
 
         if (!$this->indention) {
             if ($this->column > 0) {
@@ -133,8 +146,12 @@ final class YamlWriter
     /**
      * @param array{tag: string, style: NodeStyleEnum, value: string, analysis: ScalarAnalysis}|null $plan
      */
-    private function emitNode(Node $node, bool $simpleKey, ?array $plan, ?int $color, string $headerComment): void
+    private function emitNode(Node $node, bool $simpleKey, ?array $plan, ?int $color, string $headerComment, string $lineComment = ''): void
     {
+        if ('' !== $lineComment) {
+            $this->pendingLineComment = $lineComment;
+        }
+
         switch ($node->kind) {
             case NodeKindEnum::Alias:
                 $this->writeAnchor('*', $node->value);
@@ -149,13 +166,20 @@ final class YamlWriter
 
                 return;
 
-            case NodeKindEnum::Document:
-                $this->emitNode($node->root(), $simpleKey, null, $color, $headerComment);
-
-                return;
-
             default:
-                $this->emitCollection($node, $headerComment);
+                $id = spl_object_id($node);
+                if (isset($this->onPath[$id])) {
+                    throw new LogicException('cannot encode a cyclic structure as yaml');
+                }
+
+                $this->onPath[$id] = true;
+                if (NodeKindEnum::Document === $node->kind) {
+                    $this->emitNode($node->root(), $simpleKey, null, $color, $headerComment, $lineComment);
+                } else {
+                    $this->emitCollection($node, $headerComment);
+                }
+
+                unset($this->onPath[$id]);
         }
     }
 
@@ -223,6 +247,8 @@ final class YamlWriter
         $saved = $this->indent;
         $this->increaseIndent();
 
+        // go-yaml writes a scalar value's head comment before the next key, unless that key has its own.
+        $carry = '';
         $head  = $mapping->headComment;
         $count = \count($mapping->content);
         for ($i = 0; $i < $count; $i += 2) {
@@ -230,12 +256,10 @@ final class YamlWriter
             $value = $mapping->content[$i + 1] ?? new Node(NodeKindEnum::Scalar, '!!null');
 
             $valueBlock = $this->isBlockCollection($value);
-            $heads      = [$head, $key->headComment];
-            if (!$valueBlock) {
-                $heads[] = $value->headComment;
-            }
+            $heads      = [$head, '' !== $key->headComment ? $key->headComment : $carry];
 
-            $head = '';
+            $head  = '';
+            $carry = $valueBlock ? '' : $value->headComment;
             $this->writeHeadComments($heads);
 
             $this->writeIndent();
@@ -251,12 +275,10 @@ final class YamlWriter
             }
 
             $lineComment = '' !== $value->lineComment ? $value->lineComment : $key->lineComment;
-            $this->emitNode($value, false, null, null, $valueBlock ? $lineComment : '');
-            if (!$valueBlock && '' !== $lineComment) {
-                $this->writeLineComment($lineComment);
-            }
+            $this->emitNode($value, false, null, null, $valueBlock ? $lineComment : '', $valueBlock ? '' : $lineComment);
+            $this->flushLineComment();
 
-            $this->writeFootComments([$key->footComment, $value->footComment]);
+            $this->writeFootComments([$key->footComment, $value->footComment, $i + 2 >= $count ? $carry : '']);
         }
 
         $this->indent = $saved;
@@ -276,10 +298,11 @@ final class YamlWriter
             $this->indicator('-', true, false, true);
 
             $itemBlock = $this->isBlockCollection($item);
-            $this->emitNode($item, false, null, null, $itemBlock ? $item->lineComment : '');
-            if (!$itemBlock && '' !== $item->lineComment) {
-                $this->writeLineComment($item->lineComment);
-            }
+
+            $this->inSequenceItem = true;
+            $this->emitNode($item, false, null, null, $itemBlock ? $item->lineComment : '', $itemBlock ? '' : $item->lineComment);
+            $this->inSequenceItem = false;
+            $this->flushLineComment();
 
             $this->writeFootComments([$item->footComment]);
         }
@@ -385,7 +408,7 @@ final class YamlWriter
         $stag  = $this->shortTag($node->tag);
         $tag   = $stag;
 
-        if ($this->options->prettyPrint && (NodeStyleEnum::DoubleQuoted === $style || NodeStyleEnum::SingleQuoted === $style)) {
+        if ($this->options->prettyPrint && NodeStyleEnum::Default !== $style && NodeStyleEnum::Flow !== $style) {
             $style = isset(self::OLD_BOOLS[$value]) ? NodeStyleEnum::DoubleQuoted : NodeStyleEnum::Default;
         }
 
@@ -397,8 +420,8 @@ final class YamlWriter
             $style   = NodeStyleEnum::Default;
         }
 
-        $quoted = NodeStyleEnum::DoubleQuoted                                                                                                                                                                             === $style || NodeStyleEnum::SingleQuoted === $style
-                                                                                                                                                                                                                                     || NodeStyleEnum::Literal         === $style || NodeStyleEnum::Folded === $style;
+        $quoted = NodeStyleEnum::DoubleQuoted                                                                                                                                                                                                                          === $style || NodeStyleEnum::SingleQuoted === $style
+                                                                                                                                                                                                                                                                                  || NodeStyleEnum::Literal         === $style || NodeStyleEnum::Folded === $style;
 
         $force = false;
         if ('' !== $tag && !$node->tagExplicit) {
@@ -445,6 +468,11 @@ final class YamlWriter
         }
 
         $tag = CoreSchema::resolve($value);
+        if (CoreSchema::TAG_INT === $tag && CoreSchema::TAG_INT !== ScalarResolver::resolve($value)) {
+            // Decimal digits beyond 64 bits resolve as a float, as go-yaml does.
+            $tag = ScalarResolver::resolve($value);
+        }
+
         if (CoreSchema::TAG_STR !== $tag || '' === $value) {
             return $tag;
         }
@@ -525,7 +553,7 @@ final class YamlWriter
             case NodeStyleEnum::Literal:
             case NodeStyleEnum::Folded:
                 if ($saved < 0) {
-                    $this->indent = $this->options->indent;
+                    $this->indent = $this->step;
                 }
 
                 if (NodeStyleEnum::Literal === $style) {
@@ -640,7 +668,7 @@ final class YamlWriter
     private function writeBlockScalarHints(string $value): void
     {
         if ('' !== $value && (' ' === $value[0] || "\n" === $value[0])) {
-            $this->indicator((string)$this->options->indent, false, false, false);
+            $this->indicator((string)$this->step, false, false, false);
         }
 
         $length = \strlen($value);
@@ -657,11 +685,26 @@ final class YamlWriter
         }
     }
 
+    /**
+     * Ends the `|` / `>` header line: a pending line comment goes after the indicators (and ends the line
+     * itself), otherwise the line is just broken.
+     */
+    private function endBlockScalarHeader(): void
+    {
+        if ('' === $this->pendingLineComment) {
+            $this->putBreak();
+
+            return;
+        }
+
+        $this->flushLineComment();
+    }
+
     private function writeLiteral(string $value, ?int $color): void
     {
         $this->indicator('|', true, false, false);
         $this->writeBlockScalarHints($value);
-        $this->putBreak();
+        $this->endBlockScalarHeader();
         $this->indention  = true;
         $this->whitespace = true;
 
@@ -689,25 +732,23 @@ final class YamlWriter
     {
         $this->indicator('>', true, false, false);
         $this->writeBlockScalarHints($value);
-        $this->putBreak();
+        $this->endBlockScalarHeader();
         $this->indention  = true;
         $this->whitespace = true;
+
+        // go-yaml measures the "next character is blank" test from the START of the value, not from the
+        // newline being written, so every newline between non-blank text gets an extra blank line unless
+        // the value itself begins with a blank.
+        $lead       = ltrim($value, "\n\r");
+        $extraBreak = '' !== $lead && !\in_array($lead[0], [' ', "\t"], true);
 
         $parts          = explode("\n", $value);
         $breaks         = true;
         $leadingSpaces  = true;
-        $partCount      = \count($parts);
         foreach ($parts as $j => $part) {
             if ($j > 0) {
-                if (!$breaks && !$leadingSpaces) {
-                    $k = $j;
-                    while ($k < $partCount && '' === $parts[$k]) {
-                        ++$k;
-                    }
-
-                    if ($k < $partCount && ' ' !== $parts[$k][0] && "\t" !== $parts[$k][0]) {
-                        $this->putBreak();
-                    }
+                if (!$breaks && !$leadingSpaces && $extraBreak) {
+                    $this->putBreak();
                 }
 
                 $this->putBreak();
@@ -798,6 +839,18 @@ final class YamlWriter
         }
     }
 
+    /**
+     * Writes the line comment an emitted node left pending (block scalars write theirs beside the header).
+     */
+    private function flushLineComment(): void
+    {
+        if ('' !== $this->pendingLineComment) {
+            $comment                  = $this->pendingLineComment;
+            $this->pendingLineComment = '';
+            $this->writeLineComment($comment);
+        }
+    }
+
     private function writeLineComment(string $comment): void
     {
         if (!$this->whitespace) {
@@ -838,7 +891,18 @@ final class YamlWriter
 
     private function increaseIndent(): void
     {
-        $this->indent = $this->indent < 0 ? 0 : $this->indent + $this->options->indent;
+        $inSequenceItem        = $this->inSequenceItem;
+        $this->inSequenceItem  = false;
+
+        if ($this->indent < 0) {
+            $this->indent = 0;
+
+            return;
+        }
+
+        $this->indent = $inSequenceItem
+            ? $this->indent + 2
+            : $this->step * intdiv($this->indent + $this->step, $this->step);
     }
 
     private function writeIndent(): void

@@ -23,6 +23,9 @@ final class Node
     /** Set on a Document node whose comments were assigned empty: the slurped file header is dropped with them. */
     public bool $commentsCleared = false;
 
+    /** The comment and blank lines slurped ahead of a first document by the CLI, `# ` markers included. */
+    public string $leadingContent = '';
+
     /**
      * @param list<Node> $content
      */

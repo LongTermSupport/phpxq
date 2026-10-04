@@ -41,7 +41,7 @@ final class ArgumentParser
                 break;
             }
 
-            if ('-' === $arg || '-' !== $arg[0]) {
+            if ('' === $arg || '-' === $arg || '-' !== $arg[0]) {
                 $positionals[] = $arg;
 
                 continue;
@@ -78,7 +78,7 @@ final class ArgumentParser
                 break;
             }
 
-            if ('-' !== $arg[0]) {
+            if ('' === $arg || '-' !== $arg[0]) {
                 if (!\in_array($arg, self::COMMANDS, true)) {
                     break;
                 }

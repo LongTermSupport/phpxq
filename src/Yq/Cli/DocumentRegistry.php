@@ -26,11 +26,12 @@ final class DocumentRegistry
     public function register(Node $document, string $header, bool $synthetic): void
     {
         $this->documents[$document] = [$header, $synthetic];
+        $document->leadingContent   = $header;
     }
 
     public function headerFor(Node $node): string
     {
-        return isset($this->documents[$node]) ? $this->documents[$node][0] : '';
+        return isset($this->documents[$node]) ? $node->leadingContent : '';
     }
 
     /**

@@ -73,7 +73,7 @@ final class StructureCalls implements CallOperatorInterface
             default:
                 $out = [];
                 foreach ($context->matches as $match) {
-                    $out[] = Cands::derive($this->pickOrOmit($call, $match, $context, $evaluator), $match);
+                    $out[] = Cands::deriveInDocument($this->pickOrOmit($call, $match, $context, $evaluator), $match);
                 }
 
                 return $out;

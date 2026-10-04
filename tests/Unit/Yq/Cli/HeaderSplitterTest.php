@@ -16,7 +16,7 @@ final class HeaderSplitterTest extends TestCase
     #[DataProvider('splitProvider')]
     public function testSplit(string $input, string $header, string $rest): void
     {
-        self::assertSame([$header, $rest], new HeaderSplitter()->split($input));
+        self::assertSame([$header, $rest], new HeaderSplitter()->split($input, false));
     }
 
     /**
@@ -43,5 +43,28 @@ final class HeaderSplitterTest extends TestCase
         yield 'separator with comment'      => ["--- # c\na: 1\n", '', "--- # c\na: 1\n"];
         yield 'trailing blanks after dashes' => ["---  \na: 1\n", $marker . "\n", "a: 1\n"];
         yield 'crlf'                        => ["# one\r\n---\r\na: 1\r\n", "# one\n" . $marker . "\n", "a: 1\r\n"];
+    }
+
+    #[DataProvider('wholeProvider')]
+    public function testWholeModeTakesTheEntireLeadingRun(string $input, string $header, string $rest): void
+    {
+        self::assertSame([$header, $rest], new HeaderSplitter()->split($input));
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string}>
+     */
+    public static function wholeProvider(): iterable
+    {
+        $marker = HeaderSplitter::SEPARATOR_MARKER;
+
+        yield 'no header'                      => ["a: 1\n", '', "a: 1\n"];
+        yield 'comments above content'         => ["# one\n# two\na: 1\n", "# one\n# two\n", "a: 1\n"];
+        yield 'indented comment'               => ["  # one\na: 1\n", "  # one\n", "a: 1\n"];
+        yield 'leading blank lines'            => ["\n\na: 1\n", "\n\n", "a: 1\n"];
+        yield 'blank lines around a comment'   => ["\n# c\n\n\na: 1\n", "\n# c\n\n\n", "a: 1\n"];
+        yield 'directive without a separator'  => ["%YAML 1.1\na: 1\n", "%YAML 1.1\n", "a: 1\n"];
+        yield 'comments and separator'         => ["# one\n---\na: 1\n", "# one\n" . $marker . "\n", "a: 1\n"];
+        yield 'separator with comment'         => ["--- # c\na: 1\n", '', "--- # c\na: 1\n"];
     }
 }

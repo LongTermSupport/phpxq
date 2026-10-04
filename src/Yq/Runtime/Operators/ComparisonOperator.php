@@ -47,7 +47,7 @@ final class ComparisonOperator implements BinaryOperatorInterface
                 $l = $left instanceof Candidate ? Cands::node($left) : NodeOps::null();
                 $r = $right instanceof Candidate ? Cands::node($right) : NodeOps::null();
 
-                return Cands::derive(NodeOps::bool(self::decide($operator, $l, $r, $layout)), $from);
+                return Cands::deriveInDocument(NodeOps::bool(self::decide($operator, $l, $r, $layout)), $from);
             },
         );
     }

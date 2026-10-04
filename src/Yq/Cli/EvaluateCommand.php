@@ -144,6 +144,7 @@ final readonly class EvaluateCommand
                     $inputFormat,
                     $this->formatOptions($args, $inputFormat, false, true),
                     $this->headerMode($args, $evalAll),
+                    FormatEnum::Yaml === $outputFormat,
                 );
                 if ($evalAll) {
                     $all = iterator_to_array($documents, false);

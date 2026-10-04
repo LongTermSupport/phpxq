@@ -116,6 +116,10 @@ final class JsonDecoderTest extends TestCase
         yield 'missing colon' => ['{"a" 1}'];
 
         yield 'non string key' => ['{1: 2}'];
+
+        yield 'float overflow' => ['1e999'];
+
+        yield 'negative float overflow' => ['[-1e999]'];
     }
 
     /**

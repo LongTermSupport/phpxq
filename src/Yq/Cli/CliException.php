@@ -11,4 +11,9 @@ use RuntimeException;
  */
 final class CliException extends RuntimeException
 {
+    /** Code of the failure when the output sink went away (a closed pipe): the run ends quietly, as a SIGPIPE death would. */
+    public const int BROKEN_PIPE = 32;
+
+    /** Exit status of a process killed by SIGPIPE. */
+    public const int BROKEN_PIPE_EXIT = 141;
 }

@@ -28,6 +28,12 @@ final class FormatCalls implements CallOperatorInterface
 {
     private const array DATA_FORMATS = ['json', 'yaml', 'props', 'xml', 'toml', 'hcl', 'lua', 'shell', 'kyaml', 'csv', 'tsv'];
 
+    /**
+     * The reference leaves the final newline off every encoded string once a decoded string did not end
+     * with one; this follows the most recent decode.
+     */
+    private bool $decodedWithoutFinalNewline = false;
+
     public function names(): array
     {
         $names = ['@sh', '@uri', '@urid', '@base64', '@base64d', '@base64url', '@base64urld', '@html', '@csv', '@tsv', '@csvd', '@tsvd'];
@@ -62,10 +68,6 @@ final class FormatCalls implements CallOperatorInterface
         if (str_starts_with($name, 'to_')) {
             $indent = Args::int($call, 0, $context, $evaluator, $match);
             $result = $this->encode(substr($name, 3), $node, $match, $context, $indent ?? 2);
-            $text   = $result->node->value;
-            if (\in_array(substr($name, 3), ['yaml', 'json'], true) && !str_contains(rtrim($text, "\n"), "\n") && str_ends_with($text, "\n")) {
-                return Cands::derive(NodeOps::str(rtrim($text, "\n")), $match);
-            }
 
             return $result;
         }
@@ -116,8 +118,10 @@ final class FormatCalls implements CallOperatorInterface
             throw new EvaluationException($formatException->getMessage(), 0, $formatException);
         }
 
-        if (FormatEnum::Json === $format && 0 === $indent) {
+        if (FormatEnum::Json === $format && 0 === $indent || FormatEnum::Xml === $format && NodeKindEnum::Scalar === $node->kind) {
             $text = rtrim($text, "\n");
+        } elseif ($this->decodedWithoutFinalNewline && str_ends_with($text, "\n")) {
+            $text = substr($text, 0, -1);
         }
 
         return Cands::derive(NodeOps::str($text), $match);
@@ -132,6 +136,13 @@ final class FormatCalls implements CallOperatorInterface
 
         if (NodeKindEnum::Scalar !== $node->kind) {
             throw new EvaluationException(\sprintf('Cannot decode a %s as %s', NodeOps::kindName($node), $formatName));
+        }
+
+        $this->decodedWithoutFinalNewline = !str_ends_with($node->value, "\n");
+
+        // The reference decodes JSON text with its YAML parser, so flow style and number spelling survive.
+        if (FormatEnum::Json === $format) {
+            $format = FormatEnum::Yaml;
         }
 
         try {
