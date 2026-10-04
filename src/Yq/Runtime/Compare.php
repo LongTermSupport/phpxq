@@ -192,6 +192,16 @@ final class Compare
                 return $a <=> $b;
 
             case 3:
+                // Hot path (benchmarks yq:group-medium, yq:group-large): equal strings, and strings that do not
+                // start with a digit, are never dates, so they skip the two timestamp parses per comparison.
+                if ($left->value === $right->value) {
+                    return 0;
+                }
+
+                if (null === $layout && ('' === $left->value || $left->value[0] > '9' || $left->value[0] < '0' || '' === $right->value || $right->value[0] > '9' || $right->value[0] < '0')) {
+                    return strcmp($left->value, $right->value) <=> 0;
+                }
+
                 $dates = self::dates($left->value, $right->value, $layout);
                 if (null !== $dates) {
                     return $dates;

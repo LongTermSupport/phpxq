@@ -48,6 +48,29 @@ final readonly class YqApplication implements YqApplicationInterface
 
     public function run(array $args, mixed $stdin, mixed $stdout, mixed $stderr): int
     {
+        // The cycle collector re-scans the huge, cycle-free node tree every few thousand allocations; a run
+        // is short-lived, so it is switched off for its duration (benchmarks yq:identity-medium and
+        // yq:group-medium, results-yq.md optimisation 4).
+        $collector = gc_enabled();
+        gc_disable();
+
+        try {
+            return $this->runCommand($args, $stdin, $stdout, $stderr);
+        } finally {
+            if ($collector) {
+                gc_enable();
+            }
+        }
+    }
+
+    /**
+     * @param list<string> $args
+     * @param resource     $stdin
+     * @param resource     $stdout
+     * @param resource     $stderr
+     */
+    private function runCommand(array $args, mixed $stdin, mixed $stdout, mixed $stderr): int
+    {
         $first = $args[0] ?? '';
         if ('__complete' === $first || '__completeNoDesc' === $first) {
             return new CompleteCommand()->run(\array_slice($args, 1), '__complete' === $first, $stdout, $stderr);

@@ -1,0 +1,469 @@
+{
+    "schema": 1,
+    "label": "yq-after",
+    "startedAt": "2026-10-04T07:27:11+00:00",
+    "environment": {
+        "php_version": "8.5.11",
+        "php_binary": "/usr/bin/php8.5",
+        "php_sapi": "cli",
+        "opcache_loaded": "yes",
+        "opcache_enable_cli": "0",
+        "jit": "disable",
+        "jit_buffer_size": "64M",
+        "xdebug_loaded": "no",
+        "memory_limit": "-1",
+        "cpu_model": "Intel(R) Xeon(R) E-2236 CPU @ 3.40GHz",
+        "cpu_cores": "8",
+        "kernel": "7.2.8-200.fc44.x86_64",
+        "os": "Linux",
+        "hostname": "5dc514e2f2e9"
+    },
+    "settings": {
+        "repetitions": "3",
+        "warmup": "1",
+        "sizes": "small,medium",
+        "tools": "yq",
+        "filter": "none",
+        "binary": "none",
+        "commit": "55f4e90",
+        "subject_php": "php"
+    },
+    "targets": [
+        {
+            "id": "phpxq-yq",
+            "tool": "yq",
+            "role": "subject",
+            "version": "55f4e90",
+            "command": "php /workspace/.claude/worktrees/wf-c206089e-50f-2-9702b344/bin/phpxq yq"
+        },
+        {
+            "id": "yq",
+            "tool": "yq",
+            "role": "reference",
+            "version": "yq (https://github.com/mikefarah/yq/) version v4.54.1",
+            "command": "/usr/bin/yq"
+        }
+    ],
+    "measurements": [
+        {
+            "targetId": "phpxq-yq",
+            "workloadId": "yq:startup",
+            "status": "ok",
+            "outputBytes": 31,
+            "note": "",
+            "samplesMs": [
+                169.517,
+                89.605,
+                58.875
+            ],
+            "stats": {
+                "count": 3,
+                "minMs": 58.875,
+                "medianMs": 89.605,
+                "meanMs": 105.99900000000001,
+                "p95Ms": 161.5258,
+                "maxMs": 169.517,
+                "stddevMs": 57.11379402561171
+            }
+        },
+        {
+            "targetId": "yq",
+            "workloadId": "yq:startup",
+            "status": "ok",
+            "outputBytes": 31,
+            "note": "",
+            "samplesMs": [
+                8.864,
+                37.581,
+                20.237
+            ],
+            "stats": {
+                "count": 3,
+                "minMs": 8.864,
+                "medianMs": 20.237,
+                "meanMs": 22.227333333333334,
+                "p95Ms": 35.8466,
+                "maxMs": 37.581,
+                "stddevMs": 14.461590242201353
+            }
+        },
+        {
+            "targetId": "phpxq-yq",
+            "workloadId": "yq:many-small",
+            "status": "ok",
+            "outputBytes": 2,
+            "note": "",
+            "samplesMs": [
+                2189.591,
+                3602.617,
+                2197.595
+            ],
+            "stats": {
+                "count": 3,
+                "minMs": 2189.591,
+                "medianMs": 2197.595,
+                "meanMs": 2663.2676666666666,
+                "p95Ms": 3462.1148000000003,
+                "maxMs": 3602.617,
+                "stddevMs": 813.5102295173267
+            }
+        },
+        {
+            "targetId": "yq",
+            "workloadId": "yq:many-small",
+            "status": "ok",
+            "outputBytes": 2,
+            "note": "",
+            "samplesMs": [
+                398.563,
+                575.503,
+                363.718
+            ],
+            "stats": {
+                "count": 3,
+                "minMs": 363.718,
+                "medianMs": 398.563,
+                "meanMs": 445.92800000000005,
+                "p95Ms": 557.809,
+                "maxMs": 575.503,
+                "stddevMs": 113.55969344358061
+            }
+        },
+        {
+            "targetId": "phpxq-yq",
+            "workloadId": "yq:identity-small",
+            "status": "ok",
+            "outputBytes": 12437,
+            "note": "",
+            "samplesMs": [
+                90.339,
+                94.219,
+                100.737
+            ],
+            "stats": {
+                "count": 3,
+                "minMs": 90.339,
+                "medianMs": 94.219,
+                "meanMs": 95.09833333333331,
+                "p95Ms": 100.0852,
+                "maxMs": 100.737,
+                "stddevMs": 5.254476313899732
+            }
+        },
+        {
+            "targetId": "yq",
+            "workloadId": "yq:identity-small",
+            "status": "ok",
+            "outputBytes": 12437,
+            "note": "",
+            "samplesMs": [
+                34.085,
+                67.057,
+                38.781
+            ],
+            "stats": {
+                "count": 3,
+                "minMs": 34.085,
+                "medianMs": 38.781,
+                "meanMs": 46.641,
+                "p95Ms": 64.2294,
+                "maxMs": 67.057,
+                "stddevMs": 17.836000000000002
+            }
+        },
+        {
+            "targetId": "phpxq-yq",
+            "workloadId": "yq:select-small",
+            "status": "ok",
+            "outputBytes": 253,
+            "note": "",
+            "samplesMs": [
+                127.968,
+                154.707,
+                72.801
+            ],
+            "stats": {
+                "count": 3,
+                "minMs": 72.801,
+                "medianMs": 127.968,
+                "meanMs": 118.492,
+                "p95Ms": 152.0331,
+                "maxMs": 154.707,
+                "stddevMs": 41.767141882106316
+            }
+        },
+        {
+            "targetId": "yq",
+            "workloadId": "yq:select-small",
+            "status": "ok",
+            "outputBytes": 253,
+            "note": "",
+            "samplesMs": [
+                90.468,
+                52.724,
+                58.406
+            ],
+            "stats": {
+                "count": 3,
+                "minMs": 52.724,
+                "medianMs": 58.406,
+                "meanMs": 67.19933333333334,
+                "p95Ms": 87.2618,
+                "maxMs": 90.468,
+                "stddevMs": 20.35053850229358
+            }
+        },
+        {
+            "targetId": "phpxq-yq",
+            "workloadId": "yq:identity-medium",
+            "status": "ok",
+            "outputBytes": 641012,
+            "note": "",
+            "samplesMs": [
+                623.4,
+                1305.674,
+                1074.535
+            ],
+            "stats": {
+                "count": 3,
+                "minMs": 623.4,
+                "medianMs": 1074.535,
+                "meanMs": 1001.203,
+                "p95Ms": 1282.5601,
+                "maxMs": 1305.674,
+                "stddevMs": 346.99803952904404
+            }
+        },
+        {
+            "targetId": "yq",
+            "workloadId": "yq:identity-medium",
+            "status": "ok",
+            "outputBytes": 641012,
+            "note": "",
+            "samplesMs": [
+                1237.625,
+                1134.72,
+                944.038
+            ],
+            "stats": {
+                "count": 3,
+                "minMs": 944.038,
+                "medianMs": 1134.72,
+                "meanMs": 1105.461,
+                "p95Ms": 1227.3345,
+                "maxMs": 1237.625,
+                "stddevMs": 148.96442009083916
+            }
+        },
+        {
+            "targetId": "phpxq-yq",
+            "workloadId": "yq:select-medium",
+            "status": "ok",
+            "outputBytes": 16284,
+            "note": "",
+            "samplesMs": [
+                405.562,
+                356.952,
+                435.622
+            ],
+            "stats": {
+                "count": 3,
+                "minMs": 356.952,
+                "medianMs": 405.562,
+                "meanMs": 399.3786666666667,
+                "p95Ms": 432.616,
+                "maxMs": 435.622,
+                "stddevMs": 39.69782655679444
+            }
+        },
+        {
+            "targetId": "yq",
+            "workloadId": "yq:select-medium",
+            "status": "ok",
+            "outputBytes": 16284,
+            "note": "",
+            "samplesMs": [
+                344.537,
+                538.89,
+                422.855
+            ],
+            "stats": {
+                "count": 3,
+                "minMs": 344.537,
+                "medianMs": 422.855,
+                "meanMs": 435.42733333333337,
+                "p95Ms": 527.2864999999999,
+                "maxMs": 538.89,
+                "stddevMs": 97.7845582202698
+            }
+        },
+        {
+            "targetId": "phpxq-yq",
+            "workloadId": "yq:aggregate-medium",
+            "status": "ok",
+            "outputBytes": 5,
+            "note": "",
+            "samplesMs": [
+                402.815,
+                499.419,
+                443.101
+            ],
+            "stats": {
+                "count": 3,
+                "minMs": 402.815,
+                "medianMs": 443.101,
+                "meanMs": 448.445,
+                "p95Ms": 493.7872,
+                "maxMs": 499.419,
+                "stddevMs": 48.52321048735336
+            }
+        },
+        {
+            "targetId": "yq",
+            "workloadId": "yq:aggregate-medium",
+            "status": "ok",
+            "outputBytes": 5,
+            "note": "",
+            "samplesMs": [
+                651.239,
+                625.481,
+                830.521
+            ],
+            "stats": {
+                "count": 3,
+                "minMs": 625.481,
+                "medianMs": 651.239,
+                "meanMs": 702.4136666666667,
+                "p95Ms": 812.5927999999999,
+                "maxMs": 830.521,
+                "stddevMs": 111.6892352974687
+            }
+        },
+        {
+            "targetId": "phpxq-yq",
+            "workloadId": "yq:group-medium",
+            "status": "ok",
+            "outputBytes": 144,
+            "note": "",
+            "samplesMs": [
+                487.191,
+                536.398,
+                501.547
+            ],
+            "stats": {
+                "count": 3,
+                "minMs": 487.191,
+                "medianMs": 501.547,
+                "meanMs": 508.3786666666667,
+                "p95Ms": 532.9129,
+                "maxMs": 536.398,
+                "stddevMs": 25.304860488319918
+            }
+        },
+        {
+            "targetId": "yq",
+            "workloadId": "yq:group-medium",
+            "status": "ok",
+            "outputBytes": 144,
+            "note": "",
+            "samplesMs": [
+                942.285,
+                729.953,
+                777.938
+            ],
+            "stats": {
+                "count": 3,
+                "minMs": 729.953,
+                "medianMs": 777.938,
+                "meanMs": 816.7253333333333,
+                "p95Ms": 925.8503,
+                "maxMs": 942.285,
+                "stddevMs": 111.35332270001346
+            }
+        },
+        {
+            "targetId": "phpxq-yq",
+            "workloadId": "yq:wide-keys",
+            "status": "ok",
+            "outputBytes": 6,
+            "note": "",
+            "samplesMs": [
+                258.757,
+                276.312,
+                315.49
+            ],
+            "stats": {
+                "count": 3,
+                "minMs": 258.757,
+                "medianMs": 276.312,
+                "meanMs": 283.51966666666664,
+                "p95Ms": 311.5722,
+                "maxMs": 315.49,
+                "stddevMs": 29.045157364582025
+            }
+        },
+        {
+            "targetId": "yq",
+            "workloadId": "yq:wide-keys",
+            "status": "ok",
+            "outputBytes": 6,
+            "note": "",
+            "samplesMs": [
+                190.055,
+                178.647,
+                256.515
+            ],
+            "stats": {
+                "count": 3,
+                "minMs": 178.647,
+                "medianMs": 190.055,
+                "meanMs": 208.40566666666666,
+                "p95Ms": 249.86899999999997,
+                "maxMs": 256.515,
+                "stddevMs": 42.05254547983193
+            }
+        },
+        {
+            "targetId": "phpxq-yq",
+            "workloadId": "yq:deep-walk",
+            "status": "ok",
+            "outputBytes": 4,
+            "note": "",
+            "samplesMs": [
+                202.649,
+                82.352,
+                71.308
+            ],
+            "stats": {
+                "count": 3,
+                "minMs": 71.308,
+                "medianMs": 82.352,
+                "meanMs": 118.76966666666668,
+                "p95Ms": 190.6193,
+                "maxMs": 202.649,
+                "stddevMs": 72.8512141582646
+            }
+        },
+        {
+            "targetId": "yq",
+            "workloadId": "yq:deep-walk",
+            "status": "ok",
+            "outputBytes": 4,
+            "note": "",
+            "samplesMs": [
+                36.307,
+                25.763,
+                66.188
+            ],
+            "stats": {
+                "count": 3,
+                "minMs": 25.763,
+                "medianMs": 36.307,
+                "meanMs": 42.75266666666667,
+                "p95Ms": 63.1999,
+                "maxMs": 66.188,
+                "stddevMs": 20.96914686708387
+            }
+        }
+    ]
+}

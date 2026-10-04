@@ -25,6 +25,21 @@ final class Scanner
 {
     private const string NON_PRINTABLE = '/[^\x09\x0A\x0D\x20-\x7E\x{85}\x{A0}-\x{D7FF}\x{E000}-\x{FEFE}\x{FF00}-\x{FFFD}\x{10000}-\x{10FFFF}]/u';
 
+    /** The first line of a block-context plain scalar: runs of non-blank bytes, a colon not followed by a blank, and inner blanks not followed by a hash. */
+    private const string PLAIN_LINE = '/\G(?:[^ \t\n\0:]++|:(?![ \t\n\0]))++(?:[ \t]++(?!#)(?:[^ \t\n\0:]++|:(?![ \t\n\0]))++)*+/';
+
+    /** First bytes that can only start a plain scalar, so no indicator test is needed. */
+    private const array PLAIN_START = [
+        'a' => true, 'b' => true, 'c' => true, 'd' => true, 'e' => true, 'f' => true, 'g' => true, 'h' => true, 'i' => true,
+        'j' => true, 'k' => true, 'l' => true, 'm' => true, 'n' => true, 'o' => true, 'p' => true, 'q' => true, 'r' => true,
+        's' => true, 't' => true, 'u' => true, 'v' => true, 'w' => true, 'x' => true, 'y' => true, 'z' => true,
+        'A' => true, 'B' => true, 'C' => true, 'D' => true, 'E' => true, 'F' => true, 'G' => true, 'H' => true, 'I' => true,
+        'J' => true, 'K' => true, 'L' => true, 'M' => true, 'N' => true, 'O' => true, 'P' => true, 'Q' => true, 'R' => true,
+        'S' => true, 'T' => true, 'U' => true, 'V' => true, 'W' => true, 'X' => true, 'Y' => true, 'Z' => true,
+        '0' => true, '1' => true, '2' => true, '3' => true, '4' => true, '5' => true, '6' => true, '7' => true, '8' => true,
+        '9' => true,
+    ];
+
     private const string WORD_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-';
 
     private const string URI_CHARS = self::WORD_CHARS . ';/?:@&=+.%!~*()' . "'" . '$';
@@ -143,7 +158,10 @@ final class Scanner
         }
 
         $token = $this->tokens[$this->head];
-        $this->unfoldComments($token);
+        // Inlined guard: most peeks find no comment waiting (benchmark yq:identity-medium).
+        if ($this->commentsHead < \count($this->comments)) {
+            $this->unfoldComments($token);
+        }
 
         return $token;
     }
@@ -515,20 +533,34 @@ final class Scanner
 
     private function insert(int $position, ScanToken $token): void
     {
-        array_splice($this->tokens, $this->head + $position, 0, [$token]);
+        // Simple keys are almost always inserted just before the last queued token (the key scalar): swap
+        // instead of array_splice, which is several times slower (benchmark yq:identity-medium).
+        $at   = $this->head + $position;
+        $last = \count($this->tokens) - 1;
+        if ($at === $last && $last >= 0) {
+            $displaced = $this->tokens[$last];
+            array_pop($this->tokens);
+            $this->tokens[] = $token;
+            $this->tokens[] = $displaced;
+
+            return;
+        }
+
+        array_splice($this->tokens, $at, 0, [$token]);
     }
 
     private function fetchMoreTokens(): void
     {
         while (true) {
-            if ($this->head < \count($this->tokens) - 2) {
+            $count = \count($this->tokens);
+            if ($this->head < $count - 2) {
                 $slot = $this->keysByToken[$this->parsed] ?? null;
                 if (null === $slot || !$this->simpleKeyIsValid($slot)) {
                     break;
                 }
             }
 
-            if ($this->streamEndFetched()) {
+            if ($count > 0 && ScanToken::STREAM_END === $this->tokens[$count - 1]->type) {
                 break;
             }
 
@@ -536,13 +568,6 @@ final class Scanner
         }
 
         $this->tokenAvailable = true;
-    }
-
-    private function streamEndFetched(): bool
-    {
-        $count = \count($this->tokens);
-
-        return $count > 0 && ScanToken::STREAM_END === $this->tokens[$count - 1]->type;
     }
 
     private function fetchNextToken(): void
@@ -553,18 +578,32 @@ final class Scanner
             return;
         }
 
+        // Hot path (benchmark yq:identity-medium): column maths inlined for ASCII input, a plain scalar
+        // dispatched before the general switch, and the line comment probe made only when a comment can follow.
         $scanIndex  = $this->p;
         $scanLine   = $this->line;
-        $scanColumn = $this->col();
+        $scanColumn = $this->mb ? $this->colAt($scanIndex, $this->ls) : $scanIndex - $this->ls;
 
         $this->scanToNextToken($scanIndex);
-        $this->unrollIndent($this->col(), $scanIndex, $scanLine, $scanColumn);
+        if (!$this->mb ? $this->indent > $this->p - $this->ls : $this->indent > $this->col()) {
+            $this->unrollIndent($this->col(), $scanIndex, $scanLine, $scanColumn);
+        }
 
         $s = $this->s;
         $p = $this->p;
         $c = $s[$p];
         if ($p >= $this->n) {
             $this->fetchStreamEnd();
+
+            return;
+        }
+
+        if (isset(self::PLAIN_START[$c])) {
+            $this->fetchPlainScalar();
+            $after = $this->s[$this->p];
+            if ('#' === $after || ' ' === $after || "\t" === $after) {
+                $this->scanLineComment($p);
+            }
 
             return;
         }
@@ -589,11 +628,14 @@ final class Scanner
 
         $this->fetchToken($c, $p);
 
-        if (ScanToken::BLOCK_ENTRY === $this->tokens[\count($this->tokens) - 1]->type) {
+        if ('-' === $c && ScanToken::BLOCK_ENTRY === $this->tokens[\count($this->tokens) - 1]->type) {
             return;
         }
 
-        $this->scanLineComment($commentMark);
+        $after = $this->s[$this->p];
+        if ('#' === $after || ' ' === $after || "\t" === $after) {
+            $this->scanLineComment($commentMark);
+        }
     }
 
     private function fetchToken(string $c, int $p): void
@@ -814,11 +856,20 @@ final class Scanner
             return;
         }
 
-        $column   = $this->col();
-        $required = 0 === $this->flowLevel && $this->indent === $column;
+        // Inlined col() and removeSimpleKey(); the simple key slot of the current flow level is
+        // skPossible[flowLevel] (benchmark yq:identity-medium).
+        $column   = $this->mb ? $this->colAt($this->p, $this->ls) : $this->p - $this->ls;
+        $i        = $this->flowLevel;
+        $required = 0 === $i && $this->indent === $column;
         $number   = $this->parsed + (\count($this->tokens) - $this->head);
-        $this->removeSimpleKey();
-        $i                    = \count($this->skPossible) - 1;
+        if ($this->skPossible[$i]) {
+            if ($this->skRequired[$i]) {
+                $this->error("could not find expected ':'", $this->skLine[$i]);
+            }
+
+            unset($this->keysByToken[$this->skToken[$i]]);
+        }
+
         $this->skPossible[$i] = true;
         $this->skRequired[$i] = $required;
         $this->skToken[$i]    = $number;
@@ -831,7 +882,7 @@ final class Scanner
 
     private function removeSimpleKey(): void
     {
-        $i = \count($this->skPossible) - 1;
+        $i = $this->flowLevel;
         if ($this->skPossible[$i]) {
             if ($this->skRequired[$i]) {
                 $this->error("could not find expected ':'", $this->skLine[$i]);
@@ -992,14 +1043,18 @@ final class Scanner
 
     private function fetchValue(): void
     {
-        $i = \count($this->skPossible) - 1;
-        if ($this->simpleKeyIsValid($i)) {
+        // Inlined validity test and roll-indent guard (benchmark yq:identity-medium).
+        $i = $this->flowLevel;
+        if (($this->skPossible[$i] && $this->skLine[$i] >= $this->line && $this->skIndex[$i] + 1024 >= $this->p) || $this->simpleKeyIsValid($i)) {
             $number = $this->skToken[$i];
             $index  = $this->skIndex[$i];
             $line   = $this->skLine[$i];
             $column = $this->skColumn[$i];
             $this->insert($number - $this->parsed, new ScanToken(ScanToken::KEY, $index, $line, $column, $index, $line, $column));
-            $this->rollIndent($column, $number, ScanToken::BLOCK_MAPPING_START, $index, $line, $column);
+            if (0 === $i && $this->indent < $column) {
+                $this->rollIndent($column, $number, ScanToken::BLOCK_MAPPING_START, $index, $line, $column);
+            }
+
             $this->skPossible[$i] = false;
             unset($this->keysByToken[$number]);
             $this->simpleKeyAllowed = false;
@@ -1022,9 +1077,9 @@ final class Scanner
     {
         $this->newlines = 0;
         $index          = $this->p;
-        $column         = $this->col();
+        $column         = $this->mb ? $this->colAt($index, $this->ls) : $index - $this->ls;
         ++$this->p;
-        $this->append(new ScanToken($type, $index, $this->line, $column, $index + 1, $this->line, $column + 1));
+        $this->tokens[] = new ScanToken($type, $index, $this->line, $column, $index + 1, $this->line, $column + 1);
     }
 
     private function fetchAnchor(int $type): void
@@ -1059,7 +1114,7 @@ final class Scanner
     {
         $this->saveSimpleKey();
         $this->simpleKeyAllowed = false;
-        $this->append($this->scanPlainScalar());
+        $this->tokens[]         = $this->scanPlainScalar();
     }
 
     // ---------------------------------------------------------------- scanners
@@ -1285,7 +1340,8 @@ final class Scanner
         $stop         = $flow ? " \t\n\0:,[]{}" : " \t\n\0:";
         $startIdx     = $p;
         $startLine    = $line;
-        $startCol     = $this->colAt($p, $ls);
+        $mb           = $this->mb;
+        $startCol     = $mb ? $this->colAt($p, $ls) : $p - $ls;
         $eIdx         = $p;
         $eLine        = $line;
         $eLs          = $ls;
@@ -1295,16 +1351,26 @@ final class Scanner
         $trailing     = '';
         $white        = '';
 
+        // Block context fast path (benchmark yq:identity-medium): take the whole first line of the scalar
+        // with one regex instead of the per-chunk loop below, then resume at the whitespace handling.
+        $pre = false;
+        if (!$flow && 1 === preg_match(self::PLAIN_LINE, $s, $line1, 0, $p)) {
+            $out  = $line1[0];
+            $p += \strlen($out);
+            $eIdx = $p;
+            $pre  = true;
+        }
+
         while (true) {
-            if ($p === $ls && ('---' === substr($s, $p, 3) || '...' === substr($s, $p, 3)) && $this->blankzAt($p + 3)) {
+            if (!$pre && $p === $ls && ('---' === substr($s, $p, 3) || '...' === substr($s, $p, 3)) && $this->blankzAt($p + 3)) {
                 break;
             }
 
-            if ('#' === $s[$p]) {
+            if (!$pre && '#' === $s[$p]) {
                 break;
             }
 
-            while (true) {
+            while (!$pre) {
                 $c = $s[$p];
                 if (' ' === $c || "\n" === $c || "\0" === $c || "\t" === $c) {
                     break;
@@ -1347,15 +1413,22 @@ final class Scanner
                 $eLs   = $ls;
             }
 
-            $c = $s[$p];
+            $pre = false;
+            $c   = $s[$p];
             if (' ' !== $c && "\n" !== $c && "\t" !== $c) {
                 break;
             }
 
             while (true) {
                 $c = $s[$p];
-                if (' ' === $c || "\t" === $c) {
-                    if ($leading && "\t" === $c && $this->colAt($p, $ls) < $indent) {
+                if (' ' === $c && !$leading) {
+                    $k = strspn($s, ' ', $p);
+                    $white .= str_repeat(' ', $k);
+                    $p += $k;
+                } elseif (' ' === $c) {
+                    $p += strspn($s, ' ', $p);
+                } elseif ("\t" === $c) {
+                    if ($leading && $this->colAt($p, $ls) < $indent) {
                         $this->sync($p, $line, $ls);
                         $this->error('found a tab character that violates indentation', $startLine);
                     }
@@ -1382,18 +1455,22 @@ final class Scanner
                 }
             }
 
-            if (!$flow && $this->colAt($p, $ls) < $indent) {
+            if (!$flow && ($mb ? $this->colAt($p, $ls) : $p - $ls) < $indent) {
                 break;
             }
         }
 
-        $this->sync($p, $line, $ls);
-        $this->newlines = $leading ? 1 + substr_count($trailing, "\n") : 0;
+        $this->p    = $p;
+        $this->line = $line;
+        $this->ls   = $ls;
         if ($leading) {
+            $this->newlines         = 1 + substr_count($trailing, "\n");
             $this->simpleKeyAllowed = true;
+        } else {
+            $this->newlines = 0;
         }
 
-        return new ScanToken(ScanToken::SCALAR, $startIdx, $startLine, $startCol, $eIdx, $eLine, $this->colAt($eIdx, $eLs), $out, '', ScanToken::PLAIN);
+        return new ScanToken(ScanToken::SCALAR, $startIdx, $startLine, $startCol, $eIdx, $eLine, $mb ? $this->colAt($eIdx, $eLs) : $eIdx - $eLs, $out, '', ScanToken::PLAIN);
     }
 
     private function scanFlowScalar(bool $single): ScanToken

@@ -23,6 +23,27 @@ final class Node
     /** Set on a Document node whose comments were assigned empty: the slurped file header is dropped with them. */
     public bool $commentsCleared = false;
 
+    // The rarely used properties are plain declarations with defaults rather than promoted constructor
+    // parameters: the engine copies declared defaults in one block, while every promoted parameter costs an
+    // assignment per construction (benchmark yq:identity-medium; results-yq.md, optimisation 1).
+    public string $anchor = '';
+
+    public ?self $aliasTarget = null;
+
+    public string $headComment = '';
+
+    public string $lineComment = '';
+
+    public string $footComment = '';
+
+    public bool $tagExplicit = false;
+
+    public bool $explicitStart = false;
+
+    public bool $explicitEnd = false;
+
+    public string $directives = '';
+
     /** The comment and blank lines slurped ahead of a first document by the CLI, `# ` markers included. */
     public string $leadingContent = '';
 
@@ -35,17 +56,8 @@ final class Node
         public NodeStyleEnum $style = NodeStyleEnum::Default,
         public string $value = '',
         public array $content = [],
-        public string $anchor = '',
-        public ?self $aliasTarget = null,
-        public string $headComment = '',
-        public string $lineComment = '',
-        public string $footComment = '',
         public int $line = 0,
         public int $column = 0,
-        public bool $tagExplicit = false,
-        public bool $explicitStart = false,
-        public bool $explicitEnd = false,
-        public string $directives = '',
     ) {
     }
 
@@ -109,29 +121,53 @@ final class Node
      */
     public function deepCopy(): self
     {
-        /** @var SplObjectStorage<Node, Node> $map */
-        $map  = new SplObjectStorage();
-        $copy = $this->copyInto($map);
+        // Hot path (benchmarks yq:group-medium, yq:select-medium): copy without any bookkeeping and only
+        // pair originals with copies, to re-point aliases, when the tree holds an alias at all.
+        $hasAlias = false;
+        $copy     = $this->copyPlain($hasAlias);
+        if ($hasAlias) {
+            /** @var SplObjectStorage<Node, Node> $map */
+            $map = new SplObjectStorage();
+            self::pair($this, $copy, $map);
+            self::repointAliases($copy, $map);
+        }
 
-        self::repointAliases($copy, $map);
+        return $copy;
+    }
+
+    private function copyPlain(bool &$hasAlias): self
+    {
+        $copy = clone $this;
+        if ($this->aliasTarget instanceof self) {
+            $hasAlias = true;
+        }
+
+        if ([] !== $this->content) {
+            $copied = [];
+            foreach ($this->content as $child) {
+                $copied[] = [] === $child->content && !$child->aliasTarget instanceof self ? clone $child : $child->copyPlain($hasAlias);
+                if ($child->aliasTarget instanceof self) {
+                    $hasAlias = true;
+                }
+            }
+
+            $copy->content = $copied;
+        }
 
         return $copy;
     }
 
     /**
+     * Records which copy stands for which original, walking both trees in step.
+     *
      * @param SplObjectStorage<Node, Node> $map
      */
-    private function copyInto(SplObjectStorage $map): self
+    private static function pair(self $original, self $copy, SplObjectStorage $map): void
     {
-        $copy          = clone $this;
-        $copy->content = [];
-        foreach ($this->content as $child) {
-            $copy->content[] = $child->copyInto($map);
+        $map[$original] = $copy;
+        foreach ($original->content as $index => $child) {
+            self::pair($child, $copy->content[$index], $map);
         }
-
-        $map[$this] = $copy;
-
-        return $copy;
     }
 
     /**

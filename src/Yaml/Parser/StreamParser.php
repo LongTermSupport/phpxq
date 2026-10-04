@@ -222,6 +222,18 @@ final class StreamParser
     {
         $sc = $this->sc;
         $t  = $sc->peek();
+        if (ScanToken::SCALAR === $t->type) {
+            // The common case first: a scalar with no anchor or tag; comments are only moved when there are some.
+            $node = $this->scalarNode($t->value, $t->style, '', $t->startLine + 1, $t->startColumn + 1);
+            if ('' !== $sc->headComment || '' !== $sc->lineComment || '' !== $sc->footComment || '' !== $sc->stemComment) {
+                $this->takeComments($node);
+            }
+
+            $sc->skip();
+
+            return $node;
+        }
+
         if (ScanToken::ALIAS === $t->type) {
             $node         = new Node(NodeKindEnum::Alias, '', NodeStyleEnum::Default, $t->value);
             $node->line   = $t->startLine   + 1;
@@ -371,6 +383,11 @@ final class StreamParser
 
     private function scalarNode(string $value, int $style, string $tag, int $line, int $column): Node
     {
+        // Plain untagged scalar: the overwhelmingly common case (benchmark yq:identity-medium).
+        if ('' === $tag && ScanToken::PLAIN === $style) {
+            return new Node(NodeKindEnum::Scalar, ScalarResolver::resolve($value), NodeStyleEnum::Default, $value, line: $line, column: $column);
+        }
+
         $nodeStyle = match ($style) {
             ScanToken::SINGLE  => NodeStyleEnum::SingleQuoted,
             ScanToken::DOUBLE  => NodeStyleEnum::DoubleQuoted,

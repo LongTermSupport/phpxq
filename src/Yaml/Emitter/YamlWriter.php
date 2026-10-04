@@ -34,7 +34,11 @@ final class YamlWriter
 
     private const string TIMESTAMP = '/\A[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}(?:(?:[Tt]|[ \t]+)[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}(?:\.[0-9]*)?(?:[ \t]*(?:Z|[-+][0-9]{1,2}(?::[0-9]{2})?))?)?\z/';
 
-    private const string PLAIN_WORD = '/\A[A-Za-z_][A-Za-z0-9_ -]*+(?<! )\z/';
+    private const string PLAIN_INT = '/\A(?:0|[1-9][0-9]{0,17})\z/';
+
+    private const array BOOL_WORDS = ['true' => true, 'True' => true, 'TRUE' => true, 'false' => true, 'False' => true, 'FALSE' => true];
+
+    private const string PLAIN_WORD ='/\A[A-Za-z_][A-Za-z0-9_ -]*+(?<! )\z/';
 
     private const string DOUBLE_QUOTE_SPECIALS = '/["\\\\\x00-\x1F\x7F]|\xC2[\x80-\x9F]|\xE2\x80[\xA8\xA9]|\xEF\xBB\xBF|\xEF\xBF[\xBE\xBF]|[\xF0-\xF7][\x80-\xBF]{3}/';
 
@@ -248,12 +252,58 @@ final class YamlWriter
         $this->increaseIndent();
 
         // go-yaml writes a scalar value's head comment before the next key, unless that key has its own.
-        $carry = '';
-        $head  = $mapping->headComment;
-        $count = \count($mapping->content);
+        $carry    = '';
+        $head     = $mapping->headComment;
+        $count    = \count($mapping->content);
+        $fastOk   = !$this->options->colors;
+        $pad      = '';
+        $nextLine = false;
         for ($i = 0; $i < $count; $i += 2) {
             $key   = $mapping->content[$i];
             $value = $mapping->content[$i + 1] ?? new Node(NodeKindEnum::Scalar, '!!null');
+
+            // Fast path (benchmark yq:identity-medium): `key: value` where both are scalars that print plain.
+            // After one such line the writer state is known (broken-off line, nothing pending), so the next
+            // one is written as "\n" . indent . text without going through writeIndent().
+            if ('' === $head && '' === $carry && $fastOk) {
+                $keyText =$this->plainScalarText($key);
+                if (null !== $keyText && \strlen($keyText) <= 128) {
+                    $valueText = $this->plainScalarText($value);
+                    if (null !== $valueText) {
+                        $line = $keyText . ': ' . $valueText;
+                        if ($nextLine) {
+                            $this->out .= "\n" . $pad . $line;
+                        } else {
+                            $this->writeIndent();
+                            $pad = str_repeat(' ', $this->column);
+                            $this->out .= $line;
+                        }
+
+                        $this->column     = \strlen($pad) + \strlen($line);
+                        $this->whitespace = false;
+                        $this->indention  = false;
+                        $nextLine         = true;
+
+                        continue;
+                    }
+
+                    // Same fast path for a plain key that opens a block collection without comments: the key
+                    // needs no scalar planning and no comment bookkeeping (benchmark yq:identity-medium).
+                    if ('' === $value->headComment && '' === $value->footComment && '' === $value->lineComment && $this->isBlockCollection($value)) {
+                        $this->writeIndent();
+                        $this->out .= $keyText . ':';
+                        $this->column += \strlen($keyText) + 1;
+                        $this->whitespace = false;
+                        $this->indention  = false;
+                        $this->emitNode($value, false, null, null, '');
+                        $nextLine = false;
+
+                        continue;
+                    }
+                }
+            }
+
+            $nextLine = false;
 
             $valueBlock = $this->isBlockCollection($value);
             $heads      = [$head, '' !== $key->headComment ? $key->headComment : $carry];
@@ -289,8 +339,35 @@ final class YamlWriter
         $saved = $this->indent;
         $this->increaseIndent();
 
-        $head = $sequence->headComment;
+        $head     = $sequence->headComment;
+        $fastOk   = !$this->options->colors;
+        $pad      = '';
+        $nextLine = false;
         foreach ($sequence->content as $item) {
+            // Fast path (benchmark yq:identity-medium): `- scalar` where the scalar prints plain; consecutive
+            // lines skip writeIndent() as in emitBlockMapping().
+            if ('' === $head && $fastOk) {
+                $text = $this->plainScalarText($item);
+                if (null !== $text) {
+                    $line = '- ' . $text;
+                    if ($nextLine) {
+                        $this->out .= "\n" . $pad . $line;
+                    } else {
+                        $this->writeIndent();
+                        $pad = str_repeat(' ', $this->column);
+                        $this->out .= $line;
+                    }
+
+                    $this->column     = \strlen($pad) + \strlen($line);
+                    $this->whitespace = false;
+                    $this->indention  = false;
+                    $nextLine         = true;
+
+                    continue;
+                }
+            }
+
+            $nextLine = false;
             $this->writeHeadComments([$head, $item->headComment]);
             $head = '';
 
@@ -397,6 +474,30 @@ final class YamlWriter
     // scalars
 
     /**
+     * The text of a scalar that certainly prints as a plain scalar with no tag, anchor or comment, or null
+     * when the full planning in {@see self::planScalar()} is needed. Covers plain-looking strings, small
+     * decimal integers and the booleans; every case is one planScalar() would also print plain.
+     */
+    private function plainScalarText(Node $node): ?string
+    {
+        if (
+            NodeKindEnum::Scalar                                             !== $node->kind || NodeStyleEnum::Default !== $node->style || $node->tagExplicit
+                                                                                             || '' !== $node->anchor || '' !== $node->headComment || '' !== $node->lineComment || '' !== $node->footComment
+        ) {
+            return null;
+        }
+
+        $value = $node->value;
+
+        return match ($node->tag) {
+            '!!str'  => 1 === preg_match(self::PLAIN_WORD, $value) && !isset(self::RESERVED_WORDS[$value]) ? $value : null,
+            '!!int'  => 1 === preg_match(self::PLAIN_INT, $value) ? $value : null,
+            '!!bool' => isset(self::BOOL_WORDS[$value]) ? $value : null,
+            default  => null,
+        };
+    }
+
+    /**
      * Decides the tag to print (empty when implicit), the requested style and the text to write.
      *
      * @return array{tag: string, style: NodeStyleEnum, value: string, analysis: ScalarAnalysis}
@@ -420,8 +521,8 @@ final class YamlWriter
             $style   = NodeStyleEnum::Default;
         }
 
-        $quoted = NodeStyleEnum::DoubleQuoted                                                                                                                                                                                                                          === $style || NodeStyleEnum::SingleQuoted === $style
-                                                                                                                                                                                                                                                                                  || NodeStyleEnum::Literal         === $style || NodeStyleEnum::Folded === $style;
+        $quoted = NodeStyleEnum::DoubleQuoted                                                                                                                                                                                                                                                                       === $style || NodeStyleEnum::SingleQuoted === $style
+                                                                                                                                                                                                                                                                                                                               || NodeStyleEnum::Literal         === $style || NodeStyleEnum::Folded === $style;
 
         $force = false;
         if ('' !== $tag && !$node->tagExplicit) {
