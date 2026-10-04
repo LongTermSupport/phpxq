@@ -3,8 +3,9 @@
 #
 #   scripts/bench/profile.bash <size> <filter> [repetitions] [rows]
 #
-#   size         small, medium, large, deep or wide (the corpora of the benchmark suite, generated on first use)
-#   filter       the jq program, for example '.[] | select(.active) | .name'
+#   size         small, medium, large, deep or wide (the corpora of the benchmark suite, generated on first use);
+#                append .yaml (for example medium.yaml) to profile yq instead of jq
+#   filter       the jq program or yq expression, for example '.[] | select(.active) | .name'
 #   repetitions  runs of the program inside one process (default 5)
 #   rows         rows per table of the report (default 25)
 #
@@ -21,9 +22,11 @@ fi
 size=$1
 filter=$2
 corpus="$root/untracked/bench/corpus"
-if [[ ! -f "$corpus/$size.json" ]]; then
+file="$corpus/$size"
+[[ "$size" == *.yaml ]] || file="$file.json"
+if [[ ! -f "$file" ]]; then
     mkdir -p "$corpus"
-    php "$root/scripts/bench/bench.php" plan --corpus-dir "$corpus" --sizes small,medium,large --tools jq >/dev/null
+    php "$root/scripts/bench/bench.php" plan --corpus-dir "$corpus" --sizes small,medium,large --tools jq,yq >/dev/null
 fi
 
-exec php "$root/scripts/bench/profile.php" "$filter" "$corpus/$size.json" "${3:-5}" "${4:-25}"
+exec php "$root/scripts/bench/profile.php" "$filter" "$file" "${3:-5}" "${4:-25}"

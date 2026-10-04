@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use LTS\PhpXq\Jq\Cli\JqApplication;
 use LTS\PhpXq\Tests\Support\Bench\SamplingProfiler;
+use LTS\PhpXq\Yq\Cli\YqApplication;
 
 require \dirname(__DIR__, 2) . '/vendor/autoload.php';
 
@@ -11,7 +12,9 @@ require \dirname(__DIR__, 2) . '/vendor/autoload.php';
  * Sampling profiler for the jq benchmark workloads, no Xdebug needed: a forked child signals this process every
  * 500 microseconds and the handler records `debug_backtrace()`. Needs the pcntl and posix extensions.
  *
- * Usage: php scripts/bench/profile.php <jq filter> <input file> [repetitions] [rows]
+ * A `.yaml` or `.yml` input file profiles `yq` (the filter is a yq expression), anything else profiles `jq`.
+ *
+ * Usage: php scripts/bench/profile.php <filter> <input file> [repetitions] [rows]
  * Prints the functions with the most samples as their own frame (SELF) and anywhere on the stack (INCLUSIVE).
  */
 if (!\function_exists('pcntl_fork') || !\function_exists('posix_kill')) {
@@ -55,13 +58,17 @@ for ($run = 0; $run < $repetitions; ++$run) {
     $stdout = fopen('php://memory', 'w+');
     $stderr = fopen('php://memory', 'w+');
     $stdin  = fopen('php://memory', 'r');
-    if (false === $stdout || false === $stderr || false === $stdin) {
+    if (in_array(false, [$stdout, $stderr, $stdin], true)) {
         fwrite(STDERR, "cannot open memory streams\n");
 
         exit(2);
     }
 
-    JqApplication::create()->run([$filter, $file], $stdin, $stdout, $stderr);
+    if (str_ends_with($file, '.yaml') || str_ends_with($file, '.yml')) {
+        new YqApplication()->run([$filter, $file], $stdin, $stdout, $stderr);
+    } else {
+        JqApplication::create()->run([$filter, $file], $stdin, $stdout, $stderr);
+    }
 }
 
 pcntl_async_signals(false);

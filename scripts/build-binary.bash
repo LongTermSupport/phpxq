@@ -12,6 +12,7 @@
 # Environment:
 #   SPC_BIN            use this spc binary instead of downloading the pinned release
 #   PHPXQ_TOOLS_DIR    where pinned tools are cached (default untracked/tools)
+#   SPC_DEFAULT_C_FLAGS  C flags for the PHP build (default "-fPIC -O2")
 #   PHPXQ_SPC_WORKDIR  static-php-cli workspace (default build/spc-<platform>); cache it between runs
 #                      to skip re-downloading and re-compiling PHP
 set -euo pipefail
@@ -88,6 +89,10 @@ if [[ -z "$spc" ]]; then
     spc="$spc_dir/spc"
 fi
 [[ -x "$spc" ]] || die "spc is not executable: $spc"
+
+# static-php-cli compiles PHP for size (-Os) by default; -O2 runs yq 7 to 13 percent faster on the medium and large
+# workloads (CLAUDE/Plan/Completed/00007-performance-optimisation-round/results-binary.md). An explicit value wins.
+export SPC_DEFAULT_C_FLAGS="${SPC_DEFAULT_C_FLAGS:--fPIC -O2}"
 
 extensions="$(php "$root/scripts/lib/extensions.php" "$root/packaging/extensions.txt" "$root/composer.json")"
 workdir="${PHPXQ_SPC_WORKDIR:-$root/build/spc-$platform}"

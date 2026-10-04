@@ -15,7 +15,7 @@ use stdClass;
  * without the path machinery of `|=`: an object member becomes the first output of `w` on it (and is dropped
  * when there is none), an array element becomes every output of `w`.
  *
- * Shaped for the `walk` workload in CLAUDE/Plan/00007-performance-optimisation-round/results.md: do not
+ * Shaped for the `walk` workload in CLAUDE/Plan/Completed/00007-performance-optimisation-round/results.md: do not
  * replace it by the prelude definition.
  *
  * @internal

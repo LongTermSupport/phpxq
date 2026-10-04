@@ -144,7 +144,9 @@ the static Linux x86_64 binary is about 13 MB, passes `scripts/smoke-test.bash -
 `PHPXQ_BINARY=... scripts/conformance-shell.bash all` passes on it (jq `shtest`, 17 yq acceptance
 scripts). The binary build needs `make`, a C/C++ toolchain, `cmake`, `autoconf` and friends and `sudo`;
 `spc doctor --auto-fix` (run by the script) installs them with `apt-get` or `dnf` and takes several
-minutes on a cold start, so CI caches the spc workspace.
+minutes on a cold start, so CI caches the spc workspace. The runtime is compiled with `-O2`
+(`SPC_DEFAULT_C_FLAGS`; spc's default is `-Os`), which measured faster on yq; the other build levers
+that were tried are in `CLAUDE/Plan/Completed/00007-performance-optimisation-round/results-binary.md`.
 
 Pinned tool versions and their checksums live in `packaging/tools.env`; the extensions compiled into
 the static runtime are `packaging/extensions.txt` plus every `ext-*` in `composer.json`. Box is a

@@ -1,6 +1,6 @@
 # Plan 00007: performance optimisation round
 
-**Status**: In Progress
+**Status**: Complete (delivered in COMMIT_HASH)
 **Created**: 2026-10-03
 **Owner**: joseph
 **Priority**: Medium
@@ -45,7 +45,7 @@ Parent epic: Plan 00001.
 ### Phase 1: Profile
 
 - [x] ✅ **Task 1.1**: Choose and document the profiler; make profiling a one-command workflow (pcntl sampling profiler, `scripts/bench/profile.bash`; method in [results.md](results.md))
-- [ ] ⬜ **Task 1.2**: Profile every benchmark workload from Plan 00005; record hot spots in a supporting doc (profiles were taken per lane, but no per-workload hot-spot document exists; results\*.md record only the resulting optimisations)
+- [x] ✅ **Task 1.2**: Profile every benchmark workload from Plan 00005; record hot spots in a supporting doc ([hot-spots.md](hot-spots.md); `scripts/bench/profile.bash` now profiles yq too)
 
 ### Phase 2: Optimise (repeat per hot spot)
 
@@ -53,7 +53,7 @@ Parent epic: Plan 00001.
 - [x] ✅ **Task 2.2**: JSON parse and serialise hot paths (26d90cf; numbers in results.md)
 - [x] ✅ **Task 2.3**: Evaluator hot paths (26d90cf native walk and sort, 58bd249 GC policy; numbers in results.md)
 - [x] ✅ **Task 2.4**: YAML parse and emit hot paths (yq numbers in results-yq.md)
-- [ ] ⬜ **Task 2.5**: Build-level optimisation of the shipped binary (extension set, preloading, concatenation); not started, needs a published binary from Plan 00006 to measure against
+- [x] ✅ **Task 2.5**: Build-level optimisation of the shipped binary (extension set, preloading, concatenation); PHAR and static binary built and measured, `-O2` adopted in `scripts/build-binary.bash`, the other levers rejected with numbers ([results-binary.md](results-binary.md))
 
 ### Phase 3: Verify
 
@@ -82,4 +82,5 @@ Parent epic: Plan 00001.
 ## Delivery & Milestones
 
 - Round 1 merged: jq (d148a10) and yq (1ce8af3) optimisations with before and after numbers.
-- Open: Task 1.2 hot-spot document and Task 2.5 shipped-binary build optimisation.
+- Hot-spot document ([hot-spots.md](hot-spots.md)) and shipped-binary build optimisation
+  ([results-binary.md](results-binary.md)) delivered in the final commit of this plan.

@@ -21,7 +21,7 @@ use LTS\PhpXq\Jq\Runtime\DefaultBuiltinRegistry;
  * Which builtin group registers which `name/arity`, so that a registry can load a group's class the first time
  * one of its names is looked up instead of at start-up. A typical program touches two or three of the ten
  * groups and each unused one costs a file compile (about 3500 lines in all), the largest part of the start-up
- * time of a short run (see CLAUDE/Plan/00007-performance-optimisation-round/results.md). The prelude texts of the
+ * time of a short run (see CLAUDE/Plan/Completed/00007-performance-optimisation-round/results.md). The prelude texts of the
  * regex and date groups live here for the same reason: reading them must not load the group classes.
  *
  * {@see self::GROUPS} is the registration order of {@see CoreBuiltins}, {@see RegexBuiltins} and

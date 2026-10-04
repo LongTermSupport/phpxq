@@ -61,7 +61,7 @@ optimisation round will accept ugly code for measured speed.
 
 ### Phase 4: Performance
 
-- [ ] ⬜ **Task 4.1**: Plan 00007 - performance optimisation round (In Progress: jq and yq round 1 merged; open are the hot-spot document and shipped-binary build optimisation)
+- [x] ✅ **Task 4.1**: Plan 00007 - performance optimisation round (Complete: jq and yq optimisations, hot-spot document and shipped-binary build optimisation)
 
 ### Phase 5: Close-out
 
@@ -107,4 +107,4 @@ language and native YAML handling. kislyuk/yq is a Python wrapper that feeds YAM
 ## Delivery & Milestones
 
 - Plan workflow and sub-plans created.
-- Plans 00002, 00003, 00004 and 00005 complete; Plans 00006 and 00007 In Progress (see their Delivery & Milestones).
+- Plans 00002, 00003, 00004, 00005 and 00007 complete; Plan 00006 In Progress (see its Delivery & Milestones).
