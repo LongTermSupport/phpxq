@@ -48,10 +48,10 @@ final class SortingCallsOrderTest extends TestCase
             "- {a: 0x10, i: 0}\n- {a: 5, i: 1}\n- {a: 1e1, i: 2}\n",
             "- {a: 5, i: 1}\n- {a: 1e1, i: 2}\n- {a: 0x10, i: 0}\n",
         ];
-        yield 'group_by groups equal numbers in key order' => [
+        yield 'group_by groups equal numbers in order of first appearance' => [
             'group_by(.a)',
             "- {a: 2, i: 0}\n- {a: 1, i: 1}\n- {a: 2, i: 2}\n- {a: 1, i: 3}\n",
-            "- - {a: 1, i: 1}\n  - {a: 1, i: 3}\n- - {a: 2, i: 0}\n  - {a: 2, i: 2}\n",
+            "- - {a: 2, i: 0}\n  - {a: 2, i: 2}\n- - {a: 1, i: 1}\n  - {a: 1, i: 3}\n",
         ];
         yield 'equal strings keep their input order' => [
             'sort_by(.a)',
@@ -92,7 +92,7 @@ final class SortingCallsOrderTest extends TestCase
         yield 'group_by with strings and a number' => [
             'group_by(.a)',
             "- a: x\n- a: y\n- a: x\n- a: 1\n",
-            "- - a: 1\n- - a: x\n  - a: x\n- - a: y\n",
+            "- - a: x\n  - a: x\n- - a: y\n- - a: 1\n",
         ];
         yield 'empty strings sort first' => [
             'sort_by(.a)',
