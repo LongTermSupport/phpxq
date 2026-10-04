@@ -395,6 +395,98 @@ final class JqApplicationInputSourceTest extends TestCase
         self::assertCount(50, $items);
     }
 
+    public function testStdinIsProcessedWhileItIsStillBeingWritten(): void
+    {
+        $pair = stream_socket_pair(\STREAM_PF_UNIX, \STREAM_SOCK_STREAM, \STREAM_IPPROTO_IP);
+        self::assertIsArray($pair);
+        [$reader, $writer] = $pair;
+        $source            = new InputSource([], $reader, new JsonDecoder(), new CliOptions(), static function (string $message): void {
+        });
+
+        fwrite($writer, "1\n{\"a\":\n");
+        $first = $source->fetch();
+        self::assertInstanceOf(InputItem::class, $first);
+        self::assertSame(1, $first->value);
+        self::assertSame(1, $first->lineNumber());
+
+        fwrite($writer, "2}\n[3]\n");
+        $second = $source->fetch();
+        self::assertInstanceOf(InputItem::class, $second);
+        self::assertInstanceOf(JsonObject::class, $second->value);
+        self::assertSame(3, $second->lineNumber());
+
+        $third = $source->fetch();
+        self::assertInstanceOf(InputItem::class, $third);
+        self::assertSame([3], $third->value);
+        self::assertSame(4, $third->lineNumber());
+
+        fclose($writer);
+        self::assertNull($source->fetch());
+    }
+
+    public function testRawLinesArriveWhileStdinIsStillOpen(): void
+    {
+        $pair = stream_socket_pair(\STREAM_PF_UNIX, \STREAM_SOCK_STREAM, \STREAM_IPPROTO_IP);
+        self::assertIsArray($pair);
+        [$reader, $writer] = $pair;
+        $source            = new InputSource([], $reader, new JsonDecoder(), new CliOptions(rawInput: true), static function (string $message): void {
+        });
+
+        fwrite($writer, "a\nb");
+        $first = $source->fetch();
+        self::assertInstanceOf(InputItem::class, $first);
+        self::assertSame('a', $first->value);
+
+        fwrite($writer, "c\n");
+        $second = $source->fetch();
+        self::assertInstanceOf(InputItem::class, $second);
+        self::assertSame('bc', $second->value);
+        self::assertSame(2, $second->lineNumber());
+        fclose($writer);
+    }
+
+    public function testLineNumbersAndErrorPositionsAgreeWithAWholeFileRead(): void
+    {
+        $text = str_repeat("{\"k\":[1,2,3]}\n", 20000) . "{\"b\":\n";
+        $file = $this->tempFile($text);
+
+        $fromStdin = $this->items($this->source($text));
+        $fromFile  = $this->items($this->source('', [$file]));
+
+        self::assertCount(20001, $fromStdin);
+        self::assertCount(20001, $fromFile);
+        self::assertSame($fromFile[19999]->lineNumber(), $fromStdin[19999]->lineNumber());
+        self::assertSame(20000, $fromStdin[19999]->lineNumber());
+        self::assertTrue($fromStdin[20000]->isError());
+        self::assertSame($fromFile[20000]->error, $fromStdin[20000]->error);
+        self::assertSame($fromFile[20000]->line, $fromStdin[20000]->line);
+    }
+
+    public function testRawLineNumbersContinueAcrossSegments(): void
+    {
+        $text  = str_repeat("line\n", 40000);
+        $items = $this->items($this->source($text, [], new CliOptions(rawInput: true)));
+
+        self::assertCount(40000, $items);
+        self::assertSame(40000, $items[39999]->lineNumber());
+    }
+
+    public function testStdinThatCannotBeReadIsReportedLikeAnUnreadableFile(): void
+    {
+        $directory = fopen(sys_get_temp_dir(), 'rb');
+        if (false === $directory) {
+            self::markTestSkipped('a directory cannot be opened as a stream here');
+        }
+
+        $source = new InputSource([], $directory, new JsonDecoder(), new CliOptions(), function (string $message): void {
+            $this->warnings[] = $message;
+        });
+
+        self::assertSame([], $this->items($source));
+        self::assertTrue($source->hadUnreadableFile());
+        self::assertSame(['jq: error: Is a directory' . "\n"], $this->warnings);
+    }
+
     /**
      * @param list<string> $files
      */

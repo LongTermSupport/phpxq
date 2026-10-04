@@ -28,7 +28,7 @@ final class ErrorGuardTest extends TestCase
     public function testWarningsBecomeErrorExceptions(): void
     {
         $this->expectException(ErrorException::class);
-        $this->expectExceptionMessage('boom');
+        $this->expectExceptionMessageIsOrContains('boom');
 
         ErrorGuard::raise(\E_WARNING, 'boom', 'file.php', 12);
     }

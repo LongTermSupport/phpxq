@@ -116,6 +116,22 @@ file_put_contents($outDir . '/docs/unicode.json', "[\"\\u00e9\", \"\\ud83d\\ude0
 file_put_contents($outDir . '/docs/dupkeys.json', "{\"a\":1,\"b\":2,\"a\":3}\n");
 file_put_contents($outDir . '/docs/order.json', "{\"z\":1,\"B\":2,\"a\":{\"y\":1,\"x\":[{\"d\":1,\"c\":2}]},\"A\":3}\n");
 
+/** Raw input texts (valid and malformed) for parser differential cases. */
+$parseTexts = [
+    '0', '-0', '1.', '.5', '+1', '01', '1e', '1e+', '1E5', '1e-5', '0x10', '1_0', 'nan', 'NaN', '-NaN', 'Infinity', '-Infinity', 'infinity', 'null', 'nul', 'NULL', 'True', 'true false',
+    'truefalse', '[1 2]', '[1,]', '[,1]', '[1,,2]', '{"a":1,}', '{,}', "{'a':1}", '{a:1}', '{"a" 1}', '{"a":}', '{"a":1 "b":2}', '[', ']', '{', '}', '"abc', '"a\\x"', '"a\\u12"',
+    '"a\\u12G4"', "\"a\tb\"", "\"a\nb\"", '"\\ud800"', '"\\udc00"', '"\\ud800\\ud800"', '"\\ud83d\\ude00"', '"\\u0000"', '/* c */ 1', "# c\n1", '1 # c', "\xef\xbb\xbf1", "\xef\xbb\xbf",
+    "\xff", "\"\xc3\x28\"", "\"\xe2\x82\"", "\"\xf0\x9f\x98\"", "\"\xed\xa0\x80\"", "\"\xc0\x80\"", "[1]\x00", "\x001", ' ', "\n\n", "1\xc2\xa0", "\xc2\xa01", '[]', '{}', '[[]]', '[{}]',
+    '{"a":{}}', '"\\/"', '"\\a"', '1.0', '1.50', '100e-2', '1e1000', '-1e1000', '1e-1000', '0e10', '-0.0', '123456789012345678901234567890', '0.1234567890123456789012345',
+    '9007199254740993', '1.7976931348623157e308', '1.7976931348623159e308', '5e-324', '2.5e-324', '[1e2,1E2,1e+2]', '{"a":1,"a":2}', '{"":1}', '{"a":1}{"b":2}', '[1][2]', '1 2',
+    '"a""b"', '1"a"', 'true1', 'null[]', '[]null', '{}[]', 'nan1', '"\\u00e9"', '"é"', '{"\\u00e9":1}', '[1,2', '{"a":[1,{"b":', "[1,\n2,\n3\n", '"\\', '"\\u', '[tru]', '[nul]', '[fals]',
+    '{"a":tru}', '123abc', '1.2.3', '--1', '-', '-a', '[-]', '{"a"}', '{"a":1,"b"}', '{1:2}', '[1}', '{"a":1]', ']]', '}{', '[[[[[[[[[[1]]]]]]]]]]', '"\\u00e9\\u00e8"', "\"\\ud83d\\ude00\" \"\\ud83d\\ude00\"",
+    '  [ 1 , 2 ]  ', "\t{\t\"a\"\t:\t1\t}\t", "\r\n[1]\r\n", "[1]\r\n[2]\r\n", "\x0b1", "\x0c1", '1e308', '1e309', '-1e309', '[1e309]', '[0.0000000000000000000000000001]', '[12345678901234567890123]', '"\\ud83d"', '"\\ude00"',
+];
+foreach ($parseTexts as $i => $text) {
+    file_put_contents(\sprintf('%s/docs/p%03d.json', $outDir, $i), $text);
+}
+
 /** Filters needing the loose schema (run against the random docs). */
 $schema = [
     '.', '.name', '.users', '.users[]', '.users[].name', '.users[0]', '.users[-1]', '.users[1:3]', '.users[:2]', '.users[-2:]',
@@ -283,6 +299,13 @@ $modes = [
     ['-nr', '"x"', ''], ['-nc', '1', ''], ['-ncr', '[1]', ''], ['-cn', '1', ''], ['-sc', 'length', 'docs/multi.json'], ['-ce', 'false', 'docs/00.json'], ['--exit-status -c', '.n', 'docs/00.json'], ['--compact-output --raw-output', '.name', 'docs/00.json'], ['--null-input', '1', ''], ['--sort-keys -c', '.', 'docs/order.json'], ['--ascii-output -c', '.', 'docs/unicode.json'], ['--join-output', '.name', 'docs/00.json'], ['--tab -c', '.', 'docs/order.json'],
     ['--arg x', '.', 'docs/00.json'], ['--argjson x', '.', 'docs/00.json'], ['--rawfile x docs/lines.txt -c', '$x', 'docs/00.json'], ['--slurpfile x docs/multi.json -c', '$x', 'docs/00.json'], ['--rawfile x docs/missing -c', '$x', 'docs/00.json'], ['--slurpfile x docs/bad.json -c', '$x', 'docs/00.json'], ['-n -c --arg x 1 --arg x 2', '$x', ''], ['-n -c --arg x 1', '$ARGS.named', ''], ['-n -c --argjson x null', '$x', ''], ['-n -c --argjson x 1.0', '$x', ''], ['-n -c --argjson x 1e2', '$x', ''], ['-n -c --argjson x "\\"s\\"" ', '$x', ''], ['-n -c --argjson x "[1,2]"', '$x', ''], ['-n -c --argjson x "1 2"', '$x', ''], ['-n -c --argjson x ""', '$x', ''],
 ];
+
+foreach ($parseTexts as $i => $text) {
+    $file = \sprintf('docs/p%03d.json', $i);
+    $modes[] = ['-c', '.', $file];
+    $modes[] = ['-c', '[..|numbers|.+0]', $file];
+    $modes[] = ['-c -s', '.', $file];
+}
 
 $tsv = fopen($outDir . '/cases.tsv', 'wb');
 foreach ($cases as [$flags, $filter, $file]) {

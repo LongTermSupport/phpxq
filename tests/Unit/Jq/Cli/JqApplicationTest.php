@@ -806,6 +806,27 @@ final class JqApplicationTest extends JqApplicationTestCase
         fclose($full);
     }
 
+    public function testAReaderThatWentAwayEndsTheRunQuietlyLikeSigpipe(): void
+    {
+        $pair = stream_socket_pair(\STREAM_PF_UNIX, \STREAM_SOCK_STREAM, \STREAM_IPPROTO_IP);
+        self::assertIsArray($pair);
+        [$reader, $writer] = $pair;
+        fclose($reader);
+        $err = self::memory('');
+
+        $status = new JqApplication(
+            new JqApplicationFakeParser(),
+            new JqApplicationFakeCompiler(static function (RuntimeContextInterface $context, mixed $input, Closure $emit): void {
+                $emit('x');
+            }),
+            new JsonDecoder(),
+            new JsonEncoder(),
+        )->run(['-n', '.'], self::memory(''), $writer, $err);
+
+        self::assertSame(JqExitCode::BROKEN_PIPE, $status);
+        self::assertSame('', self::contents($err));
+    }
+
     /**
      * @param array<string, string|false> $variables false unsets
      */

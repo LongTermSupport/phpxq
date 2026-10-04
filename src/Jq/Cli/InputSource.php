@@ -28,6 +28,9 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
 {
     private const string BOM = "\xEF\xBB\xBF";
 
+    /** bytes asked of standard input per read; a pipe hands over what has arrived, up to this much */
+    private const int CHUNK = 65536;
+
     /** @var ?Generator<int, InputItem> */
     private ?Generator $generator = null;
 
@@ -188,9 +191,10 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
      */
     private function items(): Generator
     {
-        foreach ($this->sources() as [$name, $text]) {
+        $incremental = !$this->options->slurp && !$this->options->stream && !$this->options->seq;
+        foreach ($this->sources($incremental) as [$name, $text, $firstLine]) {
             if ($this->options->rawInput) {
-                yield from $this->rawLines($name, $text);
+                yield from $this->rawLines($name, $text, $firstLine);
 
                 continue;
             }
@@ -199,7 +203,7 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
             $inner  = match (true) {
                 $this->options->stream => $this->streamEvents($name, str_starts_with($text, self::BOM) ? substr($text, 3) : $text),
                 $this->options->seq    => $this->seqValues($name, $text),
-                default                => $this->jsonValues($name, $text),
+                default                => $this->jsonValues($name, $text, $firstLine),
             };
             foreach ($inner as $item) {
                 yield $item;
@@ -215,19 +219,23 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
     }
 
     /**
-     * @return Generator<int, array{?string, string}>
+     * The texts to parse, each with the number of newlines that came before it in its source. A file is
+     * one text. Standard input is one text too, unless $incremental asks for it in pieces that each end
+     * between two values, so a pipe is processed while it is still being written.
+     *
+     * @return Generator<int, array{?string, string, int}>
      */
-    private function sources(): Generator
+    private function sources(bool $incremental = false): Generator
     {
         if ([] === $this->files) {
-            yield [null, $this->readStdin()];
+            yield from $this->stdinTexts($incremental);
 
             return;
         }
 
         foreach ($this->files as $file) {
             if ('-' === $file) {
-                yield [null, $this->readStdin()];
+                yield from $this->stdinTexts($incremental);
 
                 continue;
             }
@@ -241,25 +249,90 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
                 continue;
             }
 
-            yield [$file, $text];
+            yield [$file, $text, 0];
+        }
+    }
+
+    /**
+     * @return Generator<int, array{null, string, int}>
+     */
+    private function stdinTexts(bool $incremental): Generator
+    {
+        if (!$incremental) {
+            yield [null, $this->readStdin(), 0];
+
+            return;
+        }
+
+        $segmenter = new InputSegmenter(!$this->options->rawInput);
+        $lines     = 0;
+        while (null !== ($chunk = $this->readChunk())) {
+            $segment = $segmenter->push($chunk);
+            if (null !== $segment) {
+                yield [null, $segment, $lines];
+
+                $lines += substr_count($segment, "\n");
+            }
+        }
+
+        $rest = $segmenter->finish();
+        if ('' !== $rest) {
+            yield [null, $rest, $lines];
         }
     }
 
     private function readStdin(): string
     {
-        $contents = stream_get_contents($this->stdin);
+        $contents = '';
+        while (null !== ($chunk = $this->readChunk())) {
+            $contents .= $chunk;
+        }
 
-        return false === $contents ? '' : $contents;
+        return $contents;
+    }
+
+    /**
+     * The next piece of standard input, or null at the end of it. A read that fails (standard input is a
+     * directory, say) is reported like an unreadable file and ends the input.
+     */
+    private function readChunk(): ?string
+    {
+        if (feof($this->stdin)) {
+            return null;
+        }
+
+        $reason = null;
+        set_error_handler(static function (int $level, string $message) use (&$reason): bool {
+            // "fread(): Read of 8192 bytes failed with errno=21 Is a directory"
+            $reason = 1 === preg_match('/errno=\d+ (.+)$/', $message, $match) ? $match[1] : $message;
+
+            return true;
+        });
+
+        try {
+            $chunk = fread($this->stdin, self::CHUNK);
+        } finally {
+            restore_error_handler();
+        }
+
+        if (null !== $reason || false === $chunk) {
+            $this->unreadable = true;
+            ($this->warn)('jq: error: ' . ($reason ?? 'Input/output error') . "\n");
+
+            return null;
+        }
+
+        return '' === $chunk && feof($this->stdin) ? null : $chunk;
     }
 
     /**
      * @return Generator<int, InputItem>
      */
-    private function rawLines(?string $name, string $text): Generator
+    private function rawLines(?string $name, string $text, int $firstLine = 0): Generator
     {
         $length = \strlen($text);
         $offset = 0;
-        $lines  = 0;
+        $lines  = $firstLine;
         while ($offset < $length) {
             $newline = strpos($text, "\n", $offset);
             if (false === $newline) {
@@ -278,9 +351,9 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
     /**
      * @return Generator<int, InputItem>
      */
-    private function jsonValues(?string $name, string $text): Generator
+    private function jsonValues(?string $name, string $text, int $firstLine = 0): Generator
     {
-        $tracker = new LineTracker(str_starts_with($text, self::BOM) ? substr($text, 3) : $text);
+        $tracker = new LineTracker(str_starts_with($text, self::BOM) ? substr($text, 3) : $text, $firstLine);
         $ordinal = 0;
 
         try {
@@ -288,10 +361,26 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
                 yield InputItem::tracked($value, $name, $tracker, ++$ordinal);
             }
         } catch (JsonSyntaxException $jsonSyntaxException) {
-            $message = $jsonSyntaxException->getMessage();
+            $message = $this->shiftLines($jsonSyntaxException->getMessage(), $firstLine);
 
-            yield InputItem::error($message, true, $name, $this->linesBeforeError($text, $message));
+            yield InputItem::error($message, true, $name, $firstLine + $this->linesBeforeError($text, $jsonSyntaxException->getMessage()));
         }
+    }
+
+    /**
+     * Make the "at line L, column C" of a message about a piece of the input relative to the whole input.
+     */
+    private function shiftLines(string $message, int $firstLine): string
+    {
+        if (0 === $firstLine) {
+            return $message;
+        }
+
+        return (string)preg_replace_callback(
+            '/at line (\d+), column (\d+)/',
+            static fn (array $match): string => 'at line ' . ((int)$match[1] + $firstLine) . ', column ' . $match[2],
+            $message,
+        );
     }
 
     /**
