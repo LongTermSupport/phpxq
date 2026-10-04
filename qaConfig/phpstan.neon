@@ -1,0 +1,15 @@
+# Project PHPStan configuration. It replaces php-qa-ci's configDefaults/generic/phpstan.neon, so the
+# two settings that file carries are repeated here, followed by this project's own defences. The
+# rules are documented in docs/defence-before-fix.md and indexed in docs/phpstan-rules/README.md.
+parameters:
+    level: max
+    inferPrivatePropertyTypeFromConstructor: true
+    excludePaths:
+        # Fixtures of the defences' own tests: each one is deliberately an instance of the bug class.
+        analyseAndScan:
+            - ../tests/Fixtures/Defence/*
+
+rules:
+    - QaConfig\PHPStan\Rules\RecursionThroughNativeCallbackRule
+    - QaConfig\PHPStan\Rules\UnguardedAliasRecursionRule
+    - QaConfig\PHPStan\Rules\LoopInvariantConstructionRule

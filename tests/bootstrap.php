@@ -37,6 +37,13 @@ declare(strict_types=1);
 // Load composer autoloader
 require \dirname(__DIR__) . '/vendor/autoload.php';
 
+// The defences under qaConfig/PHPStan are tested against PHPStan's own classes (RuleTestCase, Scope), which
+// ship inside the QA toolchain's PHAR rather than in vendor/.
+$phpstanPhar = \dirname(__DIR__) . '/vendor/lts/php-qa-ci/vendor-phar/phpstan.phar';
+if (file_exists($phpstanPhar)) {
+    require_once 'phar://' . $phpstanPhar . '/vendor/autoload.php';
+}
+
 // Uncomment and add your project-specific bootstrap logic here:
 // (static function (): void {
 //     // e.g. set environment variables, initialise framework, configure test database
