@@ -136,11 +136,11 @@ final class FileModuleLoaderTest extends TestCase
 
         try {
             $module = $this->loader('~')->loadLibrary('a', null, null);
-            self::assertSame(realpath($this->modules . '/a.jq'), $module->path);
+            self::assertSame(realpath($this->modules . \DIRECTORY_SEPARATOR . 'a.jq'), $module->path);
 
             try {
                 $this->loader('~/b')->loadLibrary('nonexistent', null, null);
-                self::fail('expected a compile error');
+                self::fail('expected the home directory search to fail');
             } catch (JqCompileException $jqCompileException) {
                 self::assertStringContainsString($this->modules . '/b', $jqCompileException->getMessage());
                 self::assertStringNotContainsString('~/b', $jqCompileException->getMessage());
@@ -154,11 +154,11 @@ final class FileModuleLoaderTest extends TestCase
     {
         $module = $this->loader('$ORIGIN/../tests/Conformance/Jq/modules')->loadLibrary('a', null, null);
 
-        self::assertSame(realpath($this->modules . '/a.jq'), $module->path);
+        self::assertSame(realpath($this->modules . \DIRECTORY_SEPARATOR . 'a.jq'), $module->path);
 
         try {
             $this->loader('$ORIGIN')->loadLibrary('nonexistent', null, null);
-            self::fail('expected a compile error');
+            self::fail('expected the origin search to fail');
         } catch (JqCompileException $jqCompileException) {
             self::assertStringContainsString(\dirname(__DIR__, 4) . '/bin', $jqCompileException->getMessage());
         }

@@ -59,10 +59,10 @@ final class DefaultBuiltinRegistryTest extends TestCase
         };
         $registry->registerLazy(static function () use ($calls): void {
             ++$calls->count;
-        }, 'ghost/0', 'phantom/1');
+        }, 'spectre/0', 'phantom/1');
 
-        self::assertNull($registry->lookup('ghost', 0));
-        self::assertNull($registry->lookup('ghost', 0));
+        self::assertNull($registry->lookup('spectre', 0));
+        self::assertNull($registry->lookup('spectre', 0));
         self::assertNull($registry->lookup('phantom', 1));
         self::assertSame(1, $calls->count);
     }

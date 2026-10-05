@@ -162,10 +162,12 @@ final class NumberParserTest extends TestCase
 
     public function testParseThrowsForInvalidLiteral(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid numeric literal: 1e');
-
-        NumberParser::parse('1e');
+        try {
+            NumberParser::parse('1e');
+            self::fail('expected an InvalidArgumentException');
+        } catch (InvalidArgumentException $invalidArgumentException) {
+            self::assertSame('Invalid numeric literal: 1e', $invalidArgumentException->getMessage());
+        }
     }
 
     public function testExponentsBeyondTheLimitSaturate(): void
@@ -181,8 +183,8 @@ final class NumberParserTest extends TestCase
         $negative = NumberParser::parse('-1E-1000000000');
 
         self::assertSame(0.0, $positive);
-        self::assertSame(\INF, fdiv(1.0, (float)$positive));
+        self::assertSame(\INF, fdiv(1.0, $positive));
         self::assertSame(0.0, $negative);
-        self::assertSame(-\INF, fdiv(1.0, (float)$negative));
+        self::assertSame(-\INF, fdiv(1.0, $negative));
     }
 }

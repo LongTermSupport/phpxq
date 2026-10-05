@@ -97,7 +97,7 @@ final class JsonEncoderBoundaryTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{string, string}>
+     * @return iterable<string, array{string, list<string>}>
      */
     public static function asciiProvider(): iterable
     {
