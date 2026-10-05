@@ -29,8 +29,8 @@ final class TomlParserTest extends TestCase
     {
         try {
             new TomlParser($toml)->parse();
-        } catch (FormatException $exception) {
-            self::assertSame($expectedMessage, $exception->getMessage());
+        } catch (FormatException $formatException) {
+            self::assertSame($expectedMessage, $formatException->getMessage());
 
             return;
         }
@@ -95,13 +95,13 @@ final class TomlParserTest extends TestCase
 
         yield 'unterminated basic string at end' => ['a = "x', 'toml: line 1: unterminated string'];
 
-        yield 'bad escape' => ["a = \"\\q\"\n", 'toml: line 1: invalid escape sequence \\q'];
+        yield 'bad escape' => ["a = \"\\q\"\n", 'toml: line 1: invalid escape sequence \q'];
 
-        yield 'space escape in a single-line string' => ["a = \"a\\ b\"\n", 'toml: line 1: invalid escape sequence \\ '];
+        yield 'space escape in a single-line string' => ["a = \"a\\ b\"\n", 'toml: line 1: invalid escape sequence \ '];
 
         yield 'tab escape in a single-line string' => ["a = \"a\\\tb\"\n", "toml: line 1: invalid escape sequence \\\t"];
 
-        yield 'bad escape in a multi-line string' => ["a = \"\"\"\\q\"\"\"\n", 'toml: line 1: invalid escape sequence \\q'];
+        yield 'bad escape in a multi-line string' => ["a = \"\"\"\\q\"\"\"\n", 'toml: line 1: invalid escape sequence \q'];
 
         yield 'short unicode escape' => ["a = \"\\u00e\"\n", 'toml: line 1: invalid unicode escape'];
 
@@ -187,7 +187,7 @@ final class TomlParserTest extends TestCase
 
         yield 'empty literal string' => ["a = ''\nb = ''''''\n", '{"a":"","b":""}'];
 
-        yield 'multi-line literal keeps a carriage return that is not part of the first line break' => ["a = '''\rx'''\n", "{\"a\":\"\\rx\"}"];
+        yield 'multi-line literal keeps a carriage return that is not part of the first line break' => ["a = '''\rx'''\n", '{"a":"\\rx"}'];
 
         yield 'multi-line basic strings' => [
             "a = \"\"\"\r\nx\"\"\"\nb = \"\"\"\nx\"\"\"\nc = \"\"\"x\"\"\"\"\nd = \"\"\"x\"\"\"\"\"\ne = \"\"\"\rx\"\"\"\n",
@@ -204,7 +204,7 @@ final class TomlParserTest extends TestCase
             '{"a":"' . "\u{10FFFF}" . '","b":"' . "\u{D7FF}" . '","c":"' . "\u{E000}" . '","d":"A"}',
         ];
 
-        yield 'every simple escape' => ["a = \"\\b\\t\\n\\f\\r\\\"\\\\\"\n", '{"a":"\u0008\t\n\u000c\r\"\\\\"}'];
+        yield 'every simple escape' => ["a = \"\\b\\t\\n\\f\\r\\\"\\\\\"\n", '{"a":"\u0008\t\n\u000c\r\"\\\"}'];
 
         yield 'dates' => ["a = 1979-05-27 07:32:00Z # c\nb = 1979-05-27\nc = 1979-05-27T07:32:00\n", '{"a":"1979-05-27 07:32:00Z","b":"1979-05-27","c":"1979-05-27T07:32:00"}'];
 
@@ -251,5 +251,4 @@ final class TomlParserTest extends TestCase
 
         self::assertSame('', $root->content[0]->headComment);
     }
-
 }

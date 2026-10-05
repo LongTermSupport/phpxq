@@ -19,6 +19,15 @@ final class LexerBoundaryTest extends TestCase
 {
     private const string REPLACEMENT = "\u{fffd}";
 
+    #[DataProvider('escapeProvider')]
+    public function testUnicodeEscapes(string $source, string $expected): void
+    {
+        $tokens = new Lexer()->tokenize($source);
+
+        self::assertCount(4, $tokens);
+        self::assertSame($expected, $tokens[1]->text);
+    }
+
     /**
      * @return iterable<string, array{string, string}>
      */
@@ -47,15 +56,6 @@ final class LexerBoundaryTest extends TestCase
         yield 'ascii'                         => ['"\u007f"', "\x7f"];
     }
 
-    #[DataProvider('escapeProvider')]
-    public function testUnicodeEscapes(string $source, string $expected): void
-    {
-        $tokens = new Lexer()->tokenize($source);
-
-        self::assertCount(4, $tokens);
-        self::assertSame($expected, $tokens[1]->text);
-    }
-
     /**
      * @param list<string> $expected token positions as type@line:column
      */
@@ -82,11 +82,25 @@ final class LexerBoundaryTest extends TestCase
         yield 'backslash before text'        => ["1 # a \\x\n2", [$first, 'number@2:1', $line2]];
         yield 'continued by crlf'            => ["1 # a \\\r\n2", [$first, $line2]];
         yield 'crlf continuation then blank' => ["1 # a \\\r\n\n2", [$first, $third, $line3]];
-        yield 'backslash at end'             => ["1 # a \\", [$first, 'eof@1:8']];
+        yield 'backslash at end'             => ['1 # a \\', [$first, 'eof@1:8']];
         yield 'backslash cr at end'          => ["1 # a \\\r", [$first, 'eof@1:9']];
         yield 'cr backslash cr at end'       => ["1 # \\\r\\\r", [$first, 'eof@1:9']];
         yield 'two continuations'            => ["1 # a \\\n b \\\n c\n2", [$first, 'number@4:1', 'eof@4:2']];
         yield 'continuation line has text'   => ["1 # a \\\n 3 4\n2", [$first, $third, $line3]];
+    }
+
+    #[DataProvider('errorProvider')]
+    public function testErrorPositions(string $source, string $message): void
+    {
+        try {
+            new Lexer()->tokenize($source);
+        } catch (JqCompileException $jqCompileException) {
+            self::assertSame($message, $jqCompileException->getMessage());
+
+            return;
+        }
+
+        self::fail('expected JqCompileException');
     }
 
     /**
@@ -114,19 +128,5 @@ final class LexerBoundaryTest extends TestCase
             "\"a\n\\v\"",
             'Invalid escape at line 1, column 4 (while parsing \'"\v"\') at <top-level>, line 2, column 1:',
         ];
-    }
-
-    #[DataProvider('errorProvider')]
-    public function testErrorPositions(string $source, string $message): void
-    {
-        try {
-            new Lexer()->tokenize($source);
-        } catch (JqCompileException $jqCompileException) {
-            self::assertSame($message, $jqCompileException->getMessage());
-
-            return;
-        }
-
-        self::fail('expected JqCompileException');
     }
 }

@@ -26,20 +26,10 @@ final class AssignOperatorTableTest extends TestCase
 
     private const string RETURN = '⏎';
 
-    /**
-     * @return Generator<string, array{string, string, string}>
-     */
-    private static function rows(string $table): Generator
+    #[DataProvider('successProvider')]
+    public function testEvaluates(string $expression, string $input, string $expected): void
     {
-        foreach (explode("\n", trim($table)) as $line) {
-            [$expression, $input, $expected] = explode(self::ARROW, $line);
-
-            yield $line => [
-                $expression,
-                str_replace(self::RETURN, "\n", $input),
-                str_replace(self::RETURN, "\n", $expected),
-            ];
-        }
+        self::assertSame($expected, YqHarness::run($expression, $input));
     }
 
     /**
@@ -98,19 +88,29 @@ final class AssignOperatorTableTest extends TestCase
             TABLE);
     }
 
-    #[DataProvider('successProvider')]
-    public function testEvaluates(string $expression, string $input, string $expected): void
-    {
-        self::assertSame($expected, YqHarness::run($expression, $input));
-    }
-
     public function testAnUnknownAliasIsRejected(): void
     {
         try {
             YqHarness::run('.b alias = "nope"', "a: 1\nb: 2\n");
             self::fail('the alias has no anchor');
-        } catch (EvaluationException $exception) {
-            self::assertSame('Could not find anchor nope', $exception->getMessage());
+        } catch (EvaluationException $evaluationException) {
+            self::assertSame('Could not find anchor nope', $evaluationException->getMessage());
+        }
+    }
+
+    /**
+     * @return Generator<string, array{string, string, string}>
+     */
+    private static function rows(string $table): Generator
+    {
+        foreach (explode("\n", trim($table)) as $line) {
+            [$expression, $input, $expected] = explode(self::ARROW, $line);
+
+            yield $line => [
+                $expression,
+                str_replace(self::RETURN, "\n", $input),
+                str_replace(self::RETURN, "\n", $expected),
+            ];
         }
     }
 }

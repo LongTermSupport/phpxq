@@ -185,14 +185,15 @@ final class HelpTextTest extends TestCase
 
         TEXT;
 
-    private static function filled(string $template): string
-    {
-        return str_replace([self::MARKER, self::COMMAND_MARKER, self::SPACE_MARKER], [self::FLAGS, self::EVAL, ' '], $template);
-    }
-
     public function testRootText(): void
     {
-        self::assertSame(self::filled(self::ROOT_LONG . self::ROOT_USAGE), HelpText::root());
+        self::assertSame($this->filled(self::ROOT_LONG . self::ROOT_USAGE), HelpText::root());
+    }
+
+    #[DataProvider('commandProvider')]
+    public function testCommandHelp(string $command, string $template): void
+    {
+        self::assertSame($this->filled($template), HelpText::forCommand($command));
     }
 
     /**
@@ -215,10 +216,10 @@ final class HelpTextTest extends TestCase
         yield 'no command' => ['', self::ROOT_LONG . self::ROOT_USAGE];
     }
 
-    #[DataProvider('commandProvider')]
-    public function testCommandHelp(string $command, string $template): void
+    #[DataProvider('usageProvider')]
+    public function testUsage(string $command, string $template): void
     {
-        self::assertSame(self::filled($template), HelpText::forCommand($command));
+        self::assertSame($this->filled($template), HelpText::usage($command));
     }
 
     /**
@@ -241,9 +242,8 @@ final class HelpTextTest extends TestCase
         yield 'no command' => ['', self::ROOT_USAGE];
     }
 
-    #[DataProvider('usageProvider')]
-    public function testUsage(string $command, string $template): void
+    private function filled(string $template): string
     {
-        self::assertSame(self::filled($template), HelpText::usage($command));
+        return str_replace([self::MARKER, self::COMMAND_MARKER, self::SPACE_MARKER], [self::FLAGS, self::EVAL, ' '], $template);
     }
 }

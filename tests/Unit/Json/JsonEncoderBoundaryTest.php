@@ -22,15 +22,6 @@ final class JsonEncoderBoundaryTest extends TestCase
 {
     private const string SKIPPED = '<skipped: too deep>';
 
-    /**
-     * @return iterable<string, array{int, bool}>
-     */
-    public static function depthProvider(): iterable
-    {
-        yield 'at the limit'   => [10000, false];
-        yield 'one beyond'     => [10001, true];
-    }
-
     #[DataProvider('depthProvider')]
     public function testColouredArraysSkipBeyondTheDepthLimit(int $levels, bool $skipped): void
     {
@@ -55,6 +46,15 @@ final class JsonEncoderBoundaryTest extends TestCase
         $text = new JsonEncoder()->encode($value, new EncodeOptions(indent: 0, colors: ColorScheme::default()));
 
         self::assertSame($skipped, str_contains($text, self::SKIPPED));
+    }
+
+    /**
+     * @return iterable<string, array{int, bool}>
+     */
+    public static function depthProvider(): iterable
+    {
+        yield 'at the limit'   => [10000, false];
+        yield 'one beyond'     => [10001, true];
     }
 
     public function testColouredOutputKeepsTheLeafAtTheLimit(): void
@@ -97,6 +97,17 @@ final class JsonEncoderBoundaryTest extends TestCase
     }
 
     /**
+     * @param list<string> $units the lower case hex of each UTF-16 code unit
+     */
+    #[DataProvider('asciiProvider')]
+    public function testAsciiEscapesOfSupplementaryCharacters(string $text, array $units): void
+    {
+        $expected = '"' . implode('', array_map(static fn (string $unit): string => '\\u' . $unit, $units)) . '"';
+
+        self::assertSame($expected, new JsonEncoder()->encode($text, new EncodeOptions(indent: 0, ascii: true)));
+    }
+
+    /**
      * @return iterable<string, array{string, list<string>}>
      */
     public static function asciiProvider(): iterable
@@ -106,16 +117,5 @@ final class JsonEncoderBoundaryTest extends TestCase
         yield 'odd low surrogate'     => ["\u{1f601}", ['d83d', 'de01']];
         yield 'highest supplementary' => ["\u{10ffff}", ['dbff', 'dfff']];
         yield 'last low bit set'      => ["\u{1ffff}", ['d83f', 'dfff']];
-    }
-
-    /**
-     * @param list<string> $units the lower case hex of each UTF-16 code unit
-     */
-    #[DataProvider('asciiProvider')]
-    public function testAsciiEscapesOfSupplementaryCharacters(string $text, array $units): void
-    {
-        $expected = '"' . implode('', array_map(static fn (string $unit): string => '\\' . 'u' . $unit, $units)) . '"';
-
-        self::assertSame($expected, new JsonEncoder()->encode($text, new EncodeOptions(indent: 0, ascii: true)));
     }
 }

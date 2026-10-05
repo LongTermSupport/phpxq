@@ -36,8 +36,8 @@ final class HclReaderTest extends TestCase
     {
         try {
             $this->decode($hcl);
-        } catch (FormatException $exception) {
-            self::assertSame($expectedMessage, $exception->getMessage());
+        } catch (FormatException $formatException) {
+            self::assertSame($expectedMessage, $formatException->getMessage());
 
             return;
         }

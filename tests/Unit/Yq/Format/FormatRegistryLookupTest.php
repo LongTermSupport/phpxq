@@ -83,8 +83,8 @@ final class FormatRegistryLookupTest extends TestCase
     {
         try {
             new FormatRegistry()->decoder(FormatEnum::Shell);
-        } catch (FormatException $exception) {
-            self::assertSame('cannot read shell input; it is an output only format', $exception->getMessage());
+        } catch (FormatException $formatException) {
+            self::assertSame('cannot read shell input; it is an output only format', $formatException->getMessage());
 
             return;
         }

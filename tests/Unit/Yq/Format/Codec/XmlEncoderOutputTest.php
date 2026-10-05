@@ -22,15 +22,6 @@ final class XmlEncoderOutputTest extends TestCase
 
     private const string PRETTY_ROOT = "<a>\n  <b>1</b>\n</a>\n";
 
-    private static function commented(Node $node, string $head = '', string $line = '', string $foot = ''): Node
-    {
-        $node->headComment = $head;
-        $node->lineComment = $line;
-        $node->footComment = $foot;
-
-        return $node;
-    }
-
     #[DataProvider('outputCases')]
     public function testOutput(Node $document, string $expected, ?FormatOptions $options = null): void
     {
@@ -144,8 +135,8 @@ final class XmlEncoderOutputTest extends TestCase
     {
         try {
             new XmlEncoder()->encode($document, new FormatOptions(), 0);
-        } catch (FormatException $exception) {
-            self::assertSame($expectedMessage, $exception->getMessage());
+        } catch (FormatException $formatException) {
+            self::assertSame($expectedMessage, $formatException->getMessage());
 
             return;
         }
@@ -179,5 +170,14 @@ final class XmlEncoderOutputTest extends TestCase
         ];
 
         yield 'scalar inside the top level sequence' => [Node::sequence([Node::scalar('x')]), 'xml: the top level must be a map or an array of maps'];
+    }
+
+    private static function commented(Node $node, string $head = '', string $line = '', string $foot = ''): Node
+    {
+        $node->headComment = $head;
+        $node->lineComment = $line;
+        $node->footComment = $foot;
+
+        return $node;
     }
 }

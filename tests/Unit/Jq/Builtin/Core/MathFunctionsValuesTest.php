@@ -39,7 +39,7 @@ final class MathFunctionsValuesTest extends TestCase
     #[DataProvider('values')]
     public function testValues(string $name, array|int|float $arguments, int|float $expected, float $tolerance): void
     {
-        $result = \is_array($arguments) ? self::call($name, null, ...$arguments) : self::call($name, $arguments);
+        $result = \is_array($arguments) ? $this->call($name, null, ...$arguments) : $this->call($name, $arguments);
 
         if (\is_float($expected) && is_nan($expected)) {
             self::assertNan($result, $name);
@@ -50,13 +50,13 @@ final class MathFunctionsValuesTest extends TestCase
         if (0.0 === $tolerance) {
             self::assertSame($expected, $result, $name);
             if (0.0 === $expected) {
-                self::assertSame(fdiv(1.0, $expected), fdiv(1.0, self::numberOf($result)), $name . ' sign of zero');
+                self::assertSame(fdiv(1.0, $expected), fdiv(1.0, $this->numberOf($result)), $name . ' sign of zero');
             }
 
             return;
         }
 
-        self::assertEqualsWithDelta($expected, self::numberOf($result), $tolerance * max(1.0, abs($expected)), $name);
+        self::assertEqualsWithDelta($expected, $this->numberOf($result), $tolerance * max(1.0, abs($expected)), $name);
     }
 
     /**
@@ -424,10 +424,10 @@ final class MathFunctionsValuesTest extends TestCase
     #[DataProvider('pairs')]
     public function testPairs(string $name, int|float $input, array $expected): void
     {
-        $result = self::call($name, $input);
+        $result = $this->call($name, $input);
         self::assertIsArray($result);
         self::assertCount(2, $result);
-        self::assertEqualsWithDelta($expected[0], self::numberOf($result[0]), self::TIGHT, $name);
+        self::assertEqualsWithDelta($expected[0], $this->numberOf($result[0]), self::TIGHT, $name);
         self::assertSame($expected[1], $result[1], $name);
     }
 
@@ -476,13 +476,13 @@ final class MathFunctionsValuesTest extends TestCase
 
     public function testModfKeepsTheSignOfTheFractionOfInfinity(): void
     {
-        $negative = self::call('modf', -\INF);
+        $negative = $this->call('modf', -\INF);
         self::assertIsArray($negative);
-        self::assertSame(-\INF, fdiv(1.0, self::numberOf($negative[0])));
+        self::assertSame(-\INF, fdiv(1.0, $this->numberOf($negative[0])));
 
-        $positive = self::call('modf', \INF);
+        $positive = $this->call('modf', \INF);
         self::assertIsArray($positive);
-        self::assertSame(\INF, fdiv(1.0, self::numberOf($positive[0])));
+        self::assertSame(\INF, fdiv(1.0, $this->numberOf($positive[0])));
     }
 
     public function testFrexpAndScalbArePublicHelpers(): void
@@ -508,14 +508,14 @@ final class MathFunctionsValuesTest extends TestCase
         return $cubes;
     }
 
-    private static function numberOf(mixed $value): float
+    private function numberOf(mixed $value): float
     {
         self::assertIsNumeric($value);
 
         return (float)$value;
     }
 
-    private static function call(string $name, int|float|null $input, int|float ...$args): mixed
+    private function call(string $name, int|float|null $input, int|float ...$args): mixed
     {
         $registry = new DefaultBuiltinRegistry();
         MathFunctions::register($registry);

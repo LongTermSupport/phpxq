@@ -244,8 +244,8 @@ final class PropsDecoderTest extends TestCase
     {
         try {
             $this->decode($properties);
-        } catch (FormatException $exception) {
-            self::assertSame(self::MALFORMED, $exception->getMessage());
+        } catch (FormatException $formatException) {
+            self::assertSame(self::MALFORMED, $formatException->getMessage());
 
             return;
         }

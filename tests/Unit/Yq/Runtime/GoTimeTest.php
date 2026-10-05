@@ -24,14 +24,12 @@ final class GoTimeTest extends TestCase
 
     private const string STAMP ='Y-m-d\TH:i:s.uP';
 
-    /**
-     * @return Generator<string, list<string>>
-     */
-    private static function rows(string $table): Generator
+    #[DataProvider('formatCases')]
+    public function testFormatRendersGoLayouts(string $zone, string $layout, string $expected): void
     {
-        foreach (explode("\n", trim($table)) as $line) {
-            yield $line => explode('|', $line);
-        }
+        $time = new DateTimeImmutable('2009-11-05 15:04:05.123456', new DateTimeZone($zone));
+
+        self::assertSame($expected, GoTime::format($time, $layout));
     }
 
     /**
@@ -120,12 +118,10 @@ final class GoTimeTest extends TestCase
             TABLE);
     }
 
-    #[DataProvider('formatCases')]
-    public function testFormatRendersGoLayouts(string $zone, string $layout, string $expected): void
+    #[DataProvider('zoneNameCases')]
+    public function testFormatZoneNameOfOffsetZones(string $text, string $expected): void
     {
-        $time = new DateTimeImmutable('2009-11-05 15:04:05.123456', new DateTimeZone($zone));
-
-        self::assertSame($expected, GoTime::format($time, $layout));
+        self::assertSame($expected, GoTime::format(new DateTimeImmutable($text), 'MST'));
     }
 
     /**
@@ -141,12 +137,6 @@ final class GoTimeTest extends TestCase
             2009-11-05T15:04:05 UTC|UTC
             2009-11-05T15:04:05 Europe/Paris|CET
             TABLE);
-    }
-
-    #[DataProvider('zoneNameCases')]
-    public function testFormatZoneNameOfOffsetZones(string $text, string $expected): void
-    {
-        self::assertSame($expected, GoTime::format(new DateTimeImmutable($text), 'MST'));
     }
 
     public function testFormatTwelveHourClockAndZeroPaddedMinutes(): void
@@ -191,6 +181,21 @@ final class GoTimeTest extends TestCase
 
         self::assertSame('2009-11-05', GoTime::format($time, '2006-01-02'));
         self::assertSame('2009 qqq', GoTime::format($time, '2006 qqq'));
+    }
+
+    #[DataProvider('parseCases')]
+    public function testParseReadsGoLayouts(string $layout, string $value, string $expected): void
+    {
+        $time = GoTime::parse($layout, $value);
+
+        if ('~' === $expected) {
+            self::assertNotInstanceOf(DateTimeImmutable::class, $time);
+
+            return;
+        }
+
+        self::assertInstanceOf(DateTimeImmutable::class, $time);
+        self::assertSame($expected, $time->format(self::STAMP));
     }
 
     /**
@@ -346,19 +351,10 @@ final class GoTimeTest extends TestCase
             TABLE);
     }
 
-    #[DataProvider('parseCases')]
-    public function testParseReadsGoLayouts(string $layout, string $value, string $expected): void
+    #[DataProvider('timestampCases')]
+    public function testLooksLikeTimestamp(string $text, string $expected): void
     {
-        $time = GoTime::parse($layout, $value);
-
-        if ('~' === $expected) {
-            self::assertNotInstanceOf(DateTimeImmutable::class, $time);
-
-            return;
-        }
-
-        self::assertInstanceOf(DateTimeImmutable::class, $time);
-        self::assertSame($expected, $time->format(self::STAMP));
+        self::assertSame('1' === $expected, GoTime::looksLikeTimestamp($text));
     }
 
     /**
@@ -396,18 +392,27 @@ final class GoTimeTest extends TestCase
             TABLE);
     }
 
-    #[DataProvider('timestampCases')]
-    public function testLooksLikeTimestamp(string $text, string $expected): void
-    {
-        self::assertSame('1' === $expected, GoTime::looksLikeTimestamp($text));
-    }
-
     public function testLooksLikeTimestampWithTabSeparatorAndTrailingNewline(): void
     {
         self::assertTrue(GoTime::looksLikeTimestamp("2009-11-05\t10:20:30"));
         self::assertTrue(GoTime::looksLikeTimestamp("2009-11-05 10:20:30\t+02:00"));
         self::assertFalse(GoTime::looksLikeTimestamp("2009-11-05\n"));
         self::assertFalse(GoTime::looksLikeTimestamp("2009-11-05T10:20:30Z\n"));
+    }
+
+    #[DataProvider('tryParseCases')]
+    public function testTryParse(string $value, string $layout, string $expected): void
+    {
+        $time = GoTime::tryParse($value, '~' === $layout ? null : $layout);
+
+        if ('~' === $expected) {
+            self::assertNotInstanceOf(DateTimeImmutable::class, $time);
+
+            return;
+        }
+
+        self::assertInstanceOf(DateTimeImmutable::class, $time);
+        self::assertSame($expected, $time->format(self::STAMP));
     }
 
     /**
@@ -434,19 +439,10 @@ final class GoTimeTest extends TestCase
             TABLE);
     }
 
-    #[DataProvider('tryParseCases')]
-    public function testTryParse(string $value, string $layout, string $expected): void
+    #[DataProvider('durationCases')]
+    public function testParseDuration(string $text, string $expected): void
     {
-        $time = GoTime::tryParse($value, '~' === $layout ? null : $layout);
-
-        if ('~' === $expected) {
-            self::assertNotInstanceOf(DateTimeImmutable::class, $time);
-
-            return;
-        }
-
-        self::assertInstanceOf(DateTimeImmutable::class, $time);
-        self::assertSame($expected, $time->format(self::STAMP));
+        self::assertSame('~' === $expected ? null : (int)$expected, GoTime::parseDuration($text));
     }
 
     /**
@@ -498,18 +494,20 @@ final class GoTimeTest extends TestCase
             TABLE);
     }
 
-    #[DataProvider('durationCases')]
-    public function testParseDuration(string $text, string $expected): void
-    {
-        self::assertSame('~' === $expected ? null : (int)$expected, GoTime::parseDuration($text));
-    }
-
     public function testParseDurationRejectsSurroundingWhitespace(): void
     {
         self::assertNotInstanceOf(DateTimeImmutable::class, GoTime::parse('15:04', ' 10:20'));
         self::assertNull(GoTime::parseDuration(' 1h'));
         self::assertNull(GoTime::parseDuration("1h\n"));
         self::assertNull(GoTime::parseDuration('1h '));
+    }
+
+    #[DataProvider('addNanosCases')]
+    public function testAddNanos(string $base, string $nanos, string $expected): void
+    {
+        $time = new DateTimeImmutable($base, new DateTimeZone('+02:00'));
+
+        self::assertSame($expected, GoTime::addNanos($time, (int)$nanos)->format(self::STAMP));
     }
 
     /**
@@ -539,11 +537,13 @@ final class GoTimeTest extends TestCase
             TABLE);
     }
 
-    #[DataProvider('addNanosCases')]
-    public function testAddNanos(string $base, string $nanos, string $expected): void
+    /**
+     * @return Generator<string, list<string>>
+     */
+    private static function rows(string $table): Generator
     {
-        $time = new DateTimeImmutable($base, new DateTimeZone('+02:00'));
-
-        self::assertSame($expected, GoTime::addNanos($time, (int)$nanos)->format(self::STAMP));
+        foreach (explode("\n", trim($table)) as $line) {
+            yield $line => explode('|', $line);
+        }
     }
 }

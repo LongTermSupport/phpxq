@@ -31,13 +31,13 @@ final class JqApplicationCompileSnippetTest extends TestCase
     #[DataProvider('snippets')]
     public function testSnippet(string $source, string $expected): void
     {
-        $err = self::memory();
+        $err = $this->memory();
 
         $status = $this->application(static function (): void {
-        })->run(self::memory(), self::memory(), $err, '-n', $source);
+        })->run($this->memory(), $this->memory(), $err, '-n', $source);
 
         self::assertSame(JqExitCode::COMPILE_ERROR, $status);
-        self::assertSame($expected, self::contents($err));
+        self::assertSame($expected, $this->contents($err));
     }
 
     /**
@@ -110,7 +110,7 @@ final class JqApplicationCompileSnippetTest extends TestCase
     public function testNullInputWithENoOutputExitsFour(): void
     {
         $status = $this->application(static function (): void {
-        })->run(self::memory(), self::memory(), self::memory(), '-n', '-e', '.');
+        })->run($this->memory(), $this->memory(), $this->memory(), '-n', '-e', '.');
 
         self::assertSame(JqExitCode::NO_OUTPUT, $status);
     }
@@ -132,13 +132,13 @@ final class JqApplicationCompileSnippetTest extends TestCase
     {
         return $this->application(static function (RuntimeContextInterface $context, mixed $input, Closure $emit) use ($output): void {
             $emit($output);
-        })->run(self::memory(), self::memory(), self::memory(), '-n', ...explode(' ', $flags));
+        })->run($this->memory(), $this->memory(), $this->memory(), '-n', ...explode(' ', $flags));
     }
 
     /**
      * @return resource
      */
-    private static function memory()
+    private function memory()
     {
         $stream = fopen('php://memory', 'w+b');
         if (false === $stream) {
@@ -151,7 +151,7 @@ final class JqApplicationCompileSnippetTest extends TestCase
     /**
      * @param resource $stream
      */
-    private static function contents(mixed $stream): string
+    private function contents(mixed $stream): string
     {
         rewind($stream);
 

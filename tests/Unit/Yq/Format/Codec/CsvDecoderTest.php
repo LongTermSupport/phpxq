@@ -35,8 +35,8 @@ final class CsvDecoderTest extends TestCase
     {
         try {
             $this->decode($csv, $options ?? new FormatOptions());
-        } catch (FormatException $exception) {
-            self::assertSame($expectedMessage, $exception->getMessage());
+        } catch (FormatException $formatException) {
+            self::assertSame($expectedMessage, $formatException->getMessage());
 
             return;
         }

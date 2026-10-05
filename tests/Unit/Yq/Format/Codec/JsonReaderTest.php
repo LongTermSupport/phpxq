@@ -39,11 +39,11 @@ final class JsonReaderTest extends TestCase
     {
         try {
             $reader = new JsonReader($json);
-            while (null !== $reader->next()) {
+            while ($reader->next() instanceof \LTS\PhpXq\Yaml\Node) {
                 // drain every value so a later malformed one is reached
             }
-        } catch (FormatException $exception) {
-            self::assertSame($expectedMessage, $exception->getMessage());
+        } catch (FormatException $formatException) {
+            self::assertSame($expectedMessage, $formatException->getMessage());
 
             return;
         }
@@ -80,17 +80,17 @@ final class JsonReaderTest extends TestCase
 
         yield 'array ends after element' => ['[1', self::END];
 
-        yield 'trailing comma in array' => ['[1,]', sprintf(self::BEGINNING_OF_VALUE, ']')];
+        yield 'trailing comma in array' => ['[1,]', \sprintf(self::BEGINNING_OF_VALUE, ']')];
 
         yield 'lone minus' => ['-', self::END];
 
         yield 'minus then letter' => ['-a', "json: invalid character 'a' in numeric literal"];
 
-        yield 'leading zero' => ['01', sprintf(self::AFTER_TOP_LEVEL, '1')];
+        yield 'leading zero' => ['01', \sprintf(self::AFTER_TOP_LEVEL, '1')];
 
-        yield 'negative leading zero' => ['-01', sprintf(self::AFTER_TOP_LEVEL, '1')];
+        yield 'negative leading zero' => ['-01', \sprintf(self::AFTER_TOP_LEVEL, '1')];
 
-        yield 'double zero' => ['00', sprintf(self::AFTER_TOP_LEVEL, '0')];
+        yield 'double zero' => ['00', \sprintf(self::AFTER_TOP_LEVEL, '0')];
 
         yield 'dot at the end' => ['1.', self::END];
 
@@ -106,13 +106,13 @@ final class JsonReaderTest extends TestCase
 
         yield 'exponent sign then letter' => ['1e+x', "json: invalid character 'x' in exponent of numeric literal"];
 
-        yield 'number then letter' => ['1x', sprintf(self::BEGINNING_OF_VALUE, 'x')];
+        yield 'number then letter' => ['1x', \sprintf(self::BEGINNING_OF_VALUE, 'x')];
 
-        yield 'two dots' => ['1.5.5', sprintf(self::AFTER_TOP_LEVEL, '.')];
+        yield 'two dots' => ['1.5.5', \sprintf(self::AFTER_TOP_LEVEL, '.')];
 
-        yield 'number then plus' => ['1+', sprintf(self::AFTER_TOP_LEVEL, '+')];
+        yield 'number then plus' => ['1+', \sprintf(self::AFTER_TOP_LEVEL, '+')];
 
-        yield 'number then minus' => ['1-', sprintf(self::AFTER_TOP_LEVEL, '-')];
+        yield 'number then minus' => ['1-', \sprintf(self::AFTER_TOP_LEVEL, '-')];
 
         yield 'number then exponent letter after a fraction' => ['1.5e', self::END];
 
@@ -140,19 +140,19 @@ final class JsonReaderTest extends TestCase
 
         yield 'unit separator in string' => ["\"a\x1f\"", "json: invalid character '\x1f' in string literal"];
 
-        yield 'truncated true' => ['tru', sprintf(self::BEGINNING_OF_VALUE, 't')];
+        yield 'truncated true' => ['tru', \sprintf(self::BEGINNING_OF_VALUE, 't')];
 
-        yield 'truncated null' => ['nul', sprintf(self::BEGINNING_OF_VALUE, 'n')];
+        yield 'truncated null' => ['nul', \sprintf(self::BEGINNING_OF_VALUE, 'n')];
 
-        yield 'word with a suffix' => ['falsey', sprintf(self::BEGINNING_OF_VALUE, 'y')];
+        yield 'word with a suffix' => ['falsey', \sprintf(self::BEGINNING_OF_VALUE, 'y')];
 
-        yield 'bare letter' => ['x', sprintf(self::BEGINNING_OF_VALUE, 'x')];
+        yield 'bare letter' => ['x', \sprintf(self::BEGINNING_OF_VALUE, 'x')];
 
-        yield 'closing brace' => ['}', sprintf(self::BEGINNING_OF_VALUE, '}')];
+        yield 'closing brace' => ['}', \sprintf(self::BEGINNING_OF_VALUE, '}')];
 
-        yield 'garbage after a value' => ['[1] x', sprintf(self::BEGINNING_OF_VALUE, 'x')];
+        yield 'garbage after a value' => ['[1] x', \sprintf(self::BEGINNING_OF_VALUE, 'x')];
 
-        yield 'garbage after a string' => ['"abc"x', sprintf(self::BEGINNING_OF_VALUE, 'x')];
+        yield 'garbage after a string' => ['"abc"x', \sprintf(self::BEGINNING_OF_VALUE, 'x')];
     }
 
     #[DataProvider('numberCases')]
@@ -257,9 +257,9 @@ final class JsonReaderTest extends TestCase
      */
     public static function stringCases(): iterable
     {
-        yield 'surrogate pair' => ['"\\ud83d\\ude00"', "\u{1F600}"];
+        yield 'surrogate pair' => ['"\ud83d\ude00"', "\u{1F600}"];
 
-        yield 'high surrogate then a plain escape' => ['"\\ud83d\\u0041"', "\u{FFFD}A"];
+        yield 'high surrogate then a plain escape' => ['"\ud83d\u0041"', "\u{FFFD}A"];
 
         yield 'lone high surrogate' => ['"\ud83d"', "\u{FFFD}"];
 
@@ -267,19 +267,19 @@ final class JsonReaderTest extends TestCase
 
         yield 'lone low surrogate' => ['"\ude00"', "\u{FFFD}"];
 
-        yield 'highest high surrogate with the lowest low surrogate' => ['"\\udbff\\udc00"', "\u{10FC00}"];
+        yield 'highest high surrogate with the lowest low surrogate' => ['"\udbff\udc00"', "\u{10FC00}"];
 
         yield 'two high surrogates' => ['"\udbff\udbff"', "\u{FFFD}\u{FFFD}"];
 
-        yield 'highest low surrogate' => ['"\\ud800\\udfff"', "\u{103FF}"];
+        yield 'highest low surrogate' => ['"\ud800\udfff"', "\u{103FF}"];
 
-        yield 'lowest pair' => ['"\\ud800\\udc00"', "\u{10000}"];
+        yield 'lowest pair' => ['"\ud800\udc00"', "\u{10000}"];
 
-        yield 'below the surrogates' => ['"\\ud7ff\\udc00"', "\u{D7FF}\u{FFFD}"];
+        yield 'below the surrogates' => ['"\ud7ff\udc00"', "\u{D7FF}\u{FFFD}"];
 
-        yield 'high surrogate twice then a low surrogate' => ['"\\ud83d\\ud83d\\ude00"', "\u{FFFD}\u{1F600}"];
+        yield 'high surrogate twice then a low surrogate' => ['"\ud83d\ud83d\ude00"', "\u{FFFD}\u{1F600}"];
 
-        yield 'two plain escapes' => ['"\\u00e9\\u0041"', "\u{E9}A"];
+        yield 'two plain escapes' => ['"\u00e9\u0041"', "\u{E9}A"];
 
         yield 'escaped slash' => ['"a\/b"', 'a/b'];
 
@@ -300,7 +300,7 @@ final class JsonReaderTest extends TestCase
         $reader  = new JsonReader($json);
         $encoder = new JsonEncoder();
         $out     = '';
-        while (null !== ($node = $reader->next())) {
+        while (($node = $reader->next()) instanceof \LTS\PhpXq\Yaml\Node) {
             $out .= $encoder->encode($node, new FormatOptions(indent: 0, unwrapScalar: false), 0);
         }
 

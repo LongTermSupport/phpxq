@@ -19,7 +19,7 @@ final readonly class RecordingFormats implements FormatRegistryInterface
 {
     public function decoder(FormatEnum $format): DecoderInterface
     {
-        return new class($format) implements DecoderInterface {
+        return new readonly class($format) implements DecoderInterface {
             public function __construct(private FormatEnum $format)
             {
             }
@@ -42,7 +42,7 @@ final readonly class RecordingFormats implements FormatRegistryInterface
 
     public function encoder(FormatEnum $format): EncoderInterface
     {
-        return new class($format) implements EncoderInterface {
+        return new readonly class($format) implements EncoderInterface {
             public function __construct(private FormatEnum $format)
             {
             }

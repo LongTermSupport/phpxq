@@ -25,28 +25,18 @@ final class CollectionCallsTableTest extends TestCase
 
     private const string RETURN = '⏎';
 
-    /**
-     * @return Generator<string, array{string, string, string}>
-     */
-    private static function rows(string $table): Generator
-    {
-        foreach (explode("\n", trim($table)) as $line) {
-            [$expression, $input, $expected] = explode(self::ARROW, $line);
-
-            yield $line => [
-                $expression,
-                str_replace(self::RETURN, "\n", $input),
-                str_replace(self::RETURN, "\n", $expected),
-            ];
-        }
-    }
-
     public function testNamesTheCollectionBuiltins(): void
     {
         self::assertSame(
             ['length', 'keys', 'to_entries', 'from_entries', 'with_entries', 'map', 'map_values', 'flatten', 'add', 'pivot', 'array_to_map', 'range'],
             new CollectionCalls()->names(),
         );
+    }
+
+    #[DataProvider('successProvider')]
+    public function testEvaluates(string $expression, string $input, string $expected): void
+    {
+        self::assertSame($expected, YqHarness::run($expression, $input));
     }
 
     /**
@@ -141,10 +131,15 @@ final class CollectionCallsTableTest extends TestCase
             TABLE);
     }
 
-    #[DataProvider('successProvider')]
-    public function testEvaluates(string $expression, string $input, string $expected): void
+    #[DataProvider('failureProvider')]
+    public function testRejectsTheInput(string $expression, string $input, string $message): void
     {
-        self::assertSame($expected, YqHarness::run($expression, $input));
+        try {
+            YqHarness::run($expression, $input);
+            self::fail('the call does not apply');
+        } catch (EvaluationException $evaluationException) {
+            self::assertSame($message, $evaluationException->getMessage());
+        }
     }
 
     /**
@@ -172,14 +167,19 @@ final class CollectionCallsTableTest extends TestCase
             TABLE);
     }
 
-    #[DataProvider('failureProvider')]
-    public function testRejectsTheInput(string $expression, string $input, string $message): void
+    /**
+     * @return Generator<string, array{string, string, string}>
+     */
+    private static function rows(string $table): Generator
     {
-        try {
-            YqHarness::run($expression, $input);
-            self::fail('the call does not apply');
-        } catch (EvaluationException $exception) {
-            self::assertSame($message, $exception->getMessage());
+        foreach (explode("\n", trim($table)) as $line) {
+            [$expression, $input, $expected] = explode(self::ARROW, $line);
+
+            yield $line => [
+                $expression,
+                str_replace(self::RETURN, "\n", $input),
+                str_replace(self::RETURN, "\n", $expected),
+            ];
         }
     }
 }

@@ -24,6 +24,17 @@ final class ParserBoundaryTest extends TestCase
 
     private const string TRY_NOTE = "\njq: error: Possibly unterminated 'try' statement at <top-level>, line 1, column ";
 
+    #[DataProvider('annotationProvider')]
+    public function testUnterminatedAnnotations(string $source, string $message): void
+    {
+        try {
+            $this->parser()->parse($source);
+            self::fail('expected a compile error for ' . $source);
+        } catch (JqCompileException $jqCompileException) {
+            self::assertSame($message, $jqCompileException->getMessage());
+        }
+    }
+
     /**
      * @return iterable<string, array{string, string}>
      */
@@ -47,8 +58,8 @@ final class ParserBoundaryTest extends TestCase
         ];
     }
 
-    #[DataProvider('annotationProvider')]
-    public function testUnterminatedAnnotations(string $source, string $message): void
+    #[DataProvider('missingCommaProvider')]
+    public function testObjectEntriesNeedACommaBetweenThem(string $source, string $message): void
     {
         try {
             $this->parser()->parse($source);
@@ -65,17 +76,6 @@ final class ParserBoundaryTest extends TestCase
     {
         yield 'identifier key' => ['{a:1 b:2}', 'syntax error, unexpected IDENT at <top-level>, line 1, column 6:'];
         yield 'string key'     => ['{a:1 "b":2}', 'syntax error, unexpected QQSTRING_START at <top-level>, line 1, column 6:'];
-    }
-
-    #[DataProvider('missingCommaProvider')]
-    public function testObjectEntriesNeedACommaBetweenThem(string $source, string $message): void
-    {
-        try {
-            $this->parser()->parse($source);
-            self::fail('expected a compile error for ' . $source);
-        } catch (JqCompileException $jqCompileException) {
-            self::assertSame($message, $jqCompileException->getMessage());
-        }
     }
 
     public function testObjectKeyThatRunsIntoEndOfInputIsNotAColonProblem(): void

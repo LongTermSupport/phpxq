@@ -33,21 +33,6 @@ final class FormatCallsTest extends TestCase
 
     private const string INPUT = "a: 1\n";
 
-    /**
-     * @return Generator<string, array{string, string}>
-     */
-    private static function rows(string $table): Generator
-    {
-        foreach (explode("\n", trim($table)) as $line) {
-            [$expression, $expected] = explode(self::ARROW, $line);
-
-            yield $line => [
-                $expression,
-                str_replace([self::RETURN, self::TAB, self::CARRIAGE], ["\n", "\t", "\r"], $expected),
-            ];
-        }
-    }
-
     public function testNamesEveryEncodingAndDataFormatOperator(): void
     {
         $expected = ['@sh', '@uri', '@urid', '@base64', '@base64d', '@base64url', '@base64urld', '@html'];
@@ -59,6 +44,12 @@ final class FormatCallsTest extends TestCase
         }
 
         self::assertSame($expected, new FormatCalls()->names());
+    }
+
+    #[DataProvider('stringEncodingProvider')]
+    public function testEncodesStrings(string $expression, string $expected): void
+    {
+        self::assertSame($expected, YqHarness::run($expression, "n: ~\n"));
     }
 
     /**
@@ -105,10 +96,10 @@ final class FormatCallsTest extends TestCase
             TABLE);
     }
 
-    #[DataProvider('stringEncodingProvider')]
-    public function testEncodesStrings(string $expression, string $expected): void
+    #[DataProvider('recordedProvider')]
+    public function testHandsTheFormatRegistryItsOptions(string $expression, string $expected): void
     {
-        self::assertSame($expected, YqHarness::run($expression, "n: ~\n"));
+        self::assertSame($expected, YqHarness::run($expression, self::INPUT, false, false, null, new RecordingFormats()));
     }
 
     /**
@@ -166,10 +157,15 @@ final class FormatCallsTest extends TestCase
             TABLE);
     }
 
-    #[DataProvider('recordedProvider')]
-    public function testHandsTheFormatRegistryItsOptions(string $expression, string $expected): void
+    #[DataProvider('failureProvider')]
+    public function testRejectsWhatCannotBeConverted(string $expression, string $message): void
     {
-        self::assertSame($expected, YqHarness::run($expression, self::INPUT, false, false, null, new RecordingFormats()));
+        try {
+            YqHarness::run($expression, self::INPUT, false, false, null, new RecordingFormats());
+            self::fail('the conversion does not apply');
+        } catch (EvaluationException $evaluationException) {
+            self::assertSame($message, $evaluationException->getMessage());
+        }
     }
 
     /**
@@ -191,14 +187,18 @@ final class FormatCallsTest extends TestCase
             TABLE);
     }
 
-    #[DataProvider('failureProvider')]
-    public function testRejectsWhatCannotBeConverted(string $expression, string $message): void
+    /**
+     * @return Generator<string, array{string, string}>
+     */
+    private static function rows(string $table): Generator
     {
-        try {
-            YqHarness::run($expression, self::INPUT, false, false, null, new RecordingFormats());
-            self::fail('the conversion does not apply');
-        } catch (EvaluationException $exception) {
-            self::assertSame($message, $exception->getMessage());
+        foreach (explode("\n", trim($table)) as $line) {
+            [$expression, $expected] = explode(self::ARROW, $line);
+
+            yield $line => [
+                $expression,
+                str_replace([self::RETURN, self::TAB, self::CARRIAGE], ["\n", "\t", "\r"], $expected),
+            ];
         }
     }
 }

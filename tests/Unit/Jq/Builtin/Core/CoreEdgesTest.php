@@ -73,12 +73,12 @@ final class CoreEdgesTest extends TestCase
     public static function errors(): iterable
     {
         $table = [
-            'join'  => [
+            'join'     => [
                 [['a', 'b'], [1], 'string ("a") and number (1) cannot be added'],
                 [[[1], [2]], [','], 'string ("") and array ([1]) cannot be added'],
                 [['a', [1]], [','], 'string ("a,") and array ([1]) cannot be added'],
             ],
-            'ascii' => [[-1, [], self::ASCII_RANGE], [128, [], self::ASCII_RANGE]],
+            'ascii'    => [[-1, [], self::ASCII_RANGE], [128, [], self::ASCII_RANGE]],
             'contains' => [
                 [true, [false], 'boolean (true) and boolean (false) cannot have their containment checked'],
                 [false, [true], 'boolean (false) and boolean (true) cannot have their containment checked'],

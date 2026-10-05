@@ -28,47 +28,10 @@ final class ExpressionLexerBoundaryTest extends TestCase
 
     private const string FIRST_COLUMN = '1:1 failing at 1:2';
 
-    /**
-     * @return Generator<string, array{string, string}>
-     */
-    private static function rows(string $table): Generator
+    #[DataProvider('tokenProvider')]
+    public function testTokens(string $source, string $expected): void
     {
-        foreach (explode("\n", trim($table)) as $line) {
-            [$source, $tokens] = explode(self::ARROW, $line);
-
-            yield $line => [$source, $tokens];
-        }
-    }
-
-    private static function render(ExpressionToken $token): string
-    {
-        $kind = match ($token->kind) {
-            ExpressionTokenKindEnum::Number      => 'Num',
-            ExpressionTokenKindEnum::String      => $token->raw ? 'RawStr' : 'Str',
-            ExpressionTokenKindEnum::Word        => 'Word',
-            ExpressionTokenKindEnum::Variable    => 'Var',
-            ExpressionTokenKindEnum::Operator    => 'Op',
-            ExpressionTokenKindEnum::Dot         => 'Dot',
-            ExpressionTokenKindEnum::DotDot      => 'DD',
-            ExpressionTokenKindEnum::DotDotDot   => 'DDD',
-            ExpressionTokenKindEnum::LeftBracket => 'LB',
-            ExpressionTokenKindEnum::RightBracket => 'RB',
-            ExpressionTokenKindEnum::LeftParen   => 'LP',
-            ExpressionTokenKindEnum::RightParen  => 'RP',
-            ExpressionTokenKindEnum::LeftBrace   => 'LC',
-            ExpressionTokenKindEnum::RightBrace  => 'RC',
-            ExpressionTokenKindEnum::Semicolon   => 'Semi',
-            ExpressionTokenKindEnum::Colon       => 'Colon',
-            ExpressionTokenKindEnum::Question    => 'Q',
-            ExpressionTokenKindEnum::EndOfInput  => 'EOF',
-        };
-
-        return \sprintf('%s:%s@%d', $kind, $token->text, $token->offset);
-    }
-
-    private static function lex(string $source): string
-    {
-        return implode(' ', array_map(self::render(...), new ExpressionLexer()->tokenize($source)));
+        self::assertSame($expected, $this->lex($source));
     }
 
     /**
@@ -240,10 +203,11 @@ final class ExpressionLexerBoundaryTest extends TestCase
             TABLE);
     }
 
-    #[DataProvider('tokenProvider')]
-    public function testTokens(string $source, string $expected): void
+    #[DataProvider('whitespaceProvider')]
+    public function testNamesAndWhitespace(string $space): void
     {
-        self::assertSame($expected, self::lex($source));
+        self::assertSame('Dot:.@0 Word:ab@1 Word:c@4 EOF:@5', $this->lex('.ab' . $space . 'c'));
+        self::assertSame('Dot:.@3 Word:a@4 EOF:@5', $this->lex($space . $space . $space . self::DOT_A));
     }
 
     /**
@@ -256,19 +220,28 @@ final class ExpressionLexerBoundaryTest extends TestCase
         }
     }
 
-    #[DataProvider('whitespaceProvider')]
-    public function testNamesAndWhitespace(string $space): void
-    {
-        self::assertSame('Dot:.@0 Word:ab@1 Word:c@4 EOF:@5', self::lex('.ab' . $space . 'c'));
-        self::assertSame('Dot:.@3 Word:a@4 EOF:@5', self::lex($space . $space . $space . self::DOT_A));
-    }
-
     public function testCommentRunsToTheNewline(): void
     {
-        self::assertSame('Dot:.@0 Word:a@1 Op:|@7 Dot:.@9 Word:b@10 EOF:@11', self::lex(".a # x\n| .b"));
-        self::assertSame('Dot:.@5 Word:a@6 EOF:@7', self::lex("# c\n\n.a"));
-        self::assertSame('EOF:@5', self::lex('#abcd'));
-        self::assertSame('EOF:@1', self::lex('#'));
+        self::assertSame('Dot:.@0 Word:a@1 Op:|@7 Dot:.@9 Word:b@10 EOF:@11', $this->lex(".a # x\n| .b"));
+        self::assertSame('Dot:.@5 Word:a@6 EOF:@7', $this->lex("# c\n\n.a"));
+        self::assertSame('EOF:@5', $this->lex('#abcd'));
+        self::assertSame('EOF:@1', $this->lex('#'));
+    }
+
+    #[DataProvider('errorProvider')]
+    public function testErrorsCarryOffsetsAndPositions(string $source, string $message, int $offset, ?string $position): void
+    {
+        try {
+            new ExpressionLexer()->tokenize($source);
+            self::fail('a lexer error was expected');
+        } catch (ExpressionSyntaxException $expressionSyntaxException) {
+            self::assertSame($offset, $expressionSyntaxException->offset);
+            if (null === $position) {
+                self::assertSame($message, $expressionSyntaxException->getMessage());
+            } else {
+                self::assertSame('Parsing expression: Lexer error: could not match text starting at ' . $position . '.', $expressionSyntaxException->getMessage());
+            }
+        }
     }
 
     /**
@@ -296,19 +269,46 @@ final class ExpressionLexerBoundaryTest extends TestCase
         yield 'second line'               => ["a\n  `", '', 4, '2:3 failing at 2:4'];
     }
 
-    #[DataProvider('errorProvider')]
-    public function testErrorsCarryOffsetsAndPositions(string $source, string $message, int $offset, ?string $position): void
+    /**
+     * @return Generator<string, array{string, string}>
+     */
+    private static function rows(string $table): Generator
     {
-        try {
-            new ExpressionLexer()->tokenize($source);
-            self::fail('a lexer error was expected');
-        } catch (ExpressionSyntaxException $exception) {
-            self::assertSame($offset, $exception->offset);
-            if (null === $position) {
-                self::assertSame($message, $exception->getMessage());
-            } else {
-                self::assertSame('Parsing expression: Lexer error: could not match text starting at ' . $position . '.', $exception->getMessage());
-            }
+        foreach (explode("\n", trim($table)) as $line) {
+            [$source, $tokens] = explode(self::ARROW, $line);
+
+            yield $line => [$source, $tokens];
         }
+    }
+
+    private static function render(ExpressionToken $token): string
+    {
+        $kind = match ($token->kind) {
+            ExpressionTokenKindEnum::Number       => 'Num',
+            ExpressionTokenKindEnum::String       => $token->raw ? 'RawStr' : 'Str',
+            ExpressionTokenKindEnum::Word         => 'Word',
+            ExpressionTokenKindEnum::Variable     => 'Var',
+            ExpressionTokenKindEnum::Operator     => 'Op',
+            ExpressionTokenKindEnum::Dot          => 'Dot',
+            ExpressionTokenKindEnum::DotDot       => 'DD',
+            ExpressionTokenKindEnum::DotDotDot    => 'DDD',
+            ExpressionTokenKindEnum::LeftBracket  => 'LB',
+            ExpressionTokenKindEnum::RightBracket => 'RB',
+            ExpressionTokenKindEnum::LeftParen    => 'LP',
+            ExpressionTokenKindEnum::RightParen   => 'RP',
+            ExpressionTokenKindEnum::LeftBrace    => 'LC',
+            ExpressionTokenKindEnum::RightBrace   => 'RC',
+            ExpressionTokenKindEnum::Semicolon    => 'Semi',
+            ExpressionTokenKindEnum::Colon        => 'Colon',
+            ExpressionTokenKindEnum::Question     => 'Q',
+            ExpressionTokenKindEnum::EndOfInput   => 'EOF',
+        };
+
+        return \sprintf('%s:%s@%d', $kind, $token->text, $token->offset);
+    }
+
+    private function lex(string $source): string
+    {
+        return implode(' ', array_map(self::render(...), new ExpressionLexer()->tokenize($source)));
     }
 }

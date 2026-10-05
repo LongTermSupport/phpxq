@@ -44,11 +44,6 @@ final class NodeOpsTest extends TestCase
 
     private const string TARGET = 'target';
 
-    private static function scalar(string $value, string $tag, NodeStyleEnum $style = NodeStyleEnum::Default): Node
-    {
-        return new Node(NodeKindEnum::Scalar, $tag, $style, $value);
-    }
-
     public function testBuildsTheTypedScalars(): void
     {
         $string = NodeOps::str('x');
@@ -70,6 +65,14 @@ final class NodeOpsTest extends TestCase
         self::assertSame([NodeKindEnum::Scalar, CoreSchema::TAG_NULL, NodeStyleEnum::Default, ''], [$empty->kind, $empty->tag, $empty->style, $empty->value]);
     }
 
+    #[DataProvider('floatProvider')]
+    public function testBuildsFloatsWithTheTagTheirTextResolvesTo(float $value, string $text, string $tag): void
+    {
+        $node = NodeOps::float($value);
+
+        self::assertSame([NodeKindEnum::Scalar, $tag, NodeStyleEnum::Default, $text], [$node->kind, $node->tag, $node->style, $node->value]);
+    }
+
     /**
      * @return Generator<string, array{float, string, string}>
      */
@@ -84,14 +87,6 @@ final class NodeOpsTest extends TestCase
         yield 'negative infinity' => [-\INF, '-Inf', CoreSchema::TAG_STR];
 
         yield 'not a number' => [\NAN, 'NaN', CoreSchema::TAG_STR];
-    }
-
-    #[DataProvider('floatProvider')]
-    public function testBuildsFloatsWithTheTagTheirTextResolvesTo(float $value, string $text, string $tag): void
-    {
-        $node = NodeOps::float($value);
-
-        self::assertSame([NodeKindEnum::Scalar, $tag, NodeStyleEnum::Default, $text], [$node->kind, $node->tag, $node->style, $node->value]);
     }
 
     public function testBuildsCollections(): void
@@ -137,8 +132,8 @@ final class NodeOpsTest extends TestCase
 
     public function testDerefTerminatesOnACycle(): void
     {
-        $first             = new Node(NodeKindEnum::Alias);
-        $second            = Node::alias('b', $first);
+        $first              = new Node(NodeKindEnum::Alias);
+        $second             = Node::alias('b', $first);
         $first->aliasTarget = $second;
 
         self::assertSame(NodeKindEnum::Alias, NodeOps::deref($first)->kind);
@@ -152,16 +147,6 @@ final class NodeOpsTest extends TestCase
         self::assertSame($scalar, NodeOps::deref($scalar));
     }
 
-    private function aliasChain(Node $target, int $length): Node
-    {
-        $node = $target;
-        for ($i = 0; $i < $length; ++$i) {
-            $node = Node::alias('a', $node);
-        }
-
-        return $node;
-    }
-
     public function testUnwrapsADocumentToItsRoot(): void
     {
         $root     = NodeOps::str('root');
@@ -172,6 +157,12 @@ final class NodeOpsTest extends TestCase
 
         $empty = new Node(NodeKindEnum::Document);
         self::assertSame($empty, NodeOps::unwrap($empty));
+    }
+
+    #[DataProvider('nullProvider')]
+    public function testIsNull(Node $node, bool $expected): void
+    {
+        self::assertSame($expected, NodeOps::isNull($node));
     }
 
     /**
@@ -188,17 +179,17 @@ final class NodeOpsTest extends TestCase
         yield 'mapping tagged null' => [new Node(NodeKindEnum::Mapping, CoreSchema::TAG_NULL), false];
     }
 
-    #[DataProvider('nullProvider')]
-    public function testIsNull(Node $node, bool $expected): void
-    {
-        self::assertSame($expected, NodeOps::isNull($node));
-    }
-
     public function testIsScalar(): void
     {
         self::assertTrue(NodeOps::isScalar(NodeOps::int(1)));
         self::assertFalse(NodeOps::isScalar(NodeOps::seq()));
         self::assertFalse(NodeOps::isScalar(NodeOps::map()));
+    }
+
+    #[DataProvider('effectiveTagProvider')]
+    public function testEffectiveTag(Node $node, string $expected): void
+    {
+        self::assertSame($expected, NodeOps::effectiveTag($node));
     }
 
     /**
@@ -237,10 +228,11 @@ final class NodeOpsTest extends TestCase
         yield 'double bang only' => [self::scalar('5', '!!'), '!!'];
     }
 
-    #[DataProvider('effectiveTagProvider')]
-    public function testEffectiveTag(Node $node, string $expected): void
+    #[DataProvider('truthProvider')]
+    public function testTruthinessAndTrue(Node $node, bool $truthy, bool $isTrue): void
     {
-        self::assertSame($expected, NodeOps::effectiveTag($node));
+        self::assertSame($truthy, NodeOps::truthy($node));
+        self::assertSame($isTrue, NodeOps::isTrue($node));
     }
 
     /**
@@ -273,11 +265,10 @@ final class NodeOpsTest extends TestCase
         yield 'a mapping is truthy' => [NodeOps::map(), true, false];
     }
 
-    #[DataProvider('truthProvider')]
-    public function testTruthinessAndTrue(Node $node, bool $truthy, bool $isTrue): void
+    #[DataProvider('kindNameProvider')]
+    public function testKindName(Node $node, string $expected): void
     {
-        self::assertSame($truthy, NodeOps::truthy($node));
-        self::assertSame($isTrue, NodeOps::isTrue($node));
+        self::assertSame($expected, NodeOps::kindName($node));
     }
 
     /**
@@ -296,10 +287,10 @@ final class NodeOpsTest extends TestCase
         yield 'document' => [new Node(NodeKindEnum::Document), self::SCALAR_NAME];
     }
 
-    #[DataProvider('kindNameProvider')]
-    public function testKindName(Node $node, string $expected): void
+    #[DataProvider('mergeKeyProvider')]
+    public function testIsMergeKey(Node $key, bool $expected): void
     {
-        self::assertSame($expected, NodeOps::kindName($node));
+        self::assertSame($expected, NodeOps::isMergeKey($key));
     }
 
     /**
@@ -316,12 +307,6 @@ final class NodeOpsTest extends TestCase
         yield 'another key' => [self::scalar('<', CoreSchema::TAG_STR), false];
 
         yield 'a mapping' => [new Node(NodeKindEnum::Mapping, '', NodeStyleEnum::Default, '<<'), false];
-    }
-
-    #[DataProvider('mergeKeyProvider')]
-    public function testIsMergeKey(Node $key, bool $expected): void
-    {
-        self::assertSame($expected, NodeOps::isMergeKey($key));
     }
 
     public function testScalarTextOfAScalarAnAliasAndACollection(): void
@@ -390,6 +375,14 @@ final class NodeOpsTest extends TestCase
         self::assertSame($child, $adopted->content[0]);
     }
 
+    #[DataProvider('styleProvider')]
+    public function testStyleAdoption(Node $target, Node $source, NodeStyleEnum $expected): void
+    {
+        NodeOps::updateFrom($target, $source);
+
+        self::assertSame($expected, $target->style);
+    }
+
     /**
      * @return Generator<string, array{Node, Node, NodeStyleEnum}>
      */
@@ -438,12 +431,15 @@ final class NodeOpsTest extends TestCase
         ];
     }
 
-    #[DataProvider('styleProvider')]
-    public function testStyleAdoption(Node $target, Node $source, NodeStyleEnum $expected): void
+    #[DataProvider('tagProvider')]
+    public function testTagHandling(string $targetTag, string $sourceTag, bool $clobber, string $expectedTag): void
     {
-        NodeOps::updateFrom($target, $source);
+        $target = self::scalar('5', $targetTag);
+        $source = self::scalar('7', $sourceTag);
 
-        self::assertSame($expected, $target->style);
+        NodeOps::updateFrom($target, $source, $clobber);
+
+        self::assertSame($expectedTag, $target->tag);
     }
 
     /**
@@ -462,15 +458,18 @@ final class NodeOpsTest extends TestCase
         yield 'a core tag takes a custom source tag' => [CoreSchema::TAG_STR, self::CUSTOM, false, self::CUSTOM];
     }
 
-    #[DataProvider('tagProvider')]
-    public function testTagHandling(string $targetTag, string $sourceTag, bool $clobber, string $expectedTag): void
+    #[DataProvider('explicitTagProvider')]
+    public function testExplicitTagFlag(bool $sourceExplicit, bool $targetExplicit, string $targetTag, string $sourceTag, bool $expected): void
     {
-        $target = self::scalar('5', $targetTag);
-        $source = self::scalar('7', $sourceTag);
+        $target              = self::scalar('5', $targetTag);
+        $target->tagExplicit = $targetExplicit;
 
-        NodeOps::updateFrom($target, $source, $clobber);
+        $source              = self::scalar('7', $sourceTag);
+        $source->tagExplicit = $sourceExplicit;
 
-        self::assertSame($expectedTag, $target->tag);
+        NodeOps::updateFrom($target, $source);
+
+        self::assertSame($expected, $target->tagExplicit);
     }
 
     /**
@@ -489,23 +488,11 @@ final class NodeOpsTest extends TestCase
         yield 'neither is explicit' => [false, false, CoreSchema::TAG_INT, CoreSchema::TAG_INT, false];
     }
 
-    #[DataProvider('explicitTagProvider')]
-    public function testExplicitTagFlag(bool $sourceExplicit, bool $targetExplicit, string $targetTag, string $sourceTag, bool $expected): void
-    {
-        $target              = self::scalar('5', $targetTag);
-        $target->tagExplicit = $targetExplicit;
-        $source              = self::scalar('7', $sourceTag);
-        $source->tagExplicit = $sourceExplicit;
-
-        NodeOps::updateFrom($target, $source);
-
-        self::assertSame($expected, $target->tagExplicit);
-    }
-
     public function testExplicitTagFlagIsKeptWhenTheTagIsNotReplaced(): void
     {
         $target              = self::scalar('5', self::CUSTOM);
         $target->tagExplicit = true;
+
         $source              = self::scalar('7', CoreSchema::TAG_INT);
         $source->tagExplicit = true;
 
@@ -517,13 +504,31 @@ final class NodeOpsTest extends TestCase
 
     public function testAnAliasSourceResetsTheStyle(): void
     {
-        $target = self::scalar(self::OLD, CoreSchema::TAG_STR, NodeStyleEnum::DoubleQuoted);
-        $alias  = Node::alias('a', NodeOps::str('t'));
+        $target       = self::scalar(self::OLD, CoreSchema::TAG_STR, NodeStyleEnum::DoubleQuoted);
+        $alias        = Node::alias('a', NodeOps::str('t'));
         $alias->style = NodeStyleEnum::Flow;
 
         NodeOps::updateFrom($target, $alias);
 
         self::assertSame(NodeStyleEnum::Default, $target->style);
+    }
+
+    #[DataProvider('commentProvider')]
+    public function testComments(string $targetComment, string $sourceComment, string $expected): void
+    {
+        $target              = self::scalar(self::OLD, CoreSchema::TAG_STR);
+        $target->headComment = $targetComment;
+        $target->lineComment = $targetComment;
+        $target->footComment = $targetComment;
+
+        $source              = self::scalar(self::NEW, CoreSchema::TAG_STR);
+        $source->headComment = $sourceComment;
+        $source->lineComment = $sourceComment;
+        $source->footComment = $sourceComment;
+
+        NodeOps::updateFrom($target, $source);
+
+        self::assertSame([$expected, $expected, $expected], [$target->headComment, $target->lineComment, $target->footComment]);
     }
 
     /**
@@ -540,34 +545,33 @@ final class NodeOpsTest extends TestCase
         yield 'no comment at all' => ['', '', ''];
     }
 
-    #[DataProvider('commentProvider')]
-    public function testComments(string $targetComment, string $sourceComment, string $expected): void
-    {
-        $target              = self::scalar(self::OLD, CoreSchema::TAG_STR);
-        $target->headComment = $targetComment;
-        $target->lineComment = $targetComment;
-        $target->footComment = $targetComment;
-        $source              = self::scalar(self::NEW, CoreSchema::TAG_STR);
-        $source->headComment = $sourceComment;
-        $source->lineComment = $sourceComment;
-        $source->footComment = $sourceComment;
-
-        NodeOps::updateFrom($target, $source);
-
-        self::assertSame([$expected, $expected, $expected], [$target->headComment, $target->lineComment, $target->footComment]);
-    }
-
     public function testEachCommentIsReplacedIndependently(): void
     {
         $target              = self::scalar(self::OLD, CoreSchema::TAG_STR);
         $target->headComment = 'h1';
         $target->lineComment = 'l1';
         $target->footComment = 'f1';
+
         $source              = self::scalar(self::NEW, CoreSchema::TAG_STR);
         $source->lineComment = 'l2';
 
         NodeOps::updateFrom($target, $source);
 
         self::assertSame(['h1', 'l2', 'f1'], [$target->headComment, $target->lineComment, $target->footComment]);
+    }
+
+    private static function scalar(string $value, string $tag, NodeStyleEnum $style = NodeStyleEnum::Default): Node
+    {
+        return new Node(NodeKindEnum::Scalar, $tag, $style, $value);
+    }
+
+    private function aliasChain(Node $target, int $length): Node
+    {
+        $node = $target;
+        for ($i = 0; $i < $length; ++$i) {
+            $node = Node::alias('a', $node);
+        }
+
+        return $node;
     }
 }

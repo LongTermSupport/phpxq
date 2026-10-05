@@ -32,9 +32,9 @@ final class XmlReaderTest extends TestCase
     {
         try {
             $this->decode($xml, $options ?? new FormatOptions());
-        } catch (FormatException $exception) {
-            self::assertSame(\sprintf('XML syntax error on line %d: %s', $line, $detail), $exception->getMessage());
-            self::assertSame(0, $exception->getCode());
+        } catch (FormatException $formatException) {
+            self::assertSame(\sprintf('XML syntax error on line %d: %s', $line, $detail), $formatException->getMessage());
+            self::assertSame(0, $formatException->getCode());
 
             return;
         }
@@ -138,8 +138,6 @@ final class XmlReaderTest extends TestCase
         yield 'unterminated element after a byte order mark' => ["\u{FEFF}<a>x", 1, self::EOF];
     }
 
-    /**
-     */
     #[DataProvider('shapeCases')]
     public function testShapes(string $xml, string $expectedJson, ?FormatOptions $options = null): void
     {

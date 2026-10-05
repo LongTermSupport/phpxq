@@ -69,6 +69,17 @@ final class JsonDecoderBoundaryTest extends TestCase
         yield 'high then bad escape'    => ['"\ud800\xdc00" ab', self::PAIR_ERROR];
     }
 
+    #[DataProvider('surrogateProvider')]
+    public function testSurrogateEscapes(string $json, string $expected): void
+    {
+        self::assertSame($expected, new JsonDecoder()->decodeOne($json));
+
+        $method = new ReflectionMethod(JsonDecoder::class, 'scan');
+        $values = $method->invoke(new JsonDecoder(), $json, false, 0);
+        self::assertInstanceOf(Generator::class, $values);
+        self::assertSame([$expected], iterator_to_array($values, false));
+    }
+
     /**
      * @return iterable<string, array{string, string}>
      */
@@ -82,17 +93,6 @@ final class JsonDecoderBoundaryTest extends TestCase
         yield 'two pairs'             => ['"\ud83d\ude00\ud83d\ude01"', "\u{1f600}\u{1f601}"];
         yield 'highest bmp escape'    => ['"\uffff"', "\u{ffff}"];
         yield 'last before surrogate' => ['"\ud7ffz"', "\u{d7ff}z"];
-    }
-
-    #[DataProvider('surrogateProvider')]
-    public function testSurrogateEscapes(string $json, string $expected): void
-    {
-        self::assertSame($expected, new JsonDecoder()->decodeOne($json));
-
-        $method = new ReflectionMethod(JsonDecoder::class, 'scan');
-        $values = $method->invoke(new JsonDecoder(), $json, false, 0);
-        self::assertInstanceOf(Generator::class, $values);
-        self::assertSame([$expected], iterator_to_array($values, false));
     }
 
     public function testStringWithTrailingBackslashIsRejected(): void
@@ -203,7 +203,7 @@ final class JsonDecoderBoundaryTest extends TestCase
         yield 'number after space at rs'     => [$rs . '1 2' . $rs, [self::ONE, self::TWO], []];
         yield 'bad literal before bracket'   => [$rs . '[tru]' . $rs . "2\n", [self::TWO], ['Invalid literal at line 1, column 6 (need RS to resync)']];
         yield 'bad literal before space'     => [$rs . 'tru ' . $rs . "2\n", [self::TWO], ['Invalid literal at line 1, column 5 (need RS to resync)']];
-        yield 'empty record'                 =>[$rs . $rs . "[1]\n", [self::ARRAY_ONE], []];
+        yield 'empty record'                 => [$rs . $rs . "[1]\n", [self::ARRAY_ONE], []];
         yield 'array directly before rs'     => [$rs . '[1]' . $rs . '[2]', [self::ARRAY_ONE, '[int:2]'], []];
         yield 'numbers end at rs after ws'   => [$rs . '1 ' . $rs . '2 ' . $rs, [self::ONE, self::TWO], []];
         yield 'open array is dropped at rs'  => [$rs . '[1 ' . $rs . '2 ' . $rs, [self::TWO], []];

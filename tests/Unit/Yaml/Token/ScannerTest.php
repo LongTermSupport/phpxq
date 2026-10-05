@@ -266,7 +266,7 @@ final class ScannerTest extends TestCase
 
         yield 'uE000' => ['', 'ee8080'];
 
-        yield 'uFFFF' => ['\u' . 'FFFF', 'efbfbf'];
+        yield 'uFFFF' => ['\uFFFF', 'efbfbf'];
 
         yield 'U00010000' => ['\U00010000', 'f0908080'];
 
@@ -465,31 +465,32 @@ final class ScannerTest extends TestCase
     private function dump(string $yaml): array
     {
         $names = [
-            ScanToken::STREAM_START       => 'STREAM_START',
-            ScanToken::STREAM_END         => 'STREAM_END',
-            ScanToken::VERSION_DIRECTIVE  => 'VERSION_DIRECTIVE',
-            ScanToken::TAG_DIRECTIVE      => 'TAG_DIRECTIVE',
-            ScanToken::DOCUMENT_START     => 'DOCUMENT_START',
-            ScanToken::DOCUMENT_END       => 'DOCUMENT_END',
+            ScanToken::STREAM_START         => 'STREAM_START',
+            ScanToken::STREAM_END           => 'STREAM_END',
+            ScanToken::VERSION_DIRECTIVE    => 'VERSION_DIRECTIVE',
+            ScanToken::TAG_DIRECTIVE        => 'TAG_DIRECTIVE',
+            ScanToken::DOCUMENT_START       => 'DOCUMENT_START',
+            ScanToken::DOCUMENT_END         => 'DOCUMENT_END',
             ScanToken::BLOCK_SEQUENCE_START => 'BLOCK_SEQUENCE_START',
-            ScanToken::BLOCK_MAPPING_START => 'BLOCK_MAPPING_START',
-            ScanToken::BLOCK_END          => 'BLOCK_END',
-            ScanToken::FLOW_SEQUENCE_START => 'FLOW_SEQUENCE_START',
-            ScanToken::FLOW_SEQUENCE_END  => 'FLOW_SEQUENCE_END',
-            ScanToken::FLOW_MAPPING_START => 'FLOW_MAPPING_START',
-            ScanToken::FLOW_MAPPING_END   => 'FLOW_MAPPING_END',
-            ScanToken::BLOCK_ENTRY        => 'BLOCK_ENTRY',
-            ScanToken::FLOW_ENTRY         => 'FLOW_ENTRY',
-            ScanToken::KEY                => 'KEY',
-            ScanToken::VALUE              => 'VALUE',
-            ScanToken::ALIAS              => 'ALIAS',
-            ScanToken::ANCHOR             => 'ANCHOR',
-            ScanToken::TAG                => 'TAG',
-            ScanToken::SCALAR             => 'SCALAR',
+            ScanToken::BLOCK_MAPPING_START  => 'BLOCK_MAPPING_START',
+            ScanToken::BLOCK_END            => 'BLOCK_END',
+            ScanToken::FLOW_SEQUENCE_START  => 'FLOW_SEQUENCE_START',
+            ScanToken::FLOW_SEQUENCE_END    => 'FLOW_SEQUENCE_END',
+            ScanToken::FLOW_MAPPING_START   => 'FLOW_MAPPING_START',
+            ScanToken::FLOW_MAPPING_END     => 'FLOW_MAPPING_END',
+            ScanToken::BLOCK_ENTRY          => 'BLOCK_ENTRY',
+            ScanToken::FLOW_ENTRY           => 'FLOW_ENTRY',
+            ScanToken::KEY                  => 'KEY',
+            ScanToken::VALUE                => 'VALUE',
+            ScanToken::ALIAS                => 'ALIAS',
+            ScanToken::ANCHOR               => 'ANCHOR',
+            ScanToken::TAG                  => 'TAG',
+            ScanToken::SCALAR               => 'SCALAR',
         ];
-        $json  = \JSON_UNESCAPED_UNICODE | \JSON_UNESCAPED_SLASHES | \JSON_THROW_ON_ERROR;
+        $json    = \JSON_UNESCAPED_UNICODE | \JSON_UNESCAPED_SLASHES | \JSON_THROW_ON_ERROR;
         $scanner = new Scanner($yaml);
         $scanner->logComments();
+
         $out = [];
         try {
             while (true) {

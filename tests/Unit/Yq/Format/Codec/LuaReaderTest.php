@@ -33,8 +33,8 @@ final class LuaReaderTest extends TestCase
     {
         try {
             new LuaReader($lua)->read();
-        } catch (FormatException $exception) {
-            self::assertSame($expectedMessage, $exception->getMessage());
+        } catch (FormatException $formatException) {
+            self::assertSame($expectedMessage, $formatException->getMessage());
 
             return;
         }

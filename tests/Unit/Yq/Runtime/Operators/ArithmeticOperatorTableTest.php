@@ -25,20 +25,10 @@ final class ArithmeticOperatorTableTest extends TestCase
 
     private const string RETURN = '⏎';
 
-    /**
-     * @return Generator<string, array{string, string, string}>
-     */
-    private static function rows(string $table): Generator
+    #[DataProvider('successProvider')]
+    public function testComputes(string $expression, string $input, string $expected): void
     {
-        foreach (explode("\n", trim($table)) as $line) {
-            [$expression, $input, $expected] = explode(self::ARROW, $line);
-
-            yield $line => [
-                $expression,
-                str_replace(self::RETURN, "\n", $input),
-                str_replace(self::RETURN, "\n", $expected),
-            ];
-        }
+        self::assertSame($expected, YqHarness::run($expression, $input));
     }
 
     /**
@@ -150,10 +140,15 @@ final class ArithmeticOperatorTableTest extends TestCase
             TABLE);
     }
 
-    #[DataProvider('successProvider')]
-    public function testComputes(string $expression, string $input, string $expected): void
+    #[DataProvider('failureProvider')]
+    public function testRejectsTheCombination(string $expression, string $input, string $message): void
     {
-        self::assertSame($expected, YqHarness::run($expression, $input));
+        try {
+            YqHarness::run($expression, $input);
+            self::fail('the operands do not combine');
+        } catch (EvaluationException $evaluationException) {
+            self::assertSame($message, $evaluationException->getMessage());
+        }
     }
 
     /**
@@ -179,14 +174,19 @@ final class ArithmeticOperatorTableTest extends TestCase
             TABLE);
     }
 
-    #[DataProvider('failureProvider')]
-    public function testRejectsTheCombination(string $expression, string $input, string $message): void
+    /**
+     * @return Generator<string, array{string, string, string}>
+     */
+    private static function rows(string $table): Generator
     {
-        try {
-            YqHarness::run($expression, $input);
-            self::fail('the operands do not combine');
-        } catch (EvaluationException $exception) {
-            self::assertSame($message, $exception->getMessage());
+        foreach (explode("\n", trim($table)) as $line) {
+            [$expression, $input, $expected] = explode(self::ARROW, $line);
+
+            yield $line => [
+                $expression,
+                str_replace(self::RETURN, "\n", $input),
+                str_replace(self::RETURN, "\n", $expected),
+            ];
         }
     }
 }

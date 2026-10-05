@@ -37,8 +37,8 @@ final class NodeToolsHelpersTest extends TestCase
 
         try {
             NodeTools::unwrap($node);
-        } catch (FormatException $exception) {
-            self::assertSame('alias chain is too deep', $exception->getMessage());
+        } catch (FormatException $formatException) {
+            self::assertSame('alias chain is too deep', $formatException->getMessage());
 
             return;
         }

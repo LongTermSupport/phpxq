@@ -46,17 +46,18 @@ final class ArithmeticOperatorApplyTest extends TestCase
         'ModuloAssign'   => BinaryOperatorEnum::ModuloAssign,
     ];
 
-    /**
-     * @param callable(): mixed $call
-     */
-    private static function assertRejected(string $message, callable $call): void
+    #[DataProvider('numericProvider')]
+    public function testNumericResultsKeepCustomTags(string $operator, string $left, string $leftTag, string $right, string $rightTag, string $value, string $tag): void
     {
-        try {
-            $call();
-            self::fail('the arithmetic does not apply');
-        } catch (EvaluationException $exception) {
-            self::assertSame($message, $exception->getMessage());
-        }
+        $result = ArithmeticOperator::apply(
+            self::OPERATORS[$operator],
+            Node::scalar($left, $leftTag),
+            Node::scalar($right, $rightTag),
+        );
+
+        self::assertInstanceOf(Node::class, $result);
+        self::assertSame($value, $result->value);
+        self::assertSame($tag, $result->tag);
     }
 
     /**
@@ -114,41 +115,9 @@ final class ArithmeticOperatorApplyTest extends TestCase
         }
     }
 
-    #[DataProvider('numericProvider')]
-    public function testNumericResultsKeepCustomTags(string $operator, string $left, string $leftTag, string $right, string $rightTag, string $value, string $tag): void
-    {
-        $result = ArithmeticOperator::apply(
-            self::OPERATORS[$operator],
-            Node::scalar($left, $leftTag),
-            Node::scalar($right, $rightTag),
-        );
-
-        self::assertInstanceOf(Node::class, $result);
-        self::assertSame($value, $result->value);
-        self::assertSame($tag, $result->tag);
-    }
-
     public function testUnsupportedOperatorsAreNamed(): void
     {
-        self::assertRejected('Unsupported arithmetic operator ,', static fn (): ?Node => ArithmeticOperator::apply(BinaryOperatorEnum::Union, Node::scalar('1'), Node::scalar('2')));
-    }
-
-    /**
-     * @return Generator<string, array{BinaryOperatorEnum, bool, bool}>
-     */
-    public static function missingSideProvider(): Generator
-    {
-        yield 'add nothing' => [BinaryOperatorEnum::Add, false, false];
-        yield 'add left missing' => [BinaryOperatorEnum::Add, false, true];
-        yield 'add right missing' => [BinaryOperatorEnum::Add, true, false];
-        yield 'subtract left missing' => [BinaryOperatorEnum::Subtract, false, true];
-        yield 'subtract right missing' => [BinaryOperatorEnum::Subtract, true, false];
-        yield 'multiply left missing' => [BinaryOperatorEnum::Multiply, false, true];
-        yield 'multiply right missing' => [BinaryOperatorEnum::Multiply, true, false];
-        yield 'divide left missing' => [BinaryOperatorEnum::Divide, false, true];
-        yield 'divide right missing' => [BinaryOperatorEnum::Divide, true, false];
-        yield 'modulo left missing' => [BinaryOperatorEnum::Modulo, false, true];
-        yield 'modulo right missing' => [BinaryOperatorEnum::Modulo, true, false];
+        $this->assertRejected('Unsupported arithmetic operator ,', static fn (): ?Node => ArithmeticOperator::apply(BinaryOperatorEnum::Union, Node::scalar('1'), Node::scalar('2')));
     }
 
     #[DataProvider('missingSideProvider')]
@@ -173,6 +142,24 @@ final class ArithmeticOperatorApplyTest extends TestCase
         self::assertInstanceOf(Node::class, $result);
         self::assertSame($hasLeft ? '5' : '7', $result->value);
         self::assertNotSame($hasLeft ? $left : $right, $result, 'the survivor is copied');
+    }
+
+    /**
+     * @return Generator<string, array{BinaryOperatorEnum, bool, bool}>
+     */
+    public static function missingSideProvider(): Generator
+    {
+        yield 'add nothing' => [BinaryOperatorEnum::Add, false, false];
+        yield 'add left missing' => [BinaryOperatorEnum::Add, false, true];
+        yield 'add right missing' => [BinaryOperatorEnum::Add, true, false];
+        yield 'subtract left missing' => [BinaryOperatorEnum::Subtract, false, true];
+        yield 'subtract right missing' => [BinaryOperatorEnum::Subtract, true, false];
+        yield 'multiply left missing' => [BinaryOperatorEnum::Multiply, false, true];
+        yield 'multiply right missing' => [BinaryOperatorEnum::Multiply, true, false];
+        yield 'divide left missing' => [BinaryOperatorEnum::Divide, false, true];
+        yield 'divide right missing' => [BinaryOperatorEnum::Divide, true, false];
+        yield 'modulo left missing' => [BinaryOperatorEnum::Modulo, false, true];
+        yield 'modulo right missing' => [BinaryOperatorEnum::Modulo, true, false];
     }
 
     public function testRepeatedStringsTakeTheLeftTagAndDefaultStyle(): void
@@ -242,20 +229,9 @@ final class ArithmeticOperatorApplyTest extends TestCase
         self::assertSame('2001-12-16T00:00:00Z', $default->value);
     }
 
-    /**
-     * @return array{Node, Node}
-     */
-    private static function sequences(): array
-    {
-        return [
-            Node::sequence([Node::scalar('1'), Node::scalar('2')]),
-            Node::sequence([Node::scalar('3'), Node::scalar('4')]),
-        ];
-    }
-
     public function testSequenceAdditionCopiesBothSidesByDefault(): void
     {
-        [$left, $right] = self::sequences();
+        [$left, $right] = $this->sequences();
         $result         = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $left, $right);
 
         self::assertInstanceOf(Node::class, $result);
@@ -267,7 +243,7 @@ final class ArithmeticOperatorApplyTest extends TestCase
 
     public function testSequenceAdditionHandsOverTheReplacedLeftSide(): void
     {
-        [$left, $right] = self::sequences();
+        [$left, $right] = $this->sequences();
         $result         = ArithmeticOperator::apply(BinaryOperatorEnum::AddAssign, $left, $right, '', null, $left);
 
         self::assertInstanceOf(Node::class, $result);
@@ -280,7 +256,7 @@ final class ArithmeticOperatorApplyTest extends TestCase
 
     public function testSequenceAdditionHandsOverTheReplacedRightSide(): void
     {
-        [$left, $right] = self::sequences();
+        [$left, $right] = $this->sequences();
         $result         = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $left, $right, '', null, $right);
 
         self::assertInstanceOf(Node::class, $result);
@@ -292,7 +268,7 @@ final class ArithmeticOperatorApplyTest extends TestCase
 
     public function testNothingIsHandedOverWhenBothSidesAreTheReplacedNode(): void
     {
-        [$both] = self::sequences();
+        [$both] = $this->sequences();
         $result = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $both, $both, '', null, $both);
 
         self::assertInstanceOf(Node::class, $result);
@@ -304,7 +280,7 @@ final class ArithmeticOperatorApplyTest extends TestCase
 
     public function testNothingIsHandedOverForAnUnrelatedReplacedNode(): void
     {
-        [$left, $right] = self::sequences();
+        [$left, $right] = $this->sequences();
         $result         = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $left, $right, '', null, Node::scalar('9'));
 
         self::assertInstanceOf(Node::class, $result);
@@ -314,7 +290,7 @@ final class ArithmeticOperatorApplyTest extends TestCase
 
     public function testASingleItemIsAppendedAsAShallowCopy(): void
     {
-        [$left] = self::sequences();
+        [$left] = $this->sequences();
         $item   = Node::mapping([Node::scalar('k'), Node::scalar('v')]);
         $result = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $left, $item);
 
@@ -328,6 +304,7 @@ final class ArithmeticOperatorApplyTest extends TestCase
     {
         $left       = Node::sequence([Node::scalar('1')], NodeStyleEnum::Flow);
         $left->tag  = self::CUSTOM;
+
         $right      = Node::sequence([Node::scalar('2')]);
         $result     = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $left, $right);
         $subtracted = ArithmeticOperator::apply(BinaryOperatorEnum::Subtract, $left, Node::scalar('1'));
@@ -341,6 +318,16 @@ final class ArithmeticOperatorApplyTest extends TestCase
         self::assertSame([], $subtracted->content);
     }
 
+    #[DataProvider('appendedStyleProvider')]
+    public function testAppendedScalarsBorrowTheStyleOfTheLastItem(NodeStyleEnum $last, NodeStyleEnum $added, NodeStyleEnum $expected): void
+    {
+        $left   = Node::sequence([Node::scalar('first', '', NodeStyleEnum::Literal), Node::scalar('last', CoreSchema::TAG_STR, $last)]);
+        $result = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $left, Node::scalar(self::NEW, CoreSchema::TAG_STR, $added));
+
+        self::assertInstanceOf(Node::class, $result);
+        self::assertSame($expected, $result->content[2]->style);
+    }
+
     /**
      * @return Generator<string, array{NodeStyleEnum, NodeStyleEnum, NodeStyleEnum}>
      */
@@ -351,16 +338,6 @@ final class ArithmeticOperatorApplyTest extends TestCase
         yield 'plain neighbour' => [NodeStyleEnum::Default, NodeStyleEnum::Default, NodeStyleEnum::Default];
         yield 'own style wins' => [NodeStyleEnum::DoubleQuoted, NodeStyleEnum::SingleQuoted, NodeStyleEnum::SingleQuoted];
         yield 'own style over plain neighbour' => [NodeStyleEnum::Default, NodeStyleEnum::SingleQuoted, NodeStyleEnum::SingleQuoted];
-    }
-
-    #[DataProvider('appendedStyleProvider')]
-    public function testAppendedScalarsBorrowTheStyleOfTheLastItem(NodeStyleEnum $last, NodeStyleEnum $added, NodeStyleEnum $expected): void
-    {
-        $left   = Node::sequence([Node::scalar('first', '', NodeStyleEnum::Literal), Node::scalar('last', CoreSchema::TAG_STR, $last)]);
-        $result = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $left, Node::scalar(self::NEW, CoreSchema::TAG_STR, $added));
-
-        self::assertInstanceOf(Node::class, $result);
-        self::assertSame($expected, $result->content[2]->style);
     }
 
     public function testOnlyTheLastItemDecidesTheStyle(): void
@@ -401,7 +378,7 @@ final class ArithmeticOperatorApplyTest extends TestCase
 
     public function testSequenceSubtractionCopiesOrHandsOverTheKeptItems(): void
     {
-        [$left] = self::sequences();
+        [$left] = $this->sequences();
         $drop   = Node::sequence([Node::scalar('2')]);
 
         $copied = ArithmeticOperator::apply(BinaryOperatorEnum::Subtract, $left, $drop);
@@ -434,20 +411,9 @@ final class ArithmeticOperatorApplyTest extends TestCase
         self::assertSame('5', $null->value);
     }
 
-    /**
-     * @return array{Node, Node}
-     */
-    private static function mappings(): array
-    {
-        return [
-            Node::mapping([Node::scalar('a'), Node::scalar('1'), Node::scalar('b'), Node::scalar('2')]),
-            Node::mapping([Node::scalar('b'), Node::scalar('3'), Node::scalar('c'), Node::scalar('4')]),
-        ];
-    }
-
     public function testMappingAdditionMergesKeysAndCopiesByDefault(): void
     {
-        [$left, $right] = self::mappings();
+        [$left, $right] = $this->mappings();
         $result         = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $left, $right);
 
         self::assertInstanceOf(Node::class, $result);
@@ -460,7 +426,7 @@ final class ArithmeticOperatorApplyTest extends TestCase
 
     public function testMappingAdditionHandsOverTheReplacedLeftSide(): void
     {
-        [$left, $right] = self::mappings();
+        [$left, $right] = $this->mappings();
         $result         = ArithmeticOperator::apply(BinaryOperatorEnum::AddAssign, $left, $right, '', null, $left);
 
         self::assertInstanceOf(Node::class, $result);
@@ -473,7 +439,7 @@ final class ArithmeticOperatorApplyTest extends TestCase
 
     public function testMappingAdditionHandsOverTheReplacedRightSide(): void
     {
-        [$left, $right] = self::mappings();
+        [$left, $right] = $this->mappings();
         $result         = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $left, $right, '', null, $right);
 
         self::assertInstanceOf(Node::class, $result);
@@ -491,6 +457,12 @@ final class ArithmeticOperatorApplyTest extends TestCase
 
         self::assertInstanceOf(Node::class, $result);
         self::assertSame(['x', '8', 'y', '2', 'z', '9'], array_map(static fn (Node $node): string => $node->value, $result->content));
+    }
+
+    #[DataProvider('rejectionProvider')]
+    public function testRejectsWhatCannotBeCombined(BinaryOperatorEnum $operator, Node $left, Node $right, string $message): void
+    {
+        $this->assertRejected($message, static fn (): ?Node => ArithmeticOperator::apply($operator, $left, $right));
     }
 
     /**
@@ -511,12 +483,6 @@ final class ArithmeticOperatorApplyTest extends TestCase
         yield 'maps divided' => [BinaryOperatorEnum::Divide, Node::mapping(), Node::mapping(), '!!map (map) cannot be divided by !!map (map)'];
         yield 'a string modded by an int' => [BinaryOperatorEnum::Modulo, $text, $two, '!!str (scalar) cannot be modded by !!int (scalar)'];
         yield 'an int modded by a string' => [BinaryOperatorEnum::Modulo, $two, $text, '!!int (scalar) cannot be modded by !!str (scalar)'];
-    }
-
-    #[DataProvider('rejectionProvider')]
-    public function testRejectsWhatCannotBeCombined(BinaryOperatorEnum $operator, Node $left, Node $right, string $message): void
-    {
-        self::assertRejected($message, static fn (): ?Node => ArithmeticOperator::apply($operator, $left, $right));
     }
 
     public function testMultiplicationMergesContainersAndPrefersNumbersOverRepetition(): void
@@ -555,5 +521,40 @@ final class ArithmeticOperatorApplyTest extends TestCase
 
         self::assertInstanceOf(Node::class, $parts);
         self::assertSame(['a', 'b', 'c'], array_map(static fn (Node $node): string => $node->value, $parts->content));
+    }
+
+    /**
+     * @param callable(): mixed $call
+     */
+    private function assertRejected(string $message, callable $call): void
+    {
+        try {
+            $call();
+            self::fail('the arithmetic does not apply');
+        } catch (EvaluationException $evaluationException) {
+            self::assertSame($message, $evaluationException->getMessage());
+        }
+    }
+
+    /**
+     * @return array{Node, Node}
+     */
+    private function sequences(): array
+    {
+        return [
+            Node::sequence([Node::scalar('1'), Node::scalar('2')]),
+            Node::sequence([Node::scalar('3'), Node::scalar('4')]),
+        ];
+    }
+
+    /**
+     * @return array{Node, Node}
+     */
+    private function mappings(): array
+    {
+        return [
+            Node::mapping([Node::scalar('a'), Node::scalar('1'), Node::scalar('b'), Node::scalar('2')]),
+            Node::mapping([Node::scalar('b'), Node::scalar('3'), Node::scalar('c'), Node::scalar('4')]),
+        ];
     }
 }

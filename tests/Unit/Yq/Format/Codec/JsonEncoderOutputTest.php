@@ -172,8 +172,8 @@ final class JsonEncoderOutputTest extends TestCase
     {
         try {
             new JsonEncoder()->encode(Node::scalar($value, self::FLOAT), new FormatOptions(unwrapScalar: false), 0);
-        } catch (FormatException $exception) {
-            self::assertSame('json: unsupported value: ' . $value, $exception->getMessage());
+        } catch (FormatException $formatException) {
+            self::assertSame('json: unsupported value: ' . $value, $formatException->getMessage());
 
             return;
         }

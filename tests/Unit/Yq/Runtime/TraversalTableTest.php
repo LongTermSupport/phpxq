@@ -26,20 +26,10 @@ final class TraversalTableTest extends TestCase
 
     private const string RETURN = '⏎';
 
-    /**
-     * @return Generator<string, array{string, string, string}>
-     */
-    private static function rows(string $table): Generator
+    #[DataProvider('successProvider')]
+    public function testEvaluates(string $expression, string $input, string $expected): void
     {
-        foreach (explode("\n", trim($table)) as $line) {
-            [$expression, $input, $expected] = explode(self::ARROW, $line);
-
-            yield $line => [
-                $expression,
-                str_replace(self::RETURN, "\n", $input),
-                str_replace(self::RETURN, "\n", $expected),
-            ];
-        }
+        self::assertSame($expected, YqHarness::run($expression, $input));
     }
 
     /**
@@ -82,10 +72,15 @@ final class TraversalTableTest extends TestCase
             TABLE);
     }
 
-    #[DataProvider('successProvider')]
-    public function testEvaluates(string $expression, string $input, string $expected): void
+    #[DataProvider('failureProvider')]
+    public function testRejectsTheAccess(string $expression, string $input, string $message): void
     {
-        self::assertSame($expected, YqHarness::run($expression, $input));
+        try {
+            YqHarness::run($expression, $input);
+            self::fail('the access does not apply');
+        } catch (EvaluationException $evaluationException) {
+            self::assertSame($message, $evaluationException->getMessage());
+        }
     }
 
     /**
@@ -100,17 +95,6 @@ final class TraversalTableTest extends TestCase
             .a[-3]➜a: [1, 2]⏎➜Index [-3] out of range, array size is 2
             .a[-3] = 1➜a: [1, 2]⏎➜Index [-3] out of range, array size is 2
             TABLE);
-    }
-
-    #[DataProvider('failureProvider')]
-    public function testRejectsTheAccess(string $expression, string $input, string $message): void
-    {
-        try {
-            YqHarness::run($expression, $input);
-            self::fail('the access does not apply');
-        } catch (EvaluationException $exception) {
-            self::assertSame($message, $exception->getMessage());
-        }
     }
 
     public function testLookupFindsEveryMatchingKeyInOrder(): void
@@ -173,5 +157,21 @@ final class TraversalTableTest extends TestCase
         self::assertSame(['x' => '2', 'z' => '3'], array_map(static fn (array $pair): string => $pair[1]->value, $legacy));
         self::assertSame(['x' => '1', 'z' => '3'], array_map(static fn (array $pair): string => $pair[1]->value, $fixed));
         self::assertSame('x', $legacy['x'][0]->value);
+    }
+
+    /**
+     * @return Generator<string, array{string, string, string}>
+     */
+    private static function rows(string $table): Generator
+    {
+        foreach (explode("\n", trim($table)) as $line) {
+            [$expression, $input, $expected] = explode(self::ARROW, $line);
+
+            yield $line => [
+                $expression,
+                str_replace(self::RETURN, "\n", $input),
+                str_replace(self::RETURN, "\n", $expected),
+            ];
+        }
     }
 }

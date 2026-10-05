@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Yq\Format\Codec;
 
+use Closure;
 use LTS\PhpXq\Yq\Format\Codec\HclScanner;
 use LTS\PhpXq\Yq\Format\FormatException;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -31,7 +32,7 @@ final class HclScannerTest extends TestCase
 
         yield 'escaped quote' => ['"a\"b" tail', 0, 6];
 
-        yield 'escaped backslash before the closing quote' => ['"a\\\\" tail', 0, 5];
+        yield 'escaped backslash before the closing quote' => ['"a\\\" tail', 0, 5];
 
         yield 'dollar template' => ['"a${b}c" tail', 0, 8];
 
@@ -251,14 +252,14 @@ final class HclScannerTest extends TestCase
     }
 
     /**
-     * @param \Closure(): mixed $call
+     * @param Closure(): mixed $call
      */
-    private function assertRejected(string $expectedMessage, \Closure $call): void
+    private function assertRejected(string $expectedMessage, Closure $call): void
     {
         try {
             $call();
-        } catch (FormatException $exception) {
-            self::assertSame($expectedMessage, $exception->getMessage());
+        } catch (FormatException $formatException) {
+            self::assertSame($expectedMessage, $formatException->getMessage());
 
             return;
         }

@@ -25,20 +25,10 @@ final class SortingCallsTableTest extends TestCase
 
     private const string RETURN = '⏎';
 
-    /**
-     * @return Generator<string, array{string, string, string}>
-     */
-    private static function rows(string $table): Generator
+    #[DataProvider('successProvider')]
+    public function testEvaluates(string $expression, string $input, string $expected): void
     {
-        foreach (explode("\n", trim($table)) as $line) {
-            [$expression, $input, $expected] = explode(self::ARROW, $line);
-
-            yield $line => [
-                $expression,
-                str_replace(self::RETURN, "\n", $input),
-                str_replace(self::RETURN, "\n", $expected),
-            ];
-        }
+        self::assertSame($expected, YqHarness::run($expression, $input));
     }
 
     /**
@@ -143,18 +133,12 @@ final class SortingCallsTableTest extends TestCase
             TABLE);
     }
 
-    #[DataProvider('successProvider')]
-    public function testEvaluates(string $expression, string $input, string $expected): void
-    {
-        self::assertSame($expected, YqHarness::run($expression, $input));
-    }
-
     public function testShuffleReordersSequences(): void
     {
         $items    = range(1, 30);
         $input    = 'a: [' . implode(', ', $items) . "]\n";
         $shuffled = YqHarness::run('.a | shuffle | .[]', $input);
-        $values   = array_map('intval', explode("\n", trim($shuffled)));
+        $values   = array_map(intval(...), explode("\n", trim($shuffled)));
 
         self::assertNotSame($items, $values, 'thirty items come back in a new order');
         sort($values);
@@ -163,10 +147,21 @@ final class SortingCallsTableTest extends TestCase
 
     public function testShuffleTakesTheValuesOfMappings(): void
     {
-        $values = array_map('intval', explode("\n", trim(YqHarness::run('.a | shuffle | .[]', "a: {x: 1, y: 2, z: 3}\n"))));
+        $values = array_map(intval(...), explode("\n", trim(YqHarness::run('.a | shuffle | .[]', "a: {x: 1, y: 2, z: 3}\n"))));
         sort($values);
 
         self::assertSame([1, 2, 3], $values);
+    }
+
+    #[DataProvider('failureProvider')]
+    public function testRejectsScalars(string $expression, string $input, string $message): void
+    {
+        try {
+            YqHarness::run($expression, $input);
+            self::fail('scalars cannot be ordered');
+        } catch (EvaluationException $evaluationException) {
+            self::assertSame($message, $evaluationException->getMessage());
+        }
     }
 
     /**
@@ -185,15 +180,12 @@ final class SortingCallsTableTest extends TestCase
             TABLE);
     }
 
-    #[DataProvider('failureProvider')]
-    public function testRejectsScalars(string $expression, string $input, string $message): void
+    #[DataProvider('missingArgumentProvider')]
+    public function testCallsThatNeedAKeyRejectNone(string $expression): void
     {
-        try {
-            YqHarness::run($expression, $input);
-            self::fail('scalars cannot be ordered');
-        } catch (EvaluationException $exception) {
-            self::assertSame($message, $exception->getMessage());
-        }
+        $this->expectException(EvaluationException::class);
+
+        YqHarness::run('.a | ' . $expression, "a: [1]\n");
     }
 
     /**
@@ -206,11 +198,19 @@ final class SortingCallsTableTest extends TestCase
         }
     }
 
-    #[DataProvider('missingArgumentProvider')]
-    public function testCallsThatNeedAKeyRejectNone(string $expression): void
+    /**
+     * @return Generator<string, array{string, string, string}>
+     */
+    private static function rows(string $table): Generator
     {
-        $this->expectException(EvaluationException::class);
+        foreach (explode("\n", trim($table)) as $line) {
+            [$expression, $input, $expected] = explode(self::ARROW, $line);
 
-        YqHarness::run('.a | ' . $expression, "a: [1]\n");
+            yield $line => [
+                $expression,
+                str_replace(self::RETURN, "\n", $input),
+                str_replace(self::RETURN, "\n", $expected),
+            ];
+        }
     }
 }

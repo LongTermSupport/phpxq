@@ -34,7 +34,7 @@ final class YqHarness
         $services = new RuntimeServices(
             new ExpressionParser(),
             $parser,
-            $formats ?? new YamlOnlyRegistry($codec),
+            $formats  ?? new YamlOnlyRegistry($codec),
             $security ?? new SecurityOptions(enableSystemOperator: true),
             $fixedMerge,
         );

@@ -101,6 +101,12 @@ final class StringLiteralTest extends TestCase
         self::assertSame([['.a', 2]], StringLiteral::split('\(.a)'));
     }
 
+    #[DataProvider('numericEscapeProvider')]
+    public function testDecodeNumericEscapes(string $source, string $expected): void
+    {
+        self::assertSame($expected, StringLiteral::decode($source));
+    }
+
     /**
      * @return iterable<string, array{string, string}>
      */
@@ -143,7 +149,7 @@ final class StringLiteralTest extends TestCase
         yield 'unknown then known'      => ['\q\n', "\\q\n"];
         yield 'lone backslash'          => ['\\', '\\'];
         yield 'text then lone slash'    => ['ab\\', 'ab\\'];
-        yield 'escaped backslash text'  => ['\\\\n', '\n'];
+        yield 'escaped backslash text'  => ['\\\n', '\n'];
         yield 'tail after escape'       => ['\tend', "\tend"];
         yield 'prefix before escape'    => ['pre\tpost', "pre\tpost"];
         yield 'blank body'              => ['', ''];
@@ -151,10 +157,10 @@ final class StringLiteralTest extends TestCase
         yield 'capital u at end'        => ['x\U', 'x\U'];
     }
 
-    #[DataProvider('numericEscapeProvider')]
-    public function testDecodeNumericEscapes(string $source, string $expected): void
+    #[DataProvider('scanDoubleProvider')]
+    public function testScanDoubleFindsTheClosingQuote(string $source, int $start, int $expected): void
     {
-        self::assertSame($expected, StringLiteral::decode($source));
+        self::assertSame($expected, StringLiteral::scanDouble($source, $start));
     }
 
     /**
@@ -164,9 +170,9 @@ final class StringLiteralTest extends TestCase
     {
         yield 'from zero'                  => ['xyz"', 0, 3];
         yield 'immediately closed'         => ['""', 1, 1];
-        yield 'escaped backslash'          => ['"a\\\\"', 1, 4];
+        yield 'escaped backslash'          => ['"a\\\"', 1, 4];
         yield 'escaped quote then close'   => ['"\""', 1, 3];
-        yield 'escaped paren is no interp' => ['"\\\\(x"', 1, 5];
+        yield 'escaped paren is no interp' => ['"\\\(x"', 1, 5];
         yield 'empty interpolation'        => ['"\(1)"', 1, 5];
         yield 'interpolation then text'    => ['"\(1)ab" tail', 1, 7];
         yield 'two interpolations'         => ['"\(1)\(2)"', 1, 9];
@@ -175,10 +181,16 @@ final class StringLiteralTest extends TestCase
         yield 'quote after other text'     => ['"ab\ncd"', 1, 7];
     }
 
-    #[DataProvider('scanDoubleProvider')]
-    public function testScanDoubleFindsTheClosingQuote(string $source, int $start, int $expected): void
+    #[DataProvider('unterminatedProvider')]
+    public function testScanDoubleReportsUnterminatedStringsAtTheOpeningQuote(string $source, int $start): void
     {
-        self::assertSame($expected, StringLiteral::scanDouble($source, $start));
+        try {
+            StringLiteral::scanDouble($source, $start);
+            self::fail('an unterminated string must be rejected');
+        } catch (ExpressionSyntaxException $expressionSyntaxException) {
+            self::assertSame('Bad expression, unterminated string', $expressionSyntaxException->getMessage());
+            self::assertSame($start - 1, $expressionSyntaxException->offset);
+        }
     }
 
     /**
@@ -192,18 +204,6 @@ final class StringLiteralTest extends TestCase
         yield 'offset opening quote'  => ['xx"xyz', 3];
     }
 
-    #[DataProvider('unterminatedProvider')]
-    public function testScanDoubleReportsUnterminatedStringsAtTheOpeningQuote(string $source, int $start): void
-    {
-        try {
-            StringLiteral::scanDouble($source, $start);
-            self::fail('an unterminated string must be rejected');
-        } catch (ExpressionSyntaxException $exception) {
-            self::assertSame('Bad expression, unterminated string', $exception->getMessage());
-            self::assertSame($start - 1, $exception->offset);
-        }
-    }
-
     public function testScanDoubleReportsAnOpenInterpolationAtItsBody(): void
     {
         foreach (['"a\(1', '"a\('] as $source) {
@@ -215,6 +215,12 @@ final class StringLiteralTest extends TestCase
                 self::assertSame(4, $exception->offset);
             }
         }
+    }
+
+    #[DataProvider('skipInterpolationProvider')]
+    public function testSkipInterpolationReturnsTheIndexAfterTheClosingParen(string $source, int $start, int $expected): void
+    {
+        self::assertSame($expected, StringLiteral::skipInterpolation($source, $start));
     }
 
     /**
@@ -234,10 +240,16 @@ final class StringLiteralTest extends TestCase
         yield 'nested interpolation'     => ['"\(1)") z', 0, 7];
     }
 
-    #[DataProvider('skipInterpolationProvider')]
-    public function testSkipInterpolationReturnsTheIndexAfterTheClosingParen(string $source, int $start, int $expected): void
+    #[DataProvider('unmatchedProvider')]
+    public function testSkipInterpolationReportsTheStart(string $source, int $start): void
     {
-        self::assertSame($expected, StringLiteral::skipInterpolation($source, $start));
+        try {
+            StringLiteral::skipInterpolation($source, $start);
+            self::fail('an unmatched paren must be rejected');
+        } catch (ExpressionSyntaxException $expressionSyntaxException) {
+            self::assertSame(self::NO_CLOSING_PAREN, $expressionSyntaxException->getMessage());
+            self::assertSame($start, $expressionSyntaxException->offset);
+        }
     }
 
     /**
@@ -253,16 +265,17 @@ final class StringLiteralTest extends TestCase
         yield 'only past the end'   => ['xyz', 3];
     }
 
-    #[DataProvider('unmatchedProvider')]
-    public function testSkipInterpolationReportsTheStart(string $source, int $start): void
+    /**
+     * @param ?list<string|array{string, int}> $expected null when the body must be rejected
+     */
+    #[DataProvider('splitProvider')]
+    public function testSplitSeparatesLiteralTextFromInterpolations(string $body, ?array $expected): void
     {
-        try {
-            StringLiteral::skipInterpolation($source, $start);
-            self::fail('an unmatched paren must be rejected');
-        } catch (ExpressionSyntaxException $exception) {
-            self::assertSame(self::NO_CLOSING_PAREN, $exception->getMessage());
-            self::assertSame($start, $exception->offset);
+        if (null === $expected) {
+            $this->expectException(ExpressionSyntaxException::class);
         }
+
+        self::assertSame($expected, StringLiteral::split($body));
     }
 
     /**
@@ -281,19 +294,6 @@ final class StringLiteralTest extends TestCase
         yield 'interpolation then text'     => ['\(.a) tail', [['.a', 2], ' tail']];
         yield 'only text'                   => ['solo', ['solo']];
         yield 'backslash after interpolation' => ['\(.a)\\', [['.a', 2], '\\']];
-        yield 'paren right at the end'      => ['a\\(', null];
-    }
-
-    /**
-     * @param ?list<string|array{string, int}> $expected null when the body must be rejected
-     */
-    #[DataProvider('splitProvider')]
-    public function testSplitSeparatesLiteralTextFromInterpolations(string $body, ?array $expected): void
-    {
-        if (null === $expected) {
-            $this->expectException(ExpressionSyntaxException::class);
-        }
-
-        self::assertSame($expected, StringLiteral::split($body));
+        yield 'paren right at the end'      => ['a\(', null];
     }
 }

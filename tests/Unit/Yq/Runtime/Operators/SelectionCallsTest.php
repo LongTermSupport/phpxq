@@ -25,20 +25,10 @@ final class SelectionCallsTest extends TestCase
 
     private const string RETURN = '⏎';
 
-    /**
-     * @return Generator<string, array{string, string, string}>
-     */
-    private static function rows(string $table): Generator
+    #[DataProvider('successProvider')]
+    public function testEvaluates(string $expression, string $input, string $expected): void
     {
-        foreach (explode("\n", trim($table)) as $line) {
-            [$expression, $input, $expected] = explode(self::ARROW, $line);
-
-            yield $line => [
-                $expression,
-                str_replace(self::RETURN, "\n", $input),
-                str_replace(self::RETURN, "\n", $expected),
-            ];
-        }
+        self::assertSame($expected, YqHarness::run($expression, $input));
     }
 
     /**
@@ -160,10 +150,15 @@ final class SelectionCallsTest extends TestCase
             TABLE);
     }
 
-    #[DataProvider('successProvider')]
-    public function testEvaluates(string $expression, string $input, string $expected): void
+    #[DataProvider('failureProvider')]
+    public function testRejectsTheInput(string $expression, string $input, string $message): void
     {
-        self::assertSame($expected, YqHarness::run($expression, $input));
+        try {
+            YqHarness::run($expression, $input);
+            self::fail('the call does not apply');
+        } catch (EvaluationException $evaluationException) {
+            self::assertSame($message, $evaluationException->getMessage());
+        }
     }
 
     /**
@@ -179,15 +174,12 @@ final class SelectionCallsTest extends TestCase
             TABLE);
     }
 
-    #[DataProvider('failureProvider')]
-    public function testRejectsTheInput(string $expression, string $input, string $message): void
+    #[DataProvider('missingArgumentProvider')]
+    public function testCallsThatNeedArgumentsRejectNone(string $expression): void
     {
-        try {
-            YqHarness::run($expression, $input);
-            self::fail('the call does not apply');
-        } catch (EvaluationException $exception) {
-            self::assertSame($message, $exception->getMessage());
-        }
+        $this->expectException(EvaluationException::class);
+
+        YqHarness::run('.a | ' . $expression, "a: [1]\n");
     }
 
     /**
@@ -200,11 +192,19 @@ final class SelectionCallsTest extends TestCase
         }
     }
 
-    #[DataProvider('missingArgumentProvider')]
-    public function testCallsThatNeedArgumentsRejectNone(string $expression): void
+    /**
+     * @return Generator<string, array{string, string, string}>
+     */
+    private static function rows(string $table): Generator
     {
-        $this->expectException(EvaluationException::class);
+        foreach (explode("\n", trim($table)) as $line) {
+            [$expression, $input, $expected] = explode(self::ARROW, $line);
 
-        YqHarness::run('.a | ' . $expression, "a: [1]\n");
+            yield $line => [
+                $expression,
+                str_replace(self::RETURN, "\n", $input),
+                str_replace(self::RETURN, "\n", $expected),
+            ];
+        }
     }
 }

@@ -26,8 +26,8 @@ final class Base64EncoderTest extends TestCase
     {
         try {
             new Base64Encoder($format)->encode($node, new FormatOptions(), 0);
-        } catch (FormatException $exception) {
-            self::assertSame($expectedHead . self::TAIL, $exception->getMessage());
+        } catch (FormatException $formatException) {
+            self::assertSame($expectedHead . self::TAIL, $formatException->getMessage());
 
             return;
         }

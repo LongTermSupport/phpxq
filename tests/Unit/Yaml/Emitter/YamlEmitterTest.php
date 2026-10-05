@@ -891,7 +891,7 @@ final class YamlEmitterTest extends TestCase
 
     public function testRootHeadCommentOfAScalarComesFirst(): void
     {
-        $root = Node::scalar('a');
+        $root              = Node::scalar('a');
         $root->headComment = '# top';
 
         self::assertSame("# top\na\n", new YamlEmitter()->emit($root, new EmitOptions(unwrapScalar: false)));

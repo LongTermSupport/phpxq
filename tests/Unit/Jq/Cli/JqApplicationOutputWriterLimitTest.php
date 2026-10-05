@@ -23,6 +23,7 @@ final class JqApplicationOutputWriterLimitTest extends TestCase
         $writer = new OutputWriter($stream);
 
         $writer->write(str_repeat('a', 65535));
+
         $before = $this->contents($stream);
 
         $writer->write('a');

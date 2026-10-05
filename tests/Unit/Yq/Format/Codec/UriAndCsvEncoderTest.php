@@ -26,8 +26,8 @@ final class UriAndCsvEncoderTest extends TestCase
     {
         try {
             $encode();
-        } catch (FormatException $exception) {
-            self::assertSame($expectedMessage, $exception->getMessage());
+        } catch (FormatException $formatException) {
+            self::assertSame($expectedMessage, $formatException->getMessage());
 
             return;
         }

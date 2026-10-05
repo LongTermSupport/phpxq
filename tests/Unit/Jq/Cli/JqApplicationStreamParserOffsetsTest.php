@@ -37,6 +37,12 @@ final class JqApplicationStreamParserOffsetsTest extends TestCase
 
     private StreamParser $parser;
 
+    protected function setUp(): void
+    {
+        $decoder      = new JsonDecoder();
+        $this->parser = new StreamParser($decoder, new ParseDiagnostics($decoder));
+    }
+
     /**
      * @param list<array{int, string}> $expected offset and compact JSON of every event
      */
@@ -217,11 +223,5 @@ final class JqApplicationStreamParserOffsetsTest extends TestCase
         self::assertNotNull($last, $text);
 
         return $last;
-    }
-
-    protected function setUp(): void
-    {
-        $decoder      = new JsonDecoder();
-        $this->parser = new StreamParser($decoder, new ParseDiagnostics($decoder));
     }
 }

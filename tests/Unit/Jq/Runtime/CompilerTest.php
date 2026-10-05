@@ -55,7 +55,7 @@ final class CompilerTest extends TestCase
         // construction
         yield 'walk with a single filter'    => ['walk(if type == "number" then . + 1 else . end)', '{"a":1,"b":[2,{"c":3}]}', ['{"a":2,"b":[3,{"c":4}]}']];
         yield 'walk applies bottom up'       => ['walk(if type == "array" then reverse else . end)', '[[1,2],{"a":[3,4]}]', ['[{"a":[4,3]},[2,1]]']];
-        yield 'array of generator'           =>['[.[] | . * 2]', '[1,2,3]', ['[2,4,6]']];
+        yield 'array of generator'           => ['[.[] | . * 2]', '[1,2,3]', ['[2,4,6]']];
         yield 'empty array'                  => ['[]', 'null', ['[]']];
         yield 'object shorthand'             => ['{a,b}', '{"a":1,"b":2,"c":3}', ['{"a":1,"b":2}']];
         yield 'object variable shorthand'    => ['1 as $x | {$x}', 'null', ['{"x":1}']];
