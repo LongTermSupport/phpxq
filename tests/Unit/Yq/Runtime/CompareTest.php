@@ -6,6 +6,7 @@ namespace LTS\PhpXq\Tests\Unit\Yq\Runtime;
 
 use Generator;
 use LTS\PhpXq\Yaml\Node;
+use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Runtime\Compare;
 use LTS\PhpXq\Yq\Runtime\EvaluationException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -29,6 +30,14 @@ final class CompareTest extends TestCase
 
     private const int LIMIT = 10000;
 
+    private const string LEAF = 'leaf';
+
+    private const string FLOAT_ONE = '1.0';
+
+    private const string ABC = 'abc';
+
+    private const string WILDCARD = 'a*';
+
     /**
      * @return Generator<string, list<string>>
      */
@@ -45,11 +54,16 @@ final class CompareTest extends TestCase
     }
 
     /**
-     * @param list<Node> $keysAndValues
+     * @param callable(): mixed $call
      */
-    private static function map(array $keysAndValues): Node
+    private static function assertThrowsWithMessage(string $message, callable $call): void
     {
-        return Node::mapping($keysAndValues);
+        try {
+            $call();
+            self::fail('the call does not throw');
+        } catch (EvaluationException $exception) {
+            self::assertSame($message, $exception->getMessage());
+        }
     }
 
     /**
@@ -57,7 +71,7 @@ final class CompareTest extends TestCase
      */
     private static function chain(int $levels): Node
     {
-        $node = Node::scalar('leaf');
+        $node = Node::scalar(self::LEAF);
         for ($i = 0; $i < $levels; ++$i) {
             $node = Node::sequence([$node]);
         }
@@ -180,33 +194,38 @@ final class CompareTest extends TestCase
 
     public function testNullTaggedTextIsNotAString(): void
     {
-        $null   = Node::scalar('null', '!!null');
+        $null   = Node::scalar('null', CoreSchema::TAG_NULL);
+        $tilde  = Node::scalar('~', CoreSchema::TAG_NULL);
         $string = self::str('null');
 
         self::assertFalse(Compare::equals($null, $string));
         self::assertFalse(Compare::equals($string, $null));
-        self::assertTrue(Compare::equals($null, Node::scalar('~', '!!null')));
+        self::assertTrue(Compare::equals($null, $tilde));
         self::assertFalse(Compare::deepEquals($null, $string));
         self::assertFalse(Compare::deepEquals($string, $null));
-        self::assertTrue(Compare::deepEquals($null, Node::scalar('~', '!!null')));
+        self::assertTrue(Compare::deepEquals($null, $tilde));
     }
 
     public function testNumbersCompareByValueNotText(): void
     {
-        self::assertTrue(Compare::equals(Node::scalar('1'), Node::scalar('1.0')));
-        self::assertTrue(Compare::deepEquals(Node::scalar('1'), Node::scalar('1.0')));
-        self::assertFalse(Compare::deepEquals(Node::scalar('1'), Node::scalar('2')));
-        self::assertTrue(Compare::deepEquals(self::str('1'), Node::scalar('1')));
-        self::assertFalse(Compare::deepEquals(self::str('1'), Node::scalar('1.0')));
-        self::assertTrue(Compare::deepEquals(self::str('1.0'), self::str('1.0')));
+        $one       = Node::scalar('1');
+        $floatOne  = Node::scalar(self::FLOAT_ONE);
+        $stringOne = self::str(self::FLOAT_ONE);
+
+        self::assertTrue(Compare::equals($one, $floatOne));
+        self::assertTrue(Compare::deepEquals($one, $floatOne));
+        self::assertFalse(Compare::deepEquals($one, Node::scalar('2')));
+        self::assertTrue(Compare::deepEquals(self::str('1'), $one));
+        self::assertFalse(Compare::deepEquals(self::str('1'), $floatOne));
+        self::assertTrue(Compare::deepEquals($stringOne, $stringOne));
         self::assertFalse(Compare::deepEquals(self::str('a'), self::str('b')));
         self::assertTrue(Compare::deepEquals(self::str('a'), self::str('a')));
     }
 
     public function testWildcardsOnlyApplyToTheRightHandScalar(): void
     {
-        self::assertTrue(Compare::equals(self::str('abc'), self::str('a*')));
-        self::assertFalse(Compare::deepEquals(self::str('abc'), self::str('a*')));
+        self::assertTrue(Compare::equals(self::str(self::ABC), self::str(self::WILDCARD)));
+        self::assertFalse(Compare::deepEquals(self::str(self::ABC), self::str(self::WILDCARD)));
     }
 
     public function testCollectionsAreNeverEqualToScalars(): void
@@ -237,15 +256,15 @@ final class CompareTest extends TestCase
 
     public function testMappingsIgnoreKeyOrderButNotKeysOrValues(): void
     {
-        $base = self::map([Node::scalar('a'), Node::scalar('1'), Node::scalar('b'), Node::scalar('2')]);
+        $base = Node::mapping([Node::scalar('a'), Node::scalar('1'), Node::scalar('b'), Node::scalar('2')]);
 
-        self::assertTrue(Compare::deepEquals($base, self::map([Node::scalar('b'), Node::scalar('2'), Node::scalar('a'), Node::scalar('1')])));
-        self::assertTrue(Compare::equals($base, self::map([Node::scalar('b'), Node::scalar('2'), Node::scalar('a'), Node::scalar('1')])));
-        self::assertFalse(Compare::deepEquals($base, self::map([Node::scalar('a'), Node::scalar('1')])));
-        self::assertFalse(Compare::deepEquals($base, self::map([Node::scalar('a'), Node::scalar('1'), Node::scalar('b'), Node::scalar('3')])));
-        self::assertFalse(Compare::deepEquals($base, self::map([Node::scalar('a'), Node::scalar('9'), Node::scalar('b'), Node::scalar('2')])));
-        self::assertFalse(Compare::deepEquals($base, self::map([Node::scalar('a'), Node::scalar('1'), Node::scalar('c'), Node::scalar('2')])));
-        self::assertFalse(Compare::deepEquals($base, self::map([Node::scalar('c'), Node::scalar('1'), Node::scalar('b'), Node::scalar('2')])));
+        self::assertTrue(Compare::deepEquals($base, Node::mapping([Node::scalar('b'), Node::scalar('2'), Node::scalar('a'), Node::scalar('1')])));
+        self::assertTrue(Compare::equals($base, Node::mapping([Node::scalar('b'), Node::scalar('2'), Node::scalar('a'), Node::scalar('1')])));
+        self::assertFalse(Compare::deepEquals($base, Node::mapping([Node::scalar('a'), Node::scalar('1')])));
+        self::assertFalse(Compare::deepEquals($base, Node::mapping([Node::scalar('a'), Node::scalar('1'), Node::scalar('b'), Node::scalar('3')])));
+        self::assertFalse(Compare::deepEquals($base, Node::mapping([Node::scalar('a'), Node::scalar('9'), Node::scalar('b'), Node::scalar('2')])));
+        self::assertFalse(Compare::deepEquals($base, Node::mapping([Node::scalar('a'), Node::scalar('1'), Node::scalar('c'), Node::scalar('2')])));
+        self::assertFalse(Compare::deepEquals($base, Node::mapping([Node::scalar('c'), Node::scalar('1'), Node::scalar('b'), Node::scalar('2')])));
     }
 
     public function testAliasesAreFollowed(): void
@@ -260,10 +279,7 @@ final class CompareTest extends TestCase
     {
         self::assertTrue(Compare::deepEquals(Node::scalar('1'), Node::scalar('1'), self::LIMIT));
 
-        $this->expectException(EvaluationException::class);
-        $this->expectExceptionMessage(self::MAX_DEPTH_MESSAGE);
-
-        Compare::deepEquals(Node::scalar('1'), Node::scalar('1'), self::LIMIT + 1);
+        self::assertThrowsWithMessage(self::MAX_DEPTH_MESSAGE, static fn (): bool => Compare::deepEquals(Node::scalar('1'), Node::scalar('1'), self::LIMIT + 1));
     }
 
     public function testDeepEqualsCountsSequenceNesting(): void
@@ -271,22 +287,15 @@ final class CompareTest extends TestCase
         self::assertTrue(Compare::deepEquals(self::chain(1), self::chain(1), self::LIMIT - 1));
         self::assertTrue(Compare::deepEquals(self::chain(2), self::chain(2), self::LIMIT - 2));
 
-        $this->expectException(EvaluationException::class);
-        $this->expectExceptionMessage(self::MAX_DEPTH_MESSAGE);
-
-        Compare::deepEquals(self::chain(3), self::chain(3), self::LIMIT - 2);
+        self::assertThrowsWithMessage(self::MAX_DEPTH_MESSAGE, static fn (): bool => Compare::deepEquals(self::chain(3), self::chain(3), self::LIMIT - 2));
     }
 
     public function testDeepEqualsCountsMappingNesting(): void
     {
-        $inner = static fn (): Node => self::map([Node::scalar('k'), self::map([Node::scalar('k'), Node::scalar('v')])]);
+        $inner = static fn (): Node => Node::mapping([Node::scalar('k'), Node::mapping([Node::scalar('k'), Node::scalar('v')])]);
 
         self::assertTrue(Compare::deepEquals($inner(), $inner(), self::LIMIT - 2));
-
-        $this->expectException(EvaluationException::class);
-        $this->expectExceptionMessage(self::MAX_DEPTH_MESSAGE);
-
-        Compare::deepEquals($inner(), $inner(), self::LIMIT - 1);
+        self::assertThrowsWithMessage(self::MAX_DEPTH_MESSAGE, static fn (): bool => Compare::deepEquals($inner(), $inner(), self::LIMIT - 1));
     }
 
     /**
@@ -295,17 +304,17 @@ final class CompareTest extends TestCase
     public static function canonicalProvider(): Generator
     {
         yield 'scalar' => [Node::scalar('plain'), 'plain'];
-        yield 'number keeps its text' => [Node::scalar('1.0'), '1.0'];
+        yield 'number keeps its text' => [Node::scalar(self::FLOAT_ONE), self::FLOAT_ONE];
         yield 'empty sequence' => [Node::sequence(), '[]'];
         yield 'empty mapping' => [Node::mapping(), '{}'];
         yield 'sequence' => [Node::sequence([Node::scalar('1'), Node::scalar('2')]), "[1\x1f2]"];
-        yield 'mapping' => [self::map([Node::scalar('a'), Node::scalar('1')]), "{a\x1e1}"];
+        yield 'mapping' => [Node::mapping([Node::scalar('a'), Node::scalar('1')]), "{a\x1e1}"];
         yield 'mapping keys are sorted' => [
-            self::map([Node::scalar('b'), Node::scalar('2'), Node::scalar('a'), Node::scalar('1')]),
+            Node::mapping([Node::scalar('b'), Node::scalar('2'), Node::scalar('a'), Node::scalar('1')]),
             "{a\x1e1\x1fb\x1e2}",
         ];
         yield 'nested' => [
-            self::map([Node::scalar('k'), Node::sequence([Node::scalar('1'), self::map([Node::scalar('z'), Node::scalar('9')])])]),
+            Node::mapping([Node::scalar('k'), Node::sequence([Node::scalar('1'), Node::mapping([Node::scalar('z'), Node::scalar('9')])])]),
             "{k\x1e[1\x1f{z\x1e9}]}",
         ];
         yield 'alias' => [Node::alias('x', Node::scalar('7')), '7'];
@@ -319,31 +328,24 @@ final class CompareTest extends TestCase
 
     public function testCanonicalStopsPastTheDepthLimit(): void
     {
-        self::assertSame('leaf', Compare::canonical(Node::scalar('leaf'), self::LIMIT));
-        self::assertSame('[leaf]', Compare::canonical(self::chain(1), self::LIMIT - 1));
-
-        $this->expectException(EvaluationException::class);
-        $this->expectExceptionMessage(self::CANONICAL_DEPTH_MESSAGE);
-
-        Compare::canonical(self::chain(2), self::LIMIT - 1);
+        self::assertSame(self::LEAF, Compare::canonical(Node::scalar(self::LEAF), self::LIMIT));
+        self::assertSame('[' . self::LEAF . ']', Compare::canonical(self::chain(1), self::LIMIT - 1));
+        self::assertThrowsWithMessage(self::CANONICAL_DEPTH_MESSAGE, static fn (): string => Compare::canonical(self::chain(2), self::LIMIT - 1));
     }
 
     public function testCanonicalCountsMappingNesting(): void
     {
-        $mapping = self::map([Node::scalar('k'), Node::scalar('v')]);
+        $mapping = Node::mapping([Node::scalar('k'), Node::scalar('v')]);
+        $nested  = Node::mapping([Node::scalar('k'), $mapping]);
 
         self::assertSame("{k\x1ev}", Compare::canonical($mapping, self::LIMIT - 1));
-        self::assertSame("{k\x1e{k\x1ev}}", Compare::canonical(self::map([Node::scalar('k'), $mapping]), self::LIMIT - 2));
-
-        $this->expectException(EvaluationException::class);
-        $this->expectExceptionMessage(self::CANONICAL_DEPTH_MESSAGE);
-
-        Compare::canonical(self::map([Node::scalar('k'), $mapping]), self::LIMIT - 1);
+        self::assertSame("{k\x1e{k\x1ev}}", Compare::canonical($nested, self::LIMIT - 2));
+        self::assertThrowsWithMessage(self::CANONICAL_DEPTH_MESSAGE, static fn (): string => Compare::canonical($nested, self::LIMIT - 1));
     }
 
     public function testCanonicalWithoutDepthStartsAtZero(): void
     {
-        self::assertSame('[' . str_repeat('[', 5) . 'leaf' . str_repeat(']', 5) . ']', Compare::canonical(self::chain(6)));
+        self::assertSame('[' . str_repeat('[', 5) . self::LEAF . str_repeat(']', 5) . ']', Compare::canonical(self::chain(6)));
     }
 
     /**
