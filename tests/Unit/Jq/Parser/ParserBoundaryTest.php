@@ -58,6 +58,26 @@ final class ParserBoundaryTest extends TestCase
         }
     }
 
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function missingCommaProvider(): iterable
+    {
+        yield 'identifier key' => ['{a:1 b:2}', 'syntax error, unexpected IDENT at <top-level>, line 1, column 6:'];
+        yield 'string key'     => ['{a:1 "b":2}', 'syntax error, unexpected QQSTRING_START at <top-level>, line 1, column 6:'];
+    }
+
+    #[DataProvider('missingCommaProvider')]
+    public function testObjectEntriesNeedACommaBetweenThem(string $source, string $message): void
+    {
+        try {
+            $this->parser()->parse($source);
+            self::fail('expected a compile error for ' . $source);
+        } catch (JqCompileException $jqCompileException) {
+            self::assertSame($message, $jqCompileException->getMessage());
+        }
+    }
+
     public function testObjectKeyThatRunsIntoEndOfInputIsNotAColonProblem(): void
     {
         try {
