@@ -191,9 +191,7 @@ Do these once, in the repository settings. None of it can be applied or tested f
    - Restrict who can push, so only the merged pull request lands there. Block force pushes and deletion.
    - Leave "require linear history" off and allow **merge commits**; do not allow squash or rebase merging
      into `release`.
-   - Do not require signed commits (the bot's commits are not signed), and do not require a code-owner or
-     "approval of the most recent push" review that the bot-opened pull request could never get from you
-     alone if you are the only collaborator.
+   - Do not require signed commits: the bot's commits are not signed.
 4. `vendor/lts/php-qa-ci/scripts/setup-branch-protection.bash --branch release` applies a baseline from a
    terminal with an authenticated `gh`; compare it with the list above.
 
