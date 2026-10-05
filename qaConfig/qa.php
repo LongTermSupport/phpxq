@@ -20,4 +20,12 @@ return static fn (QaConfigBuilder $qa): QaConfigBuilder => $qa
     // Fixtures of the static defences' own tests (qaConfig/PHPStan/Rules): each is deliberately an instance of a
     // bug class, so the fixers must not rewrite it and PHPStan must not report it.
     ->withIgnoredPaths('tests/Fixtures/Defence')
+    // Mutation-score ratchet: both floors sit at the score the suite earns today (never 100, which would
+    // make every legitimately equivalent mutant a failure), so a change cannot quietly weaken the tests.
+    ->withInfectionFloors(90, 90)
+    // Declarations carrying a native type, per kind: a floor only ever moves up.
+    ->withTypeCoverageFloors(returnType: 95, paramType: 95, propertyType: 95, constantType: 95)
+    // Members nothing reaches are reported. The one PHP entry point outside src/ and tests/ is the executable.
+    ->withDeadCodeDetection(true)
+    ->withDeadCodeEntryPoints('bin/phpxq')
 ;
