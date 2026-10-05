@@ -99,7 +99,7 @@ final class HclReaderTest extends TestCase
      */
     public static function tooDeepProvider(): iterable
     {
-        $depth = Node::MAX_DEPTH + 1;
+        $depth = Node::maxDepth() + 1;
 
         yield 'lists' => ['a = ' . str_repeat('[', $depth) . str_repeat(']', $depth) . "\n"];
         yield 'objects' => ['a = ' . str_repeat('{a=', $depth) . '1' . str_repeat('}', $depth) . "\n"];

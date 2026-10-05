@@ -277,7 +277,7 @@ final class PropsDecoderTest extends TestCase
         $this->expectException(FormatException::class);
         $this->expectExceptionMessageIsOrContains(Node::depthError());
 
-        $this->decode(str_repeat('a.', Node::MAX_DEPTH) . "a = 1\n");
+        $this->decode(str_repeat('a.', Node::maxDepth()) . "a = 1\n");
     }
 
     public function testBlankInputHasNoDocuments(): void

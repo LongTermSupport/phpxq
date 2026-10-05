@@ -6,6 +6,7 @@ declare(strict_types=1);
 use LTS\PhpXq\Cli\EntryPoint;
 use LTS\PhpXq\Cli\ErrorGuard;
 use LTS\PhpXq\Cli\FrontController;
+use LTS\PhpXq\Cli\Xdebug;
 
 // The production code has no Composer dependencies, so a PSR-4 closure for the one namespace replaces
 // vendor/autoload.php: Composer's loader, class map and platform check cost about 1.5 ms of CPU on every start
@@ -19,8 +20,13 @@ spl_autoload_register(static function (string $class): void {
     }
 });
 
+/** @var list<string> $argv */
+
+// Xdebug slows every call, so an active one is switched off by re-running this script, unless
+// PHPXQ_ALLOW_XDEBUG keeps it. Nothing happens when Xdebug is not loaded, which is every production host.
+Xdebug::restartWithoutIfActive(...$argv);
+
 ErrorGuard::install('phpxq', STDERR);
 
-/** @var list<string> $argv */
 exit(new EntryPoint(new FrontController(), \dirname(__DIR__) . '/VERSION')
     ->run($argv[0], STDIN, STDOUT, STDERR, ...\array_slice($argv, 1)));

@@ -141,7 +141,7 @@ final class XmlReaderTest extends TestCase
 
     public function testElementsNestedBeyondTheLimitAreRefused(): void
     {
-        $depth = Node::MAX_DEPTH + 1;
+        $depth = Node::maxDepth() + 1;
 
         $this->expectException(FormatException::class);
         $this->expectExceptionMessageIsOrContains(Node::depthError());

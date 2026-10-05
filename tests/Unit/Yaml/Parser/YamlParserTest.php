@@ -131,7 +131,7 @@ final class YamlParserTest extends TestCase
      */
     public static function tooDeepProvider(): iterable
     {
-        $depth = Node::MAX_DEPTH + 1;
+        $depth = Node::maxDepth() + 1;
 
         yield 'flow sequences' => [str_repeat('[', $depth) . str_repeat(']', $depth)];
         yield 'flow mappings' => [str_repeat('{"a":', $depth) . '1' . str_repeat('}', $depth)];
@@ -142,7 +142,7 @@ final class YamlParserTest extends TestCase
 
     public function testNestingAtTheLimitIsAccepted(): void
     {
-        $docs = $this->parse(str_repeat('[', Node::MAX_DEPTH) . str_repeat(']', Node::MAX_DEPTH));
+        $docs = $this->parse(str_repeat('[', Node::maxDepth()) . str_repeat(']', Node::maxDepth()));
 
         self::assertCount(1, $docs);
     }

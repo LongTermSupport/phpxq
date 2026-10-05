@@ -527,7 +527,7 @@ handlers:
       enabled: true
       priority: 28
     daemon_stats:
-      enabled: true
+      enabled: false
       priority: 30
     upgrade_notifier:
       enabled: true
