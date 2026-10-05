@@ -7,6 +7,7 @@ namespace LTS\PhpXq\Tests\Unit\Yq\Runtime\Operators;
 use Generator;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeStyleEnum;
+use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Expression\Ast\BinaryOperatorEnum;
 use LTS\PhpXq\Yq\Runtime\EvaluationException;
 use LTS\PhpXq\Yq\Runtime\Operators\ArithmeticOperator;
@@ -25,6 +26,38 @@ use PHPUnit\Framework\TestCase;
 final class ArithmeticOperatorApplyTest extends TestCase
 {
     private const string CUSTOM = '!foo';
+
+    private const string REPEATED = 'abab';
+
+    private const string DAY = '24h';
+
+    private const string NEW = 'new';
+
+    private const array OPERATORS = [
+        'Add'            => BinaryOperatorEnum::Add,
+        'AddAssign'      => BinaryOperatorEnum::AddAssign,
+        'Subtract'       => BinaryOperatorEnum::Subtract,
+        'SubtractAssign' => BinaryOperatorEnum::SubtractAssign,
+        'Multiply'       => BinaryOperatorEnum::Multiply,
+        'MultiplyAssign' => BinaryOperatorEnum::MultiplyAssign,
+        'Divide'         => BinaryOperatorEnum::Divide,
+        'DivideAssign'   => BinaryOperatorEnum::DivideAssign,
+        'Modulo'         => BinaryOperatorEnum::Modulo,
+        'ModuloAssign'   => BinaryOperatorEnum::ModuloAssign,
+    ];
+
+    /**
+     * @param callable(): mixed $call
+     */
+    private static function assertRejected(string $message, callable $call): void
+    {
+        try {
+            $call();
+            self::fail('the arithmetic does not apply');
+        } catch (EvaluationException $exception) {
+            self::assertSame($message, $exception->getMessage());
+        }
+    }
 
     /**
      * @return Generator<string, list<string>>
@@ -85,7 +118,7 @@ final class ArithmeticOperatorApplyTest extends TestCase
     public function testNumericResultsKeepCustomTags(string $operator, string $left, string $leftTag, string $right, string $rightTag, string $value, string $tag): void
     {
         $result = ArithmeticOperator::apply(
-            self::operator($operator),
+            self::OPERATORS[$operator],
             Node::scalar($left, $leftTag),
             Node::scalar($right, $rightTag),
         );
@@ -95,17 +128,9 @@ final class ArithmeticOperatorApplyTest extends TestCase
         self::assertSame($tag, $result->tag);
     }
 
-    private static function operator(string $name): BinaryOperatorEnum
-    {
-        return \constant(BinaryOperatorEnum::class . '::' . $name);
-    }
-
     public function testUnsupportedOperatorsAreNamed(): void
     {
-        $this->expectException(EvaluationException::class);
-        $this->expectExceptionMessage('Unsupported arithmetic operator ,');
-
-        ArithmeticOperator::apply(BinaryOperatorEnum::Union, Node::scalar('1'), Node::scalar('2'));
+        self::assertRejected('Unsupported arithmetic operator ,', static fn (): ?Node => ArithmeticOperator::apply(BinaryOperatorEnum::Union, Node::scalar('1'), Node::scalar('2')));
     }
 
     /**
@@ -156,7 +181,7 @@ final class ArithmeticOperatorApplyTest extends TestCase
         $result = ArithmeticOperator::apply(BinaryOperatorEnum::Multiply, $text, Node::scalar('2'));
 
         self::assertInstanceOf(Node::class, $result);
-        self::assertSame('abab', $result->value);
+        self::assertSame(self::REPEATED, $result->value);
         self::assertSame(NodeStyleEnum::Default, $result->style);
 
         $none = ArithmeticOperator::apply(BinaryOperatorEnum::Multiply, Node::scalar('ab', '', NodeStyleEnum::DoubleQuoted), Node::scalar('0'));
@@ -177,7 +202,7 @@ final class ArithmeticOperatorApplyTest extends TestCase
         $number = ArithmeticOperator::apply(BinaryOperatorEnum::Add, Node::scalar('1', '', NodeStyleEnum::Default), Node::scalar('x', '', NodeStyleEnum::DoubleQuoted));
         self::assertInstanceOf(Node::class, $number);
         self::assertSame('1x', $number->value);
-        self::assertSame('!!str', $number->tag);
+        self::assertSame(CoreSchema::TAG_STR, $number->tag);
         self::assertSame(NodeStyleEnum::Default, $number->style);
 
         $text = ArithmeticOperator::apply(BinaryOperatorEnum::Add, Node::scalar('a', '', NodeStyleEnum::DoubleQuoted), Node::scalar('b', '', NodeStyleEnum::DoubleQuoted));
@@ -188,30 +213,31 @@ final class ArithmeticOperatorApplyTest extends TestCase
 
     public function testDatesIgnoreNonStringDurations(): void
     {
-        $date = Node::scalar('2001-12-15T02:59:43Z', '!!str');
+        $date = Node::scalar('2001-12-15T02:59:43Z', CoreSchema::TAG_STR);
 
         $zero = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $date, Node::scalar('0'));
         self::assertInstanceOf(Node::class, $zero);
         self::assertSame('2001-12-15T02:59:43Z0', $zero->value);
 
-        $word = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $date, Node::scalar('bad', '!!str'));
+        $word = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $date, Node::scalar('bad', CoreSchema::TAG_STR));
         self::assertInstanceOf(Node::class, $word);
         self::assertSame('2001-12-15T02:59:43Zbad', $word->value);
     }
 
     public function testDatesUseTheGivenLayout(): void
     {
-        $date  = Node::scalar('15/12/2001', '!!str');
-        $moved = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $date, Node::scalar('24h', '!!str'), '', '02/01/2006');
+        $date  = Node::scalar('15/12/2001', CoreSchema::TAG_STR);
+        $day   = Node::scalar(self::DAY, CoreSchema::TAG_STR);
+        $moved = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $date, $day, '', '02/01/2006');
 
         self::assertInstanceOf(Node::class, $moved);
         self::assertSame('16/12/2001', $moved->value);
 
-        $back = ArithmeticOperator::apply(BinaryOperatorEnum::Subtract, $date, Node::scalar('24h', '!!str'), '', '02/01/2006');
+        $back = ArithmeticOperator::apply(BinaryOperatorEnum::Subtract, $date, $day, '', '02/01/2006');
         self::assertInstanceOf(Node::class, $back);
         self::assertSame('14/12/2001', $back->value);
 
-        $default = ArithmeticOperator::apply(BinaryOperatorEnum::Add, Node::scalar('2001-12-15', '!!str'), Node::scalar('24h', '!!str'));
+        $default = ArithmeticOperator::apply(BinaryOperatorEnum::Add, Node::scalar('2001-12-15', CoreSchema::TAG_STR), $day);
         self::assertInstanceOf(Node::class, $default);
         self::assertSame('2001-12-16T00:00:00Z', $default->value);
     }
@@ -234,8 +260,8 @@ final class ArithmeticOperatorApplyTest extends TestCase
 
         self::assertInstanceOf(Node::class, $result);
         self::assertCount(4, $result->content);
-        foreach ($result->content as $index => $item) {
-            self::assertNotSame($left->content[$index] ?? $right->content[$index - 2], $item);
+        foreach ([...$left->content, ...$right->content] as $index => $original) {
+            self::assertNotSame($original, $result->content[$index]);
         }
     }
 
@@ -271,8 +297,8 @@ final class ArithmeticOperatorApplyTest extends TestCase
 
         self::assertInstanceOf(Node::class, $result);
         self::assertCount(4, $result->content);
-        foreach ($result->content as $index => $item) {
-            self::assertNotSame($both->content[$index % 2], $item);
+        foreach ([...$both->content, ...$both->content] as $index => $original) {
+            self::assertNotSame($original, $result->content[$index]);
         }
     }
 
@@ -300,11 +326,11 @@ final class ArithmeticOperatorApplyTest extends TestCase
 
     public function testASequenceKeepsItsStyleAndTag(): void
     {
-        $left         = Node::sequence([Node::scalar('1')], NodeStyleEnum::Flow);
-        $left->tag    = self::CUSTOM;
-        $right        = Node::sequence([Node::scalar('2')]);
-        $result       = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $left, $right);
-        $subtracted   = ArithmeticOperator::apply(BinaryOperatorEnum::Subtract, $left, Node::scalar('1'));
+        $left       = Node::sequence([Node::scalar('1')], NodeStyleEnum::Flow);
+        $left->tag  = self::CUSTOM;
+        $right      = Node::sequence([Node::scalar('2')]);
+        $result     = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $left, $right);
+        $subtracted = ArithmeticOperator::apply(BinaryOperatorEnum::Subtract, $left, Node::scalar('1'));
 
         self::assertInstanceOf(Node::class, $result);
         self::assertSame(NodeStyleEnum::Flow, $result->style);
@@ -330,8 +356,8 @@ final class ArithmeticOperatorApplyTest extends TestCase
     #[DataProvider('appendedStyleProvider')]
     public function testAppendedScalarsBorrowTheStyleOfTheLastItem(NodeStyleEnum $last, NodeStyleEnum $added, NodeStyleEnum $expected): void
     {
-        $left   = Node::sequence([Node::scalar('first', '', NodeStyleEnum::Literal), Node::scalar('last', '!!str', $last)]);
-        $result = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $left, Node::scalar('new', '!!str', $added));
+        $left   = Node::sequence([Node::scalar('first', '', NodeStyleEnum::Literal), Node::scalar('last', CoreSchema::TAG_STR, $last)]);
+        $result = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $left, Node::scalar(self::NEW, CoreSchema::TAG_STR, $added));
 
         self::assertInstanceOf(Node::class, $result);
         self::assertSame($expected, $result->content[2]->style);
@@ -339,8 +365,8 @@ final class ArithmeticOperatorApplyTest extends TestCase
 
     public function testOnlyTheLastItemDecidesTheStyle(): void
     {
-        $left   = Node::sequence([Node::scalar('first', '!!str', NodeStyleEnum::DoubleQuoted), Node::scalar('last', '!!str', NodeStyleEnum::Default)]);
-        $result = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $left, Node::scalar('new', '!!str'));
+        $left   = Node::sequence([Node::scalar('first', CoreSchema::TAG_STR, NodeStyleEnum::DoubleQuoted), Node::scalar('last', CoreSchema::TAG_STR, NodeStyleEnum::Default)]);
+        $result = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $left, Node::scalar(self::NEW, CoreSchema::TAG_STR));
 
         self::assertInstanceOf(Node::class, $result);
         self::assertSame(NodeStyleEnum::Default, $result->content[2]->style);
@@ -349,12 +375,12 @@ final class ArithmeticOperatorApplyTest extends TestCase
     public function testNonScalarNeighboursDoNotLendTheirStyle(): void
     {
         $left   = Node::sequence([Node::mapping([], NodeStyleEnum::DoubleQuoted)]);
-        $result = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $left, Node::scalar('new', '!!str'));
+        $result = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $left, Node::scalar(self::NEW, CoreSchema::TAG_STR));
 
         self::assertInstanceOf(Node::class, $result);
         self::assertSame(NodeStyleEnum::Default, $result->content[1]->style);
 
-        $quoted = Node::sequence([Node::scalar('x', '!!str', NodeStyleEnum::DoubleQuoted)]);
+        $quoted = Node::sequence([Node::scalar('x', CoreSchema::TAG_STR, NodeStyleEnum::DoubleQuoted)]);
         $nested = ArithmeticOperator::apply(BinaryOperatorEnum::Add, $quoted, Node::sequence([Node::scalar('y')]));
         self::assertInstanceOf(Node::class, $nested);
         self::assertSame(NodeStyleEnum::Default, $nested->content[1]->style);
@@ -366,7 +392,7 @@ final class ArithmeticOperatorApplyTest extends TestCase
 
     public function testAppendingToAnEmptySequence(): void
     {
-        $result = ArithmeticOperator::apply(BinaryOperatorEnum::Add, Node::sequence(), Node::scalar('only', '!!str', NodeStyleEnum::Default));
+        $result = ArithmeticOperator::apply(BinaryOperatorEnum::Add, Node::sequence(), Node::scalar('only', CoreSchema::TAG_STR, NodeStyleEnum::Default));
 
         self::assertInstanceOf(Node::class, $result);
         self::assertCount(1, $result->content);
@@ -467,36 +493,30 @@ final class ArithmeticOperatorApplyTest extends TestCase
         self::assertSame(['x', '8', 'y', '2', 'z', '9'], array_map(static fn (Node $node): string => $node->value, $result->content));
     }
 
-    public function testMixedKindsAreRejected(): void
+    /**
+     * @return Generator<string, array{BinaryOperatorEnum, Node, Node, string}>
+     */
+    public static function rejectionProvider(): Generator
     {
-        $this->expectException(EvaluationException::class);
-        $this->expectExceptionMessage('!!map (map) cannot be added to a !!int (scalar)');
+        $text = Node::scalar('a', CoreSchema::TAG_STR);
+        $word = Node::scalar('b', CoreSchema::TAG_STR);
+        $two  = Node::scalar('2');
 
-        ArithmeticOperator::apply(BinaryOperatorEnum::Add, Node::scalar('1'), Node::mapping());
+        yield 'a map added to an int' => [BinaryOperatorEnum::Add, Node::scalar('1'), Node::mapping(), '!!map (map) cannot be added to a !!int (scalar)'];
+        yield 'maps subtracted' => [BinaryOperatorEnum::Subtract, Node::mapping(), Node::mapping(), '!!map (map) cannot be subtracted from !!map (map)'];
+        yield 'strings subtracted' => [BinaryOperatorEnum::Subtract, $text, $word, '!!str (scalar) cannot be subtracted from !!str (scalar)'];
+        yield 'a sequence subtracted from an int' => [BinaryOperatorEnum::Subtract, Node::scalar('1'), Node::sequence(), '!!seq (seq) cannot be subtracted from !!int (scalar)'];
+        yield 'an int divides a string' => [BinaryOperatorEnum::Divide, $text, $two, '!!str (scalar) cannot be divided by !!int (scalar)'];
+        yield 'a string divides an int' => [BinaryOperatorEnum::Divide, $two, $text, '!!int (scalar) cannot be divided by !!str (scalar)'];
+        yield 'maps divided' => [BinaryOperatorEnum::Divide, Node::mapping(), Node::mapping(), '!!map (map) cannot be divided by !!map (map)'];
+        yield 'a string modded by an int' => [BinaryOperatorEnum::Modulo, $text, $two, '!!str (scalar) cannot be modded by !!int (scalar)'];
+        yield 'an int modded by a string' => [BinaryOperatorEnum::Modulo, $two, $text, '!!int (scalar) cannot be modded by !!str (scalar)'];
     }
 
-    public function testMappingsCannotBeSubtracted(): void
+    #[DataProvider('rejectionProvider')]
+    public function testRejectsWhatCannotBeCombined(BinaryOperatorEnum $operator, Node $left, Node $right, string $message): void
     {
-        $this->expectException(EvaluationException::class);
-        $this->expectExceptionMessage('!!map (map) cannot be subtracted from !!map (map)');
-
-        ArithmeticOperator::apply(BinaryOperatorEnum::Subtract, Node::mapping(), Node::mapping());
-    }
-
-    public function testScalarsThatAreNotNumbersCannotBeSubtracted(): void
-    {
-        $this->expectException(EvaluationException::class);
-        $this->expectExceptionMessage('!!str (scalar) cannot be subtracted from !!str (scalar)');
-
-        ArithmeticOperator::apply(BinaryOperatorEnum::Subtract, Node::scalar('a', '!!str'), Node::scalar('b', '!!str'));
-    }
-
-    public function testASequenceCannotBeSubtractedFromAScalar(): void
-    {
-        $this->expectException(EvaluationException::class);
-        $this->expectExceptionMessage('!!seq (seq) cannot be subtracted from !!int (scalar)');
-
-        ArithmeticOperator::apply(BinaryOperatorEnum::Subtract, Node::scalar('1'), Node::sequence());
+        self::assertRejected($message, static fn (): ?Node => ArithmeticOperator::apply($operator, $left, $right));
     }
 
     public function testMultiplicationMergesContainersAndPrefersNumbersOverRepetition(): void
@@ -509,66 +529,31 @@ final class ArithmeticOperatorApplyTest extends TestCase
         self::assertInstanceOf(Node::class, $merged);
         self::assertSame(['x', '1', 'y', '2'], array_map(static fn (Node $node): string => $node->value, $merged->content));
 
-        $numbers = ArithmeticOperator::apply(BinaryOperatorEnum::Multiply, Node::scalar('3', '!!str'), Node::scalar('4'));
+        $numbers = ArithmeticOperator::apply(BinaryOperatorEnum::Multiply, Node::scalar('3', CoreSchema::TAG_STR), Node::scalar('4'));
         self::assertInstanceOf(Node::class, $numbers);
         self::assertSame('3333', $numbers->value);
     }
 
     public function testRepetitionNeedsAStringOnTheTextSide(): void
     {
-        $repeated = ArithmeticOperator::apply(BinaryOperatorEnum::Multiply, Node::scalar('ab', '!!str'), Node::scalar('2'));
+        $repeated = ArithmeticOperator::apply(BinaryOperatorEnum::Multiply, Node::scalar('ab', CoreSchema::TAG_STR), Node::scalar('2'));
         self::assertInstanceOf(Node::class, $repeated);
-        self::assertSame('abab', $repeated->value);
+        self::assertSame(self::REPEATED, $repeated->value);
 
-        $swapped = ArithmeticOperator::apply(BinaryOperatorEnum::Multiply, Node::scalar('2'), Node::scalar('ab', '!!str'));
+        $swapped = ArithmeticOperator::apply(BinaryOperatorEnum::Multiply, Node::scalar('2'), Node::scalar('ab', CoreSchema::TAG_STR));
         self::assertInstanceOf(Node::class, $swapped);
-        self::assertSame('abab', $swapped->value);
+        self::assertSame(self::REPEATED, $swapped->value);
 
-        $scalarOverMap = ArithmeticOperator::apply(BinaryOperatorEnum::Multiply, Node::scalar('ab', '!!str'), Node::scalar('x', '!!str'));
+        $scalarOverMap = ArithmeticOperator::apply(BinaryOperatorEnum::Multiply, Node::scalar('ab', CoreSchema::TAG_STR), Node::scalar('x', CoreSchema::TAG_STR));
         self::assertInstanceOf(Node::class, $scalarOverMap);
         self::assertSame('x', $scalarOverMap->value);
     }
 
-    public function testDivisionSplitsStringsAndRejectsEverythingElse(): void
+    public function testDivisionSplitsStrings(): void
     {
-        $parts = ArithmeticOperator::apply(BinaryOperatorEnum::Divide, Node::scalar('a-b-c', '!!str'), Node::scalar('-', '!!str'));
+        $parts = ArithmeticOperator::apply(BinaryOperatorEnum::Divide, Node::scalar('a-b-c', CoreSchema::TAG_STR), Node::scalar('-', CoreSchema::TAG_STR));
+
         self::assertInstanceOf(Node::class, $parts);
         self::assertSame(['a', 'b', 'c'], array_map(static fn (Node $node): string => $node->value, $parts->content));
-
-        $this->expectException(EvaluationException::class);
-        $this->expectExceptionMessage('!!str (scalar) cannot be divided by !!int (scalar)');
-        ArithmeticOperator::apply(BinaryOperatorEnum::Divide, Node::scalar('a', '!!str'), Node::scalar('2'));
-    }
-
-    public function testDivisionOfMismatchedScalarsIsRejected(): void
-    {
-        $this->expectException(EvaluationException::class);
-        $this->expectExceptionMessage('!!int (scalar) cannot be divided by !!str (scalar)');
-
-        ArithmeticOperator::apply(BinaryOperatorEnum::Divide, Node::scalar('2'), Node::scalar('a', '!!str'));
-    }
-
-    public function testDivisionOfContainersIsRejected(): void
-    {
-        $this->expectException(EvaluationException::class);
-        $this->expectExceptionMessage('!!map (map) cannot be divided by !!map (map)');
-
-        ArithmeticOperator::apply(BinaryOperatorEnum::Divide, Node::mapping(), Node::mapping());
-    }
-
-    public function testModuloRejectsNonNumbers(): void
-    {
-        $this->expectException(EvaluationException::class);
-        $this->expectExceptionMessage('!!str (scalar) cannot be modded by !!int (scalar)');
-
-        ArithmeticOperator::apply(BinaryOperatorEnum::Modulo, Node::scalar('a', '!!str'), Node::scalar('2'));
-    }
-
-    public function testModuloRejectsANonNumberOnTheRight(): void
-    {
-        $this->expectException(EvaluationException::class);
-        $this->expectExceptionMessage('!!int (scalar) cannot be modded by !!str (scalar)');
-
-        ArithmeticOperator::apply(BinaryOperatorEnum::Modulo, Node::scalar('2'), Node::scalar('a', '!!str'));
     }
 }
