@@ -46,6 +46,7 @@
     },
     "autoload-dev": {
         "psr-4": {
+            "LTS\\PhpXq\\Release\\": "scripts/Release/",
             "LTS\\PhpXq\\Tests\\": "tests/",
             "QaConfig\\": [
                 "qaConfig/"
