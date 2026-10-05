@@ -237,15 +237,36 @@ final readonly class ScalarAnalysis
 
         $second = \ord($value[$i + 1]);
 
-        return match (true) {
-            0xC2 === $byte                                                                                                                                                                                                   => $second >= 0xA0,
-            $byte > 0xC2 && $byte                                                                                                                                                                                     < 0xED => true,
-            0xED === $byte                                                                                                                                                                                                   => $second < 0xA0,
-            0xEE === $byte                                                                                                                                                                                                   => true,
-            0xEF === $byte                                                                                                                                                                                                   => (0xBB !== $second || 0xBF !== \ord($value[$i + 2]))
-                && (0xBF !== $second || !\in_array(\ord($value[$i + 2]), [0xBE, 0xBF], true)),
-            default                                                                                                                                                                                                          => false,
-        };
+        if (0xC2 === $byte) {
+            return $second >= 0xA0;
+        }
+
+        if (0xED === $byte) {
+            return $second < 0xA0;
+        }
+
+        if (0xEF === $byte) {
+            return self::isPrintableAfterEf($value, $i, $second);
+        }
+
+        return $byte > 0xC2 && $byte < 0xEF;
+    }
+
+    /**
+     * U+FEFF and the non-characters U+FFFE and U+FFFF are the only unprintable code points that start 0xEF.
+     * The third byte is read only when the second one can make it matter.
+     */
+    private static function isPrintableAfterEf(string $value, int $i, int $second): bool
+    {
+        if (0xBB === $second) {
+            return 0xBF !== \ord($value[$i + 2]);
+        }
+
+        if (0xBF === $second) {
+            return !\in_array(\ord($value[$i + 2]), [0xBE, 0xBF], true);
+        }
+
+        return true;
     }
 
     private static function isBreak(string $value, int $i, int $byte): bool
