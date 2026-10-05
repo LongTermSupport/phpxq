@@ -26,6 +26,8 @@ final class ExpressionLexerBoundaryTest extends TestCase
 
     private const string DOT_A = '.a';
 
+    private const string FIRST_COLUMN = '1:1 failing at 1:2';
+
     /**
      * @return Generator<string, array{string, string}>
      */
@@ -280,15 +282,15 @@ final class ExpressionLexerBoundaryTest extends TestCase
         yield 'unterminated single'       => ["'abc", $unterminated, 0, null];
         yield 'unterminated after tokens' => [".a 'x", $unterminated, 3, null];
         yield 'unterminated double later' => ['.a | "x', $unterminated, 5, null];
-        yield 'lone dollar'               => ['$', '', 0, '1:1 failing at 1:2'];
-        yield 'dollar then space'         => ['$ a', '', 0, '1:1 failing at 1:2'];
+        yield 'lone dollar'               => ['$', '', 0, self::FIRST_COLUMN];
+        yield 'dollar then space'         => ['$ a', '', 0, self::FIRST_COLUMN];
         yield 'dollar later'              => ['.a $', '', 3, '1:4 failing at 1:5'];
         yield 'lone bang'                 => ['.a !', '', 3, '1:4 failing at 1:5'];
-        yield 'bang then word'            => ['! a', '', 0, '1:1 failing at 1:2'];
+        yield 'bang then word'            => ['! a', '', 0, self::FIRST_COLUMN];
         yield 'ampersand in name'         => ['.a&b', '', 2, '1:3 failing at 1:4'];
-        yield 'backslash'                 => ['\\', '', 0, '1:1 failing at 1:2'];
-        yield 'backtick'                  => ['`', '', 0, '1:1 failing at 1:2'];
-        yield 'at sign'                   => ['@ ', '', 0, '1:1 failing at 1:2'];
+        yield 'backslash'                 => ['\\', '', 0, self::FIRST_COLUMN];
+        yield 'backtick'                  => ['`', '', 0, self::FIRST_COLUMN];
+        yield 'at sign'                   => ['@ ', '', 0, self::FIRST_COLUMN];
         yield 'third line'                => ["a\n\n  &", '', 5, '3:3 failing at 3:4'];
         yield 'second line first column'  => [".a\n&", '', 3, '2:1 failing at 2:2'];
         yield 'second line'               => ["a\n  `", '', 4, '2:3 failing at 2:4'];

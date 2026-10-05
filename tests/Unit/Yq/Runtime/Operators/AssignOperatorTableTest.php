@@ -106,9 +106,11 @@ final class AssignOperatorTableTest extends TestCase
 
     public function testAnUnknownAliasIsRejected(): void
     {
-        $this->expectException(EvaluationException::class);
-        $this->expectExceptionMessage('Could not find anchor nope');
-
-        YqHarness::run('.b alias = "nope"', "a: 1\nb: 2\n");
+        try {
+            YqHarness::run('.b alias = "nope"', "a: 1\nb: 2\n");
+            self::fail('the alias has no anchor');
+        } catch (EvaluationException $exception) {
+            self::assertSame('Could not find anchor nope', $exception->getMessage());
+        }
     }
 }
