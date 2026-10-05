@@ -53,6 +53,12 @@ final class HclScannerTest extends TestCase
 
         yield 'brace without a dollar' => ['"a{b}" tail', 0, 6];
 
+        yield 'brace without a dollar and without a closing brace' => ['"a{b" tail', 0, 5];
+
+        yield 'doubled dollar with an unbalanced brace' => ['"$${b" tail', 0, 6];
+
+        yield 'doubled percent with an unbalanced brace' => ['"%%{b" tail', 0, 6];
+
         yield 'second template after a first one' => ['"${a}${b}" tail', 0, 10];
 
         yield 'template whose preceding character is the same dollar' => ['"$${a}${b}" tail', 0, 11];
@@ -146,6 +152,14 @@ final class HclScannerTest extends TestCase
 
         yield 'less than is not a heredoc' => ["a < b\nc", 0, 5];
 
+        yield 'multiplication is not a comment' => ["2*3\nb", 0, 3];
+
+        yield 'block comment opener that overlaps its closer' => ["a /*/ x\n */ b\nc", 0, 13];
+
+        yield 'block comment directly before a newline' => ["a /* c */\nb", 0, 9];
+
+        yield 'heredoc after a long prefix' => ["aaaa = <<EOT\nline1\nline2\nEOT\nafter", 7, 28];
+
         yield 'start inside the text' => ["x = 1\ny = 2", 4, 5];
     }
 
@@ -228,6 +242,10 @@ final class HclScannerTest extends TestCase
         yield 'comment after two strings' => ['"x" "y" // c', true];
 
         yield 'string after a comment marker' => ['"x" /* "y" */', true];
+
+        yield 'unterminated block comment' => ['/* open', true];
+
+        yield 'slash after text' => ['x/', false];
 
         yield 'slash then a letter' => ['a/b', false];
     }
