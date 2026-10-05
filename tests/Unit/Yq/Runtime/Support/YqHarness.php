@@ -10,6 +10,7 @@ use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Parser\YamlParser;
 use LTS\PhpXq\Yq\Expression\ExpressionParser;
+use LTS\PhpXq\Yq\Format\FormatRegistryInterface;
 use LTS\PhpXq\Yq\Runtime\Candidate;
 use LTS\PhpXq\Yq\Runtime\EvaluationContext;
 use LTS\PhpXq\Yq\Runtime\Evaluator;
@@ -25,7 +26,7 @@ final class YqHarness
     {
     }
 
-    public static function run(string $expression, string $input = '', bool $nullInput = false, bool $fixedMerge = false, ?SecurityOptions $security = null): string
+    public static function run(string $expression, string $input = '', bool $nullInput = false, bool $fixedMerge = false, ?SecurityOptions $security = null, ?FormatRegistryInterface $formats = null): string
     {
         $parser   = new YamlParser();
         $emitter  = new YamlEmitter();
@@ -33,7 +34,7 @@ final class YqHarness
         $services = new RuntimeServices(
             new ExpressionParser(),
             $parser,
-            new YamlOnlyRegistry($codec),
+            $formats ?? new YamlOnlyRegistry($codec),
             $security ?? new SecurityOptions(enableSystemOperator: true),
             $fixedMerge,
         );
