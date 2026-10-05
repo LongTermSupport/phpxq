@@ -1,76 +1,131 @@
 # Releasing phpxq
 
-A release is a pull request from `main` into a branch named `release`. Merging that pull request runs
-`.github/workflows/release.yml`, which builds, verifies, tags and publishes. Nothing is published by
-hand and no one tags manually.
+Releases are cut from the changelog. Nobody picks a version number, edits `VERSION`, or tags by hand:
 
-The first public version is `0.1.0`.
+- Every change a user could notice is recorded under `## Unreleased` in `CHANGELOG.md`. QA refuses a
+  pull request that changes a shipped path without an entry.
+- The headings of those entries choose the next version (plain SemVer).
+- When `main` is green and has unreleased entries, a bot keeps a **release pull request** open
+  (`chore/release` into `release`). Merging it is the decision to release.
+- The merge runs `.github/workflows/release.yml`: full QA and conformance, PHAR and static binaries,
+  smoke tests, then the tag `vX.Y.Z` and the GitHub Release with the changelog as its notes.
+- A **back-merge pull request** (`release` into `main`) then brings `VERSION` and `CHANGELOG.md` on `main`
+  in line with what was released.
 
-## Cutting 0.1.0 (exact steps)
+```text
+ feature branch --PR--> main                     (QA gate; the changelog lane demands an entry)
+                          |
+                          | green push to main, `## Unreleased` has entries
+                          v
+                   release-pr.yml                chore/release = main + "Release X.Y.Z" commit
+                          |                      (changelog section written, VERSION bumped)
+                          v
+              PR: chore/release --> release      a person reviews it and merges it (merge commit)
+                          |
+                          | push to release
+                          v
+                     release.yml
+        preflight -> qa -> phar -> binaries -> tag vX.Y.Z + GitHub Release -> verify install
+                          |
+                          v
+              PR: release --> main               opened by release.yml, merged (auto-merge if enabled)
+                          |
+                          v
+        main: VERSION = X.Y.Z, `## Unreleased` holds only what came after the release PR was cut
+```
 
-`VERSION` already reads `0.1.0` on `main`, and `CHANGELOG.md` has the `0.1.0` entry.
+## What to do day to day
 
-1. Configure GitHub once (see "One-off GitHub configuration" below): Actions permissions, then make the
-   repository public if the installer must work for everyone.
+1. Work on a `feature/`, `bugfix/` or `chore/` branch and open a pull request into `main`.
 
-2. Make sure `main` is green: the QA workflow passes on the commit you intend to ship, and locally
-   `CI=true vendor/bin/qa` and `scripts/conformance.bash all` exit 0.
-
-3. Create the `release` branch once from that commit. This first push runs the Release workflow, so only
-   do it when you are ready to publish:
+2. If the change touches `src/`, `bin/`, `scripts/`, `packaging/`, `composer.json`, `box.json` or
+   `install.sh`, add a changelog entry. The helper puts it under the right heading:
 
    ```bash
-   git fetch origin
-   git push origin origin/main:refs/heads/release
+   vendor/bin/changelog-release add-entry fixed '**`jq` no longer ...** What a user sees.'
    ```
 
-   Then apply the branch protection below. (If you prefer to review the release as a pull request, push
-   an older commit first, apply protection, and open a pull request `main` into `release`; the version
-   bump is what makes that merge publish.)
+   A change nobody could notice (an internal refactor, a test helper under `scripts/`) takes a commit
+   trailer instead, with a reason of at least two words:
 
-4. Watch the Release workflow in the Actions tab. It succeeds only when preflight, qa, phar, every
-   required binary, release and verify all pass.
+   ```bash
+   git commit --trailer 'Changelog: none — internal refactor, no behaviour change'
+   ```
 
-5. Check the Releases page: `v0.1.0` with `phpxq.phar`, `phpxq-linux-x86_64`, `phpxq-linux-aarch64`
-   (plus the macOS binaries when they built), `install.sh`, `SHA256SUMS` and generated notes. Test the
-   installer: `curl -fsSL https://github.com/LongTermSupport/phpxq/releases/latest/download/install.sh | sh`.
+3. Merge to `main`. When QA is green the release pull request appears or refreshes by itself.
 
-6. Afterwards move the `[Unreleased]` heading's contents into the next version section as you work, and
-   bump `VERSION` on `main` for the next release.
+4. When you want to ship, review the release pull request (its body is the release notes) and merge it
+   with a **merge commit**. Never squash or rebase: that severs the ancestry between `main` and `release`.
 
-## Cutting a release
+5. Watch the `Release` run. Merge the back-merge pull request it opens (it merges itself when the repository
+   allows auto-merge).
 
-1. On `main`, set the new version in `VERSION` (one line, `MAJOR.MINOR.PATCH`, optionally with a
-   pre-release suffix such as `-rc.1`). `VERSION` is the single source of truth: the PHAR, the
-   binaries, `phpxq --version`, the git tag and the release title all derive from it.
-2. Merge that to `main` through the normal flow and let the QA workflow go green.
-3. Open a pull request with base `release` and head `main`. For the very first release the `release`
-   branch does not exist yet: create it once from the commit you want to ship
-   (`git push origin <sha>:refs/heads/release`) before applying the branch protection below, then
-   apply the protection. From then on use pull requests. Pushing the branch the first time also runs
-   the release workflow, so do that only when `0.1.0` is ready to ship.
-4. Merge the pull request. Use a merge commit; do not squash or rebase (squashing severs ancestry
-   between `main` and `release` and makes the next pull request conflict).
-5. Watch the `Release` workflow. The run summary lists every stage. On success the tag `vX.Y.Z` and the
-   GitHub Release exist, with the artefacts, `SHA256SUMS` and generated notes.
+## How the version is chosen
 
-If `VERSION` was not bumped, the workflow stops at preflight with `tag vX.Y.Z already exists`. Bump
-`VERSION` on `main` and open a new pull request.
+`VERSION` holds the newest released version. The release pull request applies the strongest bump among the
+`## Unreleased` headings to it:
 
-## What the workflow does
+| Heading                  | Bump while the major is 0 | Bump from 1.0 |
+| ------------------------ | ------------------------- | ------------- |
+| `### Changed — breaking` | minor                     | major         |
+| `### Removed`            | minor                     | minor         |
+| `### Added`              | minor                     | minor         |
+| `### Changed`            | minor                     | minor         |
+| `### Deprecated`         | minor                     | minor         |
+| `### Fixed`              | patch                     | patch         |
+| `### Security`           | patch                     | patch         |
 
-| Stage     | What it does                                                                                                                                | If it fails                                           |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| preflight | Only runs on `release`; reads `VERSION`; refuses if the tag exists locally or on the remote                                                 | Nothing is built or published                         |
-| qa        | the full `CI=true vendor/bin/qa` pipeline, then `scripts/conformance.bash all`                                                              | Nothing is published                                  |
-| phar      | `scripts/build-phar.bash --check-reproducible` (two clean builds must be byte-identical), smoke test                                        | Nothing is published                                  |
-| binary    | `scripts/build-binary.bash` per platform, then `scripts/smoke-test.bash --static` with an empty environment                                 | Linux failure: nothing is published. macOS: see below |
-| release   | `scripts/release-assets.bash` (required assets present, `SHA256SUMS`), re-checks the tag, `gh release create` makes the tag and the release | Nothing is published                                  |
-| verify    | Downloads the published `install.sh`, installs the published release on x86_64 and aarch64 Linux, checks `phpxq --version`                  | The release exists but is suspect: see "Recovering"   |
-| report    | Writes a stage table to the run summary and fails the run if release or verify did not succeed                                              | -                                                     |
+Only those seven headings are allowed, each at most once and each with at least one entry; the
+`changelog` lane of `vendor/bin/qa` enforces it. The table is the one php-qa-ci's lane documents
+(`vendor/lts/php-qa-ci/docs/tools/changelog.md`), except that php-qa-ci's major is the PHP line, so a
+breaking change only ever moves its minor, whereas phpxq follows plain SemVer. A runtime requirement added
+or tightened in `composer.json` must be recorded under `Changed — breaking`; the lane checks that too.
 
-Failure modes are loud: every refusal prints a `::error` annotation naming the cause, a failed stage
-fails the run, and the `report` job always runs.
+The logic is `scripts/Release/` (unit tested in `tests/Unit/Release/`), run through `scripts/release.php`:
+
+| Command                             | Does                                                                           |
+| ----------------------------------- | ------------------------------------------------------------------------------ |
+| `scripts/release.bash next-version` | prints the version `## Unreleased` releases as; nothing when it has no entries |
+| `scripts/release.bash prepare`      | writes the dated changelog section and `VERSION`                               |
+| `scripts/release.bash notes X.Y.Z`  | prints the release notes of a released version                                 |
+| `scripts/release.bash verify`       | exit 0 releasable, 3 not a release commit, 1 refused                           |
+| `scripts/release.bash reconcile`    | merges a released changelog with the entries `main` gained since               |
+
+Before the first release `VERSION` (`0.1.0`) has no tag, so the release is `0.1.0` itself and no bump is
+applied. Pre-release suffixes (`-rc.1`) are not produced by this flow.
+
+## What each stage does
+
+| Workflow / stage | What it does                                                                                                                                                                 | If it fails                                           |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `release-pr.yml` | After QA is green on `main`: opens or refreshes `chore/release`, closes it when `## Unreleased` is empty, stands down while a back-merge is pending                          | A stale or missing pull request; nothing is released  |
+| preflight        | `VERSION`, the newest changelog section and the tags must agree; tag `vX.Y.Z` must not exist locally or on the remote                                                        | Nothing is built or published                         |
+| qa               | the full `CI=true vendor/bin/qa` pipeline, then `scripts/conformance.bash all`                                                                                               | Nothing is published                                  |
+| phar             | `scripts/build-phar.bash --check-reproducible` (two clean builds must be byte-identical), smoke test                                                                         | Nothing is published                                  |
+| binary           | `scripts/build-binary.bash` per platform, then `scripts/smoke-test.bash --static` with an empty environment                                                                  | Linux failure: nothing is published. macOS: see below |
+| release          | `scripts/release-assets.bash` (required assets, `SHA256SUMS`), re-runs preflight, `gh release create` makes the tag at the merged commit with the changelog section as notes | Nothing is published                                  |
+| verify           | Downloads the published `install.sh`, installs the published release on x86_64 and aarch64 Linux, checks `phpxq --version`                                                   | The release exists but is suspect: see "Recovering"   |
+| backmerge        | `scripts/release-backmerge.bash` opens `release` into `main` (or `chore/back-merge` when the changelog conflicts) and enables auto-merge                                     | A warning; merge `release` into `main` by hand        |
+| report           | Writes a stage table to the run summary and fails the run if release or verify did not succeed                                                                               | -                                                     |
+
+Refusals are loud: every one prints a `::error` annotation naming the cause, and a failed stage fails the run.
+A push to `release` whose `## Unreleased` still has entries (the push that creates the branch, or a hand
+merge of `main`) is not a release commit: the run skips every stage and says so in its summary.
+
+### The release pull request
+
+`chore/release` is `main` plus one commit, `Release X.Y.Z`, that moves the entries into
+`## X.Y.Z — date` and bumps `VERSION`. It is force-pushed on every refresh, so never commit to it. Every green
+push to `main` refreshes it, so it always releases everything recorded so far. Entries merged to `main` after
+the pull request was cut stay under `## Unreleased` for the next release.
+
+### The back-merge
+
+When main gained changelog entries while the release pull request was open, merging `release` back would
+conflict on `CHANGELOG.md`. `scripts/release-backmerge.bash` resolves that on `chore/back-merge`: the released
+changelog, plus every `## Unreleased` entry of `main` the release did not record. Any other conflict is
+refused with a message; merge `release` into `main` by hand then. Until the back-merge lands, `release-pr.yml`
+stands down (the two branches would conflict), and resumes on the next green push to `main`.
 
 ### Assets
 
@@ -89,39 +144,85 @@ fails the run shows a warning and the release ships without it. To make a platfo
 `optional` to `false` in the `binary` matrix and add it to `required` in `scripts/release-assets.bash`.
 The asset names are stable and unversioned so `releases/latest/download/<asset>` always works.
 
+## Cutting 0.1.0
+
+`VERSION` reads `0.1.0` and `## Unreleased` holds the first release's entries, so the very first release
+goes through the same flow.
+
+1. Do the one-off GitHub configuration below.
+
+2. Make sure `main` is green: QA passes on the commit you intend to ship, and locally
+   `CI=true vendor/bin/qa` and `scripts/conformance.bash all` exit 0.
+
+3. Create the `release` branch once, from `main`'s tip, and protect it. The push runs the Release workflow,
+   which recognises that `## Unreleased` still has entries and skips every stage:
+
+   ```bash
+   git fetch origin
+   git push origin origin/main:refs/heads/release
+   ```
+
+4. Run the `Release PR` workflow (Actions tab, "Run workflow" on `main`), or push anything to `main`. It opens
+   the pull request `Release 0.1.0`. Review and merge it with a merge commit.
+
+5. Watch the `Release` run, then check the Releases page: `v0.1.0` with `phpxq.phar`,
+   `phpxq-linux-x86_64`, `phpxq-linux-aarch64` (plus macOS when they built), `install.sh`, `SHA256SUMS` and the
+   notes. Try the installer:
+   `curl -fsSL https://github.com/LongTermSupport/phpxq/releases/latest/download/install.sh | sh`.
+
+6. Merge the back-merge pull request.
+
 ## One-off GitHub configuration (repository owner)
 
-Do these once, in the repository settings.
+Do these once, in the repository settings. None of it can be applied or tested from the repository itself.
 
-1. **Actions permissions.** Settings, Actions, General, Workflow permissions: "Read and write
-   permissions". The release job declares `contents: write` itself; the repository setting must not
-   cap it lower. Allow GitHub-authored actions and `shivammathur/setup-php`.
+**Actions**
 
-2. **Create the `release` branch** (first release only), from the commit to ship, before protecting it.
+1. Settings, Actions, General, Workflow permissions: **Read and write permissions**, and tick **Allow
+   GitHub Actions to create and approve pull requests**. The workflows open and refresh pull requests with
+   the built-in `GITHUB_TOKEN`; no secret and no personal access token is needed.
+2. Allow GitHub-authored actions, `actions/*` and `shivammathur/setup-php`.
 
-3. **Protect `release`.** Settings, Branches, add a protection rule for `release`:
+**The `release` branch**
 
+3. Create it once (see "Cutting 0.1.0"), then protect it: Settings, Branches (or Rules, Rulesets), `release`:
    - Require a pull request before merging (at least one approval if you have collaborators).
-   - Require status checks to pass: select the QA workflow's `QA gate (read-only qa)` check.
-   - Require branches to be up to date before merging.
-   - Restrict who can push to matching branches, so only the pull request merge lands there.
-   - Do not allow force pushes; do not allow deletions.
-   - Leave "require linear history" off: merge commits are the expected shape.
+   - Require status checks to pass: `QA gate (read-only qa)`. Require branches to be up to date.
+   - Restrict who can push, so only the merged pull request lands there. Block force pushes and deletion.
+   - Leave "require linear history" off and allow **merge commits**; do not allow squash or rebase merging
+     into `release`.
+   - Do not require signed commits (the bot's commits are not signed), and do not require a code-owner or
+     "approval of the most recent push" review that the bot-opened pull request could never get from you
+     alone if you are the only collaborator.
+4. `vendor/lts/php-qa-ci/scripts/setup-branch-protection.bash --branch release` applies a baseline from a
+   terminal with an authenticated `gh`; compare it with the list above.
 
-   `vendor/lts/php-qa-ci/scripts/setup-branch-protection.bash --branch release` applies a sensible
-   baseline from a terminal with an authenticated `gh`.
+**The `main` branch**
 
-4. **Protect tags** (recommended). Settings, Rules, Rulesets: a tag ruleset on `v*` that blocks
-   deletion and updates, so a published version can never be moved. The workflow creates tags, so
-   leave creation allowed for GitHub Actions.
+5. Require pull requests and the status check `QA gate (read-only qa)`. Allow merge commits (the back-merge
+   needs one; the other merge methods are fine for feature pull requests, but never squash the release or
+   back-merge pull requests).
+6. Settings, General, Pull Requests: tick **Allow auto-merge** so the back-merge pull request merges itself
+   once its checks pass. Without it the workflow warns and you merge it by hand.
 
-5. **Branch name policy.** `release` is a pull request base, not a head, so php-qa-ci's
-   `branchNamePolicy` is unaffected. Pull requests into `release` come from `main`.
+**Why the QA check is dispatched.** A pull request or push made with `GITHUB_TOKEN` starts no workflow, so the
+bot's pull requests would never get the required `QA gate (read-only qa)` check. The scripts therefore run
+`gh workflow run qa.yml --ref <branch>` for the head branch; a `workflow_dispatch` run reports its check on the
+head commit, which satisfies the requirement. If your protection requires checks from a specific app or
+event type, switch to a personal access token or a GitHub App token for `release-pr.yml` and
+`release-backmerge.bash` instead.
 
-6. **Make the repository public** before the first release if the install script is to work for
-   everyone: anonymous `curl` of release assets needs a public repository.
+**Tags**
 
-No secrets are needed: the release uses the workflow's own `GITHUB_TOKEN`.
+7. Settings, Rules, Rulesets: a tag ruleset on `v*` that blocks deletion and updates (a published version
+   must never move). Leave creation allowed: the workflow creates tags with `GITHUB_TOKEN`.
+
+**Repository**
+
+8. Make the repository **public** before the first release if the installer must work for everyone:
+   anonymous `curl` of release assets needs a public repository.
+9. Branch name policy: php-qa-ci's `branchNamePolicy` allows `feature/`, `bugfix/`, `chore/` and `hotfix/`
+   heads. `chore/release` and `chore/back-merge` fit; `release` is only ever a base (and the back-merge head).
 
 ## Install paths
 
@@ -154,20 +255,35 @@ pinned, checksum-verified download rather than a Composer dev dependency, becaus
 be resolved alongside php-qa-ci's current dependency set. Design notes:
 `CLAUDE/Plan/00006-static-binary-packaging/packaging-notes.md`.
 
-## Recovering from a bad release
+Rehearse the release scripts without GitHub by pointing them at a scratch clone with a local bare `origin`
+and a stub `gh`; the pure decisions are covered by `vendor/bin/phpunit --testsuite unit --filter Release`.
 
-- **Workflow failed before `release`:** nothing was published. Fix on `main`, then open a new pull
-  request into `release`. The version does not need to change because no tag was created.
+## Recovering
+
+- **The release pull request looks wrong:** fix `## Unreleased` on `main` (merge a pull request). The next green
+  push rebuilds it. To rebuild now, run the `Release PR` workflow manually.
+- **A release is wrong or unwanted:** close the release pull request. Nothing is published until it merges.
+- **Workflow failed before `release`:** nothing was published and no tag exists. Fix on `main`; the
+  release pull request refreshes. Re-run the failed `Release` run if the cause was transient.
 - **Workflow failed in `release` after the tag was created:** check the Releases page. If a release
   exists with missing assets, delete the release and the tag (`gh release delete vX.Y.Z --cleanup-tag`),
   then re-run the workflow from the `release` branch.
 - **`verify` failed:** the release is live but its install path is broken. Delete it as above and
   re-run, or ship a fix as the next patch version. Prefer the next patch version once users could have
   downloaded the release.
+- **Preflight says `VERSION says X but the newest section of CHANGELOG.md is Y`:** someone edited `VERSION` or a
+  version section by hand. Revert it; only the release pull request writes them.
+- **The back-merge was not opened or conflicts on a file other than `CHANGELOG.md`/`VERSION`:**
+  `git switch main && git merge --no-ff origin/release`, resolve, and open a pull request.
+- **`release-pr.yml` warns "No release branch" or "Back-merge pending":** create the branch, or merge the
+  back-merge pull request.
 
-## Not done yet
+## Known limits
 
-- Homebrew tap (Plan 00006 task 2.4, optional).
-- Windows builds.
-- Build provenance attestation (`actions/attest-build-provenance`) once the repository is public.
-- Verifying the macOS binaries locally: they are only ever built on GitHub's macOS runners.
+- The changelog lane is off on `main` itself (`qaConfig/ChangelogLaneSwitch.php`): there it measures from an
+  `85.N.N` tag that phpxq never creates. It runs on every other branch and on pull requests, which is where a
+  change gets recorded.
+- Pre-release versions (`-rc.1`) are not produced by the flow; `VERSION` must be plain `X.Y.Z`.
+- Homebrew tap (Plan 00006 task 2.4, optional), Windows builds, and build provenance attestation
+  (`actions/attest-build-provenance`, once the repository is public) are not done.
+- The macOS binaries are only ever built on GitHub's macOS runners.

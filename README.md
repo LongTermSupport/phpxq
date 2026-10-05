@@ -290,11 +290,13 @@ deterministic guardrails on agent tool calls; configuration lives in `.claude/ho
 
 ## Releasing
 
-A release is a pull request from `main` into the `release` branch; merging it runs the release workflow,
-which runs the full QA gate and conformance suites, builds and smoke-tests the PHAR and static binaries,
-tags `vX.Y.Z` and publishes the GitHub Release. The version lives in the `VERSION` file. The steps and
-the one-off GitHub settings are in [docs/RELEASING.md](docs/RELEASING.md); the history is in
-[CHANGELOG.md](CHANGELOG.md).
+Releases are cut from the changelog; nobody picks a version or tags by hand. Record every user-visible change
+under `## Unreleased` in [CHANGELOG.md](CHANGELOG.md) (QA enforces it); the headings choose the next
+[SemVer](https://semver.org/) version. When `main` is green and has unreleased entries, a bot opens a release
+pull request into the `release` branch. Merging it runs the release workflow: full QA and conformance, the
+PHAR and static binaries, smoke tests, the tag `vX.Y.Z` and the GitHub Release. A back-merge pull request then
+brings `VERSION` and the changelog on `main` in line. The flow, the version rules and the one-off GitHub
+settings are in [docs/RELEASING.md](docs/RELEASING.md).
 
 ## Licence
 
