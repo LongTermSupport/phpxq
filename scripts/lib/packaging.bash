@@ -54,3 +54,15 @@ release_version() {
     [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]] || die "VERSION '$version' is not a semantic version"
     printf '%s\n' "$version"
 }
+
+# remote_branch_exists <branch>: 0 when origin has the branch, 1 when it has not; any other outcome of
+# `git ls-remote` (network, auth) is a real failure and must not be mistaken for "absent".
+remote_branch_exists() {
+    local status=0
+    git -C "$root" ls-remote --exit-code --heads origin "$1" >/dev/null || status=$?
+    case "$status" in
+        0) return 0 ;;
+        2) return 1 ;;
+        *) die "could not query origin for branch $1 (git ls-remote exit $status)" ;;
+    esac
+}

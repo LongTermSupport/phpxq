@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # Release preflight: decides whether the current commit may be released.
 #
-# Reads VERSION (the single source of truth), validates it as a semantic version, and refuses when the
-# tag vX.Y.Z already exists locally or on the remote. Prints `version=`, `tag=` and `prerelease=` lines
-# (appended to $GITHUB_OUTPUT too when set). Exits non-zero, loudly, on any problem.
+# Reads VERSION (the single source of truth), validates it as a semantic version, requires it to agree
+# with the newest CHANGELOG.md section, and refuses when the tag vX.Y.Z already exists locally or on the
+# remote. Prints `releasable=`, `version=`, `tag=` and `prerelease=` lines (appended to $GITHUB_OUTPUT
+# too when set). A commit whose `## Unreleased` still has entries is not a release commit: it prints
+# `releasable=false` and exits 0 so the workflow skips every later stage. Exits non-zero, loudly, on any
+# other problem.
 #
 # Usage: scripts/release-preflight.bash [--remote NAME]   (default remote: origin)
 set -euo pipefail
@@ -33,6 +36,24 @@ fail_loud() {
 version="$(release_version)" || fail_loud "VERSION is missing or not a semantic version"
 tag="v$version"
 
+# VERSION, the newest CHANGELOG.md section and the tags must agree (scripts/release.php verify): exit 0
+# releasable, 3 this is not a release commit (`## Unreleased` still has entries, as on the first push that
+# creates the branch), anything else a refusal whose reason the command printed.
+verify_status=0
+"$root/scripts/release.bash" verify || verify_status=$?
+case "$verify_status" in
+    0) ;;
+    3)
+        echo "::notice title=Not a release commit::'## Unreleased' still has entries, so nothing is released from this commit. Releases come from the release pull request (docs/RELEASING.md)."
+        echo "releasable=false"
+        if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
+            echo "releasable=false" >>"$GITHUB_OUTPUT"
+        fi
+        exit 0
+        ;;
+    *) fail_loud "VERSION, CHANGELOG.md and the tags disagree (reason above); refusing to release" ;;
+esac
+
 if git -C "$root" rev-parse --verify --quiet "refs/tags/$tag" >/dev/null; then
     fail_loud "tag $tag already exists locally. Bump VERSION before releasing."
 fi
@@ -50,11 +71,13 @@ esac
 prerelease=false
 [[ "$version" == *-* ]] && prerelease=true
 
+echo "releasable=true"
 echo "version=$version"
 echo "tag=$tag"
 echo "prerelease=$prerelease"
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
     {
+        echo "releasable=true"
         echo "version=$version"
         echo "tag=$tag"
         echo "prerelease=$prerelease"
