@@ -28,7 +28,7 @@ final readonly class CompiledJq implements CompiledProgramInterface
         $previous = $this->state->snapshot();
         $this->state->enter($context, $context->globals());
         try {
-            $this->body->run(null, $input, $emit);
+            EvaluationStack::run(fn () => $this->body->run(null, $input, $emit));
         } finally {
             $this->state->enter($previous['context'], $previous['globals']);
         }
