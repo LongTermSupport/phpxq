@@ -25,6 +25,8 @@ final class TextTest extends TestCase
     {
         self::assertSame(0, Text::length(''));
         self::assertSame(1, Text::length('a'));
+        self::assertSame(2, Text::length('ab'));
+        self::assertSame(1, Text::length('é'));
         self::assertSame(3, Text::length('abc'));
         self::assertSame(4, Text::length('aé☆😀'));
     }

@@ -30,6 +30,15 @@ final class PathTrieTest extends TestCase
         self::assertSame(['b', 2], $trie->children['sb']);
     }
 
+    public function testPathsGivenWithKeysAreIndexedAsAList(): void
+    {
+        $trie = PathTrie::build(...['first' => ['a'], 'second' => ['b']]);
+
+        self::assertNotNull($trie);
+        self::assertSame(['a', 0], $trie->children['sa']);
+        self::assertSame(['b', 1], $trie->children['sb']);
+    }
+
     public function testIntegerKeys(): void
     {
         $trie = PathTrie::build([0], [1]);

@@ -53,7 +53,9 @@ final class CompilerTest extends TestCase
         yield 'index on null'                => ['.[0]', 'null', ['null']];
 
         // construction
-        yield 'array of generator'           => ['[.[] | . * 2]', '[1,2,3]', ['[2,4,6]']];
+        yield 'walk with a single filter'    => ['walk(if type == "number" then . + 1 else . end)', '{"a":1,"b":[2,{"c":3}]}', ['{"a":2,"b":[3,{"c":4}]}']];
+        yield 'walk applies bottom up'       => ['walk(if type == "array" then reverse else . end)', '[[1,2],{"a":[3,4]}]', ['[{"a":[4,3]},[2,1]]']];
+        yield 'array of generator'           =>['[.[] | . * 2]', '[1,2,3]', ['[2,4,6]']];
         yield 'empty array'                  => ['[]', 'null', ['[]']];
         yield 'object shorthand'             => ['{a,b}', '{"a":1,"b":2,"c":3}', ['{"a":1,"b":2}']];
         yield 'object variable shorthand'    => ['1 as $x | {$x}', 'null', ['{"x":1}']];
@@ -302,6 +304,7 @@ final class CompilerTest extends TestCase
         yield 'undefined with arity'    => ['map(1; 2)', 'map/2 is not defined at <top-level>, line 1:'];
         yield 'undefined variable'      => ['. as $foo | [$foo, $bar]', '$bar is not defined at <top-level>, line 1:'];
         yield 'break without label'     => ['. as $foo | break $foo', '$*label-foo is not defined at <top-level>, line 1:'];
+        yield 'break at top level'      => ['break $out', '$*label-out is not defined at <top-level>, line 1:'];
         yield 'constant number key'     => ['{(0):1}', 'Cannot use number (0) as object key at <top-level>, line 1:'];
         yield 'constant boolean key'    => ['{(true):1}', 'Cannot use boolean (true) as object key at <top-level>, line 1:'];
         yield 'mixed constant key'      => ['{non_const:., (0):1}', 'Cannot use number (0) as object key at <top-level>, line 1:'];

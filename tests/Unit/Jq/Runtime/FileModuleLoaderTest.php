@@ -129,6 +129,41 @@ final class FileModuleLoaderTest extends TestCase
         self::assertSame(realpath($this->modules . '/a.jq'), $module->path);
     }
 
+    public function testHomeDirectoryIsExpandedInLibraryPaths(): void
+    {
+        $home = getenv('HOME');
+        putenv('HOME=' . $this->modules);
+
+        try {
+            $module = $this->loader('~')->loadLibrary('a', null, null);
+            self::assertSame(realpath($this->modules . \DIRECTORY_SEPARATOR . 'a.jq'), $module->path);
+
+            try {
+                $this->loader('~/b')->loadLibrary('nonexistent', null, null);
+                self::fail('expected the home directory search to fail');
+            } catch (JqCompileException $jqCompileException) {
+                self::assertStringContainsString($this->modules . '/b', $jqCompileException->getMessage());
+                self::assertStringNotContainsString('~/b', $jqCompileException->getMessage());
+            }
+        } finally {
+            putenv(false === $home ? 'HOME' : 'HOME=' . $home);
+        }
+    }
+
+    public function testOriginIsTheProjectBinDirectory(): void
+    {
+        $module = $this->loader('$ORIGIN/../tests/Conformance/Jq/modules')->loadLibrary('a', null, null);
+
+        self::assertSame(realpath($this->modules . \DIRECTORY_SEPARATOR . 'a.jq'), $module->path);
+
+        try {
+            $this->loader('$ORIGIN')->loadLibrary('nonexistent', null, null);
+            self::fail('expected the origin search to fail');
+        } catch (JqCompileException $jqCompileException) {
+            self::assertStringContainsString(\dirname(__DIR__, 4) . '/bin', $jqCompileException->getMessage());
+        }
+    }
+
     private function loader(string ...$libraryPaths): FileModuleLoader
     {
         return new FileModuleLoader(array_values($libraryPaths), new Parser(new Lexer()), new JsonDecoder());

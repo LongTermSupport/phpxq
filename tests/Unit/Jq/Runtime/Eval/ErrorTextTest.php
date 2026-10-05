@@ -37,7 +37,8 @@ final class ErrorTextTest extends TestCase
         yield 'short string'       => ['abc', '"abc"'];
         yield 'long string'        => ['very-long-long-long-long-string', '"very-long-long-long-long..."'];
         yield 'unicode string'     => ['xxxx' . str_repeat('☆', 8), '"xxxx☆☆☆☆☆☆..."'];
-        yield 'fits exactly'       => ['xx' . str_repeat('☆', 8), '"xx☆☆☆☆☆☆☆☆"'];
+        yield 'odd continuation'   => ['xxxx' . str_repeat('♁', 8), '"xxxx♁♁♁♁♁♁..."'];
+        yield 'fits exactly'       =>['xx' . str_repeat('☆', 8), '"xx☆☆☆☆☆☆☆☆"'];
         yield 'long array'         => [range(1, 20), '[1,2,3,4,5,6,7,8,9,10,11,1...'];
         yield 'precise number'     => [new PreciseNumber(1.2345678901234568e29, '123456789012345678901234567890'), '12345678901234567890123456...'];
     }

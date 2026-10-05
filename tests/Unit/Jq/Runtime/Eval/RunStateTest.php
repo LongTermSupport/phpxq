@@ -6,6 +6,7 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval;
 
 use LogicException;
 use LTS\PhpXq\Jq\Runtime\Eval\RunState;
+use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\StubContext;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -21,6 +22,18 @@ final class RunStateTest extends TestCase
         $this->expectException(LogicException::class);
 
         new RunState()->context();
+    }
+
+    public function testReservedGlobalsAreAvailableWithoutDeclaration(): void
+    {
+        $state = new RunState();
+
+        $environment = $state->global('ENV');
+        self::assertInstanceOf(JsonObject::class, $environment);
+        self::assertSame($environment, $state->global('ENV'));
+        self::assertEquals(JsonObject::fromPairs(getenv()), $environment);
+        self::assertSame([], $state->global('__prog_args'));
+        self::assertNull($state->global('undeclared'));
     }
 
     public function testEnterInstallsAndSnapshotRestores(): void

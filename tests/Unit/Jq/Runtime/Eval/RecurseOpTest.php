@@ -8,6 +8,7 @@ use LTS\PhpXq\Jq\Runtime\Eval\RecurseOp;
 use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
+use ReflectionMethod;
 
 /**
  * @internal
@@ -47,6 +48,17 @@ final class RecurseOpTest extends OpTestCase
         $this->expectException(JqException::class);
 
         self::pathOutputs(new RecurseOp(), [5], null);
+    }
+
+    public function testWalkedPathsAreListsEvenWhenTheStartingPathHasKeys(): void
+    {
+        $seen   = [];
+        $method = new ReflectionMethod(RecurseOp::class, 'walkPaths');
+        $method->invokeArgs(null, [[7], static function (?array $path, mixed $value) use (&$seen): void {
+            $seen[] = [$path, $value];
+        }, 'start' => 'p']);
+
+        self::assertSame([[['p'], [7]], [['p', 0], 7]], $seen);
     }
 
     public function testPathModeWithoutAPathOnAScalarEmitsIt(): void
