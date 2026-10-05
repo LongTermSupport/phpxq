@@ -13,6 +13,30 @@ It targets **jq 1.8.2** and **mikefarah/yq v4.54.1**. The goal is equivalence, n
 jq or yq defines a behaviour, phpxq matches it, and the upstream test suites are run against it to prove
 that.
 
+## Quick start
+
+1. **Install** a release binary (no PHP needed; see [Install](#install) for the other ways):
+
+   ```bash
+   curl -fsSL https://github.com/LongTermSupport/phpxq/releases/latest/download/install.sh | sh
+   ```
+
+2. **Query JSON** with the jq language:
+
+   ```bash
+   curl -s https://api.github.com/repos/LongTermSupport/phpxq | phpxq jq -r '.full_name, .default_branch'
+   ```
+
+3. **Query and edit YAML** with the yq language:
+
+   ```bash
+   phpxq yq '.services | keys' docker-compose.yml
+   phpxq yq -i '.image.tag = "v2"' values.yaml
+   ```
+
+If you already know jq or yq you already know phpxq: the filters, flags, exit codes and error messages are
+the same ([usage](#usage), [differences](#differences-from-upstream-and-known-gaps)).
+
 ## Goals
 
 - **Equivalence, not invention.** No new functionality, no new query language.
@@ -110,6 +134,25 @@ yq -o=csv '.[] | [.name, .age]' people.yaml
 Formats: YAML, JSON, XML, CSV, TSV, properties, TOML, HCL, INI, Lua, base64 and URI (as in yq 4.54.1;
 `yq --help` lists the flags).
 
+### Common tasks
+
+| I want to...                         | Command                                                                |
+| ------------------------------------ | ---------------------------------------------------------------------- |
+| pretty-print JSON                    | `phpxq jq . file.json`                                                 |
+| compact JSON onto one line           | `phpxq jq -c . file.json`                                              |
+| pick a field as plain text           | `phpxq jq -r '.user.name' file.json`                                   |
+| filter an array                      | `phpxq jq '[.[] \| select(.age > 30)]' file.json`                      |
+| use a shell variable in a filter     | `phpxq jq --arg id "$ID" '.[] \| select(.id == $id)' file.json`        |
+| fail a script on a false/null result | `phpxq jq -e '.ready' file.json`                                       |
+| read a value out of YAML             | `phpxq yq '.spec.template.spec.containers[0].image' deploy.yaml`       |
+| change a value, keep the comments    | `phpxq yq -i '.spec.replicas = 3' deploy.yaml`                         |
+| merge two YAML files                 | `phpxq yq eval-all '. as $item ireduce ({}; . * $item)' a.yaml b.yaml` |
+| convert YAML to JSON and back        | `phpxq yq -o=json . a.yaml` / `phpxq yq -p=json -o=yaml . a.json`      |
+| split a multi-document YAML file     | `phpxq yq -s '.metadata.name' manifests.yaml`                          |
+
+Everything reads standard input when no file is given, so it works in pipelines
+(`kubectl get pods -o json | phpxq jq -r '.items[].metadata.name'`).
+
 ### Version
 
 ```console
@@ -125,13 +168,13 @@ yq (https://github.com/mikefarah/yq/) version v4.54.1
 
 ## Differences from upstream and known gaps
 
-phpxq passes every upstream test it can: jq 878 of 879 cases and yq 564 of 574, and all of the
+phpxq passes every upstream test it can: jq 878 of 879 cases and yq 565 of 574, and all of the
 upstream shell suites. The remainder are deliberate, justified, and enforced (a gap that starts passing
 or an unlisted failure breaks the build):
 
 - [jq known gaps](tests/Conformance/Jq/known-gaps.txt): one case, an artefact of the upstream test
   runner (it has no `input` callback), not of the CLI.
-- [yq known gaps](tests/Conformance/Yq/known-gaps.txt): ten documentation examples. Three depend on a
+- [yq known gaps](tests/Conformance/Yq/known-gaps.txt): nine documentation examples. Three depend on a
   frozen clock, one on Go's seeded `math/rand`, the `system` operator is intentionally unsupported
   (it spawns processes), and the rest are an upstream header-preprocessing quirk and two damaged upstream
   fixtures.
@@ -139,8 +182,51 @@ or an unlisted failure breaks the build):
 Other differences you may notice:
 
 - `phpxq --version` is an addition; `jq --version` and `yq --version` print exactly what upstream prints.
-- Performance characteristics differ from the native tools: phpxq is a PHP program. See the benchmarks
-  below.
+- phpxq is a PHP program, so it starts slower than the native tools; see [Performance](#performance).
+
+## Performance
+
+phpxq is not a replacement for a native binary when startup time matters (a shell loop calling jq
+thousands of times). It is competitive on larger inputs, where startup is a rounding error.
+
+**What it costs to start.** PHP itself takes 45 to 56 ms of CPU just to launch, so a trivial filter is
+about 70 ms from a checkout or the PHAR and about 30 ms from the static binary, against about 40 ms
+(jq 1.6) for the native jq.
+
+**jq throughput** (CPU milliseconds, lower is better; minimum of 3 runs; reference is jq 1.6, the
+version available on the benchmark host):
+
+| workload                    | phpxq jq | jq 1.6 |
+| --------------------------- | -------: | -----: |
+| startup                     |       71 |     40 |
+| identity on a medium file   |      133 |    134 |
+| `group_by` on a medium file |      136 |    119 |
+| identity on a large file    |    1,436 |  1,926 |
+| aggregate on a large file   |      741 |  1,926 |
+| `group_by` on a large file  |    1,455 |  1,851 |
+
+**yq throughput** (CPU milliseconds; minimum of 3 runs; production-like build):
+
+| workload                    | phpxq yq |
+| --------------------------- | -------: |
+| startup                     |       56 |
+| identity on a medium file   |      333 |
+| `select` on a medium file   |      273 |
+| `group_by` on a medium file |      342 |
+| YAML to JSON, medium file   |      317 |
+| identity on a large file    |    6,417 |
+| `select` on a large file    |    4,852 |
+
+On medium YAML files a wall-clock comparison against mikefarah yq v4.54.1 on the same (busy) host put
+phpxq between 0.64x and 0.96x of its time; startup and many-small-files workloads are 2 to 5x slower.
+
+How to read these numbers: they come from a shared, loaded machine, so only CPU time (user plus system,
+minimum of several runs) is reported, and differences under about 5 percent are noise. "Medium" is about
+640 KB and "large" is tens of MB of generated data. Absolute numbers depend on your hardware; run the
+benchmark suite below to measure your own. The full results, what each optimisation bought, and the ones
+that were tried and rejected are in
+[CLAUDE/Plan/Completed/00007-performance-optimisation-round](CLAUDE/Plan/Completed/00007-performance-optimisation-round/)
+(`results.md`, `results-yq.md`, `results-binary.md`, `hot-spots.md`).
 
 ## Development
 
@@ -186,6 +272,15 @@ scripts/bench/bench.bash run --compare benchmarks/baselines/NAME.json
 Inputs are generated deterministically and never committed. Results record the PHP, OPcache/JIT, CPU and
 kernel configuration; only compare results taken on the same machine. Methodology:
 `CLAUDE/Plan/00005-benchmarking-suite/BENCHMARKS.md`.
+
+### Defence Before Fix
+
+Bugs found in this project are handled with the
+[Defence Before Fix](https://defence-before-fix.github.io/) method: a defect is attributed to its class,
+a static-analysis rule that catches the whole class is built and proven to fire, every other instance is
+found and fixed, and only then is the original bug fixed with a regression test. The rules, what each one
+catches and how to run it are in [docs/defence-before-fix.md](docs/defence-before-fix.md) (`vendor/bin/rules`
+lists every active defence, `vendor/bin/phpstan-rule <identifier> <path>` proves one on one path).
 
 ### Claude Code hooks
 
