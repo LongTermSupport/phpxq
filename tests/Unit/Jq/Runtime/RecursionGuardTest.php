@@ -6,6 +6,7 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Runtime;
 
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\ProgramHarness;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Large;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -14,6 +15,7 @@ use PHPUnit\Framework\TestCase;
  *
  * @internal
  */
+#[Large]
 final class RecursionGuardTest extends TestCase
 {
     private const string TOO_DEEP = 'Evaluation too deep';

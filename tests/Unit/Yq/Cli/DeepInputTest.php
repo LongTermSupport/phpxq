@@ -8,6 +8,7 @@ use Generator;
 use LTS\PhpXq\Tests\Support\Yq\YqProcess;
 use LTS\PhpXq\Yq\Format\FormatEnum;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Large;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -16,6 +17,7 @@ use PHPUnit\Framework\TestCase;
  *
  * @internal
  */
+#[Large]
 final class DeepInputTest extends TestCase
 {
     /** Far beyond any limit, so that only a guard can stop the recursion. */
