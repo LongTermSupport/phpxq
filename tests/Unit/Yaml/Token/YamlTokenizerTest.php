@@ -91,6 +91,24 @@ final class YamlTokenizerTest extends TestCase
         self::assertSame([1, 1], [$comments[0]->line, $comments[0]->column]);
     }
 
+    public function testCommentsKeepTheirPlaceAmongTokensFarIntoTheText(): void
+    {
+        self::assertSame(
+            ['StreamStart', 'BlockMappingStart', 'Key', 'Scalar:a', 'Value', 'Scalar:1', 'Key', 'Scalar:b', 'Value', 'Scalar:2', 'Key', 'Scalar:c', 'Value', 'Scalar:3', 'Comment:#', 'Key', 'Scalar:d', 'Value', 'Scalar:4', 'BlockEnd', 'StreamEnd'],
+            $this->summary("a: 1\nb: 2\nc: 3\n#\nd: 4\n"),
+        );
+    }
+
+    public function testCommentColumnsAreOneBased(): void
+    {
+        $comments = array_values(array_filter($this->tokenize("# head\na: 1 # line\n# foot\n\nb: 2\n"), static fn (Token $t): bool => TokenTypeEnum::Comment === $t->type));
+
+        self::assertSame(
+            [['# head', 1, 1], ['# line', 2, 6], ['# foot', 3, 1]],
+            array_map(static fn (Token $t): array => [$t->value, $t->line, $t->column], $comments),
+        );
+    }
+
     public function testSyntaxErrorsPropagate(): void
     {
         $this->expectException(YamlSyntaxException::class);
