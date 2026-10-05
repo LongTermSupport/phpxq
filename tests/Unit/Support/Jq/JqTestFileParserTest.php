@@ -6,13 +6,13 @@ namespace LTS\PhpXq\Tests\Unit\Support\Jq;
 
 use InvalidArgumentException;
 use LTS\PhpXq\Tests\Support\Jq\JqTestFileParser;
-use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  */
-#[CoversClass(JqTestFileParser::class)]
+#[CoversNothing]
 final class JqTestFileParserTest extends TestCase
 {
     public function testParsesMultiOutputCase(): void

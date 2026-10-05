@@ -32,8 +32,8 @@ final class CyclicAliasCallsTest extends TestCase
         try {
             YqHarness::run($expression, self::CYCLE);
             self::fail('A cyclic alias must not evaluate to the end.');
-        } catch (EvaluationException $exception) {
-            self::assertStringContainsString('exceeded max depth', $exception->getMessage());
+        } catch (EvaluationException $evaluationException) {
+            self::assertStringContainsString('exceeded max depth', $evaluationException->getMessage());
         }
     }
 

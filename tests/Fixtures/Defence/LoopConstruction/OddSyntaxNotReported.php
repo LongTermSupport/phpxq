@@ -20,7 +20,7 @@ abstract class OddSyntaxNotReported implements OddSyntaxBuilder
     abstract public function nothing(): void;
 
     /**
-     * @param list<int>   $numbers
+     * @param list<int>    $numbers
      * @param class-string $class
      */
     public function dynamicAndSpread(array $numbers, string $class, string $name, array $arguments): void
@@ -29,11 +29,11 @@ abstract class OddSyntaxNotReported implements OddSyntaxBuilder
             new $class();
             new JsonDecoder(...[$number, ...$arguments]);
             new JsonDecoder(flags: $number);
-            new class() {
+            new class {
             };
-            $this->$name();
+            $this->{$name}();
             $class::build();
-            $this?->build();
+            $this->build();
             $callable = $this->build(...);
         }
     }

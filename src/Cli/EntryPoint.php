@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Cli;
 
-
 /**
  * Process-level dispatch shared by `bin/phpxq`, the PHAR and the static binary.
  *
@@ -33,7 +32,7 @@ final readonly class EntryPoint
     public function run(string $argv0, mixed $stdin, mixed $stdout, mixed $stderr, string ...$args): int
     {
         $tool = ToolEnum::fromProgramName($argv0);
-        if (null !== $tool) {
+        if ($tool instanceof ToolEnum) {
             return $this->controller->run($stdin, $stdout, $stderr, $tool->value, ...$args);
         }
 

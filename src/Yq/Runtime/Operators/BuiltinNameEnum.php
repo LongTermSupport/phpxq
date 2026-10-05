@@ -11,6 +11,16 @@ namespace LTS\PhpXq\Yq\Runtime\Operators;
  */
 enum BuiltinNameEnum: string
 {
+    /**
+     * The spellings of the given cases, in order: the shape of a `CallOperatorInterface::names()` table.
+     *
+     * @return list<string>
+     */
+    public static function values(self ...$cases): array
+    {
+        return array_values(array_map(static fn (self $case): string => $case->value, $cases));
+    }
+
     case Length = 'length';
 
     case Keys = 'keys';
@@ -218,14 +228,4 @@ enum BuiltinNameEnum: string
     case Delpaths = 'delpaths';
 
     case Setpath = 'setpath';
-
-    /**
-     * The spellings of the given cases, in order: the shape of a `CallOperatorInterface::names()` table.
-     *
-     * @return list<string>
-     */
-    public static function values(self ...$cases): array
-    {
-        return array_values(array_map(static fn (self $case): string => $case->value, $cases));
-    }
 }

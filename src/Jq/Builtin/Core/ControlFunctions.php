@@ -318,7 +318,6 @@ final readonly class ControlFunctions
     /**
      * Whether some output of `generator | condition` is truthy ($truthy) or falsy (not $truthy), stopping at the
      * first one that is.
-     *
      */
     private static function quantify(mixed $input, bool $truthy, FilterInterface ...$args): bool
     {

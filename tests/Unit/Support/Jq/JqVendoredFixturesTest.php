@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Support\Jq;
 
 use LTS\PhpXq\Tests\Support\Jq\JqTestFileParser;
-use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  */
-#[CoversClass(JqTestFileParser::class)]
+#[CoversNothing]
 final class JqVendoredFixturesTest extends TestCase
 {
     #[DataProvider('provideVendoredFiles')]

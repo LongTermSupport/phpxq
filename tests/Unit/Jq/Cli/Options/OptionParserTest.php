@@ -82,8 +82,20 @@ final class OptionParserTest extends TestCase
     public function testLongFlags(): void
     {
         $options = $this->parse(
-            '--null-input', '--raw-input', '--slurp', '--raw-output', '--ascii-output', '--sort-keys',
-            '--exit-status', '--seq', '--unbuffered', '--binary', '--from-file', '--debug-dump-disasm', '--debug-trace=all', '.',
+            '--null-input',
+            '--raw-input',
+            '--slurp',
+            '--raw-output',
+            '--ascii-output',
+            '--sort-keys',
+            '--exit-status',
+            '--seq',
+            '--unbuffered',
+            '--binary',
+            '--from-file',
+            '--debug-dump-disasm',
+            '--debug-trace=all',
+            '.',
         );
 
         self::assertTrue($options->nullInput);

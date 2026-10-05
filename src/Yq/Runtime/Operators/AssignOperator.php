@@ -60,7 +60,7 @@ final readonly class AssignOperator implements BinaryOperatorInterface
 
     public function evaluate(Binary $expression, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
-        $setter = self::propertySetter($expression->left);
+        $setter = $this->propertySetter($expression->left);
         $write  = $context->withDontAutoCreate(false);
         if (null !== $setter) {
             [$target, $property] = $setter;
@@ -78,7 +78,7 @@ final readonly class AssignOperator implements BinaryOperatorInterface
                 $source = $first instanceof Candidate ? $first->node : NodeOps::null();
                 $adopt  = 1 === \count($targets) && (!$first instanceof Candidate || !$first->parent instanceof Candidate);
                 foreach ($targets as $target) {
-                    self::replace($target, $source, 'c' === $expression->modifiers, $adopt);
+                    $this->replace($target, $source, 'c' === $expression->modifiers, $adopt);
                 }
 
                 break;
@@ -87,7 +87,7 @@ final readonly class AssignOperator implements BinaryOperatorInterface
                 foreach ($targets as $target) {
                     $values = $evaluator->evaluate($expression->right, $read->withMatches($target)->withReplacedNode(Cands::node($target)));
                     if ([] !== $values) {
-                        self::replace($target, $values[0]->node, 'c' === $expression->modifiers, !$values[0]->parent instanceof Candidate);
+                        $this->replace($target, $values[0]->node, 'c' === $expression->modifiers, !$values[0]->parent instanceof Candidate);
                     }
                 }
 
@@ -99,7 +99,7 @@ final readonly class AssignOperator implements BinaryOperatorInterface
                 foreach ($targets as $target) {
                     $result = ArithmeticOperator::apply($expression->operator, $target->node, $value?->node, $expression->modifiers, $layout, Cands::node($target));
                     if ($result instanceof Node) {
-                        self::replace($target, $result, str_contains($expression->modifiers, 'c'), true);
+                        $this->replace($target, $result, str_contains($expression->modifiers, 'c'), true);
                     }
                 }
 
@@ -109,7 +109,7 @@ final readonly class AssignOperator implements BinaryOperatorInterface
         return $context->matches;
     }
 
-    private static function replace(Candidate $target, Node $source, bool $clobberTags, bool $adopt): void
+    private function replace(Candidate $target, Node $source, bool $clobberTags, bool $adopt): void
     {
         Detached::attach($target);
         NodeOps::updateFrom(Cands::node($target), $source, $clobberTags, $adopt);
@@ -118,7 +118,7 @@ final readonly class AssignOperator implements BinaryOperatorInterface
     /**
      * @return array{ExpressionNodeInterface, SettablePropertyEnum}|null the property target expression and the property to set
      */
-    private static function propertySetter(ExpressionNodeInterface $left): ?array
+    private function propertySetter(ExpressionNodeInterface $left): ?array
     {
         if ($left instanceof Binary && BinaryOperatorEnum::Pipe === $left->operator && $left->right instanceof Call && [] === $left->right->arguments && isset(self::PROPERTY_SETTERS[$left->right->name])) {
             return [$left->left, self::PROPERTY_SETTERS[$left->right->name]];
@@ -153,18 +153,18 @@ final readonly class AssignOperator implements BinaryOperatorInterface
 
             $value = NodeKindEnum::Scalar === NodeOps::deref($source)->kind ? NodeOps::deref($source)->value : '';
             Detached::attach($target);
-            self::apply($target, $property, $value);
+            $this->apply($target, $property, $value);
         }
 
         return $context->matches;
     }
 
-    private static function apply(Candidate $target, SettablePropertyEnum $property, string $value): void
+    private function apply(Candidate $target, SettablePropertyEnum $property, string $value): void
     {
         $node = $target->node;
         switch ($property) {
             case SettablePropertyEnum::Style:
-                self::setStyle($node->root(), $value);
+                $this->setStyle($node->root(), $value);
 
                 return;
 
@@ -179,7 +179,7 @@ final readonly class AssignOperator implements BinaryOperatorInterface
                 return;
 
             case SettablePropertyEnum::Alias:
-                self::setAlias($target, $value);
+                $this->setAlias($target, $value);
 
                 return;
 
@@ -213,7 +213,7 @@ final readonly class AssignOperator implements BinaryOperatorInterface
         }
     }
 
-    private static function setStyle(Node $node, string $style): void
+    private function setStyle(Node $node, string $style): void
     {
         $name              = StyleNameEnum::tryFrom($style);
         $node->tagExplicit = StyleNameEnum::Tagged === $name;
@@ -226,7 +226,7 @@ final readonly class AssignOperator implements BinaryOperatorInterface
         $node->style = $new;
     }
 
-    private static function setAlias(Candidate $target, string $name): void
+    private function setAlias(Candidate $target, string $name): void
     {
         if ('' === $name) {
             return;

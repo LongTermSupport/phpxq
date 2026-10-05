@@ -124,7 +124,7 @@ final class YqConformanceSuiteTest extends TestCase
 
             public function run(mixed $stdin, mixed $stdout, mixed $stderr, string ...$args): int
             {
-                return ($this->handler)(array_values($args),(string)stream_get_contents($stdin), $stdout, $stderr);
+                return ($this->handler)(array_values($args), (string)stream_get_contents($stdin), $stdout, $stderr);
             }
         };
     }

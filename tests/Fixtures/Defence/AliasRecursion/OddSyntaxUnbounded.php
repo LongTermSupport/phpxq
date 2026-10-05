@@ -50,7 +50,7 @@ final class OddSyntaxUnbounded
         $node  = NodeOps::deref($node);
         $total = 0;
         foreach ($node->content as $child) {
-            $total += static::staticCall($child);
+            $total += self::staticCall($child);
         }
 
         return $total;

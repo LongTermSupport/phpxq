@@ -22,67 +22,14 @@ final readonly class EnvSubst
      */
     public static function substitute(string $text, bool $noUnset = false, bool $noEmpty = false): string
     {
-        $out = '';
-        $n   = \strlen($text);
-        $i   = 0;
-        while ($i < $n) {
-            $c = $text[$i];
-            if ('$' !== $c) {
-                $out .= $c;
-                ++$i;
-
-                continue;
-            }
-
-            $next = substr($text, $i + 1, 1);
-            if ('{' === $next) {
-                $end = self::closingBrace($text, $i + 2);
-                if (null === $end) {
-                    $out .= $c;
-                    ++$i;
-
-                    continue;
-                }
-
-                $out .= self::braced(substr($text, $i + 2, $end - $i - 2), $noUnset, $noEmpty);
-                $i = $end + 1;
-
-                continue;
-            }
-
-            if ('_' === $next || ctype_alpha($next)) {
-                $j = $i + 1;
-                while ($j < $n && (ctype_alnum($text[$j]) || '_' === $text[$j])) {
-                    ++$j;
-                }
-
-                $name = substr($text, $i + 1, $j - $i - 1);
-                $out .= self::value($name, $noUnset, $noEmpty);
-                $i = $j;
-
-                continue;
-            }
-
-            $out .= $c;
-            ++$i;
-        }
-
-        return $out;
-    }
-
-    private static function closingBrace(string $text, int $from): ?int
-    {
-        $depth = 1;
-        $n     = \strlen($text);
-        for ($i = $from; $i < $n; ++$i) {
-            if ('{' === $text[$i]) {
-                ++$depth;
-            } elseif ('}' === $text[$i] && 0 === --$depth) {
-                return $i;
-            }
-        }
-
-        return null;
+        return DollarTemplate::expand(
+            $text,
+            static fn (string $body): string => self::braced($body, $noUnset, $noEmpty),
+            static fn (string $name): string => self::value($name, $noUnset, $noEmpty),
+            true,
+            false,
+            false,
+        );
     }
 
     private static function braced(string $body, bool $noUnset, bool $noEmpty): string

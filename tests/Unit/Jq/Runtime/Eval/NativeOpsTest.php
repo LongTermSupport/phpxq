@@ -63,7 +63,7 @@ final class NativeOpsTest extends OpTestCase
 
     public function testStreamNativeReceivesBoundFilters(): void
     {
-        $seen = [];
+        $seen     = [];
         $callback = static function (mixed $input, Closure $emit, FilterInterface ...$filters) use (&$seen): void {
             $filters[0]->run($input, static function (mixed $value) use ($emit, &$seen): void {
                 $seen[] = $value;

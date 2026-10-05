@@ -29,20 +29,18 @@ final readonly class ForeachOp implements OpInterface
             $state   = $initial;
             $update  = $this->update;
             $extract = $this->extract;
-            $this->source->run($env, $input, function (mixed $item) use (&$state, $update, $extract, $env, $emit): void {
-                $this->binder->bind($env, $item, static function (?Env $bound) use (&$state, $update, $extract, $emit): void {
-                    $current = $state;
-                    $state   = null;
-                    $update->run($bound, $current, static function (mixed $value) use (&$state, $extract, $bound, $emit): void {
-                        $state = $value;
-                        if (!$extract instanceof OpInterface) {
-                            $emit($value);
+            SourceBindings::each($this->source, $this->binder, $env, $input, static function (?Env $bound) use (&$state, $update, $extract, $emit): void {
+                $current = $state;
+                $state   = null;
+                $update->run($bound, $current, static function (mixed $value) use (&$state, $extract, $bound, $emit): void {
+                    $state = $value;
+                    if (!$extract instanceof OpInterface) {
+                        $emit($value);
 
-                            return;
-                        }
+                        return;
+                    }
 
-                        $extract->run($bound, $value, $emit);
-                    });
+                    $extract->run($bound, $value, $emit);
                 });
             });
         });
@@ -55,23 +53,21 @@ final readonly class ForeachOp implements OpInterface
             $state     = $initial;
             $update    = $this->update;
             $extract   = $this->extract;
-            $this->source->run($env, $input, function (mixed $item) use (&$statePath, &$state, $update, $extract, $env, $emit): void {
-                $this->binder->bind($env, $item, static function (?Env $bound) use (&$statePath, &$state, $update, $extract, $emit): void {
-                    $currentPath = $statePath;
-                    $current     = $state;
-                    $statePath   = null;
-                    $state       = null;
-                    $update->paths($bound, $currentPath, $current, static function (?array $valuePath, mixed $value) use (&$statePath, &$state, $extract, $bound, $emit): void {
-                        $statePath = $valuePath;
-                        $state     = $value;
-                        if (!$extract instanceof OpInterface) {
-                            $emit($valuePath, $value);
+            SourceBindings::each($this->source, $this->binder, $env, $input, static function (?Env $bound) use (&$statePath, &$state, $update, $extract, $emit): void {
+                $currentPath = $statePath;
+                $current     = $state;
+                $statePath   = null;
+                $state       = null;
+                $update->paths($bound, $currentPath, $current, static function (?array $valuePath, mixed $value) use (&$statePath, &$state, $extract, $bound, $emit): void {
+                    $statePath = $valuePath;
+                    $state     = $value;
+                    if (!$extract instanceof OpInterface) {
+                        $emit($valuePath, $value);
 
-                            return;
-                        }
+                        return;
+                    }
 
-                        $extract->paths($bound, $valuePath, $value, $emit);
-                    });
+                    $extract->paths($bound, $valuePath, $value, $emit);
                 });
             });
         });

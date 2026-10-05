@@ -6,8 +6,8 @@ namespace LTS\PhpXq\Tests\Unit\Json\Codec;
 
 use Generator;
 use LTS\PhpXq\Json\JsonDecoder;
-use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Json\PreciseNumber;
+use LTS\PhpXq\Tests\Support\JsonValueDescriber;
 use LTS\PhpXq\Tests\Support\SeededRandom;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
@@ -39,11 +39,11 @@ final class DecoderEquivalenceTest extends TestCase
         $decoder = new JsonDecoder();
         for ($i = 0; $i < 1500; ++$i) {
             $text = self::randomValue($random, 0);
-            $fast = self::describe($decoder->decodeOne($text));
-            $slow = self::scanned($decoder, $text);
+            $fast = $this->describe($decoder->decodeOne($text));
+            $slow = $this->scanned($decoder, $text);
 
             self::assertCount(1, $slow, $text);
-            self::assertSame($fast, self::describe($slow[0]), $text);
+            self::assertSame($fast, $this->describe($slow[0]), $text);
         }
     }
 
@@ -61,8 +61,8 @@ final class DecoderEquivalenceTest extends TestCase
             $text = implode(0 === $i % 3 ? "\r\n" : "\n", $lines);
             $text .= 0 === $i % 2 ? "\n" : '';
 
-            $fast = array_map(self::describe(...), iterator_to_array($decoder->decodeAll($text), false));
-            $slow = array_map(self::describe(...), self::scanned($decoder, $text));
+            $fast = array_map($this->describe(...), iterator_to_array($decoder->decodeAll($text), false));
+            $slow = array_map($this->describe(...), $this->scanned($decoder, $text));
 
             self::assertCount($count, $fast, $text);
             self::assertSame($fast, $slow, $text);
@@ -74,7 +74,7 @@ final class DecoderEquivalenceTest extends TestCase
      *
      * @return list<mixed>
      */
-    private static function scanned(JsonDecoder $decoder, string $text): array
+    private function scanned(JsonDecoder $decoder, string $text): array
     {
         $method = new ReflectionMethod(JsonDecoder::class, 'scan');
         $values = $method->invoke($decoder, $text, false, 0);
@@ -122,43 +122,31 @@ final class DecoderEquivalenceTest extends TestCase
         return '{' . implode(',', $items) . '}';
     }
 
-    private static function describe(mixed $value): string
+    private function describe(mixed $value): string
     {
-        if (null === $value || \is_bool($value)) {
-            return json_encode($value, \JSON_THROW_ON_ERROR);
-        }
+        return new JsonValueDescriber(
+            static function (mixed $scalar): string {
+                if (null === $scalar || \is_bool($scalar)) {
+                    return json_encode($scalar, \JSON_THROW_ON_ERROR);
+                }
 
-        if (\is_int($value)) {
-            return 'i' . $value;
-        }
+                if (\is_int($scalar)) {
+                    return 'i' . $scalar;
+                }
 
-        if (\is_float($value)) {
-            return 'f' . var_export($value, true);
-        }
+                if (\is_float($scalar)) {
+                    return 'f' . var_export($scalar, true);
+                }
 
-        if ($value instanceof PreciseNumber) {
-            return 'p' . $value->literal;
-        }
+                if ($scalar instanceof PreciseNumber) {
+                    return 'p' . $scalar->literal;
+                }
 
-        if (\is_string($value)) {
-            return 's' . bin2hex($value);
-        }
+                self::assertIsString($scalar);
 
-        if (\is_array($value)) {
-            $items = [];
-            foreach ($value as $item) {
-                $items[] = self::describe($item);
-            }
-
-            return '[' . implode(',', $items) . ']';
-        }
-
-        self::assertInstanceOf(JsonObject::class, $value);
-        $parts = [];
-        foreach ($value->entries() as $key => $member) {
-            $parts[] = bin2hex($key) . '=' . self::describe($member);
-        }
-
-        return '{' . implode(',', $parts) . '}';
+                return 's' . bin2hex($scalar);
+            },
+            static fn (string $key, string $member): string => bin2hex($key) . '=' . $member,
+        )->describe($value);
     }
 }

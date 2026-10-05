@@ -234,7 +234,7 @@ final readonly class JsonDecoder implements JsonDecoderInterface
         }
 
         if (\is_array($value) || $value instanceof stdClass) {
-            return self::convert($value, ...$numbers);
+            return $this->convert($value, ...$numbers);
         }
 
         if (\is_string($value) && '' !== $value && "\0" === $value[0]) {
@@ -279,7 +279,7 @@ final readonly class JsonDecoder implements JsonDecoderInterface
      *
      * The numbers are captured once by the recursive walk, so nesting does not re-spread them.
      */
-    private static function convert(mixed $value, int|float|PreciseNumber ...$numbers): mixed
+    private function convert(mixed $value, int|float|PreciseNumber ...$numbers): mixed
     {
         $walk = static function (mixed $value) use ($numbers, &$walk): mixed {
             if (\is_array($value)) {

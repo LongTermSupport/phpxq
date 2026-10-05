@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Jq\Builtin\Date;
 
-
 /**
  * The local time zone for `localtime`, `strflocaltime` and `%s` parsing, resolved from the TZ environment
  * variable on every call so a changed TZ is honoured. Understood: tz database names (`Europe/Paris`, with or

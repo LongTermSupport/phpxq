@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Fixtures\ProductionOnly\Src;
+namespace LTS\PhpXq\Tests\Fixtures\Defence\ProductionOnly\src;
 
 final class RepeatsLiteral
 {

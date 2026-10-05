@@ -552,8 +552,6 @@ final class StreamParser
     /**
      * The node after a block indicator, or an empty scalar placed at the indicator's end when the next
      * token is one of $stops.
-     *
-     * @param int ...$stops
      */
     private function nodeOrEmpty(ScanToken $mark, bool $mapping, int ...$stops): Node
     {

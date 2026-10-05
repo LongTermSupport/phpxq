@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Jq\Builtin\Core;
 
 use Closure;
-use LTS\PhpXq\Jq\Runtime\FilterInterface;
 use LTS\PhpXq\Jq\Builtin\Core\PathStreamFunction;
+use LTS\PhpXq\Jq\Runtime\FilterInterface;
 use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Tests\Unit\Jq\Builtin\Core\Support\FakeContext;
 use PHPUnit\Framework\TestCase;

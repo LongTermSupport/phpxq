@@ -462,7 +462,7 @@ final readonly class CollectionFunctions
             }
 
             $itemKind = SimpleKindEnum::of($item);
-            if (SimpleKindEnum::Other === $itemKind || (null !== $kind && $kind !== $itemKind)) {
+            if (SimpleKindEnum::Other === $itemKind || ($kind instanceof SimpleKindEnum && $kind !== $itemKind)) {
                 return null;
             }
 

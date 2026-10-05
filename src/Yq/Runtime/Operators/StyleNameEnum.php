@@ -11,18 +11,6 @@ use LTS\PhpXq\Yaml\NodeStyleEnum;
  */
 enum StyleNameEnum: string
 {
-    case Tagged = 'tagged';
-
-    case Double = 'double';
-
-    case Single = 'single';
-
-    case Literal = 'literal';
-
-    case Folded = 'folded';
-
-    case Flow = 'flow';
-
     /**
      * The name of a node style, or null for the default style (which has none unless the tag is explicit).
      */
@@ -49,4 +37,16 @@ enum StyleNameEnum: string
             self::Tagged  => NodeStyleEnum::Default,
         };
     }
+
+    case Tagged = 'tagged';
+
+    case Double = 'double';
+
+    case Single = 'single';
+
+    case Literal = 'literal';
+
+    case Folded = 'folded';
+
+    case Flow = 'flow';
 }

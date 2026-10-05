@@ -171,58 +171,9 @@ final class GoRegex
      */
     private static function expand(string $template, array $groups): string
     {
-        $out = '';
-        $n   = \strlen($template);
-        $i   = 0;
-        while ($i < $n) {
-            $c = $template[$i];
-            if ('$' !== $c) {
-                $out .= $c;
-                ++$i;
+        $resolve = static fn (string $name): string => self::group($groups, $name);
 
-                continue;
-            }
-
-            if ('$' === substr($template, $i + 1, 1)) {
-                $out .= '$';
-                $i += 2;
-
-                continue;
-            }
-
-            if ('{' === substr($template, $i + 1, 1)) {
-                $end = strpos($template, '}', $i + 2);
-                if (false === $end) {
-                    $out .= $c;
-                    ++$i;
-
-                    continue;
-                }
-
-                $name = substr($template, $i + 2, $end - $i - 2);
-                $out .= self::group($groups, $name);
-                $i = $end + 1;
-
-                continue;
-            }
-
-            $j = $i + 1;
-            while ($j < $n && (ctype_alnum($template[$j]) || '_' === $template[$j])) {
-                ++$j;
-            }
-
-            if ($j === $i + 1) {
-                $out .= $c;
-                ++$i;
-
-                continue;
-            }
-
-            $out .= self::group($groups, substr($template, $i + 1, $j - $i - 1));
-            $i = $j;
-        }
-
-        return $out;
+        return DollarTemplate::expand($template, $resolve, $resolve, false, true, true);
     }
 
     /**

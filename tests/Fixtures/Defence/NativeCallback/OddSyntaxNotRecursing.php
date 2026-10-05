@@ -45,7 +45,7 @@ abstract class OddSyntaxNotRecursing implements OddSyntaxContract
         $callable = array_map([$this, $name], $items);
         $static   = array_map($class::run(...), $items);
         $helper   = array_map($this->helper(...), $items);
-        $nullsafe = array_map(fn (?object $item): mixed => $item?->value, $items);
+        $nullsafe = array_map(static fn (?object $item): mixed => $item?->value, $items);
 
         return [$mapper, $dynamic, $spread, $callable, $static, $helper, $nullsafe, ...$this->recursiveButNotInACallback($items, $name, $class)];
     }

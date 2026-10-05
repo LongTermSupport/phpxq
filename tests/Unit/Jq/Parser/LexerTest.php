@@ -131,7 +131,7 @@ final class LexerTest extends TestCase
 
     public function testLexerIsReusable(): void
     {
-        $lexer  = new Lexer();
+        $lexer   = new Lexer();
         $failure = null;
         try {
             $lexer->tokenize('"\(1');

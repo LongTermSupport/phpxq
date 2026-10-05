@@ -72,7 +72,7 @@ final class ComparesOneNameOrNoNames
 
     public function otherComparisonsAreNotDiscriminators(string $kind): bool
     {
-        return 'head' < $kind || 'foot' <=> $kind || 'line' . $kind === 'x' || 'head' === $kind . 'x' || 'foot' === $kind . 'y';
+        return 'head' < $kind || 'foot' <=> $kind || 'x' === 'line' . $kind || 'head' === $kind . 'x' || 'foot' === $kind . 'y';
     }
 
     public function inArrayWithOneLiteralOrNonLiterals(string $kind, array $names): bool

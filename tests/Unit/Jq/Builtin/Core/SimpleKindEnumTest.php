@@ -9,6 +9,9 @@ use LTS\PhpXq\Json\JsonObject;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(SimpleKindEnum::class)]
 final class SimpleKindEnumTest extends TestCase
 {

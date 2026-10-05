@@ -9,6 +9,9 @@ use LTS\PhpXq\Yq\Format\Codec\XmlElement;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(ElementStateEnum::class)]
 final class ElementStateEnumTest extends TestCase
 {

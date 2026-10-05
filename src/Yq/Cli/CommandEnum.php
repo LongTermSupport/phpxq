@@ -10,22 +10,6 @@ namespace LTS\PhpXq\Yq\Cli;
  */
 enum CommandEnum: string
 {
-    case Eval = 'eval';
-
-    case EvalShort = 'e';
-
-    case EvalAll = 'eval-all';
-
-    case EvalAllShort = 'ea';
-
-    case Completion = 'completion';
-
-    case Help = 'help';
-
-    case Complete = '__complete';
-
-    case CompleteNoDescriptions = '__completeNoDesc';
-
     public function canonical(): self
     {
         return match ($this) {
@@ -42,4 +26,20 @@ enum CommandEnum: string
     {
         return self::Complete === $this || self::CompleteNoDescriptions === $this;
     }
+
+    case Eval = 'eval';
+
+    case EvalShort = 'e';
+
+    case EvalAll = 'eval-all';
+
+    case EvalAllShort = 'ea';
+
+    case Completion = 'completion';
+
+    case Help = 'help';
+
+    case Complete = '__complete';
+
+    case CompleteNoDescriptions = '__completeNoDesc';
 }

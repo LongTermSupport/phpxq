@@ -211,7 +211,7 @@ final readonly class HclScanner
                 continue;
             }
 
-            if ('#' === $char || ('/' === $char && in_array(substr($text, $pos + 1, 1), ['/', '*'], true))) {
+            if ('#' === $char || ('/' === $char && \in_array(substr($text, $pos + 1, 1), ['/', '*'], true))) {
                 return true;
             }
 

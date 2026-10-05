@@ -111,8 +111,9 @@ final class Compare
                     return false;
                 }
 
-                foreach ($left->content as $i => $item) {
-                    if (!self::deepEquals($item, $right->content[$i], $depth + 1)) {
+                // An indexed loop, not array_all(): the recursion must not run inside a native callback.
+                for ($position = 0, $count = \count($left->content); $position < $count; ++$position) {
+                    if (!self::deepEquals($left->content[$position], $right->content[$position], $depth + 1)) {
                         return false;
                     }
                 }

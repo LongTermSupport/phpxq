@@ -18,9 +18,6 @@ enum ToolEnum: string
 {
     private const string EXE_SUFFIX = '.exe';
 
-    case Jq = 'jq';
-    case Yq = 'yq';
-
     public static function usage(): string
     {
         $names = implode('|', array_map(static fn (self $tool): string => $tool->value, self::cases()));
@@ -65,4 +62,7 @@ enum ToolEnum: string
             self::Yq => new YqApplication()->run($stdin, $stdout, $stderr, ...$args),
         };
     }
+
+    case Jq = 'jq';
+    case Yq = 'yq';
 }

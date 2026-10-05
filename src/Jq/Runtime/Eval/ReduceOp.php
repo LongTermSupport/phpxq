@@ -31,20 +31,18 @@ final readonly class ReduceOp implements OpInterface
             $state  = $initial;
             $update = $this->update;
             $single = $this->updateSingle;
-            $this->source->run($env, $input, function (mixed $item) use (&$state, $update, $single, $env): void {
-                $this->binder->bind($env, $item, static function (?Env $bound) use (&$state, $update, $single): void {
-                    if ($single instanceof SingleOpInterface) {
-                        $state = $single->value($bound, $state);
+            SourceBindings::each($this->source, $this->binder, $env, $input, static function (?Env $bound) use (&$state, $update, $single): void {
+                if ($single instanceof SingleOpInterface) {
+                    $state = $single->value($bound, $state);
 
-                        return;
-                    }
+                    return;
+                }
 
-                    $next = null;
-                    $update->run($bound, $state, static function (mixed $value) use (&$next): void {
-                        $next = $value;
-                    });
-                    $state = $next;
+                $next = null;
+                $update->run($bound, $state, static function (mixed $value) use (&$next): void {
+                    $next = $value;
                 });
+                $state = $next;
             });
             $emit($state);
         });
@@ -56,17 +54,15 @@ final readonly class ReduceOp implements OpInterface
             $statePath = $initialPath;
             $state     = $initial;
             $update    = $this->update;
-            $this->source->run($env, $input, function (mixed $item) use (&$statePath, &$state, $update, $env): void {
-                $this->binder->bind($env, $item, static function (?Env $bound) use (&$statePath, &$state, $update): void {
-                    $nextPath = null;
-                    $next     = null;
-                    $update->paths($bound, $statePath, $state, static function (?array $valuePath, mixed $value) use (&$nextPath, &$next): void {
-                        $nextPath = $valuePath;
-                        $next     = $value;
-                    });
-                    $statePath = $nextPath;
-                    $state     = $next;
+            SourceBindings::each($this->source, $this->binder, $env, $input, static function (?Env $bound) use (&$statePath, &$state, $update): void {
+                $nextPath = null;
+                $next     = null;
+                $update->paths($bound, $statePath, $state, static function (?array $valuePath, mixed $value) use (&$nextPath, &$next): void {
+                    $nextPath = $valuePath;
+                    $next     = $value;
                 });
+                $statePath = $nextPath;
+                $state     = $next;
             });
             $emit($statePath, $state);
         });

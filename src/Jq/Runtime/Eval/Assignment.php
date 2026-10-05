@@ -60,7 +60,7 @@ final readonly class Assignment
      * `|=`: replace the value at every path by the first output of $update, and delete the paths for which
      * it yields no output.
      *
-     * @param Closure(mixed): list<mixed> $update returns [] for no output, otherwise [first output]
+     * @param Closure(mixed): list<mixed> $update   returns [] for no output, otherwise [first output]
      * @param list<mixed>                 ...$paths
      *
      * @throws JqException

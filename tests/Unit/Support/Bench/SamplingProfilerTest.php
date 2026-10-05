@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Support\Bench;
 
 use LTS\PhpXq\Tests\Support\Bench\SamplingProfiler;
-use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  */
-#[CoversClass(SamplingProfiler::class)]
+#[CoversNothing]
 final class SamplingProfilerTest extends TestCase
 {
     public function testSelfAndInclusiveShares(): void

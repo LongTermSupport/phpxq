@@ -29,7 +29,7 @@ abstract class OddSyntaxAccepted
     public function dynamicNamesAndClasses(Node $node, string $name, string $class): mixed
     {
         $node      = NodeOps::deref($node);
-        $result    = $this->$name($node);
+        $result    = $this->{$name}($node);
         $static    = $class::run($node);
         $object    = new $class($node);
         $anonymous = new class($node) {

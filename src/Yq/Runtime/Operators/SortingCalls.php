@@ -205,6 +205,7 @@ final readonly class SortingCalls implements CallOperatorInterface
      *
      * Hot path (benchmarks yq:group-medium, yq:group-large): a user-space comparator costs a closure call
      * and several lookups per comparison, which dominated group_by and sort_by on large sequences.
+     *
      * @return list<int>|null
      */
     private function nativeOrder(?string $layout, Node ...$keys): ?array
@@ -213,7 +214,7 @@ final readonly class SortingCalls implements CallOperatorInterface
             return null;
         }
 
-        $values = [];
+        $values  = [];
         $strings = null;
         foreach (array_values($keys) as $position => $key) {
             $key = NodeOps::deref($key);
@@ -243,7 +244,7 @@ final readonly class SortingCalls implements CallOperatorInterface
             $values[$position] = $text;
         }
 
-        if (true === $strings) {
+        if ($strings) {
             asort($values, \SORT_STRING);
         } else {
             asort($values);

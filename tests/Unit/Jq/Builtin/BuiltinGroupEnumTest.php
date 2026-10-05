@@ -10,6 +10,9 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(BuiltinGroupEnum::class)]
 final class BuiltinGroupEnumTest extends TestCase
 {
@@ -17,12 +20,6 @@ final class BuiltinGroupEnumTest extends TestCase
     public function testEveryGroupOfTheCatalogIsACase(string $group): void
     {
         self::assertInstanceOf(BuiltinGroupEnum::class, BuiltinGroupEnum::tryFrom($group));
-    }
-
-    #[DataProvider('catalogGroups')]
-    public function testEveryCaseIsAGroupOfTheCatalog(string $group): void
-    {
-        self::assertArrayHasKey($group, BuiltinCatalog::GROUPS);
     }
 
     /**
@@ -33,6 +30,12 @@ final class BuiltinGroupEnumTest extends TestCase
         foreach (array_keys(BuiltinCatalog::GROUPS) as $group) {
             yield $group => [$group];
         }
+    }
+
+    #[DataProvider('catalogGroups')]
+    public function testEveryCaseIsAGroupOfTheCatalog(string $group): void
+    {
+        self::assertArrayHasKey($group, BuiltinCatalog::GROUPS);
     }
 
     /**

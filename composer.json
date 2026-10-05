@@ -33,6 +33,7 @@
     "require-dev": {
         "ext-posix": "*",
         "lts/php-qa-ci": "^85.0",
+        "nikic/php-parser": "^5.8",
         "phpunit/phpunit": "^13.4",
         "sebastian/comparator": "^8.4"
     },

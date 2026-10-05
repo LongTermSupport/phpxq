@@ -49,15 +49,15 @@ final readonly class SelectionCalls implements CallOperatorInterface
     public function evaluate(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
     {
         return match (BuiltinNameEnum::tryFrom($call->name)) {
-            BuiltinNameEnum::Select                                                                 => $this->select($call, $context, $evaluator),
-            BuiltinNameEnum::Not                                                                    => $this->not($context),
-            BuiltinNameEnum::Has                                                                    => $this->has($call, $context, $evaluator),
-            BuiltinNameEnum::Contains                                                               => $this->contains($call, $context, $evaluator),
+            BuiltinNameEnum::Select                                                                  => $this->select($call, $context, $evaluator),
+            BuiltinNameEnum::Not                                                                     => $this->not($context),
+            BuiltinNameEnum::Has                                                                     => $this->has($call, $context, $evaluator),
+            BuiltinNameEnum::Contains                                                                => $this->contains($call, $context, $evaluator),
             BuiltinNameEnum::Any, BuiltinNameEnum::All, BuiltinNameEnum::AnyC, BuiltinNameEnum::AllC => $this->anyAll($call, $context, $evaluator),
-            BuiltinNameEnum::First, BuiltinNameEnum::Last                                           => $this->firstLast($call, $context, $evaluator),
-            BuiltinNameEnum::Filter                                                                 => $this->filter($call, $context, $evaluator),
-            BuiltinNameEnum::With                                                                   => $this->with($call, $context, $evaluator),
-            default                                                                                 => [],
+            BuiltinNameEnum::First, BuiltinNameEnum::Last                                            => $this->firstLast($call, $context, $evaluator),
+            BuiltinNameEnum::Filter                                                                  => $this->filter($call, $context, $evaluator),
+            BuiltinNameEnum::With                                                                    => $this->with($call, $context, $evaluator),
+            default                                                                                  => [],
         };
     }
 
@@ -177,13 +177,10 @@ final readonly class SelectionCalls implements CallOperatorInterface
 
             case NodeKindEnum::Sequence:
                 foreach ($right->content as $wanted) {
+                    // Indexed loop, not array_any(): the recursion must not run inside a native callback.
                     $found = false;
-                    foreach ($left->content as $item) {
-                        if (self::containsNode($item, $wanted, $depth + 1)) {
-                            $found = true;
-
-                            break;
-                        }
+                    for ($position = 0, $count = \count($left->content); $position < $count && !$found; ++$position) {
+                        $found = self::containsNode($left->content[$position], $wanted, $depth + 1);
                     }
 
                     if (!$found) {

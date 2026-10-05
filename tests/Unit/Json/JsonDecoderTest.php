@@ -9,6 +9,7 @@ use LTS\PhpXq\Json\JsonDecoder;
 use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Json\JsonSyntaxException;
 use LTS\PhpXq\Json\PreciseNumber;
+use LTS\PhpXq\Tests\Support\JsonValueDescriber;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
@@ -23,7 +24,7 @@ final class JsonDecoderTest extends TestCase
     #[DataProvider('valueProvider')]
     public function testDecodeOne(string $json, string $expected): void
     {
-        self::assertSame($expected, self::describe(new JsonDecoder()->decodeOne($json)));
+        self::assertSame($expected, $this->describe(new JsonDecoder()->decodeOne($json)));
     }
 
     #[DataProvider('valueProvider')]
@@ -36,7 +37,7 @@ final class JsonDecoderTest extends TestCase
         $slow = iterator_to_array($values, false);
 
         self::assertCount(1, $slow);
-        self::assertSame($expected, self::describe($slow[0]));
+        self::assertSame($expected, $this->describe($slow[0]));
     }
 
     /**
@@ -214,7 +215,7 @@ final class JsonDecoderTest extends TestCase
     #[DataProvider('streamProvider')]
     public function testDecodeAll(string $text, array $expected): void
     {
-        $values = array_map(self::describe(...), iterator_to_array(new JsonDecoder()->decodeAll($text), false));
+        $values = array_map($this->describe(...), iterator_to_array(new JsonDecoder()->decodeAll($text), false));
 
         self::assertSame($expected, $values);
     }
@@ -373,7 +374,7 @@ final class JsonDecoderTest extends TestCase
                 continue;
             }
 
-            $gotValues[] = self::describe($item);
+            $gotValues[] = $this->describe($item);
         }
 
         self::assertSame($values, $gotValues);
@@ -417,7 +418,7 @@ final class JsonDecoderTest extends TestCase
 
         try {
             foreach (new JsonDecoder()->decodeAll($text) as $value) {
-                $seen[] = self::describe($value);
+                $seen[] = $this->describe($value);
             }
         } catch (JsonSyntaxException $jsonSyntaxException) {
             return [$seen, $jsonSyntaxException->getMessage()];
@@ -457,51 +458,39 @@ final class JsonDecoderTest extends TestCase
         return var_export($value, true);
     }
 
-    private static function describe(mixed $value): string
+    private function describe(mixed $value): string
     {
-        if (null === $value) {
-            return 'null';
-        }
+        return new JsonValueDescriber(
+            static function (mixed $scalar): string {
+                if (null === $scalar) {
+                    return 'null';
+                }
 
-        if (true === $value) {
-            return 'true';
-        }
+                if (true === $scalar) {
+                    return 'true';
+                }
 
-        if (false === $value) {
-            return 'false';
-        }
+                if (false === $scalar) {
+                    return 'false';
+                }
 
-        if (\is_int($value)) {
-            return 'int:' . $value;
-        }
+                if (\is_int($scalar)) {
+                    return 'int:' . $scalar;
+                }
 
-        if (\is_float($value)) {
-            return 'float:' . self::describeFloat($value);
-        }
+                if (\is_float($scalar)) {
+                    return 'float:' . self::describeFloat($scalar);
+                }
 
-        if ($value instanceof PreciseNumber) {
-            return 'precise:' . $value->literal;
-        }
+                if ($scalar instanceof PreciseNumber) {
+                    return 'precise:' . $scalar->literal;
+                }
 
-        if (\is_string($value)) {
-            return 'string:' . $value;
-        }
+                self::assertIsString($scalar);
 
-        if (\is_array($value)) {
-            $items = [];
-            foreach ($value as $item) {
-                $items[] = self::describe($item);
-            }
-
-            return '[' . implode(',', $items) . ']';
-        }
-
-        self::assertInstanceOf(JsonObject::class, $value);
-        $parts = [];
-        foreach ($value->entries() as $key => $member) {
-            $parts[] = $key . '=>' . self::describe($member);
-        }
-
-        return '{' . implode(',', $parts) . '}';
+                return 'string:' . $scalar;
+            },
+            static fn (string $key, string $member): string => $key . '=>' . $member,
+        )->describe($value);
     }
 }

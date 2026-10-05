@@ -23,6 +23,7 @@ final readonly class ArgumentParser
         CommandEnum::Complete->value,
         CommandEnum::CompleteNoDescriptions->value,
     ];
+
     /** The spellings Go's `strconv.ParseBool` reads as true. */
     private const array TRUE_SPELLINGS = ['1', 't', 'T', 'TRUE', 'true', 'True'];
 

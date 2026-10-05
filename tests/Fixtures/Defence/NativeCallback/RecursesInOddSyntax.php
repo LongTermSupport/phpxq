@@ -34,8 +34,6 @@ final class RecursesInOddSyntax
 
 enum RecursiveEnum: string
 {
-    case One = 'one';
-
     /**
      * @param list<mixed> $items
      *
@@ -45,4 +43,5 @@ enum RecursiveEnum: string
     {
         return array_map(fn (mixed $item): mixed => $this->walk([$item]), $items);
     }
+    case One = 'one';
 }

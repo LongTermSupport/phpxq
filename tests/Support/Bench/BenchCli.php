@@ -32,7 +32,7 @@ final class BenchCli
             return match ($command) {
                 'plan'   => $this->plan($this->options(...\array_slice($args, 1)), $stdout),
                 'record' => $this->record($this->options(...\array_slice($args, 1)), $stdout),
-                'report' => $this->report(\count($args) > 1 ? $args[1] : '',$this->options(...\array_slice($args, 2)), $stdout),
+                'report' => $this->report(\count($args) > 1 ? $args[1] : '', $this->options(...\array_slice($args, 2)), $stdout),
                 default  => $this->fail(self::USAGE, $stderr),
             };
         } catch (InvalidArgumentException $invalidArgumentException) {

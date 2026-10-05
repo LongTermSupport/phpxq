@@ -42,7 +42,7 @@ final class RecursionThroughNativeCallbackRuleTest extends RuleTestCase
         $this->analyse([self::FIXTURES . '/RecursesInOddSyntax.php'], [
             [$this->message('RecursesInOddSyntax', 'namedArguments', self::MAP), 19],
             [$this->message('RecursesInOddSyntax', 'staticClosure', self::MAP), 29],
-            [$this->message('RecursiveEnum', 'walk', self::MAP), 46],
+            [$this->message('RecursiveEnum', 'walk', self::MAP), 44],
         ]);
     }
 

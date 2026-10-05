@@ -26,7 +26,7 @@ final class ComparesNames
 
     public function looseAndReversed(string $kind): bool
     {
-        return $kind == 'yes' || 'no' == $kind || $kind != 'maybe';
+        return 'yes' === $kind || 'no' === $kind || 'maybe' !== $kind;
     }
 
     public function inArrayAndComparison(string $kind): bool
@@ -81,7 +81,7 @@ final class ComparesNames
     {
         $same = 'head' === $kind;
 
-        return new class() {
+        return new class {
             public function inside(string $kind): bool
             {
                 return 'a' === $kind || 'b' === $kind;

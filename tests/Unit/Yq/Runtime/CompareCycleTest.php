@@ -21,30 +21,30 @@ final class CompareCycleTest extends TestCase
 {
     public function testDeepEqualsStopsOnACyclicAlias(): void
     {
-        $cycle = self::cycle();
+        $cycle = $this->cycle();
 
         try {
             Compare::deepEquals($cycle, $cycle);
             self::fail('A cyclic alias must not compare to the end.');
-        } catch (EvaluationException $exception) {
-            self::assertStringContainsString('exceeded max depth', $exception->getMessage());
+        } catch (EvaluationException $evaluationException) {
+            self::assertStringContainsString('exceeded max depth', $evaluationException->getMessage());
         }
     }
 
     public function testCanonicalStopsOnACyclicAlias(): void
     {
         try {
-            Compare::canonical(self::cycle());
+            Compare::canonical($this->cycle());
             self::fail('A cyclic alias must not render to the end.');
-        } catch (EvaluationException $exception) {
-            self::assertStringContainsString('exceeded max depth', $exception->getMessage());
+        } catch (EvaluationException $evaluationException) {
+            self::assertStringContainsString('exceeded max depth', $evaluationException->getMessage());
         }
     }
 
     public function testDeepEqualsComparesVeryDeepNestingWithoutANativeStackError(): void
     {
-        self::assertTrue(Compare::deepEquals(self::nested(3000), self::nested(3000)));
-        self::assertFalse(Compare::deepEquals(self::nested(3000), self::nested(2999)));
+        self::assertTrue(Compare::deepEquals($this->nested(3000), $this->nested(3000)));
+        self::assertFalse(Compare::deepEquals($this->nested(3000), $this->nested(2999)));
     }
 
     public function testNormalDocumentsCompareAsBefore(): void
@@ -58,7 +58,7 @@ final class CompareCycleTest extends TestCase
         self::assertSame('{a' . "\x1e" . '[1' . "\x1f" . 'x]' . "\x1f" . 'b' . "\x1e" . '2}', Compare::canonical($left));
     }
 
-    private static function cycle(): Node
+    private function cycle(): Node
     {
         $sequence            = Node::sequence([Node::scalar('2')]);
         $sequence->content[] = Node::alias('y', $sequence);
@@ -66,7 +66,7 @@ final class CompareCycleTest extends TestCase
         return $sequence;
     }
 
-    private static function nested(int $levels): Node
+    private function nested(int $levels): Node
     {
         $node = Node::scalar('leaf');
         for ($i = 0; $i < $levels; ++$i) {

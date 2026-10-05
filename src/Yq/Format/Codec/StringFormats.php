@@ -109,9 +109,8 @@ final readonly class StringFormats
     private static function decodeBase64(string $text, bool $urlSafe): string
     {
         $clean = preg_replace('/\s+/', '', $text);
-        if (null === $clean) {
-            $clean = '';
-        }
+        $clean ??= '';
+
         if ($urlSafe) {
             $clean = strtr($clean, '-_', '+/');
         }

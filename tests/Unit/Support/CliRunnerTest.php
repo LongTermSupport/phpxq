@@ -18,7 +18,7 @@ final class CliRunnerTest extends TestCase
         $controller = new class implements FrontControllerInterface {
             public function run(mixed $stdin, mixed $stdout, mixed $stderr, string ...$args): int
             {
-                fwrite($stdout, 'args='. implode(',', $args) . ' stdin=' . stream_get_contents($stdin));
+                fwrite($stdout, 'args=' . implode(',', $args) . ' stdin=' . stream_get_contents($stdin));
                 fwrite($stderr, 'oops');
 
                 return 7;
@@ -37,7 +37,7 @@ final class CliRunnerTest extends TestCase
         $controller = new class implements FrontControllerInterface {
             public function run(mixed $stdin, mixed $stdout, mixed $stderr, string ...$args): int
             {
-                fwrite($stdout, '['. stream_get_contents($stdin) . ']');
+                fwrite($stdout, '[' . stream_get_contents($stdin) . ']');
 
                 return 0;
             }

@@ -19,11 +19,6 @@ final class ToolEnumTest extends TestCase
         self::assertNull(ToolEnum::tryFrom($this->nameOf(ToolEnum::Jq) . 'x'));
     }
 
-    private function nameOf(ToolEnum $tool): string
-    {
-        return $tool->value;
-    }
-
     public function testUsageNamesEveryTool(): void
     {
         self::assertSame("usage: phpxq jq|yq [arguments...]\n", ToolEnum::usage());
@@ -51,5 +46,10 @@ final class ToolEnumTest extends TestCase
         yield 'windows exe' => ['C:\bin\JQ.exe', ToolEnum::Jq];
         yield 'umbrella name' => ['phpxq', null];
         yield 'phar' => ['phpxq.phar', null];
+    }
+
+    private function nameOf(ToolEnum $tool): string
+    {
+        return $tool->value;
     }
 }

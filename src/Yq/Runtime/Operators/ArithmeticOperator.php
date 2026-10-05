@@ -74,8 +74,8 @@ final readonly class ArithmeticOperator implements BinaryOperatorInterface
         $l = $left instanceof Node ? NodeOps::deref(NodeOps::unwrap($left)) : null;
         $r = $right instanceof Node ? NodeOps::deref(NodeOps::unwrap($right)) : null;
 
-        $shareLeft  = null !== $replaced && $l === $replaced && $r !== $replaced;
-        $shareRight = null !== $replaced && $r === $replaced && $l !== $replaced;
+        $shareLeft  = $replaced instanceof Node && $l === $replaced && $r !== $replaced;
+        $shareRight = $replaced instanceof Node && $r === $replaced && $l !== $replaced;
 
         return match ($operator) {
             BinaryOperatorEnum::Add, BinaryOperatorEnum::AddAssign           => self::add($l, $r, $layout, $shareLeft, $shareRight),

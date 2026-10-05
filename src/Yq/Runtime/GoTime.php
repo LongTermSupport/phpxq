@@ -534,11 +534,11 @@ final class GoTime
             self::OFFSET_HOURS                             => substr($t->format('O'), 0, 3),
             self::OFFSET_HOURS_MINUTES_SECONDS             => $t->format('O') . '00',
             self::OFFSET_HOURS_COLON_MINUTES_COLON_SECONDS => $t->format('P') . ':00',
-            self::ZULU_HOURS_MINUTES                       => 0                       === $t->getOffset() ? 'Z' : $t->format('O'),
-            self::ZULU_HOURS_COLON_MINUTES                 => 0                  === $t->getOffset() ? 'Z' : $t->format('P'),
+            self::ZULU_HOURS_MINUTES                       => 0                             === $t->getOffset() ? 'Z' : $t->format('O'),
+            self::ZULU_HOURS_COLON_MINUTES                 => 0                             === $t->getOffset() ? 'Z' : $t->format('P'),
             self::ZULU_HOURS                               => 0                             === $t->getOffset() ? 'Z' : substr($t->format('O'), 0, 3),
-            self::ZULU_HOURS_MINUTES_SECONDS               => 0                 === $t->getOffset() ? 'Z' : $t->format('O') . '00',
-            self::ZULU_HOURS_COLON_MINUTES_COLON_SECONDS   => 0       === $t->getOffset() ? 'Z' : $t->format('P') . ':00',
+            self::ZULU_HOURS_MINUTES_SECONDS               => 0                             === $t->getOffset() ? 'Z' : $t->format('O') . '00',
+            self::ZULU_HOURS_COLON_MINUTES_COLON_SECONDS   => 0                             === $t->getOffset() ? 'Z' : $t->format('P') . ':00',
             default                                        => self::formatFraction($t, $std),
         };
     }

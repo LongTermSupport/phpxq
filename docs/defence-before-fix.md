@@ -14,13 +14,21 @@ decision for the project owner and is not made in code. The method as applied by
 
 ## The defences
 
-| Class                                                  | Identifier                             | What it catches                                                                                                                               | Run it                                                                                                           |
-| ------------------------------------------------------ | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Recursion that exhausts the native stack               | `phpxq.recursionThroughNativeCallback` | A method that recurses through a closure given to a native function (`array_all`, `array_map`, `usort`, ...)                                  | `vendor/bin/phpstan-rule phpxq.recursionThroughNativeCallback src`                                               |
-| Recursion over a graph that can contain a cycle        | `phpxq.unguardedAliasRecursion`        | Recursion into a node reached through a YAML alias (`NodeOps::deref`, `NodeTools::unwrap`, `aliasTarget`) with no depth bound                 | `vendor/bin/phpstan-rule phpxq.unguardedAliasRecursion src`                                                      |
-| Expensive object rebuilt per iteration                 | `phpxq.loopInvariantConstruction`      | `new Registry/Compiler/Parser/Encoder/...(...)` with unchanging arguments in a loop, or a call to a helper that builds one without keeping it | `vendor/bin/phpstan-rule phpxq.loopInvariantConstruction src tests`                                              |
-| Swallowed errors                                       | `phpqaci.silentCatch`                  | A catch block that neither uses, logs nor rethrows the exception (rule bundled with php-qa-ci, enabled here)                                  | `vendor/bin/phpstan-rule phpqaci.silentCatch src`                                                                |
-| Shared structure versus deep copy in the yq Node model | no static rule                         | Property-style tests over generated documents: an update through `..`, `\|=` and `+=` must reach every node at every depth                    | `vendor/bin/phpunit -c qaConfig/phpunit.xml --no-coverage tests/Unit/Yq/Runtime/SharedStructurePropertyTest.php` |
+| Class                                                  | Identifier                                                                                        | What it catches                                                                                                                                 | Run it                                                                                                           |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Recursion that exhausts the native stack               | `phpxq.recursionThroughNativeCallback`                                                            | A method that recurses through a closure given to a native function (`array_all`, `array_map`, `usort`, ...)                                    | `vendor/bin/phpstan-rule phpxq.recursionThroughNativeCallback src`                                               |
+| Recursion over a graph that can contain a cycle        | `phpxq.unguardedAliasRecursion`                                                                   | Recursion into a node reached through a YAML alias (`NodeOps::deref`, `NodeTools::unwrap`, `aliasTarget`) with no depth bound                   | `vendor/bin/phpstan-rule phpxq.unguardedAliasRecursion src`                                                      |
+| Expensive object rebuilt per iteration                 | `phpxq.loopInvariantConstruction`                                                                 | `new Registry/Compiler/Parser/Encoder/...(...)` with unchanging arguments in a loop, or a call to a helper that builds one without keeping it   | `vendor/bin/phpstan-rule phpxq.loopInvariantConstruction src tests`                                              |
+| Swallowed errors                                       | `phpqaci.silentCatch`                                                                             | A catch block that neither uses, logs nor rethrows the exception (rule bundled with php-qa-ci, enabled here)                                    | `vendor/bin/phpstan-rule phpqaci.silentCatch src`                                                                |
+| Shared structure versus deep copy in the yq Node model | no static rule                                                                                    | Property-style tests over generated documents: an update through `..`, `\|=` and `+=` must reach every node at every depth                      | `vendor/bin/phpunit -c qaConfig/phpunit.xml --no-coverage tests/Unit/Yq/Runtime/SharedStructurePropertyTest.php` |
+| Closed set of names written as strings                 | `phpxq.stringDiscriminator`                                                                       | A value told apart by comparing it with two or more name literals (`===`, `in_array`, `match`, `switch`): it is an enum that was never declared | `vendor/bin/phpstan-rule phpxq.stringDiscriminator src`                                                          |
+| Same string literal written three or more times        | `phpqaci.repeatedStringLiteral`                                                                   | An undeclared constant (production code only; tests state one expectation per assertion)                                                        | `vendor/bin/phpstan-rule phpqaci.repeatedStringLiteral src`                                                      |
+| Docblock literal union                                 | `phpqaci.enumOverLiteralUnion`                                                                    | `@param 'a'\|'b'`: a backed enum that was never declared                                                                                        | `vendor/bin/phpstan-rule phpqaci.enumOverLiteralUnion src tests`                                                 |
+| Mutable services                                       | `phpqaci.readonlyService`                                                                         | A service class that is not `final readonly`; per-call state belongs on the stack or in a state object                                          | `vendor/bin/phpstan-rule phpqaci.readonlyService src tests`                                                      |
+| Hidden nulls                                           | `phpqaci.nullCoalescingEmptyString`, `phpqaci.nullCoalescingFalse`                                | `?? ''` and `?? false` turn a missing value into a plausible one                                                                                | `vendor/bin/phpstan-rule phpqaci.nullCoalescingEmptyString src tests`                                            |
+| Docblock-only list parameters and ambiguous arrays     | `phpqaci.variadicOverArrayParameter`, `phpqaci.ambiguousArrayDoc`, `phpqaci.consistentMemberDocs` | A last `list<T>` parameter that should be `T ...$x`; `T[]` that states no keys; half-documented members                                         | `vendor/bin/phpstan-rule phpqaci.variadicOverArrayParameter src tests`                                           |
+| Insecure and debug functions                           | `phpqaci.insecureFunction`, `phpqaci.debugOutputFunction`                                         | `md5`/`sha1`/`mt_rand`, and `var_dump`/`print_r` that print                                                                                     | `vendor/bin/phpstan-rule phpqaci.insecureFunction src tests`                                                     |
+| Copy and paste                                         | `phpcpd` (php-qa-ci tool)                                                                         | Duplicated blocks across files; extract a shared method or class                                                                                | `vendor/bin/qa -t phpcpd`                                                                                        |
 
 `vendor/bin/rule-doc <identifier>` prints the rule class, its summary and the remediation page, offline.
 The index is `docs/phpstan-rules/README.md`, declared in `qaConfig/rule-docs.json`. The rules and their
@@ -54,6 +62,43 @@ node at every depth is updated) rather than the mechanism.
 
 **Swallowed errors.** The bundled `phpqaci.silentCatch` rule is enabled instead of a project rule, because
 it already states the class precisely.
+
+**Magic strings and duplication.** The tool names are one backed enum (`ToolEnum`: `jq`, `yq`); format
+names, comment kinds, shells, builtin names and similar closed sets are enums or class constants.
+`phpxq.stringDiscriminator` and the bundled repeated-literal and literal-union rules hold the line. The
+only allowances are written down: test code is exempt from the two string rules (data repeats on purpose),
+and the namespaces listed under `StringDiscriminatorRule` in `qaConfig/phpstan.neon` are lexers, parsers
+and regex translators whose literals are the grammar of an external text syntax
+(`docs/phpstan-rules/string-discriminator.md`). A rule that crashes on odd syntax would abort the whole
+analysis, so `tests/Unit/QaConfig/PHPStan/Rules/RulesNeverCrashTest.php` runs every project rule over every
+file in `src/` and `tests/`, and the fixtures include first-class callable syntax (`foo(...)`).
+
+**Shared structure (the engine fix).** The property net was red against the engine: `X |= [] + .` copied
+the children of the node it was replacing, so an enclosing `..` kept matches that were no longer in the
+document. Arithmetic now takes its children from the node an update replaces (`EvaluationContext::replacedNode`,
+`ArithmeticOperator::apply`) and still copies anything that comes from elsewhere in the document.
+
+## Honest limits
+
+- The shared-structure class has no static rule; the property net checks the update operators it generates
+  and no others.
+- The two `phpxq` recursion rules see one class at a time, and the loop rule recognises engines by class-name
+  ending. `phpqaci.readonlyService` and the string rules decide by shape, so a stateful class that is not
+  named like a service is simply not seen.
+- `phpcpd` is advisory in the pipeline (it exits 0); clones are removed by hand when it lists them. Seven
+  remain (121 duplicated lines), kept on purpose: value-mode and path-mode twins in `ForeachOp`/`ReduceOp`,
+  the `base32` encode and decode pair, two `match` tables in `FormatRegistry`, and data-provider rows in three
+  tests. Extracting them would need abstractions harder to read than the repetition.
+- Under Xdebug in coverage mode, which `vendor/bin/qa` forces, every PHP call uses the native stack and the
+  `deep recursion` case of `CompilerTest` (a jq function recursing 10,000 levels) overflows the default 8 MB
+  stack. The unmodified main branch does the same, so the full gate here runs under `ulimit -s 1048576`.
+  A recursion-depth guard in the jq evaluator would remove the dependency; it is not in this change.
+- Rector's `ForeachToArrayAll`/`ForeachToArrayAny` rules rewrite a `foreach` loop into a native
+  callback, which is the hazard `phpxq.recursionThroughNativeCallback` reports. The two recursive loops that
+  matter (`Compare::deepEquals`, `SelectionCalls::containsNode`) are written as `for` loops, which Rector
+  leaves alone.
+- Variadic parameters surface as `array<int|string, T>` to PHPStan, so passing one on as a list needs
+  `array_values()`.
 
 ## Adding a defence
 

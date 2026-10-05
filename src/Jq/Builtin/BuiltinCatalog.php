@@ -137,7 +137,7 @@ final readonly class BuiltinCatalog
                 BuiltinGroupEnum::Path       => PathFunctions::register($registry),
                 BuiltinGroupEnum::Io         => IoFunctions::register($registry, self::names(...)),
                 BuiltinGroupEnum::Regex      => new RegexBuiltins()->registerNatives($registry),
-                default      => new DateBuiltins()->registerNatives($registry),
+                default                      => new DateBuiltins()->registerNatives($registry),
             };
         };
     }

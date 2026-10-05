@@ -17,7 +17,6 @@ use PHPUnit\Framework\Attributes\CoversClass;
 /**
  * @internal
  */
-#[CoversClass(BinderInterface::class)]
 #[CoversClass(VarBinder::class)]
 #[CoversClass(ArrayBinder::class)]
 #[CoversClass(ObjectBinder::class)]
