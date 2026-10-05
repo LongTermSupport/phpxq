@@ -51,5 +51,4 @@ final class FormatRegistryTest extends TestCase
         self::assertTrue(FormatEnum::Lua->canDecode());
         self::assertSame(FormatEnum::Lua, new FormatRegistry()->decoder(FormatEnum::Lua)->format());
     }
-
 }

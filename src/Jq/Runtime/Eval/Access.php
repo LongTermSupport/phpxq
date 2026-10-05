@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Jq\Runtime\Eval;
 
-use Closure;
 use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Json\PreciseNumber;

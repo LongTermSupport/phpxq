@@ -52,7 +52,6 @@ final class StringFormatsTest extends TestCase
         StringFormats::uriDecode('100%');
     }
 
-
     #[DataProvider('shellQuoteCases')]
     public function testShellQuote(string $input, string $expected): void
     {

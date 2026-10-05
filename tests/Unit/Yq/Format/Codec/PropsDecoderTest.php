@@ -275,7 +275,7 @@ final class PropsDecoderTest extends TestCase
     public function testAKeyPathNestingBeyondTheLimitIsRefused(): void
     {
         $this->expectException(FormatException::class);
-        $this->expectExceptionMessage(Node::depthError());
+        $this->expectExceptionMessageIsOrContains(Node::depthError());
 
         $this->decode(str_repeat('a.', Node::MAX_DEPTH) . "a = 1\n");
     }

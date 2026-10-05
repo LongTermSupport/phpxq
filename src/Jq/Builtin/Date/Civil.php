@@ -69,7 +69,7 @@ final readonly class Civil
         $doy   = $doe - (365 * $yoe + intdiv($yoe, 4) - intdiv($yoe, 100));
         $mp    = intdiv(5 * $doy + 2, 153);
         $day   = $doy                                                                                                                                                                                                                               - intdiv(153 * $mp + 2, 5) + 1;
-        $month = $mp < 10 ? $mp                                                                                                                                                                                                           + 3 : $mp - 9;
+        $month = $mp < 10 ? $mp                                                                                                                                                                                                                                                + 3 : $mp - 9;
 
         return [$yoe + $era * 400 + ($month <= 2 ? 1 : 0), $month, $day];
     }

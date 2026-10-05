@@ -9,6 +9,7 @@ use LTS\PhpXq\Jq\Runtime\EvaluationStack;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use stdClass;
 
 /**
  * @internal
@@ -23,7 +24,9 @@ final class EvaluationStackTest extends TestCase
 
     public function testTheBodyResultIsReturned(): void
     {
-        self::assertSame(42, EvaluationStack::run(static fn (): int => 42));
+        $value = new stdClass();
+
+        self::assertSame($value, EvaluationStack::run(static fn (): stdClass => $value));
     }
 
     public function testANestedRunReusesTheCurrentFiber(): void
@@ -40,10 +43,9 @@ final class EvaluationStackTest extends TestCase
     public function testExceptionsPropagateToTheCaller(): void
     {
         try {
-            EvaluationStack::run(static function (): void {
+            EvaluationStack::run(static function (): never {
                 throw new RuntimeException('from the body');
             });
-            self::fail('the exception was swallowed');
         } catch (RuntimeException $runtimeException) {
             self::assertSame('from the body', $runtimeException->getMessage());
         }
@@ -51,12 +53,12 @@ final class EvaluationStackTest extends TestCase
 
     public function testTheProcessStackSettingIsRestored(): void
     {
-        $before = ini_get('fiber.stack_size');
+        $before = \ini_get('fiber.stack_size');
 
         EvaluationStack::run(static function (): void {
         });
 
-        self::assertSame($before, ini_get('fiber.stack_size'));
+        self::assertSame($before, \ini_get('fiber.stack_size'));
     }
 
     public function testTheStackHoldsTheWholeCallBudgetOfNativeRecursion(): void

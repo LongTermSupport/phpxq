@@ -20,6 +20,14 @@ final class RecursionGuardTest extends TestCase
 
     private const string NULL_INPUT = 'null';
 
+    #[DataProvider('runawayPrograms')]
+    public function testRunawayRecursionFailsWithAJqError(string $program): void
+    {
+        $message = ProgramHarness::error($program, self::NULL_INPUT);
+
+        self::assertSame(self::TOO_DEEP, $message);
+    }
+
     /**
      * @return iterable<string, array{string}>
      */
@@ -36,14 +44,6 @@ final class RecursionGuardTest extends TestCase
         yield 'recursion through try'    => ['def f: try f catch error; f'];
         yield 'recursion in generator'   => ['def f: (1, f); [f]'];
         yield 'recursion through map'    => ['def f: [1] | map(f); f'];
-    }
-
-    #[DataProvider('runawayPrograms')]
-    public function testRunawayRecursionFailsWithAJqError(string $program): void
-    {
-        $message = ProgramHarness::error($program, self::NULL_INPUT);
-
-        self::assertSame(self::TOO_DEEP, $message);
     }
 
     public function testEvaluationStillWorksAfterTheGuardTripped(): void

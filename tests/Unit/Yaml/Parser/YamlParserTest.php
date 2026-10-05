@@ -121,7 +121,7 @@ final class YamlParserTest extends TestCase
     public function testNestingBeyondTheLimitIsASyntaxError(string $yaml): void
     {
         $this->expectException(YamlSyntaxException::class);
-        $this->expectExceptionMessage(Node::depthError());
+        $this->expectExceptionMessageIsOrContains(Node::depthError());
 
         $this->parse($yaml);
     }

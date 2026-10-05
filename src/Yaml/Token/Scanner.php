@@ -125,7 +125,7 @@ final class Scanner
      */
     public function __construct(string $source)
     {
-        $prepared = self::normalise($source, $this->crlf);
+        $prepared = $this->normalise($source, $this->crlf);
         $this->n  = \strlen($prepared);
         $this->s  = $prepared . "\0\0\0\0";
         $this->mb = 1 === preg_match('/[\x80-\xFF]/', $prepared);
@@ -171,12 +171,12 @@ final class Scanner
      *
      * @throws YamlSyntaxException
      */
-    private static function normalise(string $yaml, array &$crlf): string
+    private function normalise(string $yaml, array &$crlf): string
     {
         if (str_starts_with($yaml, "\xEF\xBB\xBF")) {
             $yaml = substr($yaml, 3);
         } elseif (str_starts_with($yaml, "\xFF\xFE") || str_starts_with($yaml, "\xFE\xFF")) {
-            $yaml = self::decodeUtf16($yaml);
+            $yaml = $this->decodeUtf16($yaml);
         }
 
         $found = preg_match(self::NON_PRINTABLE, $yaml, $match, \PREG_OFFSET_CAPTURE);
@@ -224,7 +224,7 @@ final class Scanner
      *
      * @throws YamlSyntaxException
      */
-    private static function decodeUtf16(string $yaml): string
+    private function decodeUtf16(string $yaml): string
     {
         $body = substr($yaml, 2);
         if (1 === \strlen($body) % 2) {
@@ -1434,7 +1434,7 @@ final class Scanner
             $this->newlines = 0;
         }
 
-        return new ScanToken(ScanToken::SCALAR, $startIdx, $startLine, $startCol, $eLine, $mb ?$this->colAt($eIdx, $eLs) : $eIdx - $eLs, $out, '', ScanToken::PLAIN);
+        return new ScanToken(ScanToken::SCALAR, $startIdx, $startLine, $startCol, $eLine, $mb ? $this->colAt($eIdx, $eLs) : $eIdx - $eLs, $out, '', ScanToken::PLAIN);
     }
 
     private function scanFlowScalar(bool $single): ScanToken

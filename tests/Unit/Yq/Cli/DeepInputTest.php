@@ -41,6 +41,18 @@ final class DeepInputTest extends TestCase
         FormatEnum::Csv,
     ];
 
+    #[DataProvider('deepInputs')]
+    public function testDeepInputFailsCleanlyAtTheDefaultStack(FormatEnum $format, string $text, FormatEnum $output): void
+    {
+        foreach ([YqProcess::XDEBUG_OFF, YqProcess::XDEBUG_COVERAGE] as $xdebugMode) {
+            $result = YqProcess::run(['-p=' . $format->value, '-o=' . $output->value, '.'], $text, $xdebugMode);
+
+            self::assertSame(1, $result->exitCode, $xdebugMode . ': ' . substr($result->stderr, 0, 200));
+            self::assertMatchesRegularExpression(self::DEPTH_ERROR_PATTERN, $result->stderr, $xdebugMode);
+            self::assertSame('', $result->stdout, $xdebugMode);
+        }
+    }
+
     /**
      * @return Generator<string, array{FormatEnum, string, FormatEnum}> input format, input text, output format
      */
@@ -71,18 +83,6 @@ final class DeepInputTest extends TestCase
             foreach ($outputs as $output) {
                 yield $name . ' to ' . $output->value => [$format, $text, $output];
             }
-        }
-    }
-
-    #[DataProvider('deepInputs')]
-    public function testDeepInputFailsCleanlyAtTheDefaultStack(FormatEnum $format, string $text, FormatEnum $output): void
-    {
-        foreach ([YqProcess::XDEBUG_OFF, YqProcess::XDEBUG_COVERAGE] as $xdebugMode) {
-            $result = YqProcess::run(['-p=' . $format->value, '-o=' . $output->value, '.'], $text, $xdebugMode);
-
-            self::assertSame(1, $result->exitCode, $xdebugMode . ': ' . substr($result->stderr, 0, 200));
-            self::assertMatchesRegularExpression(self::DEPTH_ERROR_PATTERN, $result->stderr, $xdebugMode);
-            self::assertSame('', $result->stdout, $xdebugMode);
         }
     }
 

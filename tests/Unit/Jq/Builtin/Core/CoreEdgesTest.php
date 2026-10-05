@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Jq\Builtin\Core;
 
-use LTS\PhpXq\Jq\Builtin\Core\Unicode;
 use LTS\PhpXq\Tests\Unit\Jq\Builtin\Core\Support\Harness;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

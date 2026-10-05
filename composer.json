@@ -35,7 +35,8 @@
         "lts/php-qa-ci": "^85.0",
         "nikic/php-parser": "^5.8",
         "phpunit/phpunit": "^13.4",
-        "sebastian/comparator": "^8.4"
+        "sebastian/comparator": "^8.4",
+        "symfony/process": "^8.1"
     },
     "minimum-stability": "stable",
     "prefer-stable": true,

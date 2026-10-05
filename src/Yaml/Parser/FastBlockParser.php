@@ -155,7 +155,6 @@ final readonly class FastBlockParser
                     if (Node::depthExceeded($depth + 1)) {
                         return null;
                     }
-
                 } else {
                     $pending->content[] = new Node(NodeKindEnum::Scalar, CoreSchema::TAG_NULL, NodeStyleEnum::Default, line: $pendingLine, column: $pendingColumn);
                 }

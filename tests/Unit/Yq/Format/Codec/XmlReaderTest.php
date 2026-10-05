@@ -43,16 +43,6 @@ final class XmlReaderTest extends TestCase
         self::fail('expected a FormatException');
     }
 
-    public function testElementsNestedBeyondTheLimitAreRefused(): void
-    {
-        $depth = Node::MAX_DEPTH + 1;
-
-        $this->expectException(FormatException::class);
-        $this->expectExceptionMessage(Node::depthError());
-
-        $this->decode(str_repeat('<a>', $depth) . 'x' . str_repeat('</a>', $depth), new FormatOptions());
-    }
-
     /**
      * @return iterable<string, array{string, int, string, 3?: FormatOptions}>
      */
@@ -147,6 +137,16 @@ final class XmlReaderTest extends TestCase
         yield 'unknown entity after the same word' => ["<a>foo\n&foo;</a>", 2, self::BAD_FOO, $strict];
 
         yield 'unterminated element after a byte order mark' => ["\u{FEFF}<a>x", 1, self::EOF];
+    }
+
+    public function testElementsNestedBeyondTheLimitAreRefused(): void
+    {
+        $depth = Node::MAX_DEPTH + 1;
+
+        $this->expectException(FormatException::class);
+        $this->expectExceptionMessageIsOrContains(Node::depthError());
+
+        $this->decode(str_repeat('<a>', $depth) . 'x' . str_repeat('</a>', $depth), new FormatOptions());
     }
 
     #[DataProvider('shapeCases')]
@@ -350,7 +350,7 @@ final class XmlReaderTest extends TestCase
         yield 'comment starting with a dash' => ['<a><!---x--><b/></a>', "a:\n  # -x\n  b:\n"];
     }
 
-    private function decode(string $xml, FormatOptions $options): \LTS\PhpXq\Yaml\Node
+    private function decode(string $xml, FormatOptions $options): Node
     {
         foreach (new XmlDecoder()->decode($xml, $options) as $document) {
             return $document;

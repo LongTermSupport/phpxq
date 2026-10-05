@@ -31,6 +31,7 @@ final class Node
      */
     public const int MAX_DEPTH = 5000;
 
+    /** The error text for input nested deeper than MAX_DEPTH; the placeholder is the limit. */
     private const string DEPTH_ERROR_FORMAT = 'exceeded max depth of %d';
 
     public bool $commentsCleared = false;
