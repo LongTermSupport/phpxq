@@ -67,6 +67,23 @@ final class JqColorsTest extends TestCase
         self::assertSame("\e[38;2;255;214;165m", $scheme->false);
     }
 
+    public function testFieldsBeyondTheEighthAreNotValidated(): void
+    {
+        $scheme = JqColors::parse('::::::::x:y');
+
+        self::assertNotNull($scheme);
+        self::assertSame("\e[m", $scheme->objectKey);
+    }
+
+    public function testFieldLengthLimit(): void
+    {
+        $longest = JqColors::parse(str_repeat('1', 30));
+
+        self::assertNotNull($longest);
+        self::assertSame("\e[" . str_repeat('1', 30) . 'm', $longest->null);
+        self::assertNull(JqColors::parse(str_repeat('1', 31)));
+    }
+
     #[DataProvider('invalidProvider')]
     public function testInvalidSpecIsRejected(string $spec): void
     {

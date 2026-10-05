@@ -55,7 +55,10 @@ final class Utf8Test extends TestCase
         yield 'four byte bad second'      => ["\xf0\x28\x8c\xbc", $r . '(' . $r . $r];
         yield 'four byte bad third'       => ["\xf0\x90\x28\xbc", $r . '(' . $r];
         yield 'four byte bad fourth'      => ["\xf0\x90\x80\x28", $r . '('];
-        yield 'continuation 0xC0 mask'    => ["\xe2\xc0\x80", $r . $r . $r];
+        yield 'three byte two bad'        => ["\xe2\x28\x28", $r . '(('];
+        yield 'four byte three bad'       => ["\xf0\x28\x28\x28", $r . '((('];
+        yield 'four byte two bad'         => ["\xf0\x90\x28\x28", $r . '(('];
+        yield 'continuation 0xC0 mask'    =>["\xe2\xc0\x80", $r . $r . $r];
         yield 'continuation 0xC1'         => ["\xe2\x82\xc1", $r . $r];
     }
 

@@ -53,5 +53,24 @@ final class CmpTest extends TestCase
         yield 'nan ne nan'        => [\NAN, \NAN, 'ne', true];
         yield 'object equality'   => [new JsonObject(['a' => 1]), new JsonObject(['a' => 1]), 'eq', true];
         yield 'array ordering'    => [[1, 2], [1, 3], 'lt', true];
+        yield 'float lt equal'    => [1.5, 1.5, 'lt', false];
+        yield 'string lt equal'   => ['a', 'a', 'lt', false];
+        yield 'float gt equal'    => [1.5, 1.5, 'gt', false];
+        yield 'string gt equal'   => ['a', 'a', 'gt', false];
+        yield 'float le equal'    => [1.5, 1.5, 'le', true];
+        yield 'float ge equal'    => [1.5, 1.5, 'ge', true];
+        yield 'int le string'     => [10, '9', 'le', true];
+        yield 'string ge int'     => ['9', 10, 'ge', true];
+        yield 'int lt string'     => [10, '9', 'lt', true];
+        yield 'string gt int'     => ['9', 10, 'gt', true];
+        yield 'nan le nan'        => [\NAN, \NAN, 'le', true];
+        yield 'nan le int'        => [\NAN, 1, 'le', true];
+        yield 'int ge nan'        => [1, \NAN, 'ge', true];
+        yield 'nan ge nan'        => [\NAN, \NAN, 'ge', false];
+        yield 'nan ge int'        => [\NAN, 1, 'ge', false];
+        yield 'int le nan'        => [1, \NAN, 'le', false];
+        yield 'int and float le'  => [2, 2.5, 'le', true];
+        yield 'float and int ge'  => [2.5, 2, 'ge', true];
+        yield 'int ne string'     => [1, '1', 'ne', true];
     }
 }
