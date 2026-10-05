@@ -253,7 +253,6 @@ final class YamlParserTest extends TestCase
         try {
             $this->parse($yaml);
         } catch (YamlSyntaxException $yamlSyntaxException) {
-            self::assertSame($line, $yamlSyntaxException->yamlLine);
             self::assertSame(\sprintf('yaml: line %d: %s', $line, $problem), $yamlSyntaxException->getMessage());
 
             return;

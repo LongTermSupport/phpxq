@@ -515,7 +515,7 @@ final class YamlWriter
         if ('' !== $value && !mb_check_encoding($value, 'UTF-8')) {
             $encoded = base64_encode($value);
             $value   = implode("\n", str_split($encoded, 70));
-            $stag    = '!!binary';
+            $stag    = CoreSchema::TAG_BINARY;
             $tag     = $stag;
             $style   = NodeStyleEnum::Default;
         }

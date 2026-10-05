@@ -14,7 +14,7 @@ final class ScanCommentTest extends TestCase
 {
     public function testItCarriesWhatTheScannerRecorded(): void
     {
-        $comment = new ScanComment(1, 2, 3, 4, 5, 6, 7, 8, '# h', '', '');
+        $comment = new ScanComment(1, 2, 3, 4, 5, 6, '# h', '', '');
 
         self::assertSame('# h', $comment->head);
         self::assertSame(5, $comment->startColumn);
@@ -23,7 +23,7 @@ final class ScanCommentTest extends TestCase
 
     public function testCloneKeepsTheValues(): void
     {
-        $comment = new ScanComment(1, 2, 3, 4, 5, 6, 7, 8, '', '# l', '');
+        $comment = new ScanComment(1, 2, 3, 4, 5, 6, '', '# l', '');
 
         self::assertEquals($comment, clone $comment);
     }

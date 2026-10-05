@@ -18,8 +18,6 @@ final readonly class ScanComment
         public int $startLine,
         public int $startColumn,
         public int $endIndex,
-        public int $endLine,
-        public int $endColumn,
         public string $head = '',
         public string $line = '',
         public string $foot = '',
