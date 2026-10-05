@@ -43,8 +43,28 @@ final class DefaultBuiltinRegistryTest extends TestCase
         $registry = new DefaultBuiltinRegistry();
         $registry->register($this->builtin('length', 0));
 
-        $this->expectException(InvalidArgumentException::class);
-        $registry->register($this->builtin('length', 0));
+        try {
+            $registry->register($this->builtin('length', 0));
+            self::fail('expected an InvalidArgumentException');
+        } catch (InvalidArgumentException $invalidArgumentException) {
+            self::assertSame('Builtin already registered: length/0', $invalidArgumentException->getMessage());
+        }
+    }
+
+    public function testLazyLoaderIsNotRunAgainWhenItRegistersNothing(): void
+    {
+        $registry = new DefaultBuiltinRegistry();
+        $calls    = new class {
+            public int $count = 0;
+        };
+        $registry->registerLazy(static function () use ($calls): void {
+            ++$calls->count;
+        }, 'ghost/0', 'phantom/1');
+
+        self::assertNull($registry->lookup('ghost', 0));
+        self::assertNull($registry->lookup('ghost', 0));
+        self::assertNull($registry->lookup('phantom', 1));
+        self::assertSame(1, $calls->count);
     }
 
     public function testLazyLoaderRunsOnFirstLookupOfAnyOfItsNamesAndOnlyOnce(): void

@@ -20,6 +20,11 @@ final class HaltExceptionTest extends TestCase
         self::assertSame("bye\n", $halt->stderrText);
     }
 
+    public function testMessageIsHalt(): void
+    {
+        self::assertSame('halt', new HaltException(1)->getMessage());
+    }
+
     public function testPlainHaltHasNoStderrText(): void
     {
         self::assertNull(new HaltException(0)->stderrText);

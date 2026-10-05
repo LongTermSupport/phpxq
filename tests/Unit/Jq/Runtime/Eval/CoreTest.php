@@ -151,6 +151,41 @@ final class CoreTest extends TestCase
         self::assertSame([[2, 3, 2, 1]], $seen);
     }
 
+    public function testPreludeDefinitionsInOneChunkCannotCallLaterOnes(): void
+    {
+        $registry = new DefaultBuiltinRegistry();
+        $registry->addPrelude('def first: second; def second: 1;');
+
+        $parser = new Parser(new Lexer());
+
+        try {
+            new Compiler($registry, $parser, new FileModuleLoader([], $parser, new JsonDecoder()))
+                ->compile($parser->parse('first'))
+            ;
+            self::fail('expected a compile error');
+        } catch (JqCompileException $jqCompileException) {
+            self::assertSame('second/0 is not defined at <top-level>, line 1:', $jqCompileException->getMessage());
+        }
+    }
+
+    public function testPreludeDefinitionsKeepTheIntrinsicsInOneChunk(): void
+    {
+        $registry = new DefaultBuiltinRegistry();
+        $registry->addPrelude('def not: 99; def other: 1;');
+
+        $parser  = new Parser(new Lexer());
+        $program = new Compiler($registry, $parser, new FileModuleLoader([], $parser, new JsonDecoder()))
+            ->compile($parser->parse('[(true | not), other]'))
+        ;
+
+        $seen = [];
+        $program->run(new StubContext(), null, static function (mixed $value) use (&$seen): void {
+            $seen[] = $value;
+        });
+
+        self::assertSame([[false, 1]], $seen);
+    }
+
     public function testPreludeIsNotCompiledUntilUsed(): void
     {
         $registry = new DefaultBuiltinRegistry();
