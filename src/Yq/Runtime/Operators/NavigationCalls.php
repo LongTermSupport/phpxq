@@ -38,8 +38,10 @@ final readonly class NavigationCalls implements CallOperatorInterface
             BuiltinNameEnum::Line,
             BuiltinNameEnum::Column,
             BuiltinNameEnum::DocumentIndex,
+            BuiltinNameEnum::DocumentIndexCamel,
             BuiltinNameEnum::DocumentIndexShort,
             BuiltinNameEnum::FileIndex,
+            BuiltinNameEnum::FileIndexCamel,
             BuiltinNameEnum::FileIndexShort,
             BuiltinNameEnum::Filename,
             BuiltinNameEnum::SplitDoc,
@@ -123,10 +125,12 @@ final readonly class NavigationCalls implements CallOperatorInterface
                 return [Cands::derive(NodeOps::int(Cands::node($match)->column), $match)];
 
             case BuiltinNameEnum::DocumentIndex:
+            case BuiltinNameEnum::DocumentIndexCamel:
             case BuiltinNameEnum::DocumentIndexShort:
                 return [Cands::derive(NodeOps::int($match->documentIndex), $match)];
 
             case BuiltinNameEnum::FileIndex:
+            case BuiltinNameEnum::FileIndexCamel:
             case BuiltinNameEnum::FileIndexShort:
                 return [Cands::derive(NodeOps::int($match->fileIndex), $match)];
 

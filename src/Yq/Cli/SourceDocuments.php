@@ -97,7 +97,7 @@ final readonly class SourceDocuments
             throw new CliException(\sprintf('read %s: is a directory', $name));
         }
 
-        if (!is_file($name)) {
+        if (!file_exists($name)) {
             throw new CliException(\sprintf('open %s: no such file or directory', $name));
         }
 

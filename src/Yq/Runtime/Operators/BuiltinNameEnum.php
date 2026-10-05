@@ -119,9 +119,13 @@ enum BuiltinNameEnum: string
 
     case DocumentIndex = 'document_index';
 
+    case DocumentIndexCamel = 'documentIndex';
+
     case DocumentIndexShort = 'di';
 
     case FileIndex = 'file_index';
+
+    case FileIndexCamel = 'fileIndex';
 
     case FileIndexShort = 'fi';
 
