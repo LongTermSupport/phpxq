@@ -745,6 +745,158 @@ final class YamlEmitterTest extends TestCase
         );
     }
 
+    #[DataProvider('scalarCases')]
+    public function testEmitsScalarsLikeGoYaml(Node $node, EmitOptions $options, string $expected): void
+    {
+        self::assertSame($expected, new YamlEmitter()->emit($node, $options));
+    }
+
+    /**
+     * @return iterable<string, array{Node, EmitOptions, string}>
+     */
+    public static function scalarCases(): iterable
+    {
+        $esc    = "\x1b[";
+        $plain  = new EmitOptions();
+        $colour = new EmitOptions(colors: true);
+        $under  = static fn (string $value, string $tag): Node => self::kv(Node::scalar($value, $tag));
+        $folded = static fn (string $value): Node => self::kv(Node::scalar($value, '!!str', NodeStyleEnum::Folded));
+        $block  = static fn (string $value): Node => self::kv(Node::scalar($value, '!!str', NodeStyleEnum::Literal));
+
+        // Folded scalars: go-yaml adds a blank line between lines of text unless the value starts with a blank.
+        yield 'folded two lines' => [$folded("a\nb"), $plain, "k: >-\n  a\n\n  b\n"];
+
+        yield 'folded blank line' => [$folded("a\n\nb"), $plain, "k: >-\n  a\n\n\n  b\n"];
+
+        yield 'folded indented line' => [$folded("a\n b\nc"), $plain, "k: >-\n  a\n\n   b\n  c\n"];
+
+        yield 'folded starting with a space' => [$folded(" a\nb"), $plain, "k: >2-\n   a\n  b\n"];
+
+        yield 'folded three lines' => [$folded("a\nb\nc"), $plain, "k: >-\n  a\n\n  b\n\n  c\n"];
+
+        yield 'folded keeps blank runs' => [$folded("a\n\n\nb\n"), $plain, "k: >\n  a\n\n\n\n  b\n\n"];
+
+        yield 'folded leading break' => [$folded("\na"), $plain, "k: >2-\n\n  a\n"];
+
+        yield 'folded more indented then blank' => [$folded("a\n  b\n\nc"), $plain, "k: >-\n  a\n\n    b\n\n  c\n"];
+
+        yield 'folded starting with a space and ending in a break' => [$folded(" a\nb\n"), $plain, "k: >2\n   a\n  b\n"];
+
+        // Literal scalars and the indentation indicator.
+        yield 'literal starting with a space' => [$block(" a\nb"), $plain, "k: |2-\n   a\n  b\n"];
+
+        yield 'literal starting with a break' => [$block("\na\n"), $plain, "k: |2\n\n  a\n"];
+
+        yield 'literal keeping trailing breaks' => [$block("a\n\n"), $plain, "k: |+\n  a\n\n"];
+
+        yield 'literal indent indicator follows the indent option' => [$block(" a\nb"), new EmitOptions(indent: 4), "k: |4-\n     a\n    b\n"];
+
+        yield 'literal in a sequence' => [Node::sequence([Node::scalar(" a\nb", '!!str', NodeStyleEnum::Literal), Node::scalar('x')]), $plain, "- |2-\n   a\n  b\n- x\n"];
+
+        yield 'root literal' => [Node::scalar(" a\nb", '!!str', NodeStyleEnum::Literal), new EmitOptions(unwrapScalar: false), "|2-\n   a\n  b\n"];
+
+        // Invalid UTF-8 becomes base64 wrapped at 70 characters.
+        yield 'binary of 100 bytes' => [
+            self::kv(Node::scalar(str_repeat("\xFF", 100))),
+            $plain,
+            "k: !!binary |-\n  " . str_repeat('/', 70) . "\n  " . str_repeat('/', 63) . "w==\n",
+        ];
+
+        yield 'binary of 52 bytes' => [
+            self::kv(Node::scalar(str_repeat("\xFF", 52))),
+            $plain,
+            "k: !!binary |-\n  " . str_repeat('/', 69) . "w\n  ==\n",
+        ];
+
+        yield 'binary of 53 bytes' => [
+            self::kv(Node::scalar(str_repeat("\xFF", 53))),
+            $plain,
+            "k: !!binary |-\n  " . str_repeat('/', 70) . "\n  8=\n",
+        ];
+
+        // Strings that would read back as numbers once underscores are ignored are quoted.
+        yield 'string 1_000' => [$under('1_000', '!!str'), $plain, "k: \"1_000\"\n"];
+
+        yield 'string 1_0.5' => [$under('1_0.5', '!!str'), $plain, "k: \"1_0.5\"\n"];
+
+        yield 'string -1_0' => [$under('-1_0', '!!str'), $plain, "k: \"-1_0\"\n"];
+
+        yield 'string +1_0' => [$under('+1_0', '!!str'), $plain, "k: \"+1_0\"\n"];
+
+        yield 'string .5_0' => [$under('.5_0', '!!str'), $plain, "k: \".5_0\"\n"];
+
+        yield 'string a_b' => [$under('a_b', '!!str'), $plain, "k: a_b\n"];
+
+        yield 'string 1_a' => [$under('1_a', '!!str'), $plain, "k: 1_a\n"];
+
+        yield 'string _1' => [$under('_1', '!!str'), $plain, "k: _1\n"];
+
+        yield 'int 1_000' => [$under('1_000', '!!int'), $plain, "k: 1_000\n"];
+
+        // Escapes in double quotes.
+        yield 'control character' => [$under("a\x01b", '!!str'), $plain, "k: \"a\\x01b\"\n"];
+
+        yield 'next line' => [$under("a\u{85}b", '!!str'), $plain, "k: \"a\\Nb\"\n"];
+
+        yield 'noncharacter in the BMP' => [$under("a\u{FFFF}b", '!!str'), $plain, "k: \"a\\uFFFFb\"\n"];
+
+        yield 'byte order mark' => [$under("a\u{FEFF}b", '!!str'), $plain, "k: \"a\\uFEFFb\"\n"];
+
+        yield 'astral character' => [$under("a\u{1F600}b", '!!str'), $plain, "k: \"a\\U0001F600b\"\n"];
+
+        yield 'printable beyond latin 1 beside a tab' => [$under("a\u{100}\t", '!!str'), $plain, "k: \"a\u{100}\\t\"\n"];
+
+        // Colours follow the explicit tag, or the implicit one when there is none.
+        yield 'coloured explicit float' => [$under('1.5', '!!float'), $colour, $esc . '36mk' . $esc . '0m: ' . $esc . '95m1.5' . $esc . "0m\n"];
+
+        yield 'coloured implicit float' => [$under('1.5', ''), $colour, $esc . '36mk' . $esc . '0m: ' . $esc . '95m1.5' . $esc . "0m\n"];
+
+        yield 'coloured explicit bool' => [$under('true', '!!bool'), $colour, $esc . '36mk' . $esc . '0m: ' . $esc . '95mtrue' . $esc . "0m\n"];
+
+        yield 'colour follows an explicit tag over the text' => [$under('abc', '!!int'), $colour, $esc . '36mk' . $esc . '0m: !!int ' . $esc . '95mabc' . $esc . "0m\n"];
+
+        yield 'explicit null has no colour' => [$under('~', '!!null'), $colour, $esc . '36mk' . $esc . "0m: ~\n"];
+
+        yield 'implicit null has no colour' => [$under('null', ''), $colour, $esc . '36mk' . $esc . "0m: null\n"];
+
+        yield 'quoted string that looks like a float' => [
+            $under('1.5', '!!str'),
+            $colour,
+            $esc . '36mk' . $esc . '0m: ' . $esc . '32m"' . $esc . '0m' . $esc . '32m1.5' . $esc . '0m' . $esc . '32m"' . $esc . "0m\n",
+        ];
+
+        // Keys that are not simple use the explicit `?` form.
+        yield 'mapping as key' => [Node::mapping([self::kv(Node::scalar('1'), 'a'), Node::scalar('v')]), $plain, "? a: 1\n: v\n"];
+
+        yield 'sequence as key with mapping value' => [Node::mapping([Node::sequence([Node::scalar('a')]), self::kv(Node::scalar('c'), 'b')]), $plain, "? - a\n: b: c\n"];
+
+        yield 'sequence as key with sequence value' => [Node::mapping([Node::sequence([Node::scalar('a')]), Node::sequence([Node::scalar('b')])]), $plain, "? - a\n: - b\n"];
+
+        yield 'multiline key' => [Node::mapping([Node::scalar("a\nb"), Node::scalar('v')]), $plain, "? |-\n  a\n  b\n: v\n"];
+
+        yield 'multiline key and value' => [Node::mapping([Node::scalar("a\nb"), Node::scalar("x\ny")]), $plain, "? |-\n  a\n  b\n: |-\n  x\n  y\n"];
+
+        yield 'complex key followed by a simple one' => [
+            Node::mapping([Node::sequence([Node::scalar('a')]), Node::scalar('v'), Node::scalar('z'), Node::scalar('w')]),
+            $plain,
+            "? - a\n: v\nz: w\n",
+        ];
+
+        yield 'complex key with a wider indent' => [
+            Node::mapping([Node::sequence([Node::scalar('a')]), Node::scalar('v'), Node::scalar('z'), Node::scalar('w')]),
+            new EmitOptions(indent: 4),
+            "?   - a\n: v\nz: w\n",
+        ];
+    }
+
+    public function testRootHeadCommentOfAScalarComesFirst(): void
+    {
+        $root = Node::scalar('a');
+        $root->headComment = '# top';
+
+        self::assertSame("# top\na\n", new YamlEmitter()->emit($root, new EmitOptions(unwrapScalar: false)));
+    }
+
     public function testCycleThroughAliasesTerminates(): void
     {
         $anchor            = self::map(['a', '1']);
@@ -777,6 +929,11 @@ final class YamlEmitterTest extends TestCase
         }
 
         return Node::mapping($content);
+    }
+
+    private static function kv(Node $value, string $key = 'k'): Node
+    {
+        return Node::mapping([Node::scalar($key), $value]);
     }
 
     private static function anchored(Node $node, string $anchor): Node
