@@ -480,7 +480,7 @@ final class YamlWriter
     private function plainScalarText(Node $node): ?string
     {
         if (
-            NodeKindEnum::Scalar                                                                                                                                     !== $node->kind || NodeStyleEnum::Default !== $node->style || $node->tagExplicit
+            NodeKindEnum::Scalar                                                                                                                                                           !== $node->kind || NodeStyleEnum::Default !== $node->style || $node->tagExplicit
                                                                                                                                                                                      || '' !== $node->anchor || '' !== $node->headComment || '' !== $node->lineComment || '' !== $node->footComment
         ) {
             return null;
@@ -520,8 +520,8 @@ final class YamlWriter
             $style   = NodeStyleEnum::Default;
         }
 
-        $quoted = NodeStyleEnum::DoubleQuoted                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     === $style || NodeStyleEnum::SingleQuoted === $style
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             || NodeStyleEnum::Literal         === $style || NodeStyleEnum::Folded === $style;
+        $quoted = NodeStyleEnum::DoubleQuoted                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  === $style || NodeStyleEnum::SingleQuoted === $style
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          || NodeStyleEnum::Literal         === $style || NodeStyleEnum::Folded === $style;
 
         $force = false;
         if ('' !== $tag && !$node->tagExplicit) {

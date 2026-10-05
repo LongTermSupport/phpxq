@@ -239,7 +239,7 @@ final readonly class ScalarAnalysis
 
         return match (true) {
             0xC2 === $byte                                                                                                                                                                                                   => $second >= 0xA0,
-            $byte > 0xC2 && $byte                                                                                                                                                                                     < 0xED => true,
+            $byte > 0xC2 && $byte                                                                                                                                                                                                       < 0xED => true,
             0xED === $byte                                                                                                                                                                                                   => $second < 0xA0,
             0xEE === $byte                                                                                                                                                                                                   => true,
             0xEF === $byte                                                                                                                                                                                                   => (0xBB !== $second || 0xBF !== \ord($value[$i + 2]))
