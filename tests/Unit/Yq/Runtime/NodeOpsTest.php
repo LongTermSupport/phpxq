@@ -30,6 +30,20 @@ final class NodeOpsTest extends TestCase
 
     private const int ALIAS_LIMIT = 64;
 
+    private const string NULL_TEXT = 'null';
+
+    private const string FLOAT_TEXT = '1.5';
+
+    private const string PLAIN_TAG = 'plain';
+
+    private const string SCALAR_NAME = 'scalar';
+
+    private const string TEXT = 'text';
+
+    private const string SOURCE = 'source';
+
+    private const string TARGET = 'target';
+
     private static function scalar(string $value, string $tag, NodeStyleEnum $style = NodeStyleEnum::Default): Node
     {
         return new Node(NodeKindEnum::Scalar, $tag, $style, $value);
@@ -50,7 +64,7 @@ final class NodeOpsTest extends TestCase
         self::assertSame([CoreSchema::TAG_BOOL, NodeOps::FALSE_TEXT, NodeStyleEnum::Default], [$false->tag, $false->value, $false->style]);
 
         $null = NodeOps::null();
-        self::assertSame([NodeKindEnum::Scalar, CoreSchema::TAG_NULL, NodeStyleEnum::Default, 'null'], [$null->kind, $null->tag, $null->style, $null->value]);
+        self::assertSame([NodeKindEnum::Scalar, CoreSchema::TAG_NULL, NodeStyleEnum::Default, self::NULL_TEXT], [$null->kind, $null->tag, $null->style, $null->value]);
 
         $empty = NodeOps::emptyNull();
         self::assertSame([NodeKindEnum::Scalar, CoreSchema::TAG_NULL, NodeStyleEnum::Default, ''], [$empty->kind, $empty->tag, $empty->style, $empty->value]);
@@ -61,7 +75,7 @@ final class NodeOpsTest extends TestCase
      */
     public static function floatProvider(): Generator
     {
-        yield 'fraction' => [1.5, '1.5', CoreSchema::TAG_FLOAT];
+        yield 'fraction' => [1.5, self::FLOAT_TEXT, CoreSchema::TAG_FLOAT];
 
         yield 'whole number prints as an int' => [2.0, '2', CoreSchema::TAG_INT];
 
@@ -165,11 +179,11 @@ final class NodeOpsTest extends TestCase
      */
     public static function nullProvider(): Generator
     {
-        yield 'null' => [NodeOps::null(), true];
+        yield 'a null' => [NodeOps::null(), true];
 
         yield 'empty null' => [NodeOps::emptyNull(), true];
 
-        yield 'string' => [NodeOps::str('null'), false];
+        yield 'string' => [NodeOps::str(self::NULL_TEXT), false];
 
         yield 'mapping tagged null' => [new Node(NodeKindEnum::Mapping, CoreSchema::TAG_NULL), false];
     }
@@ -192,9 +206,9 @@ final class NodeOpsTest extends TestCase
      */
     public static function effectiveTagProvider(): Generator
     {
-        yield 'mapping' => [NodeOps::map(), CoreSchema::TAG_MAP];
+        yield 'a mapping node' => [NodeOps::map(), CoreSchema::TAG_MAP];
 
-        yield 'sequence' => [NodeOps::seq(), CoreSchema::TAG_SEQ];
+        yield 'a sequence node' => [NodeOps::seq(), CoreSchema::TAG_SEQ];
 
         yield 'mapping keeps no custom tag' => [new Node(NodeKindEnum::Mapping, self::CUSTOM), CoreSchema::TAG_MAP];
 
@@ -208,17 +222,17 @@ final class NodeOpsTest extends TestCase
 
         yield 'untagged literal' => [self::scalar('5', '', NodeStyleEnum::Literal), CoreSchema::TAG_STR];
 
-        yield 'custom tag on a plain float' => [self::scalar('1.5', self::CUSTOM), CoreSchema::TAG_FLOAT];
+        yield 'custom tag on a plain float' => [self::scalar(self::FLOAT_TEXT, self::CUSTOM), CoreSchema::TAG_FLOAT];
 
-        yield 'custom tag on a quoted number' => [self::scalar('1.5', self::CUSTOM, NodeStyleEnum::DoubleQuoted), CoreSchema::TAG_STR];
+        yield 'custom tag on a quoted number' => [self::scalar(self::FLOAT_TEXT, self::CUSTOM, NodeStyleEnum::DoubleQuoted), CoreSchema::TAG_STR];
 
-        yield 'bare bang on a plain bool' => [self::scalar('true', '!'), CoreSchema::TAG_BOOL];
+        yield 'bare bang on a plain bool' => [self::scalar(NodeOps::TRUE_TEXT, '!'), CoreSchema::TAG_BOOL];
 
         yield 'core tag wins over the value' => [self::scalar('5', CoreSchema::TAG_STR), CoreSchema::TAG_STR];
 
         yield 'core tag on a quoted value' => [self::scalar('x', CoreSchema::TAG_INT, NodeStyleEnum::SingleQuoted), CoreSchema::TAG_INT];
 
-        yield 'tag without a bang' => [self::scalar('5', 'plain'), 'plain'];
+        yield 'tag without a bang' => [self::scalar('5', self::PLAIN_TAG), self::PLAIN_TAG];
 
         yield 'double bang only' => [self::scalar('5', '!!'), '!!'];
     }
@@ -234,7 +248,7 @@ final class NodeOpsTest extends TestCase
      */
     public static function truthProvider(): Generator
     {
-        yield 'true' => [self::scalar('true', CoreSchema::TAG_BOOL), true, true];
+        yield 'true bool' => [self::scalar(NodeOps::TRUE_TEXT, CoreSchema::TAG_BOOL), true, true];
 
         yield 'mixed case true' => [self::scalar('True', CoreSchema::TAG_BOOL), true, true];
 
@@ -244,19 +258,19 @@ final class NodeOpsTest extends TestCase
 
         yield 'upper case false' => [self::scalar('FALSE', CoreSchema::TAG_BOOL), false, false];
 
-        yield 'null' => [NodeOps::null(), false, false];
+        yield 'null scalar' => [NodeOps::null(), false, false];
 
         yield 'zero' => [NodeOps::int(0), true, false];
 
         yield 'empty string' => [NodeOps::str(''), true, false];
 
-        yield 'string true is no bool' => [NodeOps::str('true'), true, false];
+        yield 'string true is no bool' => [NodeOps::str(NodeOps::TRUE_TEXT), true, false];
 
-        yield 'plain true under a custom tag' => [self::scalar('true', self::CUSTOM), true, true];
+        yield 'plain true under a custom tag' => [self::scalar(NodeOps::TRUE_TEXT, self::CUSTOM), true, true];
 
-        yield 'sequence' => [NodeOps::seq(), true, false];
+        yield 'a sequence is truthy' => [NodeOps::seq(), true, false];
 
-        yield 'mapping' => [NodeOps::map(), true, false];
+        yield 'a mapping is truthy' => [NodeOps::map(), true, false];
     }
 
     #[DataProvider('truthProvider')]
@@ -277,9 +291,9 @@ final class NodeOpsTest extends TestCase
 
         yield 'alias' => [new Node(NodeKindEnum::Alias), 'alias'];
 
-        yield 'scalar' => [NodeOps::int(1), 'scalar'];
+        yield 'an int' => [NodeOps::int(1), self::SCALAR_NAME];
 
-        yield 'document' => [new Node(NodeKindEnum::Document), 'scalar'];
+        yield 'document' => [new Node(NodeKindEnum::Document), self::SCALAR_NAME];
     }
 
     #[DataProvider('kindNameProvider')]
@@ -293,7 +307,7 @@ final class NodeOpsTest extends TestCase
      */
     public static function mergeKeyProvider(): Generator
     {
-        yield 'plain' => [self::scalar('<<', CoreSchema::TAG_STR), true];
+        yield 'a plain key' => [self::scalar('<<', CoreSchema::TAG_STR), true];
 
         yield 'single quoted' => [self::scalar('<<', CoreSchema::TAG_STR, NodeStyleEnum::SingleQuoted), false];
 
@@ -312,10 +326,10 @@ final class NodeOpsTest extends TestCase
 
     public function testScalarTextOfAScalarAnAliasAndACollection(): void
     {
-        $scalar = NodeOps::str('text');
+        $scalar = NodeOps::str(self::TEXT);
 
-        self::assertSame('text', NodeOps::scalarText($scalar));
-        self::assertSame('text', NodeOps::scalarText(Node::alias('a', $scalar)));
+        self::assertSame(self::TEXT, NodeOps::scalarText($scalar));
+        self::assertSame(self::TEXT, NodeOps::scalarText(Node::alias('a', $scalar)));
         self::assertSame('', NodeOps::scalarText(NodeOps::seq([$scalar])));
         self::assertSame('', NodeOps::scalarText(Node::alias('a', NodeOps::map([$scalar, $scalar]))));
     }
@@ -517,11 +531,11 @@ final class NodeOpsTest extends TestCase
      */
     public static function commentProvider(): Generator
     {
-        yield 'source comments replace the target ones' => ['target', 'source', 'source'];
+        yield 'source comments replace the target ones' => [self::TARGET, self::SOURCE, self::SOURCE];
 
-        yield 'the target comments stay without a source one' => ['target', '', 'target'];
+        yield 'the target comments stay without a source one' => [self::TARGET, '', self::TARGET];
 
-        yield 'a source comment lands on an uncommented target' => ['', 'source', 'source'];
+        yield 'a source comment lands on an uncommented target' => ['', self::SOURCE, self::SOURCE];
 
         yield 'no comment at all' => ['', '', ''];
     }
