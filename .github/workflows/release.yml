@@ -1,0 +1,382 @@
+# ============================================================================
+# Release: builds, verifies and publishes phpxq. Full process: docs/RELEASING.md
+# ============================================================================
+#
+# Trigger: a push to the `release` branch, i.e. the merge of the release pull request (chore/release, opened
+# by release-pr.yml) into `release` (or a manual run of this workflow from the `release` branch).
+#
+#   preflight  VERSION, the newest CHANGELOG.md section and the tags must agree and tag vX.Y.Z must be
+#              free, else it refuses. A commit whose `## Unreleased` still has entries (the push that
+#              creates the branch) is not a release commit: every later stage is skipped.
+#   qa         the full QA gate plus the unit and conformance suites
+#   phar       reproducible PHAR (built twice, must be byte-identical), smoke-tested
+#   binary     static binaries per platform, smoke-tested with an empty environment
+#   release    SHA256SUMS, git tag vX.Y.Z at the merged commit, GitHub Release with the changelog notes
+#   verify     installs the PUBLISHED release with install.sh and checks the version it reports
+#   backmerge  opens the pull request release -> main so VERSION and CHANGELOG.md converge
+#   report     step summary of every stage, so a failure is visible without opening logs
+#
+# Every stage must succeed for a release to be published. The only deliberately tolerated failure is a
+# macOS binary (marked `optional` in the matrix): it produces a loud warning and the release ships
+# without that asset. Flip `optional` to false to make a platform mandatory.
+#
+# REQUIRED GITHUB CONFIGURATION (details in docs/RELEASING.md)
+# - Settings > Actions > General > Workflow permissions: Read and write, with "Allow GitHub Actions to
+#   create and approve pull requests" ticked (the back-merge opens a pull request).
+# - Protect the `release` branch: require pull requests, require the QA "gate" check, restrict who
+#   can push, and block force pushes and deletion.
+# ============================================================================
+
+name: Release
+
+on:
+  push:
+    branches:
+      - release
+  workflow_dispatch:
+
+# Never cancel a release in flight; a second push to `release` queues behind it.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  PHP_QA_CI_DISABLE_CONFIG_PUSH: 'true'
+
+jobs:
+  preflight:
+    name: Preflight (VERSION, tag free)
+    runs-on: ubuntu-latest
+    outputs:
+      releasable: ${{ steps.pre.outputs.releasable }}
+      version: ${{ steps.pre.outputs.version }}
+      tag: ${{ steps.pre.outputs.tag }}
+      prerelease: ${{ steps.pre.outputs.prerelease }}
+    steps:
+      - name: Releases only come from the release branch
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF}" != "refs/heads/release" ]; then
+            echo "::error title=Release refused::this workflow publishes releases and may only run on the 'release' branch (ref: ${GITHUB_REF})"
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+          extensions: mbstring, intl, json, zip, dom, curl, libxml, xml, simplexml, iconv, pdo, phar
+
+      # The changelog parser behind `scripts/release.php verify` is a php-qa-ci dev dependency.
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist --no-scripts
+
+      - name: Refuse unless VERSION, CHANGELOG.md and the tags agree and the tag is free
+        id: pre
+        run: scripts/release-preflight.bash
+
+  qa:
+    name: QA gate (full vendor/bin/qa, conformance)
+    needs: preflight
+    if: ${{ needs.preflight.outputs.releasable == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      # Full history: the changelog lane measures the release from its merge base with main.
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+          extensions: mbstring, intl, json, zip, dom, curl, libxml, xml, simplexml, iconv, pdo, phar
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader --no-scripts
+
+      - name: Full QA pipeline (coding standards read-only, static analysis, unit and conformance tests)
+        env:
+          CI: 'true'
+        run: vendor/bin/qa
+
+      - name: Upstream conformance, PHP and shell suites (known gaps enforced)
+        run: scripts/conformance.bash all
+
+  phar:
+    name: Build PHAR
+    needs: [preflight, qa]
+    if: ${{ needs.preflight.outputs.releasable == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+          extensions: mbstring, phar
+
+      - name: Build the PHAR, twice, and require identical bytes
+        run: scripts/build-phar.bash --check-reproducible
+
+      - name: Smoke-test the PHAR
+        run: scripts/smoke-test.bash --expect-version "${{ needs.preflight.outputs.version }}" dist/phpxq.phar
+
+      - name: Upload PHAR
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: phar
+          path: dist/phpxq.phar
+          if-no-files-found: error
+          retention-days: 14
+
+  binary:
+    name: Static binary (${{ matrix.platform }})
+    needs: [preflight, phar]
+    if: ${{ needs.preflight.outputs.releasable == 'true' }}
+    runs-on: ${{ matrix.runner }}
+    continue-on-error: ${{ matrix.optional }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-x86_64
+            runner: ubuntu-latest
+            optional: false
+          - platform: linux-aarch64
+            runner: ubuntu-24.04-arm
+            optional: false
+          - platform: macos-aarch64
+            runner: macos-latest
+            optional: true
+          - platform: macos-x86_64
+            runner: macos-15-intel
+            optional: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up PHP (runs the build scripts and Composer only; the binary embeds its own runtime)
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+          extensions: mbstring, phar
+
+      - name: Download the PHAR
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: phar
+          path: dist
+
+      - name: Cache static-php-cli downloads
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: build/spc-${{ matrix.platform }}/downloads
+          key: spc-${{ matrix.platform }}-${{ hashFiles('packaging/tools.env', 'packaging/extensions.txt', 'composer.json') }}
+
+      - name: Build the static binary
+        run: scripts/build-binary.bash --platform "${{ matrix.platform }}" --output "dist/phpxq-${{ matrix.platform }}"
+
+      - name: Smoke-test the binary with an empty environment
+        run: scripts/smoke-test.bash --static --expect-version "${{ needs.preflight.outputs.version }}" "dist/phpxq-${{ matrix.platform }}"
+
+      - name: Upload binary
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: binary-${{ matrix.platform }}
+          path: dist/phpxq-${{ matrix.platform }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Say loudly that an optional platform failed
+        if: ${{ failure() && matrix.optional }}
+        run: echo "::warning title=Optional binary failed::${{ matrix.platform }} did not build; the release will ship without it"
+
+  release:
+    name: Tag and publish GitHub Release
+    needs: [preflight, qa, phar, binary]
+    if: ${{ needs.preflight.outputs.releasable == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+          extensions: mbstring, intl, json, zip, dom, curl, libxml, xml, simplexml, iconv, pdo, phar
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist --no-scripts
+
+      - name: Download every artefact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Assemble assets and SHA256SUMS (fails if a required asset is missing)
+        run: scripts/release-assets.bash release-assets
+
+      - name: Re-check that VERSION, CHANGELOG.md and the tags still agree and the tag is still free
+        run: scripts/release-preflight.bash
+
+      - name: Create the tag and the GitHub Release from the changelog section
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.preflight.outputs.tag }}
+          VERSION: ${{ needs.preflight.outputs.version }}
+          PRERELEASE: ${{ needs.preflight.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+          scripts/release.bash notes "${VERSION}" > "${RUNNER_TEMP}/release-notes.md"
+          flags=()
+          if [ "${PRERELEASE}" = "true" ]; then
+            flags+=(--prerelease)
+          fi
+          gh release create "${TAG}" release-assets/* \
+            --target "${GITHUB_SHA}" \
+            --title "phpxq ${VERSION}" \
+            --notes-file "${RUNNER_TEMP}/release-notes.md" \
+            "${flags[@]}"
+          echo "Published ${TAG}: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${TAG}" >> "${GITHUB_STEP_SUMMARY}"
+
+  verify:
+    name: Verify published release (${{ matrix.runner }})
+    needs: [preflight, release]
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    steps:
+      - name: Install the published release with the published install.sh
+        env:
+          TAG: ${{ needs.preflight.outputs.tag }}
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/${TAG}/install.sh" --output install.sh
+          PHPXQ_REPO="${GITHUB_REPOSITORY}" sh install.sh --version "${VERSION}" --dir "${RUNNER_TEMP}/bin" --links
+          reported="$(env -i "${RUNNER_TEMP}/bin/phpxq" --version | head -n 1)"
+          if [ "${reported}" != "phpxq ${VERSION}" ]; then
+            echo "::error title=Published release is wrong::installed binary reports '${reported}', expected 'phpxq ${VERSION}'"
+            exit 1
+          fi
+          echo "Verified: ${reported}"
+
+      - name: Say loudly that the published release needs attention
+        if: ${{ failure() }}
+        run: echo "::error title=Release published but verification FAILED::${{ needs.preflight.outputs.tag }} is live and may be broken. Inspect it and, if needed, delete the release and tag, bump VERSION and release again (see docs/RELEASING.md)."
+
+  # Once the release is published, bring main in line with it (VERSION and CHANGELOG.md) through a pull request
+  # release -> main. It runs whether or not verify passed: the version is out either way. A failure here
+  # never undoes the release; the report job turns it into a warning.
+  backmerge:
+    name: Open the back-merge pull request (release into main)
+    needs: [preflight, release]
+    if: ${{ always() && needs.release.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout with history and tags
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+          extensions: mbstring, intl, json, zip, dom, curl, libxml, xml, simplexml, iconv, pdo, phar
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist --no-scripts
+
+      - name: Open or refresh the back-merge pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/release-backmerge.bash
+
+  report:
+    name: Release summary
+    if: ${{ always() }}
+    needs: [preflight, qa, phar, binary, release, verify, backmerge]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summarise every stage
+        env:
+          PREFLIGHT: ${{ needs.preflight.result }}
+          RELEASABLE: ${{ needs.preflight.outputs.releasable }}
+          QA: ${{ needs.qa.result }}
+          PHAR: ${{ needs.phar.result }}
+          BINARY: ${{ needs.binary.result }}
+          RELEASE: ${{ needs.release.result }}
+          VERIFY: ${{ needs.verify.result }}
+          BACKMERGE: ${{ needs.backmerge.result }}
+          TAG: ${{ needs.preflight.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ "${PREFLIGHT}" = "success" ] && [ "${RELEASABLE}" = "false" ]; then
+            {
+              echo "## Not a release commit"
+              echo ""
+              echo "\`## Unreleased\` still has entries, so nothing is released from this commit. Releases come from the release pull request (docs/RELEASING.md)."
+            } >> "${GITHUB_STEP_SUMMARY}"
+            exit 0
+          fi
+          {
+            echo "## Release ${TAG:-(version unknown)}"
+            echo ""
+            echo "| Stage | Result |"
+            echo "| ----- | ------ |"
+            echo "| preflight | ${PREFLIGHT} |"
+            echo "| qa | ${QA} |"
+            echo "| phar | ${PHAR} |"
+            echo "| binary | ${BINARY} |"
+            echo "| release | ${RELEASE} |"
+            echo "| verify | ${VERIFY} |"
+            echo "| back-merge | ${BACKMERGE} |"
+          } >> "${GITHUB_STEP_SUMMARY}"
+          if [ "${RELEASE}" = "success" ] && [ "${BACKMERGE}" != "success" ]; then
+            echo "::warning title=Back-merge not opened::${TAG} is published but the back-merge pull request (release into main) was not opened (${BACKMERGE}). Merge release into main by hand so VERSION and CHANGELOG.md converge (docs/RELEASING.md)."
+          fi
+          if [ "${RELEASE}" != "success" ] || [ "${VERIFY}" != "success" ]; then
+            echo "::error title=Release did not complete::release=${RELEASE} verify=${VERIFY}; nothing is published unless release=success. See the stage summary."
+            exit 1
+          fi

@@ -1,0 +1,73 @@
+<?php
+
+declare(strict_types=1);
+
+namespace LTS\PhpXq\Jq\Runtime\Eval;
+
+use Closure;
+use LTS\PhpXq\Jq\Runtime\JqException;
+
+/**
+ * `left // right`: every truthy output of left, or, when there is none, the outputs of right. Errors raised
+ * by left are swallowed (they end left's output); errors from the continuation are not.
+ *
+ * @internal
+ */
+final readonly class AltOp implements OpInterface
+{
+    public function __construct(
+        private OpInterface $left,
+        private OpInterface $right,
+    ) {
+    }
+
+    public function run(?Env $env, mixed $input, Closure $emit): void
+    {
+        $found      = false;
+        $downstream = new Downstream();
+        $guarded    = $downstream->guard($emit);
+        try {
+            $this->left->run($env, $input, static function (mixed $value) use (&$found, $guarded): void {
+                if (null === $value || false === $value) {
+                    return;
+                }
+
+                $found = true;
+                $guarded($value);
+            });
+        } catch (JqException $jqException) {
+            if ($downstream->active()) {
+                throw $jqException;
+            }
+        }
+
+        if (!$found) {
+            $this->right->run($env, $input, $emit);
+        }
+    }
+
+    public function paths(?Env $env, ?array $path, mixed $input, Closure $emit): void
+    {
+        $found      = false;
+        $downstream = new Downstream();
+        $guarded    = $downstream->guardPaths($emit);
+        try {
+            $this->left->paths($env, $path, $input, static function (?array $valuePath, mixed $value) use (&$found, $guarded): void {
+                if (null === $value || false === $value) {
+                    return;
+                }
+
+                $found = true;
+                $guarded($valuePath, $value);
+            });
+        } catch (JqException $jqException) {
+            if ($downstream->active()) {
+                throw $jqException;
+            }
+        }
+
+        if (!$found) {
+            $this->right->paths($env, $path, $input, $emit);
+        }
+    }
+}

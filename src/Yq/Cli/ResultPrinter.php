@@ -1,0 +1,203 @@
+<?php
+
+declare(strict_types=1);
+
+namespace LTS\PhpXq\Yq\Cli;
+
+use LTS\PhpXq\Yaml\Emitter\EmitOptions;
+use LTS\PhpXq\Yaml\Emitter\YamlEmitterInterface;
+use LTS\PhpXq\Yaml\Node;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yq\Format\FormatEnum;
+use LTS\PhpXq\Yq\Format\FormatException;
+use LTS\PhpXq\Yq\Format\FormatOptions;
+use LTS\PhpXq\Yq\Format\FormatRegistryInterface;
+use LTS\PhpXq\Yq\Runtime\Candidate;
+
+/**
+ * Writes evaluation results in the output format: document separators between documents, the slurped
+ * header ahead of an unchanged document root, NUL separated output, per-result files for `--split-exp`,
+ * and the bookkeeping `--exit-status` needs.
+ *
+ * YAML is written by the YAML emitter directly; every other format by its encoder.
+ */
+final class ResultPrinter
+{
+    private int $index = 0;
+
+    private bool $printedAnything = false;
+
+    private string $previousKey = '';
+
+    /**
+     * @param resource $out the main sink (standard output, or the in-place buffer)
+     */
+    public function __construct(
+        private readonly mixed $out,
+        private readonly FormatEnum $format,
+        private readonly EmitOptions $emitOptions,
+        private readonly FormatOptions $formatOptions,
+        private readonly YamlEmitterInterface $emitter,
+        private readonly FormatRegistryInterface $formats,
+        private readonly DocumentRegistry $registry,
+        private readonly bool $nulSeparated,
+        private readonly ?SplitFileWriter $split = null,
+    ) {
+    }
+
+    /**
+     * A separator goes between results whose file or document index differs, as in the reference.
+     *
+     * @throws CliException
+     */
+    public function print(Candidate ...$results): void
+    {
+        foreach ($results as $result) {
+            $this->printOne($result, $result->fileIndex . ':' . $result->documentIndex);
+        }
+    }
+
+    public function printedAnything(): bool
+    {
+        return $this->printedAnything;
+    }
+
+    /**
+     * Writes trailing content (the non-YAML part of a front matter file) and closes split files.
+     */
+    public function finish(string $appendix): void
+    {
+        $this->split?->close();
+        if ('' !== $appendix) {
+            $this->write($this->out, $appendix);
+        }
+    }
+
+    /**
+     * @param resource $sink
+     *
+     * @throws CliException
+     */
+    private function write(mixed $sink, string $text): void
+    {
+        $length  = \strlen($text);
+        $written = 0;
+        set_error_handler(static fn (): bool => true);
+
+        try {
+            while ($written < $length) {
+                $chunk = fwrite($sink, 0 === $written ? $text : substr($text, $written));
+                if (false === $chunk || 0 === $chunk) {
+                    throw new CliException('write failed', CliException::BROKEN_PIPE);
+                }
+
+                $written += $chunk;
+            }
+        } finally {
+            restore_error_handler();
+        }
+    }
+
+    private function printOne(Candidate $result, string $key): void
+    {
+        $node = $result->node;
+        $this->guardNul($node);
+
+        $sink      = $this->split instanceof SplitFileWriter ? $this->split->open($result, $this->index) : $this->out;
+        $separator = 0 !== $this->index && $key !== $this->previousKey;
+
+        $text = FormatEnum::Yaml === $this->format
+            ? $this->renderYaml($node, $separator)
+            : $this->renderOther($node);
+
+        if ($this->nulSeparated) {
+            $text = (str_ends_with($text, "\n") ? substr($text, 0, -1) : $text) . "\0";
+        }
+
+        $this->write($sink, $text);
+
+        $this->previousKey = $key;
+        ++$this->index;
+        if (!$this->isNullOrFalse($node)) {
+            $this->printedAnything = true;
+        }
+    }
+
+    private function renderYaml(Node $node, bool $separator): string
+    {
+        $text     = '';
+        $document = NodeKindEnum::Document === $node->kind;
+        $header   = $node->commentsCleared ? '' : $node->leadingContent;
+
+        if ($separator && !$this->emitOptions->noDocSeparator && !str_starts_with($header, HeaderSplitter::SEPARATOR_MARKER)) {
+            $text .= "---\n";
+        }
+
+        if ($document) {
+            // Document framing is the printer's business (separators, header), not the document's: the
+            // reference does not keep `---`, `...` or directives on a node either.
+            $node->explicitStart = false;
+            $node->explicitEnd   = false;
+            $node->directives    = '';
+        }
+
+        if ('' !== $header) {
+            $text .= $this->renderHeader($header);
+        }
+
+        if ($document && $this->registry->isUntouchedEmpty($node)) {
+            return $text;
+        }
+
+        return $text . $this->emitter->emit($node, $this->emitOptions);
+    }
+
+    private function renderHeader(string $header): string
+    {
+        $out = '';
+        foreach (explode("\n", substr($header, 0, -1)) as $line) {
+            if (HeaderSplitter::SEPARATOR_MARKER === $line) {
+                if (!$this->emitOptions->noDocSeparator) {
+                    $out .= "---\n";
+                }
+
+                continue;
+            }
+
+            $out .= $line . "\n";
+        }
+
+        return $out;
+    }
+
+    private function renderOther(Node $node): string
+    {
+        if (FormatEnum::Json === $this->format && $this->emitOptions->unwrapScalar) {
+            $root = $node->root();
+            if (NodeKindEnum::Scalar === $root->kind) {
+                return $root->value . "\n";
+            }
+        }
+
+        try {
+            return $this->formats->encoder($this->format)->encode($node->root(), $this->formatOptions, $this->index);
+        } catch (FormatException $formatException) {
+            throw new CliException($formatException->getMessage(), 0, $formatException);
+        }
+    }
+
+    private function guardNul(Node $node): void
+    {
+        $root = $node->root();
+        if ($this->nulSeparated && $this->emitOptions->unwrapScalar && NodeKindEnum::Scalar === $root->kind && str_contains($root->value, "\0")) {
+            throw new CliException("Can't serialize value because it contains NUL char and you are using NUL separated output");
+        }
+    }
+
+    private function isNullOrFalse(Node $node): bool
+    {
+        $root = $node->root();
+
+        return NodeKindEnum::Scalar === $root->kind && ('!!null' === $root->tag || ('!!bool' === $root->tag && 'false' === $root->value));
+    }
+}

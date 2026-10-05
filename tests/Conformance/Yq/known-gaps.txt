@@ -12,4 +12,14 @@
 #
 # As yq is built, the blanket entry below is replaced by specific, justified entries (one per
 # genuinely unsupported feature) and finally removed once the suite is fully green.
-*	phpxq yq is not implemented yet (Plan 00004)
+
+# yq-eval
+operators/datetime.md: Now	upstream asserts a frozen clock (2021-05-19T01:02:03Z); now is the real time here
+operators/datetime.md: To Unix	upstream asserts a frozen clock (2021-05-19T01:02:03Z); now is the real time here
+operators/datetime.md: Timezone: from standard RFC3339 format	upstream asserts a frozen clock (2021-05-19T01:02:03Z); now is the real time here
+operators/shuffle.md: *	shuffle output is random and the upstream example pins a Go math/rand seeded sequence
+operators/system-operators.md: *	the system operator spawns an external process, deliberately unsupported by phpxq
+
+# yq-eval-r2
+usage/base64.md: Encode base64: string	upstream fixture is damaged: the expected output swallowed trailing markdown ("```" and the next heading)
+usage/base64url.md: Encode base64url: string	upstream fixture is damaged: the expected output swallowed trailing markdown ("```" and the next heading)

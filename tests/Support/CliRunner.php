@@ -28,7 +28,7 @@ final readonly class CliRunner
         $out = $this->stream('');
         $err = $this->stream('');
 
-        $exitCode = $this->controller->run($args, $in, $out, $err);
+        $exitCode = $this->controller->run($in, $out, $err, ...$args);
 
         return new CliResult($exitCode, $this->contents($out), $this->contents($err));
     }

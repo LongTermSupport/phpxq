@@ -241,6 +241,8 @@ jobs:
         run: QA_READONLY=0 vendor/bin/qa -t allCS
 
       - name: Commit & push any fixes back to the PR branch
+        env:
+          HEAD_REF: ${{ github.head_ref }}
         run: |
           set -euo pipefail
           if [ -z "$(git status --porcelain)" ]; then
@@ -253,7 +255,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "ci: apply automated code-style fixes [autofix]"
-          git push origin "HEAD:${{ github.head_ref }}"
+          git push origin "HEAD:${HEAD_REF}"
           echo "Auto-fix: pushed; the gate job checks out this fixed tip in the same run."
 
   # --------------------------------------------------------------------------
@@ -277,6 +279,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref || github.ref }}
+          # Full history: the changelog lane below measures the change from the merge base with main.
+          fetch-depth: 0
 
       - name: Detect PHP version from composer.json
         id: php
@@ -401,7 +405,24 @@ jobs:
           CI: 'true'
         run: vendor/bin/qa -t allCS
 
+      # Every change to a shipped path needs a CHANGELOG.md entry under `## Unreleased` (or a
+      # `Changelog: none - <reason>` commit trailer): the entries choose the next version. The lane measures
+      # from the merge base with main, so it runs on pull requests and branches, not on main itself.
+      - name: Changelog records the change
+        if: ${{ github.ref_name != github.event.repository.default_branch }}
+        env:
+          CI: 'true'
+        run: vendor/bin/qa -t changelog
+
       - name: Static analysis (PHPStan + PHPArkitect)
         env:
           CI: 'true'
         run: vendor/bin/qa -t allStatic
+
+      - name: Tests (unit + gap-aware upstream conformance)
+        env:
+          CI: 'true'
+        run: vendor/bin/qa -t phpunit
+
+      - name: Upstream shell conformance (jq shtest, yq acceptance)
+        run: scripts/conformance-shell.bash all

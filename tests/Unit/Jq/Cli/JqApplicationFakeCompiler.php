@@ -1,0 +1,52 @@
+<?php
+
+declare(strict_types=1);
+
+namespace LTS\PhpXq\Tests\Unit\Jq\Cli;
+
+use Closure;
+use LTS\PhpXq\Jq\Ast\Program;
+use LTS\PhpXq\Jq\Cli\CompilerFactoryInterface;
+use LTS\PhpXq\Jq\Runtime\CompiledProgramInterface;
+use LTS\PhpXq\Jq\Runtime\CompilerInterface;
+use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
+
+/**
+ * Compiler factory and compiler in one: every program compiles to the same closure, and what the CLI
+ * handed over (library paths, global variable names, the AST) is remembered.
+ *
+ * @internal
+ */
+final class JqApplicationFakeCompiler implements CompilerFactoryInterface, CompilerInterface
+{
+    /** @var list<string> */
+    public array $libraryPaths = [];
+
+    /** @var list<string> */
+    public array $globalNames = [];
+
+    public ?Program $program = null;
+
+    /**
+     * @param Closure(RuntimeContextInterface, mixed, Closure(mixed): void): void $behaviour
+     */
+    public function __construct(
+        private readonly Closure $behaviour,
+    ) {
+    }
+
+    public function create(string ...$libraryPaths): CompilerInterface
+    {
+        $this->libraryPaths = array_values($libraryPaths);
+
+        return $this;
+    }
+
+    public function compile(Program $program, array $globalVariables = []): CompiledProgramInterface
+    {
+        $this->program     = $program;
+        $this->globalNames = $globalVariables;
+
+        return new JqApplicationFakeProgram($this->behaviour);
+    }
+}

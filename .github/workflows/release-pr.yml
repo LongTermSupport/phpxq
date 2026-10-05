@@ -1,0 +1,91 @@
+# ============================================================================
+# Release PR: keeps a release pull request open while main has unreleased changes. docs/RELEASING.md
+# ============================================================================
+#
+# Trigger: the QA workflow finished green on a push to `main` (or a manual run).
+#
+#   1. `## Unreleased` in CHANGELOG.md has entries: scripts/release-pr.bash builds chore/release from main
+#      plus one commit that releases them (the changelog gets a `## X.Y.Z - date` section, VERSION the new
+#      version) and opens or refreshes the pull request chore/release into `release`.
+#   2. Nothing is released until a person merges that pull request. The merge is the release decision:
+#      release.yml runs on the push to `release`.
+#   3. `## Unreleased` empty: an open release pull request is closed.
+#
+# The next version is chosen from the Unreleased headings by scripts/release.php (plain SemVer; a breaking
+# change is a minor while the major is 0). The workflow stands down while `release` holds a release that
+# main does not (the back-merge pull request must land first) and while the `release` branch is missing.
+#
+# REQUIRED GITHUB CONFIGURATION (details in docs/RELEASING.md)
+# - Settings > Actions > General > Workflow permissions: Read and write, and "Allow GitHub Actions to
+#   create and approve pull requests" ticked.
+# ============================================================================
+
+name: Release PR
+
+on:
+  workflow_run:
+    workflows: [QA]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+# Never cancel a refresh in flight; the next one queues behind it.
+concurrency:
+  group: release-pr
+  cancel-in-progress: false
+
+env:
+  PHP_QA_CI_DISABLE_CONFIG_PUSH: 'true'
+
+jobs:
+  release-pr:
+    name: Open or refresh the release pull request
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push') }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout main with history and tags
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          fetch-depth: 0
+          fetch-tags: true
+
+      # Only the commit QA verified is acted on. When main has moved on, the run for the newer push does the work.
+      - name: Act only on the verified commit
+        id: head
+        env:
+          VERIFIED: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          if [ -z "${VERIFIED}" ] || [ "$(git rev-parse HEAD)" = "${VERIFIED}" ]; then
+            echo "current=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "::notice::main has moved past ${VERIFIED}; the run for the newer push refreshes the release pull request."
+            echo "current=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Set up PHP
+        if: ${{ steps.head.outputs.current == 'true' }}
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+          extensions: mbstring, intl, json, zip, dom, curl, libxml, xml, simplexml, iconv, pdo, phar
+
+      # The changelog parser is a php-qa-ci dev dependency; --no-scripts keeps the install from writing into the tree.
+      - name: Install dependencies
+        if: ${{ steps.head.outputs.current == 'true' }}
+        run: composer install --no-interaction --no-progress --prefer-dist --no-scripts
+
+      - name: Open or refresh the release pull request
+        if: ${{ steps.head.outputs.current == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/release-pr.bash

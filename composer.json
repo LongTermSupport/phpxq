@@ -3,13 +3,40 @@
     "description": "Pure PHP command-line equivalents of jq and yq",
     "license": "MIT",
     "type": "project",
+    "keywords": [
+        "jq",
+        "yq",
+        "json",
+        "yaml",
+        "cli",
+        "query",
+        "filter"
+    ],
+    "authors": [
+        {
+            "name": "LongTermSupport",
+            "homepage": "https://github.com/LongTermSupport"
+        }
+    ],
+    "homepage": "https://github.com/LongTermSupport/phpxq",
+    "support": {
+        "issues": "https://github.com/LongTermSupport/phpxq/issues",
+        "source": "https://github.com/LongTermSupport/phpxq",
+        "docs": "https://github.com/LongTermSupport/phpxq#readme"
+    },
     "require": {
-        "php": "^8.5"
+        "php": "^8.5",
+        "ext-ctype": "*",
+        "ext-json": "*",
+        "ext-mbstring": "*"
     },
     "require-dev": {
+        "ext-posix": "*",
         "lts/php-qa-ci": "^85.0",
+        "nikic/php-parser": "^5.8",
         "phpunit/phpunit": "^13.4",
-        "sebastian/comparator": "^8.4"
+        "sebastian/comparator": "^8.4",
+        "symfony/process": "^8.1"
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
@@ -20,6 +47,7 @@
     },
     "autoload-dev": {
         "psr-4": {
+            "LTS\\PhpXq\\Release\\": "scripts/Release/",
             "LTS\\PhpXq\\Tests\\": "tests/",
             "QaConfig\\": [
                 "qaConfig/"

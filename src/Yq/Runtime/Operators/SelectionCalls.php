@@ -1,0 +1,347 @@
+<?php
+
+declare(strict_types=1);
+
+namespace LTS\PhpXq\Yq\Runtime\Operators;
+
+use LTS\PhpXq\Yaml\Node;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yq\Expression\Ast\Call;
+use LTS\PhpXq\Yq\Runtime\Args;
+use LTS\PhpXq\Yq\Runtime\CallOperatorInterface;
+use LTS\PhpXq\Yq\Runtime\Candidate;
+use LTS\PhpXq\Yq\Runtime\Cands;
+use LTS\PhpXq\Yq\Runtime\Compare;
+use LTS\PhpXq\Yq\Runtime\EvaluationContext;
+use LTS\PhpXq\Yq\Runtime\EvaluationException;
+use LTS\PhpXq\Yq\Runtime\EvaluatorInterface;
+use LTS\PhpXq\Yq\Runtime\NodeOps;
+use LTS\PhpXq\Yq\Runtime\Numbers;
+use LTS\PhpXq\Yq\Runtime\Traversal;
+
+/**
+ * Filtering and testing operators: `select`, `not`, `has`, `contains`, `any`, `all`, `any_c`, `all_c`,
+ * `first`, `last`, `filter`, `with`, `empty`.
+ */
+final readonly class SelectionCalls implements CallOperatorInterface
+{
+    private const int MAX_DEPTH = 10000;
+
+    public function names(): array
+    {
+        return BuiltinNameEnum::values(
+            BuiltinNameEnum::Select,
+            BuiltinNameEnum::Not,
+            BuiltinNameEnum::Has,
+            BuiltinNameEnum::Contains,
+            BuiltinNameEnum::Any,
+            BuiltinNameEnum::All,
+            BuiltinNameEnum::AnyC,
+            BuiltinNameEnum::AllC,
+            BuiltinNameEnum::First,
+            BuiltinNameEnum::Last,
+            BuiltinNameEnum::Filter,
+            BuiltinNameEnum::With,
+            BuiltinNameEnum::Empty,
+        );
+    }
+
+    public function evaluate(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
+    {
+        return match (BuiltinNameEnum::tryFrom($call->name)) {
+            BuiltinNameEnum::Select                                                                  => $this->select($call, $context, $evaluator),
+            BuiltinNameEnum::Not                                                                     => $this->not($context),
+            BuiltinNameEnum::Has                                                                     => $this->has($call, $context, $evaluator),
+            BuiltinNameEnum::Contains                                                                => $this->contains($call, $context, $evaluator),
+            BuiltinNameEnum::Any, BuiltinNameEnum::All, BuiltinNameEnum::AnyC, BuiltinNameEnum::AllC => $this->anyAll($call, $context, $evaluator),
+            BuiltinNameEnum::First, BuiltinNameEnum::Last                                            => $this->firstLast($call, $context, $evaluator),
+            BuiltinNameEnum::Filter                                                                  => $this->filter($call, $context, $evaluator),
+            BuiltinNameEnum::With                                                                    => $this->with($call, $context, $evaluator),
+            default                                                                                  => [],
+        };
+    }
+
+    /**
+     * @return list<Candidate>
+     */
+    private function select(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
+    {
+        Args::require($call, 1);
+        $read = $context->withDontAutoCreate(true);
+        $out  = [];
+        foreach ($context->matches as $match) {
+            foreach ($evaluator->evaluate($call->arguments[0], $read->withMatches($match)) as $result) {
+                if (NodeOps::truthy(Cands::node($result))) {
+                    $out[] = $match;
+
+                    break;
+                }
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return list<Candidate>
+     */
+    private function not(EvaluationContext $context): array
+    {
+        $out = [];
+        foreach ($context->matches as $match) {
+            $out[] = Cands::derive(NodeOps::bool(!NodeOps::truthy(Cands::node($match))), $match);
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return list<Candidate>
+     */
+    private function has(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
+    {
+        Args::require($call, 1);
+        $out = [];
+        foreach ($context->matches as $match) {
+            $node = NodeOps::deref(Cands::node($match));
+            foreach (Args::results($call, 0, $context, $evaluator, $match) as $key) {
+                $wanted = NodeOps::deref(Cands::node($key));
+                $out[]  = Cands::derive(NodeOps::bool($this->hasKey($node, $wanted)), $match);
+            }
+        }
+
+        return $out;
+    }
+
+    private function hasKey(Node $node, Node $key): bool
+    {
+        if (NodeKindEnum::Mapping === $node->kind) {
+            for ($i = 0, $n = \count($node->content); $i < $n; $i += 2) {
+                if ($node->content[$i]->value === $key->value) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        if (NodeKindEnum::Sequence === $node->kind) {
+            $index = Numbers::of($key);
+
+            return \is_int($index) && $index >= 0 && $index < \count($node->content);
+        }
+
+        return false;
+    }
+
+    /**
+     * @return list<Candidate>
+     */
+    private function contains(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
+    {
+        Args::require($call, 1);
+        $out = [];
+        foreach ($context->matches as $match) {
+            $node = NodeOps::deref(Cands::node($match));
+            foreach (Args::results($call, 0, $context, $evaluator, $match) as $wanted) {
+                $out[] = Cands::derive(NodeOps::bool(self::containsNode($node, NodeOps::deref(Cands::node($wanted)))), $match);
+            }
+        }
+
+        return $out;
+    }
+
+    private static function containsNode(Node $left, Node $right, int $depth = 0): bool
+    {
+        if ($depth > self::MAX_DEPTH) {
+            throw new EvaluationException('contains exceeded max depth (alias cycle?)');
+        }
+
+        $left  = NodeOps::deref($left);
+        $right = NodeOps::deref($right);
+        if ($left->kind !== $right->kind) {
+            return false;
+        }
+
+        switch ($left->kind) {
+            case NodeKindEnum::Scalar:
+                if (NodeOps::isNull($left) || NodeOps::isNull($right)) {
+                    return NodeOps::isNull($left) && NodeOps::isNull($right);
+                }
+
+                if (str_contains($left->value, $right->value)) {
+                    return true;
+                }
+
+                return Compare::deepEquals($left, $right);
+
+            case NodeKindEnum::Sequence:
+                foreach ($right->content as $wanted) {
+                    // Indexed loop, not array_any(): the recursion must not run inside a native callback.
+                    $found = false;
+                    for ($position = 0, $count = \count($left->content); $position < $count && !$found; ++$position) {
+                        $found = self::containsNode($left->content[$position], $wanted, $depth + 1);
+                    }
+
+                    if (!$found) {
+                        return false;
+                    }
+                }
+
+                return true;
+
+            case NodeKindEnum::Mapping:
+                for ($i = 0, $n = \count($right->content); $i < $n; $i += 2) {
+                    $found = false;
+                    for ($j = 0, $m = \count($left->content); $j < $m; $j += 2) {
+                        if ($left->content[$j]->value === $right->content[$i]->value) {
+                            $found = self::containsNode($left->content[$j + 1], $right->content[$i + 1], $depth + 1);
+
+                            break;
+                        }
+                    }
+
+                    if (!$found) {
+                        return false;
+                    }
+                }
+
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * @return list<Candidate>
+     */
+    private function anyAll(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
+    {
+        $all       = BuiltinNameEnum::All->value === $call->name || BuiltinNameEnum::AllC->value === $call->name;
+        $condition = str_ends_with($call->name, '_c');
+        if ($condition) {
+            Args::require($call, 1);
+        }
+
+        $read = $context->withDontAutoCreate(true);
+        $out  = [];
+        foreach ($context->matches as $match) {
+            $node = NodeOps::deref(Cands::node($match));
+            if (NodeKindEnum::Sequence !== $node->kind) {
+                throw new EvaluationException(\sprintf('Cannot apply %s to %s', $call->name, $node->tag));
+            }
+
+            $result = $all;
+            foreach (Traversal::values($match, false) as $item) {
+                $truthy = false;
+                if ($condition) {
+                    foreach ($evaluator->evaluate($call->arguments[0], $read->withMatches($item)) as $found) {
+                        $truthy = NodeOps::truthy(Cands::node($found));
+
+                        break;
+                    }
+                } else {
+                    $truthy = NodeOps::truthy(Cands::node($item));
+                }
+
+                if ($all && !$truthy) {
+                    $result = false;
+
+                    break;
+                }
+
+                if (!$all && $truthy) {
+                    $result = true;
+
+                    break;
+                }
+            }
+
+            $out[] = Cands::derive(NodeOps::bool($result), $match);
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return list<Candidate>
+     */
+    private function firstLast(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
+    {
+        $read = $context->withDontAutoCreate(true);
+        $out  = [];
+        foreach ($context->matches as $match) {
+            $node = NodeOps::deref(Cands::node($match));
+            if (NodeKindEnum::Mapping !== $node->kind && NodeKindEnum::Sequence !== $node->kind) {
+                continue;
+            }
+
+            $children = Traversal::values($match, false);
+            if (BuiltinNameEnum::Last->value === $call->name) {
+                $children = array_reverse($children);
+            }
+
+            if ([] === $call->arguments) {
+                if ([] !== $children) {
+                    $out[] = $children[0];
+                }
+
+                continue;
+            }
+
+            foreach ($children as $child) {
+                foreach ($evaluator->evaluate($call->arguments[0], $read->withMatches($child)) as $found) {
+                    if (NodeOps::truthy(Cands::node($found))) {
+                        $out[] = $child;
+
+                        break 2;
+                    }
+                }
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return list<Candidate>
+     */
+    private function filter(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
+    {
+        Args::require($call, 1);
+        $read = $context->withDontAutoCreate(true);
+        $out  = [];
+        foreach ($context->matches as $match) {
+            $items = [];
+            foreach (Traversal::values($match, false) as $child) {
+                foreach ($evaluator->evaluate($call->arguments[0], $read->withMatches($child)) as $found) {
+                    if (NodeOps::truthy(Cands::node($found))) {
+                        $items[] = $child->node->deepCopy();
+
+                        break;
+                    }
+                }
+            }
+
+            $out[] = Cands::derive(NodeOps::seq($items), $match);
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return list<Candidate>
+     */
+    private function with(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
+    {
+        $call = Args::split($call, 2);
+        Args::require($call, 2);
+        $write = $context->withDontAutoCreate(false);
+        foreach ($evaluator->evaluate($call->arguments[0], $write) as $target) {
+            $evaluator->evaluate($call->arguments[1], $write->withMatches($target));
+        }
+
+        return $context->matches;
+    }
+}

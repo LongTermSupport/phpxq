@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Support\Conformance;
 
 use JsonException;
+use LTS\PhpXq\Cli\ToolEnum;
 use LTS\PhpXq\Tests\Support\CliRunner;
 use LTS\PhpXq\Tests\Support\Jq\JqTestCase;
 use LTS\PhpXq\Tests\Support\Jq\JqTestFileParser;
@@ -32,6 +33,8 @@ final readonly class JqConformanceSuite implements ConformanceSuiteInterface
 
     private const int EXIT_COMPILE_ERROR = 3;
 
+    private const int EXIT_RUNTIME_ERROR = 5;
+
     private string $directory;
 
     /**
@@ -47,7 +50,7 @@ final readonly class JqConformanceSuite implements ConformanceSuiteInterface
 
     public function name(): string
     {
-        return 'jq';
+        return ToolEnum::Jq->value;
     }
 
     public function cases(): iterable
@@ -63,7 +66,22 @@ final readonly class JqConformanceSuite implements ConformanceSuiteInterface
         }
     }
 
+    /**
+     * Upstream runs its .test files with PAGER=less in the environment (man.test reads `$ENV.PAGER`).
+     */
     private function evaluate(JqTestCase $case, CliRunner $runner): ?string
+    {
+        $previous = getenv('PAGER');
+        putenv('PAGER=less');
+
+        try {
+            return $this->evaluateCase($case, $runner);
+        } finally {
+            putenv(false === $previous ? 'PAGER' : 'PAGER=' . $previous);
+        }
+    }
+
+    private function evaluateCase(JqTestCase $case, CliRunner $runner): ?string
     {
         $modules = $this->directory . '/modules';
 
@@ -77,9 +95,18 @@ final readonly class JqConformanceSuite implements ConformanceSuiteInterface
             return '' === $result->stdout ? null : 'expected empty stdout, got: ' . $result->stdout;
         }
 
-        $result = $runner->run(['jq', '-L', $modules, '-c', '--', $case->program], $case->input . "\n");
+        // jq's own test runner exports PAGER=less, which the manual's $ENV.PAGER examples rely on.
+        $previousPager = getenv('PAGER');
+        putenv('PAGER=less');
 
-        if (0 !== $result->exitCode) {
+        try {
+            $result = $runner->run(['jq', '-L', $modules, '-c', '--', $case->program], $case->input . "\n");
+        } finally {
+            putenv(false === $previousPager ? 'PAGER' : 'PAGER=' . $previousPager);
+        }
+
+        // jq's own test runner ignores a runtime error raised after every expected output was produced.
+        if (0 !== $result->exitCode && self::EXIT_RUNTIME_ERROR !== $result->exitCode) {
             return \sprintf('expected exit code 0, got exit code %d; stderr: %s', $result->exitCode, $result->stderr);
         }
 
@@ -92,11 +119,12 @@ final readonly class JqConformanceSuite implements ConformanceSuiteInterface
 
         try {
             Factory::getInstance()->getComparatorFor($expected, $actual)->assertEquals($expected, $actual);
-        } catch (ComparisonFailure) {
+        } catch (ComparisonFailure $comparisonFailure) {
             return \sprintf(
-                'output mismatch: expected [%s], got [%s]',
+                'output mismatch: expected [%s], got [%s] (%s)',
                 implode(', ', $case->expectedOutputs),
                 implode(', ', $this->outputLines($result->stdout)),
+                $comparisonFailure->getMessage(),
             );
         }
 

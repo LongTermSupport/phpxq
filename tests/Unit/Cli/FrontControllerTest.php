@@ -6,6 +6,7 @@ namespace LTS\PhpXq\Tests\Unit\Cli;
 
 use LTS\PhpXq\Cli\FrontController;
 use LTS\PhpXq\Cli\FrontControllerInterface;
+use LTS\PhpXq\Cli\ToolEnum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -20,7 +21,7 @@ final class FrontControllerTest extends TestCase
     #[DataProvider('provideUsageErrors')]
     public function testUsageErrorsExitWithTwo(array $args): void
     {
-        [$exit, $stdout, $stderr] = $this->invoke($args);
+        [$exit, $stdout, $stderr] = $this->invoke(...$args);
 
         self::assertSame(FrontControllerInterface::EXIT_USAGE, $exit);
         self::assertSame('', $stdout);
@@ -36,31 +37,37 @@ final class FrontControllerTest extends TestCase
         yield 'unknown tool' => [['sed', 's/a/b/']];
     }
 
-    #[DataProvider('provideTools')]
-    public function testKnownToolsAreNotImplementedYet(string $tool): void
+    public function testYqIsDelegatedToTheYqApplication(): void
     {
-        [$exit, $stdout, $stderr] = $this->invoke([$tool, '.']);
+        [$exit, $stdout, $stderr] = $this->invoke(ToolEnum::Yq->value, '--version');
 
-        self::assertSame(FrontControllerInterface::EXIT_NOT_IMPLEMENTED, $exit);
-        self::assertSame('', $stdout);
-        self::assertStringContainsString($tool . ': not implemented', $stderr);
+        self::assertSame(FrontControllerInterface::EXIT_OK, $exit);
+        self::assertStringStartsWith('yq (https://github.com/mikefarah/yq/) version v', $stdout);
+        self::assertSame('', $stderr);
+    }
+
+    public function testUncaughtErrorsBecomeAnInternalErrorExit(): void
+    {
+        $stdin  = fopen('php://memory', 'rb');
+        $stdout = fopen('php://memory', 'w+b');
+        $stderr = fopen('php://memory', 'w+b');
+        self::assertIsResource($stdin);
+        self::assertIsResource($stdout);
+        self::assertIsResource($stderr);
+        fclose($stdout);
+
+        $exit = new FrontController()->run($stdin, $stdout, $stderr, ToolEnum::Jq->value, '-n', '1');
+
+        rewind($stderr);
+
+        self::assertSame(FrontControllerInterface::EXIT_INTERNAL, $exit);
+        self::assertStringStartsWith('jq: error (at <unknown>): internal error: ', (string)stream_get_contents($stderr));
     }
 
     /**
-     * @return iterable<string, array{string}>
-     */
-    public static function provideTools(): iterable
-    {
-        yield 'jq' => ['jq'];
-        yield 'yq' => ['yq'];
-    }
-
-    /**
-     * @param list<string> $args
-     *
      * @return array{int, string, string}
      */
-    private function invoke(array $args): array
+    private function invoke(string ...$args): array
     {
         $stdin  = fopen('php://memory', 'rb');
         $stdout = fopen('php://memory', 'w+b');
@@ -69,7 +76,7 @@ final class FrontControllerTest extends TestCase
         self::assertIsResource($stdout);
         self::assertIsResource($stderr);
 
-        $exit = new FrontController()->run($args, $stdin, $stdout, $stderr);
+        $exit = new FrontController()->run($stdin, $stdout, $stderr, ...$args);
 
         rewind($stdout);
         rewind($stderr);

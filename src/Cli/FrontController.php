@@ -4,24 +4,28 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Cli;
 
+use Throwable;
+
 /**
  * @api
  */
 final class FrontController implements FrontControllerInterface
 {
-    private const array TOOLS = ['jq', 'yq'];
-
-    public function run(array $args, mixed $stdin, mixed $stdout, mixed $stderr): int
+    public function run(mixed $stdin, mixed $stdout, mixed $stderr, string ...$args): int
     {
-        $tool = $args[0] ?? '';
-        if (!\in_array($tool, self::TOOLS, true)) {
-            fwrite($stderr, "usage: phpxq jq|yq [arguments...]\n");
+        $tool = [] === $args ? null : ToolEnum::tryFrom($args[0]);
+        if (null === $tool) {
+            fwrite($stderr, ToolEnum::usage());
 
             return self::EXIT_USAGE;
         }
 
-        fwrite($stderr, $tool . ": not implemented\n");
+        try {
+            return $tool->run($stdin, $stdout, $stderr, ...\array_slice($args, 1));
+        } catch (Throwable $throwable) {
+            fwrite($stderr, \sprintf("%s: error (at <unknown>): internal error: %s\n", $tool->value, $throwable->getMessage()));
 
-        return self::EXIT_NOT_IMPLEMENTED;
+            return self::EXIT_INTERNAL;
+        }
     }
 }

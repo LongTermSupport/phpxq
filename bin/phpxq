@@ -3,9 +3,24 @@
 
 declare(strict_types=1);
 
+use LTS\PhpXq\Cli\EntryPoint;
+use LTS\PhpXq\Cli\ErrorGuard;
 use LTS\PhpXq\Cli\FrontController;
 
-require \dirname(__DIR__) . '/vendor/autoload.php';
+// The production code has no Composer dependencies, so a PSR-4 closure for the one namespace replaces
+// vendor/autoload.php: Composer's loader, class map and platform check cost about 1.5 ms of CPU on every start
+// (bench `jq:startup`, CLAUDE/Plan/Completed/00007-performance-optimisation-round/results.md).
+spl_autoload_register(static function (string $class): void {
+    if (str_starts_with($class, 'LTS\\PhpXq\\')) {
+        $file = __DIR__ . '/../src/' . strtr(substr($class, 10), '\\', '/') . '.php';
+        if (is_file($file)) {
+            require $file;
+        }
+    }
+});
+
+ErrorGuard::install('phpxq', STDERR);
 
 /** @var list<string> $argv */
-exit((new FrontController())->run(\array_slice($argv, 1), STDIN, STDOUT, STDERR));
+exit(new EntryPoint(new FrontController(), \dirname(__DIR__) . '/VERSION')
+    ->run($argv[0], STDIN, STDOUT, STDERR, ...\array_slice($argv, 1)));

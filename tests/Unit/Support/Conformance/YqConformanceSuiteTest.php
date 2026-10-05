@@ -32,10 +32,10 @@ final class YqConformanceSuiteTest extends TestCase
 
     public function testBuildsCasesAndArguments(): void
     {
-        $this->write([
+        $this->write(
             ['name' => 'one', 'command' => 'eval', 'flags' => ['-o', 'json'], 'expression' => '.a', 'input' => 'a: 1', 'expected' => "1\n"],
             ['name' => 'two', 'command' => null, 'flags' => [], 'expression' => null, 'input' => '', 'expected' => ''],
-        ]);
+        );
 
         $suite = new YqConformanceSuite($this->file);
         $cases = [...$suite->cases()];
@@ -57,7 +57,7 @@ final class YqConformanceSuiteTest extends TestCase
 
     public function testWrongStdoutFails(): void
     {
-        $this->write([['name' => 'one', 'command' => null, 'flags' => [], 'expression' => '.', 'input' => '', 'expected' => "1\n"]]);
+        $this->write(['name' => 'one', 'command' => null, 'flags' => [], 'expression' => '.', 'input' => '', 'expected' => "1\n"]);
         $case = [...new YqConformanceSuite($this->file)->cases()][0];
 
         $runner = new CliRunner($this->controller(static function (array $args, string $stdin, $out): int {
@@ -71,7 +71,7 @@ final class YqConformanceSuiteTest extends TestCase
 
     public function testNonZeroExitFailsEvenWithEmptyExpectedStdout(): void
     {
-        $this->write([['name' => 'empty', 'command' => null, 'flags' => [], 'expression' => '.', 'input' => '', 'expected' => '']]);
+        $this->write(['name' => 'empty', 'command' => null, 'flags' => [], 'expression' => '.', 'input' => '', 'expected' => '']);
         $case = [...new YqConformanceSuite($this->file)->cases()][0];
 
         $runner = new CliRunner($this->controller(static function (array $args, string $stdin, $out, $err): int {
@@ -95,16 +95,16 @@ final class YqConformanceSuiteTest extends TestCase
 
     public function testMalformedCaseThrows(): void
     {
-        $this->write([['name' => 'x']]);
+        $this->write(['name' => 'x']);
         $this->expectException(UnexpectedValueException::class);
 
         [...new YqConformanceSuite($this->file)->cases()];
     }
 
     /**
-     * @param list<array<string, mixed>> $rows
+     * @param array<string, mixed> ...$rows
      */
-    private function write(array $rows): void
+    private function write(array ...$rows): void
     {
         file_put_contents($this->file, json_encode($rows, \JSON_THROW_ON_ERROR));
     }
@@ -122,9 +122,9 @@ final class YqConformanceSuiteTest extends TestCase
             {
             }
 
-            public function run(array $args, mixed $stdin, mixed $stdout, mixed $stderr): int
+            public function run(mixed $stdin, mixed $stdout, mixed $stderr, string ...$args): int
             {
-                return ($this->handler)($args, (string)stream_get_contents($stdin), $stdout, $stderr);
+                return ($this->handler)(array_values($args), (string)stream_get_contents($stdin), $stdout, $stderr);
             }
         };
     }

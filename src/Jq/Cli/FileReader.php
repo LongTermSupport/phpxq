@@ -1,0 +1,61 @@
+<?php
+
+declare(strict_types=1);
+
+namespace LTS\PhpXq\Jq\Cli;
+
+use RuntimeException;
+
+/**
+ * Whole-file reads that fail with jq's wording ("Could not open f: No such file or directory").
+ *
+ * @api
+ */
+final readonly class FileReader
+{
+    private const string OPEN_FAILURE = 'Could not open ';
+
+    private function __construct()
+    {
+    }
+
+    /**
+     * @throws RuntimeException the message is `Could not open <path>: <reason>`
+     */
+    public static function read(string $path): string
+    {
+        if (is_dir($path)) {
+            throw new RuntimeException(self::OPEN_FAILURE . $path . ': Is a directory');
+        }
+
+        if (!file_exists($path)) {
+            throw new RuntimeException(self::OPEN_FAILURE . $path . ': No such file or directory');
+        }
+
+        if (!is_readable($path)) {
+            throw new RuntimeException(self::OPEN_FAILURE . $path . ': Permission denied');
+        }
+
+        $reason = 'Input/output error';
+        set_error_handler(static function (int $level, string $message) use (&$reason): bool {
+            $separator = strrpos($message, ': ');
+            if (false !== $separator) {
+                $reason = substr($message, $separator + 2);
+            }
+
+            return true;
+        });
+
+        try {
+            $contents = file_get_contents($path);
+        } finally {
+            restore_error_handler();
+        }
+
+        if (false === $contents) {
+            throw new RuntimeException(self::OPEN_FAILURE . $path . ': ' . $reason);
+        }
+
+        return $contents;
+    }
+}

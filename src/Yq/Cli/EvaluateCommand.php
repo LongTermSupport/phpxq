@@ -1,0 +1,378 @@
+<?php
+
+declare(strict_types=1);
+
+namespace LTS\PhpXq\Yq\Cli;
+
+use LTS\PhpXq\Yaml\Emitter\EmitOptions;
+use LTS\PhpXq\Yaml\Emitter\YamlEmitterInterface;
+use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
+use LTS\PhpXq\Yaml\Node;
+use LTS\PhpXq\Yaml\NodeKindEnum;
+use LTS\PhpXq\Yaml\NodeStyleEnum;
+use LTS\PhpXq\Yaml\Parser\YamlParserInterface;
+use LTS\PhpXq\Yq\Expression\ExpressionParserInterface;
+use LTS\PhpXq\Yq\Expression\ExpressionSyntaxException;
+use LTS\PhpXq\Yq\Format\FormatEnum;
+use LTS\PhpXq\Yq\Format\FormatException;
+use LTS\PhpXq\Yq\Format\FormatOptions;
+use LTS\PhpXq\Yq\Format\FormatRegistryInterface;
+use LTS\PhpXq\Yq\Runtime\Candidate;
+use LTS\PhpXq\Yq\Runtime\EvaluationContext;
+use LTS\PhpXq\Yq\Runtime\EvaluationException;
+use LTS\PhpXq\Yq\Runtime\EvaluatorInterface;
+use LTS\PhpXq\Yq\Runtime\RuntimeServices;
+use LTS\PhpXq\Yq\Runtime\SecurityOptions;
+use Throwable;
+
+/**
+ * `yq eval` and `yq eval-all` (and the bare `yq`, which is `eval`): resolves the expression and the
+ * files from the arguments, reads the documents, evaluates, and prints the results, in place or to split
+ * files when asked.
+ *
+ * `eval` evaluates the expression once per document, printing as it goes; `eval-all` loads every document
+ * of every file first and evaluates once over all of them.
+ */
+final readonly class EvaluateCommand
+{
+    /** The format names quoted back to the user when `-p`/`-o` names an unknown one. */
+    private const string FORMAT_LIST = 'yaml|json|props|csv|tsv|xml|base64|uri|toml|hcl|shell|lua|kyaml';
+
+    /** The `-p`/`-o` values that ask for the format to be detected from the file name. */
+    private const array AUTO_FORMAT_NAMES = ['auto', 'a', ''];
+
+    public function __construct(
+        private YamlParserInterface $yamlParser,
+        private YamlEmitterInterface $emitter,
+        private ExpressionParserInterface $expressions,
+        private EvaluatorInterface $evaluator,
+        private FormatRegistryInterface $formats,
+        private FormatDetector $detector = new FormatDetector(),
+    ) {
+    }
+
+    /**
+     * @param resource $stdin
+     * @param resource $stdout
+     *
+     * @throws CliException
+     * @throws EvaluationException
+     * @throws ExpressionSyntaxException
+     * @throws FormatException
+     * @throws YamlSyntaxException
+     */
+    public function run(ParsedArguments $args, bool $evalAll, mixed $stdin, mixed $stdout): int
+    {
+        [$expression, $files] = $this->resolveExpression($args);
+        $splitExpression      = $this->splitExpression($args);
+        $nullInput            = $args->bool('null-input');
+        $inPlace              = $args->bool('inplace');
+
+        $this->validate($args, $splitExpression, $nullInput, $inPlace, ...$files);
+
+        if (!$nullInput && [] === $files) {
+            if (stream_isatty($stdin)) {
+                fwrite($stdout, HelpText::root());
+
+                return YqApplicationInterface::EXIT_OK;
+            }
+
+            $files = ['-'];
+        }
+
+        [$inputFormat, $autoInput] = $this->inputFormat($args, ...$files);
+        $outputFormat              = $this->outputFormat($args, $inputFormat, $autoInput);
+
+        $colors = $args->bool('colors')
+            || (!$args->bool('no-colors') && !$inPlace && '' === $splitExpression && stream_isatty($stdout));
+        $unwrap = $args->bool('unwrapScalar');
+        if (!$args->given('unwrapScalar') && FormatEnum::Json === $outputFormat) {
+            $unwrap = false;
+        }
+
+        $emitOptions = new EmitOptions(
+            $args->int('indent'),
+            $colors,
+            $unwrap,
+            $args->bool('prettyPrint'),
+            $args->bool('no-doc'),
+        );
+
+        $services = new RuntimeServices(
+            $this->expressions,
+            $this->yamlParser,
+            $this->formats,
+            new SecurityOptions(
+                $args->bool('security-enable-system-operator'),
+                $args->bool('security-disable-env-ops'),
+                $args->bool('security-disable-file-ops'),
+            ),
+            $args->bool('yaml-fix-merge-anchor-to-spec'),
+        );
+
+        $registry = new DocumentRegistry();
+        $source   = new SourceDocuments($this->yamlParser, $this->formats, $registry);
+        if (!$args->bool('string-interpolation')) {
+            $expression = $this->escapeInterpolation($expression);
+        }
+
+        $program = $this->expressions->parse('' === $expression ? '.' : $expression);
+
+        [$inputs, $appendix] = $this->inputs($args, $source, $stdin, ...$files);
+
+        $target = $inPlace ? new InPlaceTarget($files[0]) : null;
+        $split  = '' === $splitExpression
+            ? null
+            : new SplitFileWriter($this->expressions->parse($splitExpression), $this->evaluator, $services, $outputFormat);
+
+        $printer = new ResultPrinter(
+            $target?->stream() ?? $stdout,
+            $outputFormat,
+            $emitOptions,
+            $this->formatOptions($args, $outputFormat, $colors, $unwrap),
+            $this->emitter,
+            $this->formats,
+            $registry,
+            $args->bool('nul-output'),
+            $split,
+        );
+
+        try {
+            if ($nullInput) {
+                $empty = new Candidate(Node::document(new Node(NodeKindEnum::Scalar, '!!null', NodeStyleEnum::Default, '')));
+                $printer->print(...$this->evaluator->evaluate($program, new EvaluationContext([$empty], $services)));
+            } else {
+                $documents = $source->read(
+                    $inputs,
+                    $stdin,
+                    $inputFormat,
+                    $this->formatOptions($args, $inputFormat, false, true),
+                    $this->headerMode($args, $evalAll),
+                    FormatEnum::Yaml === $outputFormat,
+                );
+                if ($evalAll) {
+                    $all = iterator_to_array($documents, false);
+                    $printer->print(...$this->evaluator->evaluate($program, new EvaluationContext($all, $services)));
+                } else {
+                    foreach ($documents as $candidate) {
+                        $printer->print(...$this->evaluator->evaluate($program, new EvaluationContext([$candidate], $services)));
+                    }
+                }
+            }
+        } catch (Throwable $throwable) {
+            $printer->finish('');
+
+            throw $throwable;
+        }
+
+        $printer->finish($appendix);
+        $target?->commit();
+
+        if ($args->bool('exit-status') && !$printer->printedAnything()) {
+            throw new CliException('no matches found');
+        }
+
+        return YqApplicationInterface::EXIT_OK;
+    }
+
+    private function headerMode(ParsedArguments $args, bool $evalAll): HeaderModeEnum
+    {
+        if (!$args->bool('header-preprocess')) {
+            return HeaderModeEnum::None;
+        }
+
+        return $evalAll ? HeaderModeEnum::FirstFile : HeaderModeEnum::PerFile;
+    }
+
+    /**
+     * The expression and the files. `--expression` and `--from-file` force the expression; otherwise the
+     * first positional is the expression unless it is `-` or an existing file (a file holding a shebang
+     * line and marked executable is a script: its body is the expression).
+     *
+     * @return array{string, list<string>}
+     *
+     * @throws CliException
+     */
+    private function resolveExpression(ParsedArguments $args): array
+    {
+        $positionals = $args->positionals;
+        $expression  = $args->string('expression');
+
+        $fromFile = $args->string('from-file');
+        if ('' !== $fromFile) {
+            $expression = $this->readExpressionFile($fromFile);
+        }
+
+        $first = $positionals[0] ?? null;
+        if ('' === $expression && null !== $first && '-' !== $first) {
+            if (file_exists($first) && !is_dir($first)) {
+                if (is_file($first) && is_executable($first) && str_starts_with((string)file_get_contents($first), '#!')) {
+                    $expression = $this->readExpressionFile($first);
+                    array_shift($positionals);
+                }
+            } else {
+                $expression = $first;
+                array_shift($positionals);
+            }
+        }
+
+        return [$expression, $positionals];
+    }
+
+    /**
+     * `--string-interpolation=false`: escapes every `\(` so the lexer reads it as a literal backslash and
+     * parenthesis. Escaped backslashes (`\\`) are consumed as a pair first, so `\\(` stays as it is.
+     */
+    private function escapeInterpolation(string $expression): string
+    {
+        return (string)preg_replace_callback(
+            '/\\\(.)/s',
+            static fn (array $match): string => '(' === $match[1] ? '\\\(' : $match[0],
+            $expression,
+        );
+    }
+
+    /**
+     * @throws CliException
+     */
+    private function readExpressionFile(string $path): string
+    {
+        if (!file_exists($path) || is_dir($path)) {
+            throw new CliException(\sprintf('open %s: no such file or directory', $path));
+        }
+
+        $text = (string)file_get_contents($path);
+        if (str_starts_with($text, '#!')) {
+            $newline = strpos($text, "\n");
+            $text    = false === $newline ? '' : substr($text, $newline + 1);
+        }
+
+        return rtrim($text, " \t\r\n");
+    }
+
+    /**
+     * @throws CliException
+     */
+    private function splitExpression(ParsedArguments $args): string
+    {
+        $file = $args->string('split-exp-file');
+        if ('' !== $file) {
+            return $this->readExpressionFile($file);
+        }
+
+        return $args->string('split-exp');
+    }
+
+    /**
+     * @throws CliException
+     */
+    private function validate(ParsedArguments $args, string $splitExpression, bool $nullInput, bool $inPlace, string ...$files): void
+    {
+        if ($inPlace && ([] === $files || '-' === $files[0])) {
+            throw new CliException('write in place flag only applicable when giving an expression and at least one file');
+        }
+
+        if ($inPlace && '' !== $splitExpression) {
+            throw new CliException('write in place cannot be used with split file');
+        }
+
+        if ($nullInput && [] !== $files) {
+            throw new CliException('cannot pass files in when using null-input flag');
+        }
+
+        $frontMatter = $args->string('front-matter');
+        if ('' !== $frontMatter && !FrontMatterModeEnum::tryFrom($frontMatter) instanceof FrontMatterModeEnum) {
+            throw new CliException("front-matter must be 'extract' or 'process'");
+        }
+    }
+
+    /**
+     * @return array{FormatEnum, bool} the input format and whether it was auto-detected
+     *
+     * @throws CliException
+     */
+    private function inputFormat(ParsedArguments $args, string ...$files): array
+    {
+        $name = $args->string('input-format');
+        if (\in_array($name, self::AUTO_FORMAT_NAMES, true)) {
+            $first = $files[0] ?? '-';
+
+            return ['-' === $first ? FormatEnum::Yaml : $this->detector->fromFilename($first), true];
+        }
+
+        $format = FormatEnum::fromName($name);
+        if (!$format instanceof FormatEnum) {
+            throw new CliException(\sprintf("unknown format '%s' please use [%s]", $name, self::FORMAT_LIST));
+        }
+
+        if (!$format->canDecode()) {
+            throw new CliException(\sprintf('no support for %s input format', $name));
+        }
+
+        return [$format, false];
+    }
+
+    /**
+     * @throws CliException
+     */
+    private function outputFormat(ParsedArguments $args, FormatEnum $inputFormat, bool $autoInput): FormatEnum
+    {
+        $name = $args->string('output-format');
+        if (\in_array($name, self::AUTO_FORMAT_NAMES, true)) {
+            return $autoInput ? $inputFormat : FormatEnum::Yaml;
+        }
+
+        $format = FormatEnum::fromName($name);
+        if (!$format instanceof FormatEnum) {
+            throw new CliException(\sprintf("unknown format '%s' please use [%s]", $name, self::FORMAT_LIST));
+        }
+
+        return $format;
+    }
+
+    private function formatOptions(ParsedArguments $args, FormatEnum $format, bool $colors, bool $unwrap): FormatOptions
+    {
+        return new FormatOptions(
+            indent: $args->int('indent'),
+            colors: $colors,
+            unwrapScalar: $unwrap,
+            prettyPrint: $args->bool('prettyPrint'),
+            noDocSeparator: $args->bool('no-doc'),
+            csvSeparator: $args->string('csv-separator'),
+            csvAutoParse: FormatEnum::Tsv === $format ? $args->bool('tsv-auto-parse') : $args->bool('csv-auto-parse'),
+            propertiesSeparator: $args->string('properties-separator'),
+            propertiesArrayBrackets: $args->bool('properties-array-brackets'),
+            xmlAttributePrefix: $args->string('xml-attribute-prefix'),
+            xmlContentName: $args->string('xml-content-name'),
+            xmlSkipProcInst: $args->bool('xml-skip-proc-inst'),
+            xmlSkipDirectives: $args->bool('xml-skip-directives'),
+            xmlKeepNamespace: $args->bool('xml-keep-namespace'),
+            xmlRawToken: $args->bool('xml-raw-token'),
+            xmlStrictMode: $args->bool('xml-strict-mode'),
+            shellKeySeparator: $args->string('shell-key-separator'),
+            luaUnquoted: $args->bool('lua-unquoted'),
+            luaGlobals: $args->bool('lua-globals'),
+        );
+    }
+
+    /**
+     * The inputs to read, and the content to append after the results (front matter `process`).
+     *
+     * @param resource $stdin
+     *
+     * @return array{list<FileInput>, string}
+     *
+     * @throws CliException
+     */
+    private function inputs(ParsedArguments $args, SourceDocuments $source, mixed $stdin, string ...$files): array
+    {
+        $mode = $args->string('front-matter');
+        if ('' === $mode || [] === $files) {
+            return [array_values(array_map(static fn (string $file): FileInput => new FileInput($file), $files)), ''];
+        }
+
+        [$yaml, $rest] = new FrontMatterSplitter()->split($source->contents($files[0], $stdin));
+
+        return [[new FileInput($files[0], $yaml)], FrontMatterModeEnum::Process->value === $mode ? $rest : ''];
+    }
+}

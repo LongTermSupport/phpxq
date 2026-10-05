@@ -1,0 +1,86 @@
+# Plan 00007: performance optimisation round
+
+**Status**: Complete (delivered in f47103c)
+**Created**: 2026-10-03
+**Owner**: joseph
+**Priority**: Medium
+**Recommended Executor**: Opus
+**Execution Strategy**: Single-Threaded
+
+## Overview
+
+Once phpxq works end to end and can be shipped as a binary, run a profiler-driven optimisation
+round: find the hot spots, micro-optimise them, and prove each gain against the benchmark
+baseline. The goal is the fastest possible PHP command-line tool, not beautiful PHP. Readability
+is explicitly traded for measured speed in the hot paths.
+
+Parent epic: Plan 00001.
+
+## Goals
+
+- A recorded profile of the hot paths for each benchmark workload.
+- Each optimisation is a separate, measured change with before and after numbers.
+- Startup time minimised (autoloading, file count, eager versus lazy initialisation, preloading,
+  OPcache and JIT settings where the shipped binary allows).
+- No loss of conformance: the upstream suites stay green after every change.
+
+## Non-Goals
+
+- New features.
+- Optimising without measurement; guesses are not accepted as justification.
+
+## Context & Background
+
+- Profiling tooling (for example Xdebug profiler, XHProf, or Valgrind-based tools) is selected in
+  Task 1.1 and recorded, not assumed.
+- Typical PHP micro-optimisations to consider: avoiding function-call overhead in hot loops,
+  string and array handling choices, generator versus array trade-offs, compiling jq/yq
+  expressions to closures, avoiding repeated allocation, reducing autoload cost, and a single
+  concatenated source file for the shipped build. Each must be measured before adoption.
+- Hot-path code gets a short comment naming the benchmark that justifies its shape, so the next
+  reader does not "clean it up".
+
+## Tasks
+
+### Phase 1: Profile
+
+- [x] ✅ **Task 1.1**: Choose and document the profiler; make profiling a one-command workflow (pcntl sampling profiler, `scripts/bench/profile.bash`; method in [results.md](results.md))
+- [x] ✅ **Task 1.2**: Profile every benchmark workload from Plan 00005; record hot spots in a supporting doc ([hot-spots.md](hot-spots.md); `scripts/bench/profile.bash` now profiles yq too)
+
+### Phase 2: Optimise (repeat per hot spot)
+
+- [x] ✅ **Task 2.1**: Startup path optimisation (f9562b0, 581aae3; numbers in results.md and results-yq.md)
+- [x] ✅ **Task 2.2**: JSON parse and serialise hot paths (26d90cf; numbers in results.md)
+- [x] ✅ **Task 2.3**: Evaluator hot paths (26d90cf native walk and sort, 58bd249 GC policy; numbers in results.md)
+- [x] ✅ **Task 2.4**: YAML parse and emit hot paths (yq numbers in results-yq.md)
+- [x] ✅ **Task 2.5**: Build-level optimisation of the shipped binary (extension set, preloading, concatenation); PHAR and static binary built and measured, `-O2` adopted in `scripts/build-binary.bash`, the other levers rejected with numbers ([results-binary.md](results-binary.md))
+
+### Phase 3: Verify
+
+- [x] ✅ **Task 3.1**: Re-run conformance (Plan 00002) and benchmarks (Plan 00005); record before and after (results.md, results-yq.md; `scripts/conformance.bash all` OK at 40a9aba)
+- [x] ✅ **Task 3.2**: This project's QA gate passes (`vendor/bin/qa`)
+
+## Dependencies
+
+- Depends on: Plan 00001 (parent epic), Plan 00003, Plan 00004, Plan 00005, Plan 00006
+- Related: Plan 00002
+
+## Success Criteria
+
+- [x] Each optimisation has recorded before and after benchmark numbers
+- [x] Conformance results are unchanged
+- [x] Overall improvement against the Plan 00005 baseline is recorded
+- [x] This project's QA gate passes
+
+## Risks & Mitigations
+
+| Risk                                      | Impact | Probability | Mitigation                              |
+| ----------------------------------------- | ------ | ----------- | --------------------------------------- |
+| Optimisation breaks conformance           | High   | Medium      | Run the harness on every change         |
+| Unreadable hot paths get cleaned up later | Medium | Medium      | Comment naming the justifying benchmark |
+
+## Delivery & Milestones
+
+- Round 1 merged: jq (d148a10) and yq (1ce8af3) optimisations with before and after numbers.
+- Hot-spot document ([hot-spots.md](hot-spots.md)) and shipped-binary build optimisation
+  ([results-binary.md](results-binary.md)) delivered in the final commit of this plan.

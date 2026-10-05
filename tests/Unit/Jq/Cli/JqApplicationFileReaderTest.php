@@ -1,0 +1,66 @@
+<?php
+
+declare(strict_types=1);
+
+namespace LTS\PhpXq\Tests\Unit\Jq\Cli;
+
+use LTS\PhpXq\Jq\Cli\FileReader;
+use PHPUnit\Framework\TestCase;
+use RuntimeException;
+
+/**
+ * @internal
+ */
+final class JqApplicationFileReaderTest extends TestCase
+{
+    public function testReadsAFile(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'jqfr');
+        self::assertIsString($path);
+        file_put_contents($path, "a\0b");
+
+        try {
+            self::assertSame("a\0b", FileReader::read($path));
+        } finally {
+            unlink($path);
+        }
+    }
+
+    public function testMissingFile(): void
+    {
+        $this->expectExceptionObject(new RuntimeException('Could not open /nonexistent/file: No such file or directory'));
+        FileReader::read('/nonexistent/file');
+    }
+
+    public function testDirectory(): void
+    {
+        $this->expectExceptionObject(new RuntimeException('Could not open ' . sys_get_temp_dir() . ': Is a directory'));
+        FileReader::read(sys_get_temp_dir());
+    }
+
+    public function testUnreadableFile(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'jqfr');
+        self::assertIsString($path);
+        chmod($path, 0o000);
+
+        // root can read everything, so a root run reads as the unprivileged "nobody" user instead.
+        $isRoot = 0 === posix_getuid();
+        // autoload the class while still privileged: "nobody" may not be able to read the source tree.
+        class_exists(FileReader::class);
+        if ($isRoot) {
+            self::assertTrue(posix_seteuid(65534), 'cannot drop root privileges');
+        }
+
+        try {
+            $this->expectExceptionObject(new RuntimeException('Could not open ' . $path . ': Permission denied'));
+            FileReader::read($path);
+        } finally {
+            if ($isRoot) {
+                posix_seteuid(0);
+            }
+
+            unlink($path);
+        }
+    }
+}

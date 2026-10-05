@@ -13,14 +13,17 @@ namespace LTS\PhpXq\Tests\Support\Yq;
  */
 final class YqDocExtractor
 {
+    /** The `yq` subcommand words a documented command line may start with. */
     private const array SUBCOMMANDS = ['eval', 'e', 'eval-all', 'ea'];
 
     /** Flags whose value is the next word when not written as `--flag=value`. */
     private const array VALUE_FLAGS = ['-o', '-p', '-I', '--output-format', '--input-format', '--indent'];
 
-    private const string FILE_PROSE = '/^(?:Given|And)\b.*?\'?([\w.\/-]+\.\w+)\'?\s+(?:expression\s+)?file of:\s*$/';
+    /** The prose line introducing a file's contents ("Given a sample.yml file of:"); group 1 is the file name. */
+    private const string FILE_PROSE ='/^(?:Given|And)\b.*?\'?([\w.\/-]+\.\w+)\'?\s+(?:expression\s+)?file of:\s*$/';
 
-    private const string HEADING = '/^#{1,6}\s+(.*?)\s*$/';
+    /** A markdown heading of any level; group 1 is its text. */
+    private const string HEADING ='/^#{1,6}\s+(.*?)\s*$/';
 
     public function extract(string $markdown, string $source): YqExtraction
     {
@@ -150,7 +153,7 @@ final class YqDocExtractor
             return 'shell syntax the extractor cannot represent (pipe, redirect, substitution or several statements)';
         }
 
-        $first = $words[0] ?? '';
+        $first = [] === $words ? '' : $words[0];
         if (1 === preg_match('/^\w+=/', $first)) {
             return 'needs environment variables set, which the CLI runner cannot supply';
         }
@@ -163,7 +166,7 @@ final class YqDocExtractor
             return 'documented output is an error message (stderr and exit code), not stdout';
         }
 
-        $parsed = $this->parseArguments(\array_slice($words, 1), $files);
+        $parsed = $this->parseArguments($files, ...\array_slice($words, 1));
         if (\is_string($parsed)) {
             return $parsed;
         }
@@ -178,12 +181,11 @@ final class YqDocExtractor
     }
 
     /**
-     * @param list<string>          $words
      * @param array<string, string> $files
      *
      * @return array{command: string|null, flags: list<string>, expression: string|null, input: string}|string a skip reason when it is a string
      */
-    private function parseArguments(array $words, array $files): array|string
+    private function parseArguments(array $files, string ...$words): array|string
     {
         $command    = null;
         $flags      = [];
@@ -191,7 +193,7 @@ final class YqDocExtractor
         $fileRefs   = [];
         $unknown    = [];
 
-        if (\in_array($words[0] ?? '', self::SUBCOMMANDS, true)) {
+        if ([] !== $words && \in_array($words[0], self::SUBCOMMANDS, true)) {
             $command = $words[0];
             $words   = \array_slice($words, 1);
         }

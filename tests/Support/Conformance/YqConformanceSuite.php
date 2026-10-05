@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Support\Conformance;
 
+use LTS\PhpXq\Cli\ToolEnum;
 use LTS\PhpXq\Tests\Support\CliRunner;
 use RuntimeException;
 use UnexpectedValueException;
@@ -26,7 +27,7 @@ final readonly class YqConformanceSuite implements ConformanceSuiteInterface
 
     public function name(): string
     {
-        return 'yq';
+        return ToolEnum::Yq->value;
     }
 
     public function cases(): iterable
@@ -62,12 +63,27 @@ final readonly class YqConformanceSuite implements ConformanceSuiteInterface
                 $args[] = $command;
             }
 
+            $stringFlags = [];
             foreach ($flags as $flag) {
                 if (!\is_string($flag)) {
                     throw new UnexpectedValueException('Flags must be strings in ' . $name);
                 }
 
+                $stringFlags[] = $flag;
+            }
+
+            $source = $row['source'] ?? null;
+            foreach ($this->fileExtensionFlags(\is_string($source) ? $source : '', ...$stringFlags) as $flag) {
                 $args[] = $flag;
+            }
+
+            foreach ($stringFlags as $flag) {
+                $args[] = $flag;
+            }
+
+            // Upstream runs the "FIXED:" scenarios with yamlFixMergeAnchorToSpec enabled.
+            if (str_contains($name, ': FIXED:')) {
+                $args[] = '--yaml-fix-merge-anchor-to-spec';
             }
 
             if (\is_string($expression)) {
@@ -91,5 +107,45 @@ final readonly class YqConformanceSuite implements ConformanceSuiteInterface
                 },
             );
         }
+    }
+
+    /**
+     * Upstream's documentation examples name a file (sample.toml) and rely on its extension to pick the
+     * input format, and to pick the output format too unless one is given. The cases carry stdin only,
+     * so the equivalent explicit flags are supplied for the format-specific usage pages.
+     *
+     * @return list<string>
+     */
+    private function fileExtensionFlags(string $source, string ...$flags): array
+    {
+        $format = match ($source) {
+            'usage/toml.md' => 'toml',
+            'usage/xml.md'  => 'xml',
+            'usage/hcl.md'  => 'hcl',
+            'usage/lua.md'  => 'lua',
+            default         => null,
+        };
+        if (null === $format) {
+            return [];
+        }
+
+        $yamlOutput = false;
+        foreach ($flags as $flag) {
+            if (str_starts_with($flag, '-p') || str_starts_with($flag, '--input-format')) {
+                return [];
+            }
+
+            if (\in_array($flag, ['-oy', '-o=yaml', '-o=y'], true)) {
+                $yamlOutput = true;
+
+                continue;
+            }
+
+            if (str_starts_with($flag, '-o') || str_starts_with($flag, '--output-format')) {
+                return [];
+            }
+        }
+
+        return $yamlOutput ? ['-p', $format] : ['-p', $format, '-o', $format];
     }
 }

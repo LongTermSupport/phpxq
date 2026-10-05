@@ -1,0 +1,38 @@
+<?php
+
+declare(strict_types=1);
+
+namespace LTS\PhpXq\Jq\Runtime\Eval;
+
+use Closure;
+use LTS\PhpXq\Jq\Runtime\BreakException;
+use stdClass;
+
+/**
+ * `break $name`.
+ *
+ * @internal
+ */
+final readonly class BreakOp implements OpInterface
+{
+    public function __construct(private int $depth)
+    {
+    }
+
+    public function run(?Env $env, mixed $input, Closure $emit): void
+    {
+        throw new BreakException($this->token($env));
+    }
+
+    public function paths(?Env $env, ?array $path, mixed $input, Closure $emit): void
+    {
+        throw new BreakException($this->token($env));
+    }
+
+    private function token(?Env $env): object
+    {
+        $value = Env::at($env, $this->depth)?->value;
+
+        return \is_object($value) ? $value : new stdClass();
+    }
+}
