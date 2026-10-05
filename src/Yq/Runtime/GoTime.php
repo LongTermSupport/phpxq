@@ -559,7 +559,7 @@ final class GoTime
     private static function zoneName(DateTimeImmutable $t): string
     {
         $name = $t->format('T');
-        if ('+' === $name[0] || '-' === $name[0]) {
+        if ('+' === $name[0] || '-' === $name[0] || 1 === preg_match('/^GMT[+-]/', $name)) {
             return 0 === $t->getOffset() ? self::UTC : substr($t->format('O'), 0, 3);
         }
 
@@ -607,7 +607,7 @@ final class GoTime
             ++$p;
         }
 
-        return (int)str_pad(substr($value, $start, 9), 9, '0', \STR_PAD_RIGHT);
+        return (int)str_pad(substr($value, $start, min(9, $p - $start)), 9, '0', \STR_PAD_RIGHT);
     }
 
     private static function parseZoneName(string $value, int &$p): ?DateTimeZone
