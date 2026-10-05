@@ -12,6 +12,7 @@ use LTS\PhpXq\Jq\Parser\Lexer;
 use LTS\PhpXq\Jq\Parser\Parser;
 use LTS\PhpXq\Jq\Parser\ParserInterface;
 use LTS\PhpXq\Jq\Runtime\CompiledProgramInterface;
+use LTS\PhpXq\Jq\Runtime\EvaluationStack;
 use LTS\PhpXq\Jq\Runtime\JqCompileException;
 use LTS\PhpXq\Json\Codec\JqColors;
 use LTS\PhpXq\Json\ColorScheme;
@@ -126,7 +127,8 @@ final readonly class JqApplication
             return $program;
         }
 
-        return $this->runProgram($program, $options, $stdin, $stdout, $console);
+        // one fiber for every input of the run: creating one per input costs more than a small program does
+        return EvaluationStack::run(fn (): int => $this->runProgram($program, $options, $stdin, $stdout, $console));
     }
 
     /**

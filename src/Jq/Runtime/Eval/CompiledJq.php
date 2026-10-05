@@ -6,6 +6,7 @@ namespace LTS\PhpXq\Jq\Runtime\Eval;
 
 use Closure;
 use LTS\PhpXq\Jq\Runtime\CompiledProgramInterface;
+use LTS\PhpXq\Jq\Runtime\EvaluationStack;
 use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 
 /**

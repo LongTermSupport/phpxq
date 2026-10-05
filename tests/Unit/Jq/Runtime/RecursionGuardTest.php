@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class RecursionGuardTest extends TestCase
 {
-    private const string TOO_DEEP = 'Maximum evaluation depth exceeded';
+    private const string TOO_DEEP = 'Evaluation too deep';
 
     private const string NULL_INPUT = 'null';
 

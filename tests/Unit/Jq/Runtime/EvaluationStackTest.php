@@ -2,11 +2,10 @@
 
 declare(strict_types=1);
 
-namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval;
+namespace LTS\PhpXq\Tests\Unit\Jq\Runtime;
 
 use Fiber;
-use LTS\PhpXq\Jq\Runtime\Eval\EvaluationStack;
-use LTS\PhpXq\Jq\Runtime\Eval\RunState;
+use LTS\PhpXq\Jq\Runtime\EvaluationStack;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -19,24 +18,20 @@ final class EvaluationStackTest extends TestCase
 {
     public function testTheBodyRunsInsideAFiber(): void
     {
-        $inFiber = false;
+        self::assertTrue(EvaluationStack::run(static fn (): bool => Fiber::getCurrent() instanceof Fiber));
+    }
 
-        EvaluationStack::run(static function () use (&$inFiber): void {
-            $inFiber = Fiber::getCurrent() instanceof Fiber;
-        });
-
-        self::assertTrue($inFiber);
+    public function testTheBodyResultIsReturned(): void
+    {
+        self::assertSame(42, EvaluationStack::run(static fn (): int => 42));
     }
 
     public function testANestedRunReusesTheCurrentFiber(): void
     {
-        $same = false;
-
-        EvaluationStack::run(static function () use (&$same): void {
+        $same = EvaluationStack::run(static function (): bool {
             $outer = Fiber::getCurrent();
-            EvaluationStack::run(static function () use ($outer, &$same): void {
-                $same = Fiber::getCurrent() === $outer;
-            });
+
+            return EvaluationStack::run(static fn (): bool => Fiber::getCurrent() === $outer);
         });
 
         self::assertTrue($same);
@@ -69,7 +64,7 @@ final class EvaluationStackTest extends TestCase
         $reached = 0;
         $descend = static function (int $level) use (&$descend, &$reached): void {
             $reached = $level;
-            if ($level < RunState::MAX_CALL_DEPTH) {
+            if ($level < EvaluationStack::MAX_CALL_DEPTH) {
                 $descend($level + 1);
             }
         };
@@ -78,6 +73,6 @@ final class EvaluationStackTest extends TestCase
             $descend(1);
         });
 
-        self::assertSame(RunState::MAX_CALL_DEPTH, $reached);
+        self::assertSame(EvaluationStack::MAX_CALL_DEPTH, $reached);
     }
 }
