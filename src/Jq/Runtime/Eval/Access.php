@@ -202,54 +202,6 @@ final readonly class Access
     }
 
     /**
-     * `.[]`: call $each with every element (array) or member value (object).
-     *
-     * @param Closure(mixed): void $each
-     *
-     * @throws JqException
-     */
-    public static function each(mixed $target, Closure $each): void
-    {
-        if (\is_array($target)) {
-            foreach ($target as $value) {
-                $each($value);
-            }
-
-            return;
-        }
-
-        if ($target instanceof JsonObject) {
-            foreach ($target->values() as $value) {
-                $each($value);
-            }
-
-            return;
-        }
-
-        throw ErrorText::iterateError($target);
-    }
-
-    /**
-     * The keys of `.[]` for path tracking: ints for arrays, strings for objects.
-     *
-     * @return list<int|string>
-     *
-     * @throws JqException
-     */
-    public static function keys(mixed $target): array
-    {
-        if (\is_array($target)) {
-            return \count($target) > 0 ? range(0, \count($target) - 1) : [];
-        }
-
-        if ($target instanceof JsonObject) {
-            return $target->keys();
-        }
-
-        throw ErrorText::iterateError($target);
-    }
-
-    /**
      * The array position of a numeric key: floored, null for nan, clamped to a sane range.
      */
     public static function position(float|PreciseNumber $key): ?int

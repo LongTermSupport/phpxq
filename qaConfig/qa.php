@@ -20,4 +20,7 @@ return static fn (QaConfigBuilder $qa): QaConfigBuilder => $qa
     // Fixtures of the static defences' own tests (qaConfig/PHPStan/Rules): each is deliberately an instance of a
     // bug class, so the fixers must not rewrite it and PHPStan must not report it.
     ->withIgnoredPaths('tests/Fixtures/Defence')
+    // Members nothing reaches are reported. The one PHP entry point outside src/ and tests/ is the executable.
+    ->withDeadCodeDetection(true)
+    ->withDeadCodeEntryPoints('bin/phpxq')
 ;
