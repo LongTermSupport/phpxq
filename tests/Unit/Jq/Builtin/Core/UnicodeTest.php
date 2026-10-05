@@ -72,13 +72,4 @@ final class UnicodeTest extends TestCase
         self::assertSame('x', Unicode::trim("\u{3000}x\u{a0}", true, true));
         self::assertSame("\u{200b}", Unicode::trim("\u{200b}", true, true));
     }
-
-    public function testSlice(): void
-    {
-        self::assertSame('bc', Unicode::slice('abcdef', 1, 3));
-        self::assertSame('abcdef', Unicode::slice('abcdef', -5, 99));
-        self::assertSame('', Unicode::slice('abcdef', 4, 2));
-        self::assertSame("\u{e9}\u{20ac}", Unicode::slice("a\u{e9}\u{20ac}b", 1, 3));
-        self::assertSame("a\u{e9}\u{20ac}b", Unicode::slice("a\u{e9}\u{20ac}b", 0, 4));
-    }
 }

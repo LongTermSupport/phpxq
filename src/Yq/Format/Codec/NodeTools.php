@@ -147,11 +147,6 @@ final readonly class NodeTools
         return $key->value;
     }
 
-    public static function isNull(Node $node): bool
-    {
-        return NodeKindEnum::Scalar === $node->kind && CoreSchema::TAG_NULL === $node->tag;
-    }
-
     /**
      * Decimal text of a YAML core-schema integer (decimal, `0x` hex, `0o` octal) with no sign for `+`, no
      * leading zeros, and arbitrary size; null when the text is not an integer.
@@ -189,23 +184,6 @@ final readonly class NodeTools
             $line    = ltrim($line, ' ');
             $line    = str_starts_with($line, '#') ? substr($line, 1) : $line;
             $lines[] = str_starts_with($line, ' ') ? substr($line, 1) : $line;
-        }
-
-        return implode("\n", $lines);
-    }
-
-    /**
-     * Turns comment text back into a YAML comment: every line prefixed with `# ` (`#` for an empty line).
-     */
-    public static function toComment(string $text): string
-    {
-        if ('' === $text) {
-            return '';
-        }
-
-        $lines = [];
-        foreach (explode("\n", $text) as $line) {
-            $lines[] = '' === $line ? '#' : '# ' . $line;
         }
 
         return implode("\n", $lines);

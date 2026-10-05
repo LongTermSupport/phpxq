@@ -41,7 +41,6 @@ final readonly class BrokenDownTime
         public int $yearDay,
         public int $gmtOffset = 0,
         public string $zone = 'UTC',
-        public bool $dst = false,
     ) {
     }
 
@@ -54,11 +53,11 @@ final readonly class BrokenDownTime
             return null;
         }
 
-        [$offset, $dst, $abbreviation] = $zone->at($seconds);
-        $local                         = $seconds + $offset;
-        $days                          = Civil::floorDiv($local, Civil::SECONDS_PER_DAY);
-        $rest                          = $local - $days * Civil::SECONDS_PER_DAY;
-        [$year, $month, $day]          = Civil::civilFromDays($days);
+        [$offset, , $abbreviation] = $zone->at($seconds);
+        $local                     = $seconds + $offset;
+        $days                      = Civil::floorDiv($local, Civil::SECONDS_PER_DAY);
+        $rest                      = $local - $days * Civil::SECONDS_PER_DAY;
+        [$year, $month, $day]      = Civil::civilFromDays($days);
 
         return new self(
             $year,
@@ -71,7 +70,6 @@ final readonly class BrokenDownTime
             $days - Civil::daysFromCivil($year, 1, 1),
             $offset,
             $abbreviation,
-            $dst,
         );
     }
 
@@ -101,16 +99,6 @@ final readonly class BrokenDownTime
         }
 
         return new self($fields[0] + 1900, $fields[1], $fields[2], $fields[3], $fields[4], $fields[5], $fields[6], $fields[7]);
-    }
-
-    /**
-     * jq's eight element array: year, month, day, hour, minute, second, weekday, day of year.
-     *
-     * @return list<int>
-     */
-    public function toList(): array
-    {
-        return [$this->year, $this->month, $this->day, $this->hour, $this->minute, $this->second, $this->weekday, $this->yearDay];
     }
 
     /**

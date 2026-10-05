@@ -111,7 +111,7 @@ final class StrftimeTest extends TestCase
 
     public function testZoneFieldsComeFromTheTime(): void
     {
-        $time = new BrokenDownTime(2025, 5, 21, 12, 0, 0, 6, 171, 7200, 'CEST', true);
+        $time = new BrokenDownTime(2025, 5, 21, 12, 0, 0, 6, 171, 7200, 'CEST');
 
         self::assertSame('+0200 CEST', Strftime::format('%z %Z', $time));
         self::assertSame('1750500000', Strftime::format('%s', $time));

@@ -36,7 +36,7 @@ final class AstDumper
             $node instanceof VariableRef      => '$' . $node->name,
             $node instanceof Field            => '(field' . ($node->optional ? '?' : '') . ' ' . self::dump($node->base) . ' ' . self::dump($node->key) . ')',
             $node instanceof Slice            => '(slice' . ($node->optional ? '?' : '') . ' ' . self::dump($node->base) . ' ' . self::optional($node->from) . ' ' . self::optional($node->to) . ')',
-            $node instanceof Iterate          => '(iter' . ($node->optional ? '?' : '') . ' ' . self::dump($node->base) . ')',
+            $node instanceof Iterate          => '(iter ' . self::dump($node->base) . ')',
             $node instanceof RecursiveDescent => '(' . ($node->includeKeys ? 'recall' : 'rec') . ' ' . self::dump($node->base) . ')',
             $node instanceof Binary           => '(' . $node->operator->value . ('' === $node->modifiers ? '' : '/' . $node->modifiers) . ' ' . self::dump($node->left) . ' ' . self::dump($node->right) . ')',
             $node instanceof Call             => '(call ' . $node->name . self::spaced(...$node->arguments) . ')',

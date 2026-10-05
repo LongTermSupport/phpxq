@@ -14,7 +14,7 @@ final class ScanTokenTest extends TestCase
 {
     public function testConstructorStoresPositions(): void
     {
-        $token = new ScanToken(ScanToken::SCALAR, 3, 1, 3, 5, 1, 5, 'ab', '', ScanToken::DOUBLE);
+        $token = new ScanToken(ScanToken::SCALAR, 3, 1, 3, 1, 5, 'ab', '', ScanToken::DOUBLE);
 
         self::assertSame(ScanToken::SCALAR, $token->type);
         self::assertSame(3, $token->startIndex);

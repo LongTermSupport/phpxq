@@ -102,23 +102,23 @@ final class ScannerTest extends TestCase
         self::assertSame([1, 1], [$values[1]->startLine, $values[1]->startColumn]);
     }
 
-    public function testPrepareStripsBomAndNormalisesLineBreaks(): void
+    public function testScanningStripsBomAndNormalisesLineBreaks(): void
     {
-        self::assertSame("a\nb\nc\nd", Scanner::prepare("\xEF\xBB\xBFa\r\nb\rc\xC2\x85d"));
+        self::assertSame(["a\nb\nc\nd\n"], $this->scalars("\xEF\xBB\xBF|\n a\r\n b\r c\xC2\x85 d\n"));
     }
 
-    public function testPrepareDecodesUtf16WithABom(): void
+    public function testScanningDecodesUtf16WithABom(): void
     {
         $text = "a: \u{00E9}\u{1F600}\r\nb: 1\n";
 
-        self::assertSame("a: \u{00E9}\u{1F600}\nb: 1\n", Scanner::prepare("\xFF\xFE" . mb_convert_encoding($text, 'UTF-16LE', 'UTF-8')));
-        self::assertSame("a: \u{00E9}\u{1F600}\nb: 1\n", Scanner::prepare("\xFE\xFF" . mb_convert_encoding($text, 'UTF-16BE', 'UTF-8')));
+        self::assertSame(['a', "\u{00E9}\u{1F600}", 'b', '1'], $this->scalars("\xFF\xFE" . mb_convert_encoding($text, 'UTF-16LE', 'UTF-8')));
+        self::assertSame(['a', "\u{00E9}\u{1F600}", 'b', '1'], $this->scalars("\xFE\xFF" . mb_convert_encoding($text, 'UTF-16BE', 'UTF-8')));
     }
 
     #[DataProvider('utf16Provider')]
-    public function testPrepareRejectsBrokenUtf16(string $yaml, string $message): void
+    public function testScanningRejectsBrokenUtf16(string $yaml, string $message): void
     {
-        $this->assertSyntaxError($yaml, $message, 1, 0);
+        $this->assertSyntaxError($yaml, $message, 1);
     }
 
     /**
@@ -140,15 +140,15 @@ final class ScannerTest extends TestCase
         yield 'big endian lone high surrogate' => ["\xFE\xFF\xD8\x00", $surrogate];
     }
 
-    public function testPrepareAcceptsUtf16WithAnEvenByteCount(): void
+    public function testScanningAcceptsUtf16WithAnEvenByteCount(): void
     {
-        self::assertSame('a:', Scanner::prepare("\xFF\xFEa\x00:\x00"));
-        self::assertSame('', Scanner::prepare("\xFE\xFF"));
+        self::assertSame(['a'], $this->scalars("\xFF\xFEa\x00:\x00"));
+        self::assertSame([], $this->scalars("\xFE\xFF"));
     }
 
-    public function testPrepareNormalisesEveryCrlfWhenTheTextHasComments(): void
+    public function testScanningNormalisesEveryCrlfWhenTheTextHasComments(): void
     {
-        self::assertSame("# c\na\nb\nc\nd", Scanner::prepare("# c\r\na\r\nb\rc\r\nd"));
+        self::assertSame(['a b c d'], $this->scalars("# c\r\na\r\nb\rc\r\nd"));
     }
 
     public function testCrlfBreaksCountTwiceWhenLookingAheadForComments(): void
@@ -167,9 +167,9 @@ final class ScannerTest extends TestCase
     }
 
     #[DataProvider('invalidInputProvider')]
-    public function testPrepareRejectsInvalidInput(string $yaml, string $message, int $line): void
+    public function testScanningRejectsInvalidInput(string $yaml, string $message, int $line): void
     {
-        $this->assertSyntaxError($yaml, $message, $line, 0);
+        $this->assertSyntaxError($yaml, $message, $line);
     }
 
     /**
@@ -278,58 +278,58 @@ final class ScannerTest extends TestCase
     }
 
     #[DataProvider('invalidEscapeProvider')]
-    public function testInvalidEscapesAreRejected(string $yaml, string $message, int $line, int $column): void
+    public function testInvalidEscapesAreRejected(string $yaml, string $message, int $line): void
     {
-        $this->assertSyntaxError($yaml, $message, $line, $column, true);
+        $this->assertSyntaxError($yaml, $message, $line, true);
     }
 
     /**
-     * @return iterable<string, array{string, string, int, int}>
+     * @return iterable<string, array{string, string, int}>
      */
     public static function invalidEscapeProvider(): iterable
     {
-        yield 'D800 is a surrogate' => ['"\uD800"', 'found invalid Unicode character escape code', 1, 1];
+        yield 'D800 is a surrogate' => ['"\uD800"', 'found invalid Unicode character escape code', 1];
 
-        yield 'DFFF is a surrogate' => ['"\uDFFF"', 'found invalid Unicode character escape code', 1, 1];
+        yield 'DFFF is a surrogate' => ['"\uDFFF"', 'found invalid Unicode character escape code', 1];
 
-        yield 'beyond U+10FFFF' => ['"\U00110000"', 'found invalid Unicode character escape code', 1, 1];
+        yield 'beyond U+10FFFF' => ['"\U00110000"', 'found invalid Unicode character escape code', 1];
 
-        yield 'unknown escape on the second line' => ["\"a\nb\\q\"", 'found unknown escape character', 2, 1];
+        yield 'unknown escape on the second line' => ["\"a\nb\\q\"", 'found unknown escape character', 2];
 
-        yield 'short hex on the third line' => ["\"a\n\nb\\x4\"", 'did not find expected hexdecimal number', 3, 1];
+        yield 'short hex on the third line' => ["\"a\n\nb\\x4\"", 'did not find expected hexdecimal number', 3];
     }
 
     #[DataProvider('versionNumberProvider')]
-    public function testVersionDirectiveNumbersAreLimitedToNineDigits(string $version, int $errorColumn): void
+    public function testVersionDirectiveNumbersAreLimitedToNineDigits(string $version, bool $accepted): void
     {
         $yaml = '%YAML ' . $version . "\n---\na\n";
 
-        if (0 === $errorColumn) {
+        if ($accepted) {
             self::assertSame($version, $this->tokens($yaml)[1]->value);
 
             return;
         }
 
-        $this->assertSyntaxError($yaml, 'found extremely long version number', 1, $errorColumn, true);
+        $this->assertSyntaxError($yaml, 'found extremely long version number', 1, true);
     }
 
     /**
-     * @return iterable<string, array{string, int}>
+     * @return iterable<string, array{string, bool}>
      */
     public static function versionNumberProvider(): iterable
     {
-        yield 'nine digit major' => ['123456789.1', 0];
+        yield 'nine digit major' => ['123456789.1', true];
 
-        yield 'nine digit minor' => ['1.123456789', 0];
+        yield 'nine digit minor' => ['1.123456789', true];
 
-        yield 'ten digit major' => ['1234567890.1', 6];
+        yield 'ten digit major' => ['1234567890.1', false];
 
-        yield 'ten digit minor' => ['1.1234567890', 8];
+        yield 'ten digit minor' => ['1.1234567890', false];
     }
 
     public function testTagDirectiveHandleNeedsItsClosingBang(): void
     {
-        $this->assertSyntaxError("%TAG !e tag:x\n---\na\n", "did not find expected '!'", 1, 7, true);
+        $this->assertSyntaxError("%TAG !e tag:x\n---\na\n", "did not find expected '!'", 1, true);
     }
 
     /**
@@ -438,25 +438,32 @@ final class ScannerTest extends TestCase
     }
 
     /**
-     * Asserts the text is refused with the given message and position; when $scan is set the failure is
-     * expected from the token scan rather than from {@see Scanner::prepare()}.
+     * Asserts the text is refused with the given message and line; when $scan is set the failure is
+     * expected from the token scan rather than from constructing the scanner.
      */
-    private function assertSyntaxError(string $yaml, string $message, int $line, int $column, bool $scan = false): void
+    private function assertSyntaxError(string $yaml, string $message, int $line, bool $scan = false): void
     {
         try {
             if ($scan) {
                 $this->tokens($yaml);
             } else {
-                Scanner::prepare($yaml);
+                new Scanner($yaml);
             }
         } catch (YamlSyntaxException $yamlSyntaxException) {
-            self::assertStringContainsString($message, $yamlSyntaxException->getMessage());
-            self::assertSame([$line, $column], [$yamlSyntaxException->yamlLine, $yamlSyntaxException->yamlColumn]);
+            self::assertSame(\sprintf('yaml: line %d: %s', $line, $message), $yamlSyntaxException->getMessage());
 
             return;
         }
 
         self::fail('expected a syntax error');
+    }
+
+    /**
+     * @return list<string> the text of every scalar token
+     */
+    private function scalars(string $yaml): array
+    {
+        return array_values(array_map(static fn (ScanToken $t): string => $t->value, array_filter($this->tokens($yaml), static fn (ScanToken $t): bool => ScanToken::SCALAR === $t->type)));
     }
 
     /**
@@ -489,13 +496,12 @@ final class ScannerTest extends TestCase
         ];
         $json    = \JSON_UNESCAPED_UNICODE | \JSON_UNESCAPED_SLASHES | \JSON_THROW_ON_ERROR;
         $scanner = new Scanner($yaml);
-        $scanner->logComments();
 
         $out = [];
         try {
             while (true) {
                 $token = $scanner->peek();
-                $line  = \sprintf('%s %d:%d:%d-%d:%d:%d', $names[$token->type], $token->startIndex, $token->startLine, $token->startColumn, $token->endIndex, $token->endLine, $token->endColumn);
+                $line  = \sprintf('%s %d:%d:%d-%d:%d', $names[$token->type], $token->startIndex, $token->startLine, $token->startColumn, $token->endLine, $token->endColumn);
                 if ('' !== $token->value) {
                     $line .= ' v=' . json_encode($token->value, $json);
                 }
@@ -515,22 +521,7 @@ final class ScannerTest extends TestCase
                 }
             }
         } catch (YamlSyntaxException $yamlSyntaxException) {
-            $out[] = 'ERR ' . $yamlSyntaxException->getMessage() . ' @' . $yamlSyntaxException->yamlLine . ':' . $yamlSyntaxException->yamlColumn;
-        }
-
-        foreach ($scanner->loggedComments() as $comment) {
-            if ('' !== $comment->head) {
-                $kind = 'head';
-                $text = $comment->head;
-            } elseif ('' !== $comment->line) {
-                $kind = 'line';
-                $text = $comment->line;
-            } else {
-                $kind = 'foot';
-                $text = $comment->foot;
-            }
-
-            $out[] = \sprintf('#%s scan=%d tok=%d %d:%d:%d-%d:%d:%d %s', $kind, $comment->scanIndex, $comment->tokenIndex, $comment->startIndex, $comment->startLine, $comment->startColumn, $comment->endIndex, $comment->endLine, $comment->endColumn, json_encode($text, $json));
+            $out[] = 'ERR ' . $yamlSyntaxException->getMessage();
         }
 
         return $out;

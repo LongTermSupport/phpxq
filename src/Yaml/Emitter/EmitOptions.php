@@ -15,7 +15,6 @@ final readonly class EmitOptions
      * @param bool $unwrapScalar          print a top-level scalar bare, without quotes (yq default true)
      * @param bool $prettyPrint           normalise all styles to block/plain (yq `-P`), keeping comments
      * @param bool $noDocSeparator        never print `---` between documents (yq `--no-doc`)
-     * @param bool $forceBlockStyleIndent keep sequences indented under their key (yq `--indent-sequences` behaviour is always on in v4)
      */
     public function __construct(
         public int $indent = 2,
@@ -23,7 +22,6 @@ final readonly class EmitOptions
         public bool $unwrapScalar = true,
         public bool $prettyPrint = false,
         public bool $noDocSeparator = false,
-        public bool $forceBlockStyleIndent = true,
     ) {
     }
 }

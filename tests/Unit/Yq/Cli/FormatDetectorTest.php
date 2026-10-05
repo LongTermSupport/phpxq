@@ -38,5 +38,10 @@ final class FormatDetectorTest extends TestCase
         yield 'toml'       => ['a.toml', FormatEnum::Toml];
         yield 'tf'         => ['a.tf', FormatEnum::Hcl];
         yield 'hcl'        => ['a.hcl', FormatEnum::Hcl];
+        yield 'props'      => ['a.props', FormatEnum::Props];
+        yield 'lua'        => ['a.lua', FormatEnum::Lua];
+        yield 'bare word'  => ['json', FormatEnum::Yaml];
+        yield 'dot at end' => ['a.', FormatEnum::Yaml];
+        yield 'last ext'   => ['a.json.bak', FormatEnum::Yaml];
     }
 }

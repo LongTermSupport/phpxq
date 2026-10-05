@@ -245,15 +245,14 @@ final class StreamParser
         }
 
         if (ScanToken::ALIAS === $t->type) {
-            $node         = new Node(NodeKindEnum::Alias, '', NodeStyleEnum::Default, $t->value);
-            $node->line   = $t->startLine   + 1;
-            $node->column = $t->startColumn + 1;
-            $target       = $this->anchors[$t->value] ?? null;
+            $target = $this->anchors[$t->value] ?? null;
             if (!$target instanceof Node) {
                 $this->fail("unknown anchor '" . $t->value . "' referenced", $t);
             }
 
-            $node->aliasTarget = $target;
+            $node         = Node::alias($t->value, $target);
+            $node->line   = $t->startLine   + 1;
+            $node->column = $t->startColumn + 1;
             $this->takeComments($node);
             $sc->skip();
 
@@ -771,6 +770,6 @@ final class StreamParser
      */
     private function fail(string $problem, ScanToken $at): never
     {
-        throw new YamlSyntaxException($problem, $at->startLine + 1, $at->startColumn + 1);
+        throw new YamlSyntaxException($problem, $at->startLine + 1);
     }
 }

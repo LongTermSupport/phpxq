@@ -116,12 +116,6 @@ final class NodeToolsTest extends TestCase
         yield 'empty' => ['', ''];
     }
 
-    public function testToCommentRestoresHashes(): void
-    {
-        self::assertSame("# a\n# b \n#", NodeTools::toComment("a\nb \n"));
-        self::assertSame('', NodeTools::toComment(''));
-    }
-
     public function testJoinCommentsSkipsEmptyOnes(): void
     {
         self::assertSame("# a\n# b", NodeTools::joinComments('# a', '', '# b'));
@@ -149,11 +143,8 @@ final class NodeToolsTest extends TestCase
         self::assertSame(['x', '1', 'y', '2'], $values);
     }
 
-    public function testNullAndMergeKeyDetection(): void
+    public function testMergeKeyDetection(): void
     {
-        self::assertTrue(NodeTools::isNull(Node::scalar('~')));
-        self::assertFalse(NodeTools::isNull(Node::scalar('x')));
-        self::assertFalse(NodeTools::isNull(Node::sequence()));
         self::assertTrue(NodeTools::isMergeKey(Node::scalar('<<', '!!str')));
         self::assertFalse(NodeTools::isMergeKey(Node::scalar('<<', '!!str', NodeStyleEnum::DoubleQuoted)));
         self::assertFalse(NodeTools::isMergeKey(Node::scalar('a')));

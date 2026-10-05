@@ -15,44 +15,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class FormatRegistryLookupTest extends TestCase
 {
-    #[DataProvider('extensionCases')]
-    public function testFromFilename(string $filename, ?FormatEnum $expected): void
-    {
-        self::assertSame($expected, FormatRegistry::fromFilename($filename));
-    }
-
-    /**
-     * @return iterable<string, array{string, ?FormatEnum}>
-     */
-    public static function extensionCases(): iterable
-    {
-        yield 'hcl' => ['main.hcl', FormatEnum::Hcl];
-
-        yield 'tf' => ['main.tf', FormatEnum::Hcl];
-
-        yield 'tfvars' => ['vars.tfvars', FormatEnum::Hcl];
-
-        yield 'upper case hcl' => ['MAIN.HCL', FormatEnum::Hcl];
-
-        yield 'props' => ['a.props', FormatEnum::Props];
-
-        yield 'lua' => ['a.lua', FormatEnum::Lua];
-
-        yield 'tsv' => ['a.tsv', FormatEnum::Tsv];
-
-        yield 'name that ends like an extension but has no dot' => ['xyaml', null];
-
-        yield 'name made only of an extension word' => ['json', null];
-
-        yield 'unknown extension' => ['a.unknown', null];
-
-        yield 'dot at the end' => ['a.', null];
-
-        yield 'only the last extension counts' => ['a.json.bak', null];
-
-        yield 'directory with a dot' => ['dir.yaml/file', null];
-    }
-
     #[DataProvider('everyFormat')]
     public function testEncodersAreBuiltOnceAndReused(FormatEnum $format): void
     {

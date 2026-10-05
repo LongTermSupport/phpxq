@@ -180,7 +180,7 @@ final class PrattParserPrecedenceTest extends TestCase
         yield 'bracket postfix after name' => ['.a.b.["c"]', '(field (field (field . !!str:a) !!str:b) !!str:c)'];
         yield 'optional postfix chain'   => ['.a?.b?', '(field? (field? . !!str:a) !!str:b)'];
         yield 'double optional'          => ['.a??', '(field? . !!str:a)'];
-        yield 'optional after iterate'   => ['.[]??', '(iter? .)'];
+        yield 'optional after iterate'   => ['.[]??', '(iter .)'];
         yield 'single quoted keeps backslash paren' => ["'a\\(.x)'", '!!str:a\(.x)'];
         yield 'single quoted keeps escape' => ["'a\\nb'", '!!str:a\nb'];
         yield 'plain string unescapes'   => ['"a\tb"', "!!str:a\tb"];

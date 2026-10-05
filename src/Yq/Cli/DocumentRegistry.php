@@ -29,11 +29,6 @@ final class DocumentRegistry
         $document->leadingContent   = $header;
     }
 
-    public function headerFor(Node $node): string
-    {
-        return isset($this->documents[$node]) ? $node->leadingContent : '';
-    }
-
     /**
      * True for a document synthesised for empty input that still holds nothing: there is nothing to print
      * for it but its header.

@@ -352,7 +352,6 @@ final readonly class EvaluateCommand
             shellKeySeparator: $args->string('shell-key-separator'),
             luaUnquoted: $args->bool('lua-unquoted'),
             luaGlobals: $args->bool('lua-globals'),
-            yamlFixMergeAnchorToSpec: $args->bool('yaml-fix-merge-anchor-to-spec'),
         );
     }
 

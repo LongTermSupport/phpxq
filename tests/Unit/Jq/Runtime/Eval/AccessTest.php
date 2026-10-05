@@ -164,40 +164,6 @@ final class AccessTest extends TestCase
         self::assertRaises(JqException::class, 'Start and end indices of an array slice must be numbers', static fn (): mixed => Access::bounds(3, 'a', null));
     }
 
-    public function testEachVisitsArrayElementsAndObjectValues(): void
-    {
-        $seen = [];
-        $each = static function (mixed $value) use (&$seen): void {
-            $seen[] = $value;
-        };
-
-        Access::each([1, 2], $each);
-        Access::each(new JsonObject(['a' => 3, 'b' => 4]), $each);
-
-        self::assertSame([1, 2, 3, 4], $seen);
-    }
-
-    public function testEachRejectsScalars(): void
-    {
-        self::assertRaises(JqException::class, 'Cannot iterate over string ("x")', static function (): void {
-            Access::each('x', static function (): void {});
-        });
-    }
-
-    public function testKeys(): void
-    {
-        self::assertSame([0, 1], Access::keys(['a', 'b']));
-        self::assertSame([], Access::keys([]));
-        self::assertSame(['a', 'b'], Access::keys(new JsonObject(['a' => 1, 'b' => 2])));
-    }
-
-    public function testKeysRejectScalars(): void
-    {
-        $this->expectException(JqException::class);
-
-        Access::keys(1);
-    }
-
     public function testPosition(): void
     {
         self::assertSame(1, Access::position(1.9));

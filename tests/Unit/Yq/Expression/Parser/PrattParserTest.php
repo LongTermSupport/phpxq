@@ -58,7 +58,7 @@ final class PrattParserTest extends TestCase
         yield 'slice variable'        => ['.[$pos:]', '(slice . $pos _)'];
         yield 'slice parens'          => ['.[0:($pos)]', '(slice . !!int:0 $pos)'];
         yield 'optional field'        => ['.a?', '(field? . !!str:a)'];
-        yield 'optional iterate'      => ['.a[]?', '(iter? (field . !!str:a))'];
+        yield 'optional iterate'      => ['.a[]?', '(iter (field . !!str:a))'];
         yield 'optional slice'        => ['.[1:2]?', '(slice? . !!int:1 !!int:2)'];
         yield 'recursive'             => ['..', '(rec .)'];
         yield 'recursive keys'        => ['...', '(recall .)'];

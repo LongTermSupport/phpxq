@@ -13,7 +13,6 @@ final readonly class Iterate implements ExpressionNodeInterface
 {
     public function __construct(
         public ExpressionNodeInterface $base,
-        public bool $optional = false,
     ) {
     }
 }

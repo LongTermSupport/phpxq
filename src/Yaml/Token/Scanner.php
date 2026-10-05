@@ -117,9 +117,6 @@ final class Scanner
 
     private int $commentsHead = 0;
 
-    /** @var list<ScanComment>|null */
-    private ?array $log = null;
-
     /** @var array<int, true> */
     private array $crlf = [];
 
@@ -132,19 +129,6 @@ final class Scanner
         $this->n  = \strlen($prepared);
         $this->s  = $prepared . "\0\0\0\0";
         $this->mb = 1 === preg_match('/[\x80-\xFF]/', $prepared);
-    }
-
-    /**
-     * Strips a UTF-8 BOM, rejects invalid UTF-8 and non-printable characters, and normalises CRLF, CR
-     * and NEL to LF.
-     *
-     * @throws YamlSyntaxException
-     */
-    public static function prepare(string $yaml): string
-    {
-        $crlf = [];
-
-        return self::normalise($yaml, $crlf);
     }
 
     /**
@@ -179,25 +163,9 @@ final class Scanner
     }
 
     /**
-     * Starts keeping a copy of every comment found, for {@see loggedComments()}.
-     */
-    public function logComments(): void
-    {
-        $this->log = [];
-    }
-
-    /**
-     * @return list<ScanComment> the comments found so far, in scan order; empty unless logComments() ran
-     */
-    public function loggedComments(): array
-    {
-        return $this->log ?? [];
-    }
-
-    /**
-     * Does the work of prepare() and, when the text has comments, collects in crlf the offsets of the
-     * line breaks that were CRLF, because go-yaml sees such a break as two when it looks ahead for
-     * comments.
+     * Strips a UTF-8 BOM, rejects invalid UTF-8 and non-printable characters, and normalises CRLF, CR
+     * and NEL to LF. When the text has comments, collects in crlf the offsets of the line breaks that
+     * were CRLF, because go-yaml sees such a break as two when it looks ahead for comments.
      *
      * @param array<int, true> $crlf
      *
@@ -213,13 +181,13 @@ final class Scanner
 
         $found = preg_match(self::NON_PRINTABLE, $yaml, $match, \PREG_OFFSET_CAPTURE);
         if (false === $found) {
-            throw new YamlSyntaxException('invalid leading UTF-8 octet', 1, 0);
+            throw new YamlSyntaxException('invalid leading UTF-8 octet', 1);
         }
 
         if (1 === $found) {
             $offset = $match[0][1];
 
-            throw new YamlSyntaxException('control characters are not allowed', 1 + substr_count($yaml, "\n", 0, $offset), 0);
+            throw new YamlSyntaxException('control characters are not allowed', 1 + substr_count($yaml, "\n", 0, $offset));
         }
 
         if (str_contains($yaml, "\xC2\x85")) {
@@ -260,12 +228,12 @@ final class Scanner
     {
         $body = substr($yaml, 2);
         if (1 === \strlen($body) % 2) {
-            throw new YamlSyntaxException('invalid UTF-16 stream: truncated character', 1, 0);
+            throw new YamlSyntaxException('invalid UTF-16 stream: truncated character', 1);
         }
 
         $decoded = mb_convert_encoding($body, 'UTF-8', "\xFF" === $yaml[0] ? 'UTF-16LE' : 'UTF-16BE');
         if (!mb_check_encoding($body, "\xFF" === $yaml[0] ? 'UTF-16LE' : 'UTF-16BE')) {
-            throw new YamlSyntaxException('invalid UTF-16 stream: unexpected low surrogate area', 1, 0);
+            throw new YamlSyntaxException('invalid UTF-16 stream: unexpected low surrogate area', 1);
         }
 
         return $decoded;
@@ -333,7 +301,7 @@ final class Scanner
 
         $this->p          = $e;
         $this->newlines   = 0;
-        $this->addComment(new ScanComment($e, $tokenIndex, $q, $this->line, $sc, $e + \strlen($text), $this->line, $sc + \strlen($text), '', $text, ''));
+        $this->addComment(new ScanComment($e, $tokenIndex, $q, $this->line, $sc, $e + \strlen($text), '', $text, ''));
     }
 
     /**
@@ -407,7 +375,7 @@ final class Scanner
                                 $tokenMark = $startIdx;
                             }
 
-                            $this->addComment(new ScanComment($scanIndex, $tokenMark, $startIdx, $startLine, $startCol, $q, $line, $column, '', '', $text));
+                            $this->addComment(new ScanComment($scanIndex, $tokenMark, $startIdx, $startLine, $startCol, $q, '', '', $text));
                             $scanIndex        = $q;
                             $tokenMark        = $q;
                             $text             = '';
@@ -438,7 +406,7 @@ final class Scanner
             }
 
             if ('' !== $text && $column - 1 < $nextIndent && $column !== $startCol) {
-                $this->addComment(new ScanComment($scanIndex, $tokenMark, $startIdx, $startLine, $startCol, $q, $line, $column, '', '', $text));
+                $this->addComment(new ScanComment($scanIndex, $tokenMark, $startIdx, $startLine, $startCol, $q, '', '', $text));
                 $scanIndex        = $q;
                 $tokenMark        = $q;
                 $text             = '';
@@ -478,16 +446,13 @@ final class Scanner
         }
 
         if ('' !== $text) {
-            $this->addComment(new ScanComment($scanIndex, $startIdx, $startIdx, $startLine, $startCol, $q - 1, $line, $column, $text, '', ''));
+            $this->addComment(new ScanComment($scanIndex, $startIdx, $startIdx, $startLine, $startCol, $q - 1, $text, '', ''));
         }
     }
 
     private function addComment(ScanComment $comment): void
     {
         $this->comments[] = $comment;
-        if (null !== $this->log) {
-            $this->log[] = clone $comment;
-        }
     }
 
     // ---------------------------------------------------------------- positions and errors
@@ -514,7 +479,7 @@ final class Scanner
     {
         $line = $contextLine > 0 ? $contextLine : $this->line;
 
-        throw new YamlSyntaxException($problem, $line + 1, $this->col());
+        throw new YamlSyntaxException($problem, $line + 1);
     }
 
     private function sync(int $p, int $line, int $ls): void
@@ -827,7 +792,7 @@ final class Scanner
                 $stop = $comment->scanIndex;
             }
 
-            $this->append(new ScanToken(ScanToken::BLOCK_END, $blockIndex, $blockLine, $blockColumn, $blockIndex, $blockLine, $blockColumn));
+            $this->append(new ScanToken(ScanToken::BLOCK_END, $blockIndex, $blockLine, $blockColumn, $blockLine, $blockColumn));
             $this->indent = (int)array_pop($this->indents);
         }
     }
@@ -841,7 +806,7 @@ final class Scanner
         if ($this->indent < $column) {
             $this->indents[] = $this->indent;
             $this->indent    = $column;
-            $token           = new ScanToken($type, $index, $line, $col, $index, $line, $col);
+            $token           = new ScanToken($type, $index, $line, $col, $line, $col);
             if (-1 === $number) {
                 $this->append($token);
             } else {
@@ -951,7 +916,7 @@ final class Scanner
         $this->skIndex             = [0];
         $this->skLine              = [0];
         $this->skColumn            = [0];
-        $this->append(new ScanToken(ScanToken::STREAM_START, 0, 0, 0, 0, 0, 0));
+        $this->append(new ScanToken(ScanToken::STREAM_START, 0, 0, 0, 0, 0));
     }
 
     private function fetchStreamEnd(): void
@@ -964,7 +929,7 @@ final class Scanner
         $this->unrollIndent(-1, $this->p, $this->line, 0);
         $this->removeSimpleKey();
         $this->simpleKeyAllowed = false;
-        $this->append(new ScanToken(ScanToken::STREAM_END, $this->p, $this->line, 0, $this->p, $this->line, 0));
+        $this->append(new ScanToken(ScanToken::STREAM_END, $this->p, $this->line, 0, $this->line, 0));
     }
 
     private function fetchDirective(): void
@@ -985,7 +950,7 @@ final class Scanner
         $from = $this->p;
         $this->p += 3;
         $this->newlines = 0;
-        $this->append(new ScanToken($type, $from, $line, 0, $from + 3, $line, 3));
+        $this->append(new ScanToken($type, $from, $line, 0, $line, 3));
     }
 
     private function fetchFlowCollectionStart(int $type): void
@@ -1050,7 +1015,7 @@ final class Scanner
             $index  = $this->skIndex[$i];
             $line   = $this->skLine[$i];
             $column = $this->skColumn[$i];
-            $this->insert($number - $this->parsed, new ScanToken(ScanToken::KEY, $index, $line, $column, $index, $line, $column));
+            $this->insert($number - $this->parsed, new ScanToken(ScanToken::KEY, $index, $line, $column, $line, $column));
             if (0 === $i && $this->indent < $column) {
                 $this->rollIndent($column, $number, ScanToken::BLOCK_MAPPING_START, $index, $line, $column);
             }
@@ -1079,7 +1044,7 @@ final class Scanner
         $index          = $this->p;
         $column         = $this->mb ? $this->colAt($index, $this->ls) : $index - $this->ls;
         ++$this->p;
-        $this->tokens[] = new ScanToken($type, $index, $this->line, $column, $index + 1, $this->line, $column + 1);
+        $this->tokens[] = new ScanToken($type, $index, $this->line, $column, $this->line, $column + 1);
     }
 
     private function fetchAnchor(int $type): void
@@ -1169,7 +1134,6 @@ final class Scanner
             $this->error('found unknown directive name', $startLine);
         }
 
-        $endIdx  = $this->p;
         $endLine = $this->line;
         $endCol  = $this->col();
 
@@ -1190,7 +1154,7 @@ final class Scanner
             ++$this->newlines;
         }
 
-        return new ScanToken($type, $startIdx, $startLine, $startCol, $endIdx, $endLine, $endCol, $value, $suffix);
+        return new ScanToken($type, $startIdx, $startLine, $startCol, $endLine, $endCol, $value, $suffix);
     }
 
     private function scanVersionNumber(int $startLine): int
@@ -1230,7 +1194,7 @@ final class Scanner
         $this->p += $len;
         $this->newlines = 0;
 
-        return new ScanToken($type, $startIdx, $startLine, $startCol, $this->p, $this->line, $this->col(), $name);
+        return new ScanToken($type, $startIdx, $startLine, $startCol, $this->line, $this->col(), $name);
     }
 
     private function scanTag(): ScanToken
@@ -1268,7 +1232,7 @@ final class Scanner
             $this->error('did not find expected whitespace or line break', $startLine);
         }
 
-        return new ScanToken(ScanToken::TAG, $startIdx, $startLine, $startCol, $this->p, $this->line, $this->col(), $handle, $suffix);
+        return new ScanToken(ScanToken::TAG, $startIdx, $startLine, $startCol, $this->line, $this->col(), $handle, $suffix);
     }
 
     private function scanTagHandle(bool $directive, int $startLine): string
@@ -1470,7 +1434,7 @@ final class Scanner
             $this->newlines = 0;
         }
 
-        return new ScanToken(ScanToken::SCALAR, $startIdx, $startLine, $startCol, $eIdx, $eLine, $mb ? $this->colAt($eIdx, $eLs) : $eIdx - $eLs, $out, '', ScanToken::PLAIN);
+        return new ScanToken(ScanToken::SCALAR, $startIdx, $startLine, $startCol, $eLine, $mb ?$this->colAt($eIdx, $eLs) : $eIdx - $eLs, $out, '', ScanToken::PLAIN);
     }
 
     private function scanFlowScalar(bool $single): ScanToken
@@ -1595,7 +1559,7 @@ final class Scanner
         $this->sync($p, $line, $ls);
         $this->newlines = 0;
 
-        return new ScanToken(ScanToken::SCALAR, $startIdx, $startLine, $startCol, $p, $line, $this->colAt($p, $ls), $out, '', $single ? ScanToken::SINGLE : ScanToken::DOUBLE);
+        return new ScanToken(ScanToken::SCALAR, $startIdx, $startLine, $startCol, $line, $this->colAt($p, $ls), $out, '', $single ? ScanToken::SINGLE : ScanToken::DOUBLE);
     }
 
     /**
@@ -1869,7 +1833,7 @@ final class Scanner
 
         $this->newlines = $brk;
 
-        return new ScanToken(ScanToken::SCALAR, $startIdx, $startLine, $startCol, $eIdx, $eLine, $this->colAt($eIdx, $eLs), $out, '', $literal ? ScanToken::LITERAL : ScanToken::FOLDED);
+        return new ScanToken(ScanToken::SCALAR, $startIdx, $startLine, $startCol, $eLine, $this->colAt($eIdx, $eLs), $out, '', $literal ? ScanToken::LITERAL : ScanToken::FOLDED);
     }
 
     /**

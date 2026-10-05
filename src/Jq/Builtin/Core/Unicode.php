@@ -117,25 +117,6 @@ final readonly class Unicode
         return $text;
     }
 
-    /**
-     * Characters from codepoint $from (inclusive) up to $to (exclusive), clamped like jq's string slices.
-     */
-    public static function slice(string $text, int $from, int $to): string
-    {
-        $length = self::length($text);
-        $from   = max(0, min($length, $from));
-        $to     = max($from, min($length, $to));
-        if (0 === $from && $to === $length) {
-            return $text;
-        }
-
-        if (\strlen($text) === $length) {
-            return substr($text, $from, $to - $from);
-        }
-
-        return implode('', \array_slice(self::characters($text), $from, $to - $from));
-    }
-
     private static function continuations(string $text): int
     {
         $count = preg_match_all('/[\x80-\xBF]/', $text);

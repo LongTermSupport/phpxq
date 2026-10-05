@@ -91,30 +91,4 @@ final class CoreEdgesTest extends TestCase
             }
         }
     }
-
-    #[DataProvider('slices')]
-    public function testSlice(string $text, int $from, int $to, string $expected): void
-    {
-        self::assertSame($expected, Unicode::slice($text, $from, $to));
-    }
-
-    /**
-     * @return iterable<string, array{string, int, int, string}>
-     */
-    public static function slices(): iterable
-    {
-        yield 'the whole ascii text' => ['hello', 0, 5, 'hello'];
-        yield 'the whole multibyte text' => ['héllo', 0, 5, 'héllo'];
-        yield 'an ascii prefix' => ['world', 0, 3, 'wor'];
-        yield 'an ascii suffix' => ['abc', 1, 3, 'bc'];
-        yield 'an ascii middle' => ['yellow', 1, 3, 'el'];
-        yield 'a multibyte middle' => ['wörld', 1, 3, 'ör'];
-        yield 'a multibyte prefix' => ['naïve', 0, 3, 'naï'];
-        yield 'a multibyte suffix' => ['çava', 1, 4, 'ava'];
-        yield 'a negative start is clamped' => ['plane', -5, 2, 'pl'];
-        yield 'an end past the text is clamped' => ['stone', 1, 99, 'tone'];
-        yield 'an end before the start is empty' => ['truck', 2, 1, ''];
-        yield 'an empty text' => ['', 0, 0, ''];
-        yield 'a start past the text' => ['car', 7, 9, ''];
-    }
 }

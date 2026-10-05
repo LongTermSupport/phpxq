@@ -20,10 +20,9 @@ final class BrokenDownTimeTest extends TestCase
         $time = BrokenDownTime::fromEpoch(1425599507, ZoneInfo::utc());
 
         self::assertNotNull($time);
-        self::assertSame([2015, 2, 5, 23, 51, 47, 4, 63], $time->toList());
+        self::assertSame([2015, 2, 5, 23, 51, 47, 4, 63], self::fields($time));
         self::assertSame(0, $time->gmtOffset);
         self::assertSame('UTC', $time->zone);
-        self::assertFalse($time->dst);
     }
 
     public function testFromEpochBeforeTheEpoch(): void
@@ -31,7 +30,7 @@ final class BrokenDownTimeTest extends TestCase
         $time = BrokenDownTime::fromEpoch(-1, ZoneInfo::utc());
 
         self::assertNotNull($time);
-        self::assertSame([1969, 11, 31, 23, 59, 59, 3, 364], $time->toList());
+        self::assertSame([1969, 11, 31, 23, 59, 59, 3, 364], self::fields($time));
     }
 
     public function testFromEpochInAFixedZone(): void
@@ -39,7 +38,7 @@ final class BrokenDownTimeTest extends TestCase
         $time = BrokenDownTime::fromEpoch(0, ZoneInfo::fixed(19800, 'IST'));
 
         self::assertNotNull($time);
-        self::assertSame([1970, 0, 1, 5, 30, 0, 4, 0], $time->toList());
+        self::assertSame([1970, 0, 1, 5, 30, 0, 4, 0], self::fields($time));
         self::assertSame(19800, $time->gmtOffset);
         self::assertSame('IST', $time->zone);
     }
@@ -55,7 +54,7 @@ final class BrokenDownTimeTest extends TestCase
         $time = BrokenDownTime::fromJq([2024, 2, 15]);
 
         self::assertNotNull($time);
-        self::assertSame([2024, 2, 15, 0, 0, 0, 0, 0], $time->toList());
+        self::assertSame([2024, 2, 15, 0, 0, 0, 0, 0], self::fields($time));
     }
 
     public function testFromJqTruncatesTowardZero(): void
@@ -63,7 +62,7 @@ final class BrokenDownTimeTest extends TestCase
         $time = BrokenDownTime::fromJq([2015.9, 2.9, 5.9, 23.9, 51.9, 47.9, 4.9, 63.9]);
 
         self::assertNotNull($time);
-        self::assertSame([2015, 2, 5, 23, 51, 47, 4, 63], $time->toList());
+        self::assertSame([2015, 2, 5, 23, 51, 47, 4, 63], self::fields($time));
 
         $negative = BrokenDownTime::fromJq([2015, 0, 1, 0, 0, -1.5]);
         self::assertNotNull($negative);
@@ -108,5 +107,13 @@ final class BrokenDownTimeTest extends TestCase
 
         self::assertNotNull($time);
         self::assertSame(Civil::timegm(2016, 1, 2, 2, 2, 1), $time->wallSeconds());
+    }
+
+    /**
+     * @return list<int>
+     */
+    private static function fields(BrokenDownTime $time): array
+    {
+        return [$time->year, $time->month, $time->day, $time->hour, $time->minute, $time->second, $time->weekday, $time->yearDay];
     }
 }
