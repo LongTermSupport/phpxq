@@ -28,6 +28,8 @@ final class HclReader
 
     private readonly int $length;
 
+    private int $depth = 0;
+
     private string $pending = '';
 
     public function __construct(private readonly string $source)
@@ -87,6 +89,35 @@ final class HclReader
         }
     }
 
+    private function enter(): void
+    {
+        if (Node::depthExceeded(++$this->depth)) {
+            throw $this->error(Node::depthError());
+        }
+    }
+
+    /**
+     * Refuses an expression whose brackets nest too deep, in one linear pass: reading it level by level would
+     * rescan the whole remaining text at every level.
+     */
+    private function checkBracketDepth(string $text): void
+    {
+        $length = \strlen($text);
+        $open   = $this->depth;
+        for ($i = 0; $i < $length; ++$i) {
+            $char = $text[$i];
+            if ('"' === $char) {
+                $i = HclScanner::skipString($text, $i) - 1;
+            } elseif ('[' === $char || '{' === $char || '(' === $char) {
+                if (Node::depthExceeded(++$open)) {
+                    throw $this->error(Node::depthError());
+                }
+            } elseif (']' === $char || '}' === $char || ')' === $char) {
+                --$open;
+            }
+        }
+    }
+
     private function attribute(Node $body, string $name): void
     {
         ++$this->pos;
@@ -94,6 +125,7 @@ final class HclReader
         $end        = HclScanner::expressionEnd($this->source, $this->pos);
         $text       = trim(substr($this->source, $this->pos, $end - $this->pos));
         $this->pos  = $end;
+        $this->checkBracketDepth($text);
         $value      = $this->expression($text);
         $this->skipSpaces();
         $value->lineComment = $this->trailingComment();
@@ -130,7 +162,9 @@ final class HclReader
         }
 
         $head          = $this->takePending();
-        $inner         = $this->body(true);
+        $this->enter();
+        $inner = $this->body(true);
+        --$this->depth;
         $this->skipSpaces();
         $this->trailingComment();
 

@@ -47,6 +47,8 @@ final class StreamParser
 
     private string $endFoot = '';
 
+    private int $depth = 0;
+
     public function __construct(string $yaml)
     {
         $this->sc = new Scanner($yaml);
@@ -288,7 +290,9 @@ final class StreamParser
             case ScanToken::BLOCK_ENTRY:
                 if ($indentless) {
                     $node = $this->collection(NodeKindEnum::Sequence, false, CoreSchema::TAG_SEQ, $tag, $anchor, $startLine, $startCol);
+                    $this->enter($t);
                     $this->parseIndentlessSequence($node);
+                    --$this->depth;
 
                     return $node;
                 }
@@ -306,14 +310,18 @@ final class StreamParser
             case ScanToken::FLOW_SEQUENCE_START:
                 $node = $this->collection(NodeKindEnum::Sequence, true, CoreSchema::TAG_SEQ, $tag, $anchor, $startLine, $startCol);
                 $this->takeComments($node);
+                $this->enter($t);
                 $this->parseFlowSequence($node);
+                --$this->depth;
 
                 return $node;
 
             case ScanToken::FLOW_MAPPING_START:
                 $node = $this->collection(NodeKindEnum::Mapping, true, CoreSchema::TAG_MAP, $tag, $anchor, $startLine, $startCol);
                 $this->takeComments($node);
+                $this->enter($t);
                 $this->parseFlowMapping($node);
+                --$this->depth;
 
                 return $node;
 
@@ -321,7 +329,9 @@ final class StreamParser
                 if ($block) {
                     $node = $this->collection(NodeKindEnum::Sequence, false, CoreSchema::TAG_SEQ, $tag, $anchor, $startLine, $startCol);
                     $this->takeStem($node);
+                    $this->enter($t);
                     $this->parseBlockSequence($node);
+                    --$this->depth;
 
                     return $node;
                 }
@@ -332,7 +342,9 @@ final class StreamParser
                 if ($block) {
                     $node = $this->collection(NodeKindEnum::Mapping, false, CoreSchema::TAG_MAP, $tag, $anchor, $startLine, $startCol);
                     $this->takeStem($node);
+                    $this->enter($t);
                     $this->parseBlockMapping($node);
+                    --$this->depth;
 
                     return $node;
                 }
@@ -656,6 +668,7 @@ final class StreamParser
         $pair->line        = $keyToken->startLine   + 1;
         $pair->column      = $keyToken->startColumn + 1;
 
+        $this->enter($keyToken);
         $sc->skip();
         $t = $sc->peek();
         if (ScanToken::VALUE !== $t->type && ScanToken::FLOW_ENTRY !== $t->type && ScanToken::FLOW_SEQUENCE_END !== $t->type) {
@@ -683,6 +696,8 @@ final class StreamParser
             $key->footComment   = $value->footComment;
             $value->footComment = '';
         }
+
+        --$this->depth;
 
         return $pair;
     }
@@ -765,6 +780,16 @@ final class StreamParser
     }
 
     // ---------------------------------------------------------------- errors
+
+    /**
+     * @throws YamlSyntaxException
+     */
+    private function enter(ScanToken $at): void
+    {
+        if (Node::depthExceeded(++$this->depth)) {
+            $this->fail(Node::depthError(), $at);
+        }
+    }
 
     /**
      * @throws YamlSyntaxException

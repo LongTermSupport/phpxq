@@ -22,6 +22,17 @@ use SplObjectStorage;
  */
 final class Node
 {
+    /**
+     * Deepest accepted nesting of collections in one document. Readers, the evaluator and the writers walk a
+     * tree recursively, so a depth the native stack cannot hold would end the process with a segmentation
+     * fault; every reader refuses deeper input with a plain error instead. go-yaml allows 10000, but the
+     * recursive-descent YAML parser overflows the default 8 MB stack under Xdebug coverage a little below
+     * that (measured: 9500 levels pass, 10000 do not), so the limit keeps a margin of about two.
+     */
+    public const int MAX_DEPTH = 5000;
+
+    private const string DEPTH_ERROR_FORMAT = 'exceeded max depth of %d';
+
     public bool $commentsCleared = false;
 
     // The rarely used properties are plain declarations with defaults rather than promoted constructor
@@ -59,6 +70,22 @@ final class Node
         public int $line = 0,
         public int $column = 0,
     ) {
+    }
+
+    /**
+     * Whether a collection opened at this depth (the outermost collection is depth 1) is over the limit.
+     */
+    public static function depthExceeded(int $depth): bool
+    {
+        return $depth > self::MAX_DEPTH;
+    }
+
+    /**
+     * The text of the error a reader raises for input nested deeper than {@see self::MAX_DEPTH}.
+     */
+    public static function depthError(): string
+    {
+        return \sprintf(self::DEPTH_ERROR_FORMAT, self::MAX_DEPTH);
     }
 
     /**

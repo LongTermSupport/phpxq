@@ -43,6 +43,10 @@ final readonly class PropsDecoder implements DecoderInterface
                 $parts[] = 1 === preg_match('/^[0-9]{1,9}$/D', $part) ? (int)$part : $part;
             }
 
+            if (Node::depthExceeded(\count($parts))) {
+                throw new FormatException('properties: ' . Node::depthError());
+            }
+
             $this->assign($root, Node::scalar($value, CoreSchema::TAG_STR), $comment, $index, ...$parts);
         }
 

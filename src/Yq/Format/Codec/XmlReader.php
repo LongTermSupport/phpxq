@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Format\Codec;
 
+use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -27,6 +28,8 @@ final class XmlReader
     private int $pos = 0;
 
     private int $errorLine = 0;
+
+    private int $depth = 0;
 
     private int $textStart = 0;
 
@@ -262,6 +265,7 @@ final class XmlReader
 
         $elem->parent->state     = ElementStateEnum::Ended;
         $elem->parent->lastChild = $elem;
+        --$this->depth;
 
         return $elem->parent;
     }
@@ -327,6 +331,10 @@ final class XmlReader
             $parent->lastChild = $elem;
 
             return $parent;
+        }
+
+        if (Node::depthExceeded(++$this->depth)) {
+            throw new FormatException('XML syntax error: ' . Node::depthError());
         }
 
         return $elem;

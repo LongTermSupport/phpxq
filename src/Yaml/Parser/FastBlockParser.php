@@ -141,6 +141,9 @@ final readonly class FastBlockParser
                     $nodes[]            = $child;
                     $indentless[]       = false;
                     ++$depth;
+                    if (Node::depthExceeded($depth + 1)) {
+                        return null;
+                    }
                 } elseif ($indent === $pendingIndent && $dash && !$isSequence[$depth]) {
                     $child              = new Node(NodeKindEnum::Sequence, CoreSchema::TAG_SEQ, NodeStyleEnum::Default, line: $line, column: $indent + 1);
                     $pending->content[] = $child;
@@ -149,6 +152,10 @@ final readonly class FastBlockParser
                     $nodes[]            = $child;
                     $indentless[]       = true;
                     ++$depth;
+                    if (Node::depthExceeded($depth + 1)) {
+                        return null;
+                    }
+
                 } else {
                     $pending->content[] = new Node(NodeKindEnum::Scalar, CoreSchema::TAG_NULL, NodeStyleEnum::Default, line: $pendingLine, column: $pendingColumn);
                 }
@@ -230,6 +237,10 @@ final readonly class FastBlockParser
                 $nodes[]           = $item;
                 $indentless[]      = false;
                 ++$depth;
+                if (Node::depthExceeded($depth + 1)) {
+                    return null;
+                }
+
                 $target = $item;
             }
 

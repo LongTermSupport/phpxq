@@ -272,6 +272,14 @@ final class PropsDecoderTest extends TestCase
         self::assertSame('a', $root->content[0]->value);
     }
 
+    public function testAKeyPathNestingBeyondTheLimitIsRefused(): void
+    {
+        $this->expectException(FormatException::class);
+        $this->expectExceptionMessage(Node::depthError());
+
+        $this->decode(str_repeat('a.', Node::MAX_DEPTH) . "a = 1\n");
+    }
+
     public function testBlankInputHasNoDocuments(): void
     {
         self::assertSame([], [...new PropsDecoder()->decode("  \n\t", new FormatOptions())]);
