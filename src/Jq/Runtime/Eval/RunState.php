@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Jq\Runtime\Eval;
 
 use LogicException;
+use LTS\PhpXq\Jq\Runtime\EvaluationStack;
+use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Json\JsonObject;
 
 /**
  * Mutable state shared by every op a {@see Core} compiles: the runtime context of the program currently
  * running and its global variables. Ops reach it through a reference captured at compile time, so the Op
- * trees stay independent of any particular run.
+ * trees stay independent of any particular run. It also counts the jq function and closure-parameter calls
+ * in flight: more than {@see EvaluationStack::MAX_CALL_DEPTH} fail with a jq error before they can exhaust
+ * the native stack that EvaluationStack reserves.
  *
  * @internal
  */
@@ -23,6 +27,27 @@ final class RunState
     private array $globals = [];
 
     private ?JsonObject $environment = null;
+
+    private int $callDepth = 0;
+
+    /**
+     * Account for one more jq function call on the native stack.
+     *
+     * @throws JqException when the calls in flight exceed {@see EvaluationStack::MAX_CALL_DEPTH}
+     */
+    public function enterCall(): void
+    {
+        if (++$this->callDepth > EvaluationStack::MAX_CALL_DEPTH) {
+            --$this->callDepth;
+
+            throw JqException::fromMessage(EvaluationStack::DEPTH_EXCEEDED);
+        }
+    }
+
+    public function leaveCall(): void
+    {
+        --$this->callDepth;
+    }
 
     public function context(): RuntimeContextInterface
     {

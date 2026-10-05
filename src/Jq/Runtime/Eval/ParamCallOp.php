@@ -14,20 +14,34 @@ use LogicException;
  */
 final readonly class ParamCallOp implements OpInterface
 {
-    public function __construct(private int $depth)
-    {
+    public function __construct(
+        private int $depth,
+        private RunState $state,
+    ) {
     }
 
     public function run(?Env $env, mixed $input, Closure $emit): void
     {
         $argument = $this->argument($env);
-        $argument->op->run($argument->env, $input, $emit);
+        $this->state->enterCall();
+
+        try {
+            $argument->op->run($argument->env, $input, $emit);
+        } finally {
+            $this->state->leaveCall();
+        }
     }
 
     public function paths(?Env $env, ?array $path, mixed $input, Closure $emit): void
     {
         $argument = $this->argument($env);
-        $argument->op->paths($argument->env, $path, $input, $emit);
+        $this->state->enterCall();
+
+        try {
+            $argument->op->paths($argument->env, $path, $input, $emit);
+        } finally {
+            $this->state->leaveCall();
+        }
     }
 
     private function argument(?Env $env): ClosureArg

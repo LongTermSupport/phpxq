@@ -21,17 +21,30 @@ final readonly class CallOp implements OpInterface
         private FuncInfo $function,
         private int $depth,
         private array $arguments,
+        private RunState $state,
     ) {
     }
 
     public function run(?Env $env, mixed $input, Closure $emit): void
     {
-        $this->function->body()->run($this->frame($env), $input, $emit);
+        $this->state->enterCall();
+
+        try {
+            $this->function->body()->run($this->frame($env), $input, $emit);
+        } finally {
+            $this->state->leaveCall();
+        }
     }
 
     public function paths(?Env $env, ?array $path, mixed $input, Closure $emit): void
     {
-        $this->function->body()->paths($this->frame($env), $path, $input, $emit);
+        $this->state->enterCall();
+
+        try {
+            $this->function->body()->paths($this->frame($env), $path, $input, $emit);
+        } finally {
+            $this->state->leaveCall();
+        }
     }
 
     private function frame(?Env $env): ?Env

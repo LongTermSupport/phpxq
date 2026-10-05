@@ -320,11 +320,11 @@ final readonly class NodeCompiler
         $depth = 0;
         for ($entry = $scope; $entry instanceof Scope; $entry = $entry->parent) {
             if (ScopeKindEnum::Param === $entry->kind && 0 === $arity && $entry->name === $name) {
-                return new ParamCallOp($depth);
+                return new ParamCallOp($depth, $this->core->state);
             }
 
             if (ScopeKindEnum::Func === $entry->kind && $entry->arity === $arity && $entry->name === $name && $entry->function instanceof FuncInfo) {
-                return new CallOp($entry->function, $depth, $this->arguments($node, $scope));
+                return new CallOp($entry->function, $depth, $this->arguments($node, $scope), $this->core->state);
             }
 
             ++$depth;
@@ -381,7 +381,7 @@ final readonly class NodeCompiler
     {
         $this->core->ensureCompiled($function);
 
-        return new CallOp($function, -1, $this->arguments($node, $scope));
+        return new CallOp($function, -1, $this->arguments($node, $scope), $this->core->state);
     }
 
     /**

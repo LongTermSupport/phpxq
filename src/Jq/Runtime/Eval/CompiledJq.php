@@ -6,6 +6,7 @@ namespace LTS\PhpXq\Jq\Runtime\Eval;
 
 use Closure;
 use LTS\PhpXq\Jq\Runtime\CompiledProgramInterface;
+use LTS\PhpXq\Jq\Runtime\EvaluationStack;
 use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 
 /**
@@ -28,7 +29,7 @@ final readonly class CompiledJq implements CompiledProgramInterface
         $previous = $this->state->snapshot();
         $this->state->enter($context, $context->globals());
         try {
-            $this->body->run(null, $input, $emit);
+            EvaluationStack::run(fn () => $this->body->run(null, $input, $emit));
         } finally {
             $this->state->enter($previous['context'], $previous['globals']);
         }
