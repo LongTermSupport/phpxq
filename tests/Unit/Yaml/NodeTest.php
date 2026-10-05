@@ -72,6 +72,21 @@ final class NodeTest extends TestCase
         self::assertNotSame($anchored, $copy->content[3]->aliasTarget);
     }
 
+    public function testTheDepthLimitItselfIsAccepted(): void
+    {
+        self::assertFalse(Node::depthExceeded(Node::MAX_DEPTH));
+    }
+
+    public function testOneLevelBeyondTheDepthLimitIsRefused(): void
+    {
+        self::assertTrue(Node::depthExceeded(Node::MAX_DEPTH + 1));
+    }
+
+    public function testTheDepthErrorNamesTheLimit(): void
+    {
+        self::assertSame('exceeded max depth of ' . Node::MAX_DEPTH, Node::depthError());
+    }
+
     public function testDeepCopyKeepsAliasesToOutsideTargets(): void
     {
         $outside = Node::scalar('v');

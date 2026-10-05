@@ -45,6 +45,27 @@ final class HclReaderTest extends TestCase
         self::fail('expected a FormatException');
     }
 
+    #[DataProvider('tooDeepProvider')]
+    public function testNestingBeyondTheLimitIsRefused(string $hcl): void
+    {
+        $this->expectException(FormatException::class);
+        $this->expectExceptionMessage(Node::depthError());
+
+        $this->decode($hcl);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function tooDeepProvider(): iterable
+    {
+        $depth = Node::MAX_DEPTH + 1;
+
+        yield 'lists' => ['a = ' . str_repeat('[', $depth) . str_repeat(']', $depth) . "\n"];
+        yield 'objects' => ['a = ' . str_repeat('{a=', $depth) . '1' . str_repeat('}', $depth) . "\n"];
+        yield 'blocks' => [str_repeat('a {', $depth) . str_repeat('}', $depth) . "\n"];
+    }
+
     /**
      * @return iterable<string, array{string, string}>
      */

@@ -117,6 +117,36 @@ final class YamlParserTest extends TestCase
         self::assertTrue($docs[0]->explicitStart);
     }
 
+    #[DataProvider('tooDeepProvider')]
+    public function testNestingBeyondTheLimitIsASyntaxError(string $yaml): void
+    {
+        $this->expectException(YamlSyntaxException::class);
+        $this->expectExceptionMessage(Node::depthError());
+
+        $this->parse($yaml);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function tooDeepProvider(): iterable
+    {
+        $depth = Node::MAX_DEPTH + 1;
+
+        yield 'flow sequences' => [str_repeat('[', $depth) . str_repeat(']', $depth)];
+        yield 'flow mappings' => [str_repeat('{"a":', $depth) . '1' . str_repeat('}', $depth)];
+        yield 'flow pairs in sequences' => [str_repeat('[a: ', $depth) . '1' . str_repeat(']', $depth)];
+        yield 'block sequences' => [str_repeat('- ', $depth) . "1\n"];
+        yield 'block mappings' => [implode("\n", array_map(static fn (int $level): string => str_repeat(' ', $level) . 'a:', range(0, $depth - 1))) . "\n1\n"];
+    }
+
+    public function testNestingAtTheLimitIsAccepted(): void
+    {
+        $docs = $this->parse(str_repeat('[', Node::MAX_DEPTH) . str_repeat(']', Node::MAX_DEPTH));
+
+        self::assertCount(1, $docs);
+    }
+
     public function testCommentOnlyStreamYieldsANullDocument(): void
     {
         $docs = $this->parse("# only\n\n");

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Yq\Format\Codec;
 
+use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yq\Format\Codec\JsonEncoder;
 use LTS\PhpXq\Yq\Format\Codec\XmlDecoder;
 use LTS\PhpXq\Yq\Format\Codec\YamlEncoder;
@@ -40,6 +41,16 @@ final class XmlReaderTest extends TestCase
         }
 
         self::fail('expected a FormatException');
+    }
+
+    public function testElementsNestedBeyondTheLimitAreRefused(): void
+    {
+        $depth = Node::MAX_DEPTH + 1;
+
+        $this->expectException(FormatException::class);
+        $this->expectExceptionMessage(Node::depthError());
+
+        $this->decode(str_repeat('<a>', $depth) . 'x' . str_repeat('</a>', $depth), new FormatOptions());
     }
 
     /**
