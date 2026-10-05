@@ -168,7 +168,7 @@ final readonly class DateBuiltins implements BuiltinProviderInterface
             return [$time, $format];
         }
 
-        [$offset, $dst, $abbreviation] = $zone->at($zone->epochOfWallClock($time->wallSeconds()));
+        [$offset, , $abbreviation] = $zone->at($zone->epochOfWallClock($time->wallSeconds()));
 
         return [
             new BrokenDownTime(
@@ -182,7 +182,6 @@ final readonly class DateBuiltins implements BuiltinProviderInterface
                 $time->yearDay,
                 $offset,
                 $abbreviation,
-                $dst,
             ),
             $format,
         ];

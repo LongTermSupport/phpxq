@@ -31,7 +31,6 @@ final readonly class FormatOptions
         public string $shellKeySeparator = '_',
         public bool $luaUnquoted = false,
         public bool $luaGlobals = false,
-        public bool $yamlFixMergeAnchorToSpec = false,
     ) {
     }
 }

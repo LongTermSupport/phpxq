@@ -38,8 +38,6 @@ final class NodeOpsTest extends TestCase
 
     private const string SCALAR_NAME = 'scalar';
 
-    private const string TEXT = 'text';
-
     private const string SOURCE = 'source';
 
     private const string TARGET = 'target';
@@ -307,16 +305,6 @@ final class NodeOpsTest extends TestCase
         yield 'another key' => [self::scalar('<', CoreSchema::TAG_STR), false];
 
         yield 'a mapping' => [new Node(NodeKindEnum::Mapping, '', NodeStyleEnum::Default, '<<'), false];
-    }
-
-    public function testScalarTextOfAScalarAnAliasAndACollection(): void
-    {
-        $scalar = NodeOps::str(self::TEXT);
-
-        self::assertSame(self::TEXT, NodeOps::scalarText($scalar));
-        self::assertSame(self::TEXT, NodeOps::scalarText(Node::alias('a', $scalar)));
-        self::assertSame('', NodeOps::scalarText(NodeOps::seq([$scalar])));
-        self::assertSame('', NodeOps::scalarText(Node::alias('a', NodeOps::map([$scalar, $scalar]))));
     }
 
     public function testBecomesAContainer(): void

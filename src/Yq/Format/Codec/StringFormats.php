@@ -71,25 +71,6 @@ final readonly class StringFormats
     }
 
     /**
-     * The `@sh` quoting: runs of characters that need quoting are wrapped in single quotes, a single
-     * quote becomes `\'`, and safe characters stay bare (`it's ok` becomes `it\''s ok'`).
-     */
-    public static function shellRuns(string $text): string
-    {
-        if ('' === $text) {
-            return "''";
-        }
-
-        $parts = [];
-        foreach (explode("'", $text) as $segment) {
-            $prefix  = strspn($segment, self::SHELL_SAFE);
-            $parts[] = $prefix >= \strlen($segment) ? $segment : substr($segment, 0, $prefix) . "'" . substr($segment, $prefix) . "'";
-        }
-
-        return implode('\\\'', $parts);
-    }
-
-    /**
      * One shell word for a value: bare when every character is safe, otherwise single-quoted with an
      * embedded single quote written as `'"'"'`. Used for shell variable output.
      */

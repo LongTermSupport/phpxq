@@ -49,31 +49,6 @@ final class FormatRegistry implements FormatRegistryInterface
     ) {
     }
 
-    /**
-     * The format a file name implies by its extension (the reference's `auto` input format), or null when
-     * the extension says nothing.
-     */
-    public static function fromFilename(string $filename): ?FormatEnum
-    {
-        $dot = strrpos($filename, '.');
-        if (false === $dot) {
-            return null;
-        }
-
-        return match (strtolower(substr($filename, $dot + 1))) {
-            'yaml', 'yml'         => FormatEnum::Yaml,
-            'json'                => FormatEnum::Json,
-            'xml'                 => FormatEnum::Xml,
-            'properties', 'props' => FormatEnum::Props,
-            'csv'                 => FormatEnum::Csv,
-            'tsv'                 => FormatEnum::Tsv,
-            'toml'                => FormatEnum::Toml,
-            'hcl', 'tf', 'tfvars' => FormatEnum::Hcl,
-            'lua'                 => FormatEnum::Lua,
-            default               => null,
-        };
-    }
-
     public function decoder(FormatEnum $format): DecoderInterface
     {
         return $this->decoders[$format->value] ??= match ($format) {

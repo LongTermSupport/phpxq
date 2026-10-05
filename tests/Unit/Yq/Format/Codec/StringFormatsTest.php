@@ -52,27 +52,6 @@ final class StringFormatsTest extends TestCase
         StringFormats::uriDecode('100%');
     }
 
-    #[DataProvider('shellRunCases')]
-    public function testShellRuns(string $input, string $expected): void
-    {
-        self::assertSame($expected, StringFormats::shellRuns($input));
-    }
-
-    /**
-     * @return iterable<string, array{string, string}>
-     */
-    public static function shellRunCases(): iterable
-    {
-        yield 'documented example' => ["strings with spaces and a 'quote'", "strings' with spaces and a '\\'quote\\'"];
-
-        yield 'safe' => ['abc-1_2.3/4', 'abc-1_2.3/4'];
-
-        yield 'empty' => ['', "''"];
-
-        yield 'only a quote' => ["'", "\\'"];
-
-        yield 'leading unsafe' => ['a b', "a' b'"];
-    }
 
     #[DataProvider('shellQuoteCases')]
     public function testShellQuote(string $input, string $expected): void

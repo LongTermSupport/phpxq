@@ -510,7 +510,10 @@ final class PrattParser
         if (ExpressionTokenKindEnum::RightBracket === $token->kind) {
             ++$this->pos;
 
-            return new Iterate($base, $this->optional());
+            // iterating never fails, so a trailing `?` changes nothing and is only consumed
+            $this->optional();
+
+            return new Iterate($base);
         }
 
         $from = ExpressionTokenKindEnum::Colon === $token->kind ? null : $this->parseFull();

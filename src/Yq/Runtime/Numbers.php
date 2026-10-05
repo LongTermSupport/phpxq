@@ -115,11 +115,6 @@ final readonly class Numbers
         return $text;
     }
 
-    public static function format(int|float $value): string
-    {
-        return \is_int($value) ? (string)$value : self::formatFloat($value);
-    }
-
     public static function tagOf(int|float $value): string
     {
         return \is_int($value) ? CoreSchema::TAG_INT : CoreSchema::TAG_FLOAT;

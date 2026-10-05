@@ -187,16 +187,6 @@ final readonly class NodeOps
     }
 
     /**
-     * The text a scalar contributes where a string is wanted; collections have none.
-     */
-    public static function scalarText(Node $node): string
-    {
-        $node = self::deref($node);
-
-        return NodeKindEnum::Scalar === $node->kind ? $node->value : '';
-    }
-
-    /**
      * Overwrites `$target` in place with `$source`, the reference's UpdateFrom: kind, value and content come
      * from the source, the target keeps its anchor, position and (when the source has none) comments, a
      * custom tag survives unless `$clobberTags`, and the style is adopted only by an empty target.

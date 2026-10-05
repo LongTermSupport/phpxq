@@ -176,12 +176,6 @@ final class NodeToolsHelpersTest extends TestCase
         yield 'hash inside a line is kept' => ['# a # b', 'a # b'];
     }
 
-    public function testToCommentPrefixesEveryLine(): void
-    {
-        self::assertSame("# a\n#\n# b", NodeTools::toComment("a\n\nb"));
-        self::assertSame('# only', NodeTools::toComment('only'));
-    }
-
     #[DataProvider('trailingCommentCases')]
     public function testTrailingComment(string $expected, string ...$comments): void
     {

@@ -52,43 +52,4 @@ final class FormatRegistryTest extends TestCase
         self::assertSame(FormatEnum::Lua, new FormatRegistry()->decoder(FormatEnum::Lua)->format());
     }
 
-    #[DataProvider('filenames')]
-    public function testFormatFromFilename(string $filename, ?FormatEnum $expected): void
-    {
-        self::assertSame($expected, FormatRegistry::fromFilename($filename));
-    }
-
-    /**
-     * @return iterable<string, array{string, ?FormatEnum}>
-     */
-    public static function filenames(): iterable
-    {
-        yield 'yaml' => ['a.yaml', FormatEnum::Yaml];
-
-        yield 'yml' => ['dir/a.YML', FormatEnum::Yaml];
-
-        yield 'json' => ['a.json', FormatEnum::Json];
-
-        yield 'xml' => ['a.xml', FormatEnum::Xml];
-
-        yield 'properties' => ['a.properties', FormatEnum::Props];
-
-        yield 'props' => ['a.props', FormatEnum::Props];
-
-        yield 'csv' => ['a.csv', FormatEnum::Csv];
-
-        yield 'tsv' => ['a.tsv', FormatEnum::Tsv];
-
-        yield 'toml' => ['a.toml', FormatEnum::Toml];
-
-        yield 'hcl' => ['main.tf', FormatEnum::Hcl];
-
-        yield 'tfvars' => ['a.tfvars', FormatEnum::Hcl];
-
-        yield 'lua' => ['a.lua', FormatEnum::Lua];
-
-        yield 'unknown extension' => ['a.txt', null];
-
-        yield 'no extension' => ['Makefile', null];
-    }
 }

@@ -227,7 +227,7 @@ final readonly class Evaluator implements EvaluatorInterface
                 continue;
             }
 
-            if (!NodeOps::isNull($node)) {
+            if (!NodeOps::isNull($node) && !$slice->optional) {
                 throw new EvaluationException('Cannot index ' . NodeOps::effectiveTag($node) . ' with a slice');
             }
         }
