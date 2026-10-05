@@ -43,7 +43,7 @@ if [[ -n "$direct" ]]; then
 fi
 
 merge_status=0
-git merge-tree --write-tree --quiet "origin/$main_branch" "origin/$release_branch" || merge_status=$?
+git merge-tree --write-tree "origin/$main_branch" "origin/$release_branch" >/dev/null || merge_status=$?
 case "$merge_status" in
     0) head_branch="$release_branch" ;;
     1) head_branch="$merge_branch" ;;

@@ -51,7 +51,7 @@ case "$verify_status" in
         fi
         exit 0
         ;;
-    *) fail_loud "VERSION, CHANGELOG.md and the tags disagree (reason above); refusing to release" ;;
+    *) fail_loud "the VERSION, CHANGELOG.md and tag check refused this release (reason above)" ;;
 esac
 
 if git -C "$root" rev-parse --verify --quiet "refs/tags/$tag" >/dev/null; then
