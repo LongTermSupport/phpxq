@@ -109,8 +109,7 @@ final class StreamParserTest extends TestCase
     #[DataProvider('pairPositionProvider')]
     public function testFlowSequencePairsStartAtTheirKey(string $yaml, int $line, int $column): void
     {
-        $items = $this->firstRoot($yaml)->content;
-        $pair  = $items[array_key_last($items)];
+        $pair = array_slice($this->firstRoot($yaml)->content, -1)[0];
 
         self::assertSame([$line, $column], [$pair->line, $pair->column]);
     }
