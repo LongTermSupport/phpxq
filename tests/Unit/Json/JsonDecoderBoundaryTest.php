@@ -108,6 +108,18 @@ final class JsonDecoderBoundaryTest extends TestCase
         }
     }
 
+    public function testTryDecodeOneKeepsTextWithoutABomIntact(): void
+    {
+        $ok = false;
+
+        self::assertSame(12345, new JsonDecoder()->tryDecodeOne('12345', $ok));
+        self::assertTrue($ok);
+
+        $ok = false;
+        self::assertSame('abcdef', new JsonDecoder()->tryDecodeOne('"abcdef"', $ok));
+        self::assertTrue($ok);
+    }
+
     public function testTryDecodeOneStripsTheBom(): void
     {
         $ok = false;
@@ -188,7 +200,10 @@ final class JsonDecoderBoundaryTest extends TestCase
         yield 'truncated literal'            => [$rs . 'tru' . $rs . "3\n", [self::THREE], [self::TRUNCATED_VALUE . ' at line 1, column 5']];
         yield 'truncated float'              => [$rs . '1.5' . $rs . "3\n", [self::THREE], [self::TRUNCATED_NUMBER . ' at line 1, column 5']];
         yield 'truncated big number'         => [$rs . $big . $rs . "3\n", [self::THREE], [self::TRUNCATED_NUMBER . ' at line 1, column 22']];
-        yield 'empty record'                 => [$rs . $rs . "[1]\n", [self::ARRAY_ONE], []];
+        yield 'number after space at rs'     => [$rs . '1 2' . $rs, [self::ONE, self::TWO], []];
+        yield 'bad literal before bracket'   => [$rs . '[tru]' . $rs . "2\n", [self::TWO], ['Invalid literal at line 1, column 6 (need RS to resync)']];
+        yield 'bad literal before space'     => [$rs . 'tru ' . $rs . "2\n", [self::TWO], ['Invalid literal at line 1, column 5 (need RS to resync)']];
+        yield 'empty record'                 =>[$rs . $rs . "[1]\n", [self::ARRAY_ONE], []];
         yield 'array directly before rs'     => [$rs . '[1]' . $rs . '[2]', [self::ARRAY_ONE, '[int:2]'], []];
         yield 'numbers end at rs after ws'   => [$rs . '1 ' . $rs . '2 ' . $rs, [self::ONE, self::TWO], []];
         yield 'open array is dropped at rs'  => [$rs . '[1 ' . $rs . '2 ' . $rs, [self::TWO], []];

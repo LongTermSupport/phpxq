@@ -45,6 +45,20 @@ final class DownstreamTest extends TestCase
         }
     }
 
+    public function testPathVariantEmitsAListAndPassesNoPathThrough(): void
+    {
+        $downstream = new Downstream();
+        $seen       = [];
+        $guarded    = $downstream->guardPaths(static function (?array $path, mixed $value) use (&$seen): void {
+            $seen[] = [$path, $value];
+        });
+
+        $guarded([5 => 'x', 9 => 'y'], 1);
+        $guarded(null, 2);
+
+        self::assertSame([[['x', 'y'], 1], [null, 2]], $seen);
+    }
+
     public function testPathVariant(): void
     {
         $downstream = new Downstream();

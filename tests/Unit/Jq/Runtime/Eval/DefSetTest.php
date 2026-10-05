@@ -17,6 +17,15 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(DefSet::class)]
 final class DefSetTest extends TestCase
 {
+    public function testDataValuesAreStoredAsAList(): void
+    {
+        $set = new DefSet();
+        $set->addData('d', ...['first' => 1, 'second' => 2]);
+
+        self::assertSame([1, 2], $set->data('d'));
+        self::assertNull($set->data('missing'));
+    }
+
     public function testFindsTheLatestDefinitionBelowTheLimit(): void
     {
         $set   = new DefSet();

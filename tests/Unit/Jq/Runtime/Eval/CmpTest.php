@@ -72,5 +72,8 @@ final class CmpTest extends TestCase
         yield 'int and float le'  => [2, 2.5, 'le', true];
         yield 'float and int ge'  => [2.5, 2, 'ge', true];
         yield 'int ne string'     => [1, '1', 'ne', true];
+        yield 'float ge nan'      => [1.5, \NAN, 'ge', true];
+        yield 'float le nan'      => [1.5, \NAN, 'le', false];
+        yield 'nan le float'      => [\NAN, 1.5, 'le', true];
     }
 }
