@@ -87,6 +87,14 @@ final class StreamParserTest extends TestCase
 
         yield 'anchor without content' => ["- &a\n- b", '[&a !!null=; !!str=b]'];
 
+        yield 'flow pair without key before value' => ['[? : x]', 'flow[flow{!!null=: !!str=x}]'];
+
+        yield 'flow pair without key or value before entry' => ['[? , a]', 'flow[flow{!!null=: !!null=}; !!str=a]'];
+
+        yield 'flow pair without key or value before end' => ['[? ]', 'flow[flow{!!null=: !!null=}]'];
+
+        yield 'flow pair foot comment after a line comment on an explicit key' => ["[? a # k\n# f1\n: b # v\n# f2\n]", 'flow[flow{!!str=a#l(# k)#f(# f2): !!str=b#h(# f1)#l(# v)}]'];
+
         yield 'flow pair without value before entry' => ['[a: , b]', 'flow[flow{!!str=a: !!null=}; !!str=b]'];
 
         yield 'flow pair without value before end' => ['[a: ]', 'flow[flow{!!str=a: !!null=}]'];

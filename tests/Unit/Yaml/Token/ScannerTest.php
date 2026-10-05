@@ -115,11 +115,40 @@ final class ScannerTest extends TestCase
         self::assertSame("a: \u{00E9}\u{1F600}\nb: 1\n", Scanner::prepare("\xFE\xFF" . mb_convert_encoding($text, 'UTF-16BE', 'UTF-8')));
     }
 
-    public function testPrepareRejectsUtf16WithAnOddByteCount(): void
+    #[DataProvider('utf16Provider')]
+    public function testPrepareRejectsBrokenUtf16(string $yaml, string $message): void
     {
-        $this->expectException(YamlSyntaxException::class);
+        $this->assertSyntaxError($yaml, $message, 1, 0);
+    }
 
-        Scanner::prepare("\xFF\xFEa\x00:");
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function utf16Provider(): iterable
+    {
+        $truncated = 'invalid UTF-16 stream: truncated character';
+        $surrogate = 'invalid UTF-16 stream: unexpected low surrogate area';
+
+        yield 'little endian, one stray byte' => ["\xFF\xFEa", $truncated];
+
+        yield 'little endian, three bytes' => ["\xFF\xFEa\x00:", $truncated];
+
+        yield 'big endian, five bytes' => ["\xFE\xFF\x00a\x00b\x00", $truncated];
+
+        yield 'little endian lone high surrogate' => ["\xFF\xFE\x00\xD8", $surrogate];
+
+        yield 'big endian lone high surrogate' => ["\xFE\xFF\xD8\x00", $surrogate];
+    }
+
+    public function testPrepareAcceptsUtf16WithAnEvenByteCount(): void
+    {
+        self::assertSame('a:', Scanner::prepare("\xFF\xFEa\x00:\x00"));
+        self::assertSame('', Scanner::prepare("\xFE\xFF"));
+    }
+
+    public function testPrepareNormalisesEveryCrlfWhenTheTextHasComments(): void
+    {
+        self::assertSame("# c\na\nb\nc\nd", Scanner::prepare("# c\r\na\r\nb\rc\r\nd"));
     }
 
     public function testCrlfBreaksCountTwiceWhenLookingAheadForComments(): void
@@ -138,26 +167,25 @@ final class ScannerTest extends TestCase
     }
 
     #[DataProvider('invalidInputProvider')]
-    public function testPrepareRejectsInvalidInput(string $yaml, string $message): void
+    public function testPrepareRejectsInvalidInput(string $yaml, string $message, int $line): void
     {
-        try {
-            Scanner::prepare($yaml);
-        } catch (YamlSyntaxException $yamlSyntaxException) {
-            self::assertStringContainsString($message, $yamlSyntaxException->getMessage());
-
-            return;
-        }
-
-        self::fail('expected a syntax error');
+        $this->assertSyntaxError($yaml, $message, $line, 0);
     }
 
     /**
-     * @return iterable<string, array{string, string}>
+     * @return iterable<string, array{string, string, int}>
      */
     public static function invalidInputProvider(): iterable
     {
-        yield 'control character' => ["a: \x01", 'control characters are not allowed'];
-        yield 'invalid utf-8' => ["a: \xFF", 'invalid leading UTF-8 octet'];
+        yield 'control character' => ["a: \x01", 'control characters are not allowed', 1];
+
+        yield 'control character on the third line' => ["\n\n\x01", 'control characters are not allowed', 3];
+
+        yield 'control character after text on the second line' => ["a: 1\nb: \x01", 'control characters are not allowed', 2];
+
+        yield 'invalid utf-8' => ["a: \xFF", 'invalid leading UTF-8 octet', 1];
+
+        yield 'invalid utf-8 on the second line' => ["a\nb: \xFF", 'invalid leading UTF-8 octet', 1];
     }
 
     public function testUnterminatedQuoteIsAnError(): void
@@ -203,6 +231,105 @@ final class ScannerTest extends TestCase
         }
 
         self::assertSame(['head:# head', 'line:# line', 'foot:# foot'], $seen);
+    }
+
+    #[DataProvider('escapeProvider')]
+    public function testDoubleQuotedEscapesDecodeToUtf8(string $escape, string $hexBytes): void
+    {
+        $values = array_map(static fn (ScanToken $t): string => bin2hex($t->value), array_values(array_filter($this->tokens('"' . $escape . '"'), static fn (ScanToken $t): bool => ScanToken::SCALAR === $t->type)));
+
+        self::assertSame([$hexBytes], $values);
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function escapeProvider(): iterable
+    {
+        yield 'NUL' => ['\0', '00'];
+
+        yield 'x7F' => ['\x7F', '7f'];
+
+        yield 'x80' => ['\x80', 'c280'];
+
+        yield 'xFF' => ['\xFF', 'c3bf'];
+
+        yield 'u0080' => ['\u0080', 'c280'];
+
+        yield 'u0100' => ['Ā', 'c480'];
+
+        yield 'u07FF' => ['߿', 'dfbf'];
+
+        yield 'u0800' => ['ࠀ', 'e0a080'];
+
+        yield 'uD7FF' => ['퟿', 'ed9fbf'];
+
+        yield 'uE000' => ['', 'ee8080'];
+
+        yield 'uFFFF' => ['\u' . 'FFFF', 'efbfbf'];
+
+        yield 'U00010000' => ['\U00010000', 'f0908080'];
+
+        yield 'U0001F600' => ['\U0001F600', 'f09f9880'];
+
+        yield 'U00040000' => ['\U00040000', 'f1808080'];
+
+        yield 'U0010FFFF' => ['\U0010FFFF', 'f48fbfbf'];
+    }
+
+    #[DataProvider('invalidEscapeProvider')]
+    public function testInvalidEscapesAreRejected(string $yaml, string $message, int $line, int $column): void
+    {
+        $this->assertSyntaxError($yaml, $message, $line, $column, true);
+    }
+
+    /**
+     * @return iterable<string, array{string, string, int, int}>
+     */
+    public static function invalidEscapeProvider(): iterable
+    {
+        yield 'D800 is a surrogate' => ['"\uD800"', 'found invalid Unicode character escape code', 1, 1];
+
+        yield 'DFFF is a surrogate' => ['"\uDFFF"', 'found invalid Unicode character escape code', 1, 1];
+
+        yield 'beyond U+10FFFF' => ['"\U00110000"', 'found invalid Unicode character escape code', 1, 1];
+
+        yield 'unknown escape on the second line' => ["\"a\nb\\q\"", 'found unknown escape character', 2, 1];
+
+        yield 'short hex on the third line' => ["\"a\n\nb\\x4\"", 'did not find expected hexdecimal number', 3, 1];
+    }
+
+    #[DataProvider('versionNumberProvider')]
+    public function testVersionDirectiveNumbersAreLimitedToNineDigits(string $version, int $errorColumn): void
+    {
+        $yaml = '%YAML ' . $version . "\n---\na\n";
+
+        if (0 === $errorColumn) {
+            self::assertSame($version, $this->tokens($yaml)[1]->value);
+
+            return;
+        }
+
+        $this->assertSyntaxError($yaml, 'found extremely long version number', 1, $errorColumn, true);
+    }
+
+    /**
+     * @return iterable<string, array{string, int}>
+     */
+    public static function versionNumberProvider(): iterable
+    {
+        yield 'nine digit major' => ['123456789.1', 0];
+
+        yield 'nine digit minor' => ['1.123456789', 0];
+
+        yield 'ten digit major' => ['1234567890.1', 6];
+
+        yield 'ten digit minor' => ['1.1234567890', 8];
+    }
+
+    public function testTagDirectiveHandleNeedsItsClosingBang(): void
+    {
+        $this->assertSyntaxError("%TAG !e tag:x\n---\na\n", "did not find expected '!'", 1, 7, true);
     }
 
     /**
@@ -308,6 +435,28 @@ final class ScannerTest extends TestCase
         self::assertSame($first, $scanner->peek());
         $scanner->skip();
         self::assertNotSame($first, $scanner->peek());
+    }
+
+    /**
+     * Asserts the text is refused with the given message and position; when $scan is set the failure is
+     * expected from the token scan rather than from {@see Scanner::prepare()}.
+     */
+    private function assertSyntaxError(string $yaml, string $message, int $line, int $column, bool $scan = false): void
+    {
+        try {
+            if ($scan) {
+                $this->tokens($yaml);
+            } else {
+                Scanner::prepare($yaml);
+            }
+        } catch (YamlSyntaxException $yamlSyntaxException) {
+            self::assertStringContainsString($message, $yamlSyntaxException->getMessage());
+            self::assertSame([$line, $column], [$yamlSyntaxException->yamlLine, $yamlSyntaxException->yamlColumn]);
+
+            return;
+        }
+
+        self::fail('expected a syntax error');
     }
 
     /**

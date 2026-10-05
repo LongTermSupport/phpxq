@@ -1745,6 +1745,837 @@
         ]
     },
     {
+        "name": "escape utf8 widths",
+        "yaml": "\"\\u0080 \\u0100 \\u07FF \\u0800 \\uFFFF \\U00010000 \\U0010FFFF \\U0001F600 \\U00040000 \\U000FFFFF\"\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "SCALAR 0:0:0-91:0:91 v=\" Ā ߿ ࠀ ￿ 𐀀 􏿿 😀 񀀀 󿿿\" st=3",
+            "STREAM_END 92:1:0-92:1:0"
+        ]
+    },
+    {
+        "name": "version number lengths",
+        "yaml": "%YAML 123456789.123456789\n---\na\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "VERSION_DIRECTIVE 0:0:0-25:0:25 v=\"123456789.123456789\"",
+            "DOCUMENT_START 26:1:0-29:1:3",
+            "SCALAR 30:2:0-31:2:1 v=\"a\" st=1",
+            "STREAM_END 32:3:0-32:3:0"
+        ]
+    },
+    {
+        "name": "error version number too long",
+        "yaml": "%YAML 1.1234567890\n---\na\n",
+        "expected": [
+            "ERR yaml: line 1: found extremely long version number @1:8"
+        ]
+    },
+    {
+        "name": "error version number empty second part",
+        "yaml": "%YAML 1.\n---\na\n",
+        "expected": [
+            "ERR yaml: line 1: did not find expected version number @1:8"
+        ]
+    },
+    {
+        "name": "error tag directive unclosed handle",
+        "yaml": "%TAG !e tag:x\n---\na\n",
+        "expected": [
+            "ERR yaml: line 1: did not find expected '!' @1:7"
+        ]
+    },
+    {
+        "name": "error tag directive tab separated",
+        "yaml": "%TAG !e!\ttag:e.com,2000:\t \n---\na\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "TAG_DIRECTIVE 0:0:0-24:0:24 v=\"!e!\" x=\"tag:e.com,2000:\"",
+            "DOCUMENT_START 27:1:0-30:1:3",
+            "SCALAR 31:2:0-32:2:1 v=\"a\" st=1",
+            "STREAM_END 33:3:0-33:3:0"
+        ]
+    },
+    {
+        "name": "directive with trailing space and comment",
+        "yaml": "%TAG !e! tag:x \t # c\n---\na\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "TAG_DIRECTIVE 0:0:0-14:0:14 v=\"!e!\" x=\"tag:x\"",
+            "DOCUMENT_START 21:1:0-24:1:3",
+            "SCALAR 25:2:0-26:2:1 v=\"a\" st=1",
+            "STREAM_END 27:3:0-27:3:0"
+        ]
+    },
+    {
+        "name": "directive at end of stream",
+        "yaml": "%YAML 1.1",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "VERSION_DIRECTIVE 0:0:0-9:0:9 v=\"1.1\"",
+            "STREAM_END 9:1:0-9:1:0"
+        ]
+    },
+    {
+        "name": "directive then comment",
+        "yaml": "%YAML 1.1\n# after\n---\na\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "VERSION_DIRECTIVE 0:0:0-9:0:9 v=\"1.1\"",
+            "DOCUMENT_START 18:2:0-21:2:3",
+            "SCALAR 22:3:0-23:3:1 v=\"a\" st=1",
+            "STREAM_END 24:4:0-24:4:0",
+            "#head scan=10 tok=10 10:1:1-17:2:1 \"# after\""
+        ]
+    },
+    {
+        "name": "directive comment then comment",
+        "yaml": "%YAML 1.1 # c\n# d\n---\na\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "VERSION_DIRECTIVE 0:0:0-9:0:9 v=\"1.1\"",
+            "DOCUMENT_START 18:2:0-21:2:3",
+            "SCALAR 22:3:0-23:3:1 v=\"a\" st=1",
+            "STREAM_END 24:4:0-24:4:0",
+            "#head scan=14 tok=14 14:1:1-17:2:1 \"# d\""
+        ]
+    },
+    {
+        "name": "directive blank line comment",
+        "yaml": "%TAG !e! tag:x\n\n# c\n---\na\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "TAG_DIRECTIVE 0:0:0-14:0:14 v=\"!e!\" x=\"tag:x\"",
+            "DOCUMENT_START 20:3:0-23:3:3",
+            "SCALAR 24:4:0-25:4:1 v=\"a\" st=1",
+            "STREAM_END 26:5:0-26:5:0",
+            "#head scan=15 tok=16 16:2:1-19:3:1 \"# c\""
+        ]
+    },
+    {
+        "name": "directive after block content",
+        "yaml": "a: 1\n%YAML 1.1\n---\nb\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_MAPPING_START 0:0:0-0:0:0",
+            "KEY 0:0:0-0:0:0",
+            "SCALAR 0:0:0-1:0:1 v=\"a\" st=1",
+            "VALUE 1:0:1-2:0:2",
+            "SCALAR 3:0:3-4:0:4 v=\"1\" st=1",
+            "BLOCK_END 4:1:0-4:1:0",
+            "VERSION_DIRECTIVE 5:1:0-14:1:9 v=\"1.1\"",
+            "DOCUMENT_START 15:2:0-18:2:3",
+            "SCALAR 19:3:0-20:3:1 v=\"b\" st=1",
+            "STREAM_END 21:4:0-21:4:0"
+        ]
+    },
+    {
+        "name": "directive after block sequence",
+        "yaml": "- a\n%TAG !e! tag:x\n---\nb\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_SEQUENCE_START 0:0:0-0:0:0",
+            "BLOCK_ENTRY 0:0:0-1:0:1",
+            "SCALAR 2:0:2-3:0:3 v=\"a\" st=1",
+            "BLOCK_END 3:1:0-3:1:0",
+            "TAG_DIRECTIVE 4:1:0-18:1:14 v=\"!e!\" x=\"tag:x\"",
+            "DOCUMENT_START 19:2:0-22:2:3",
+            "SCALAR 23:3:0-24:3:1 v=\"b\" st=1",
+            "STREAM_END 25:4:0-25:4:0"
+        ]
+    },
+    {
+        "name": "flow comment after entry",
+        "yaml": "[a,\n# c\nb]\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "FLOW_SEQUENCE_START 0:0:0-1:0:1",
+            "SCALAR 1:0:1-2:0:2 v=\"a\" st=1",
+            "FLOW_ENTRY 2:0:2-3:0:3",
+            "SCALAR 8:2:0-9:2:1 v=\"b\" st=1",
+            "FLOW_SEQUENCE_END 9:2:1-10:2:2",
+            "STREAM_END 11:3:0-11:3:0",
+            "#head scan=3 tok=4 4:1:1-7:2:1 \"# c\""
+        ]
+    },
+    {
+        "name": "flow map comment after entry",
+        "yaml": "{a: 1,\n# c\nb: 2}\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "FLOW_MAPPING_START 0:0:0-1:0:1",
+            "KEY 1:0:1-1:0:1",
+            "SCALAR 1:0:1-2:0:2 v=\"a\" st=1",
+            "VALUE 2:0:2-3:0:3",
+            "SCALAR 4:0:4-5:0:5 v=\"1\" st=1",
+            "FLOW_ENTRY 5:0:5-6:0:6",
+            "KEY 11:2:0-11:2:0",
+            "SCALAR 11:2:0-12:2:1 v=\"b\" st=1",
+            "VALUE 12:2:1-13:2:2",
+            "SCALAR 14:2:3-15:2:4 v=\"2\" st=1",
+            "FLOW_MAPPING_END 15:2:4-16:2:5",
+            "STREAM_END 17:3:0-17:3:0",
+            "#head scan=6 tok=7 7:1:1-10:2:1 \"# c\""
+        ]
+    },
+    {
+        "name": "flow comments over several lines",
+        "yaml": "[a,\n  # c1\n  # c2\n  b,\n# d\n]\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "FLOW_SEQUENCE_START 0:0:0-1:0:1",
+            "SCALAR 1:0:1-2:0:2 v=\"a\" st=1",
+            "FLOW_ENTRY 2:0:2-3:0:3",
+            "SCALAR 20:3:2-21:3:3 v=\"b\" st=1",
+            "FLOW_ENTRY 21:3:3-22:3:4",
+            "FLOW_SEQUENCE_END 27:5:0-28:5:1",
+            "STREAM_END 29:6:0-29:6:0",
+            "#head scan=3 tok=6 6:1:3-19:3:3 \"# c1\\n# c2\"",
+            "#foot scan=22 tok=20 23:4:1-27:5:1 \"# d\""
+        ]
+    },
+    {
+        "name": "flow line comment then head comment",
+        "yaml": "[a, # x\n# c\nb]\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "FLOW_SEQUENCE_START 0:0:0-1:0:1",
+            "SCALAR 1:0:1-2:0:2 v=\"a\" st=1",
+            "FLOW_ENTRY 2:0:2-3:0:3",
+            "SCALAR 12:2:0-13:2:1 v=\"b\" st=1",
+            "FLOW_SEQUENCE_END 13:2:1-14:2:2",
+            "STREAM_END 15:3:0-15:3:0",
+            "#line scan=7 tok=1 4:0:4-10:0:7 \"# x\"",
+            "#head scan=7 tok=8 8:1:1-11:2:1 \"# c\""
+        ]
+    },
+    {
+        "name": "flow close after comment",
+        "yaml": "[a, b,\n# c\n]\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "FLOW_SEQUENCE_START 0:0:0-1:0:1",
+            "SCALAR 1:0:1-2:0:2 v=\"a\" st=1",
+            "FLOW_ENTRY 2:0:2-3:0:3",
+            "SCALAR 4:0:4-5:0:5 v=\"b\" st=1",
+            "FLOW_ENTRY 5:0:5-6:0:6",
+            "FLOW_SEQUENCE_END 11:2:0-12:2:1",
+            "STREAM_END 13:3:0-13:3:0",
+            "#foot scan=6 tok=4 7:1:1-11:2:1 \"# c\""
+        ]
+    },
+    {
+        "name": "flow in block with outdented items",
+        "yaml": "k: [a,\nb]\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_MAPPING_START 0:0:0-0:0:0",
+            "KEY 0:0:0-0:0:0",
+            "SCALAR 0:0:0-1:0:1 v=\"k\" st=1",
+            "VALUE 1:0:1-2:0:2",
+            "FLOW_SEQUENCE_START 3:0:3-4:0:4",
+            "SCALAR 4:0:4-5:0:5 v=\"a\" st=1",
+            "FLOW_ENTRY 5:0:5-6:0:6",
+            "SCALAR 7:1:0-8:1:1 v=\"b\" st=1",
+            "FLOW_SEQUENCE_END 8:1:1-9:1:2",
+            "BLOCK_END 9:2:0-9:2:0",
+            "STREAM_END 10:2:0-10:2:0"
+        ]
+    },
+    {
+        "name": "flow map in block with outdented items",
+        "yaml": "- {a: 1,\nb: 2}\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_SEQUENCE_START 0:0:0-0:0:0",
+            "BLOCK_ENTRY 0:0:0-1:0:1",
+            "FLOW_MAPPING_START 2:0:2-3:0:3",
+            "KEY 3:0:3-3:0:3",
+            "SCALAR 3:0:3-4:0:4 v=\"a\" st=1",
+            "VALUE 4:0:4-5:0:5",
+            "SCALAR 6:0:6-7:0:7 v=\"1\" st=1",
+            "FLOW_ENTRY 7:0:7-8:0:8",
+            "KEY 9:1:0-9:1:0",
+            "SCALAR 9:1:0-10:1:1 v=\"b\" st=1",
+            "VALUE 10:1:1-11:1:2",
+            "SCALAR 12:1:3-13:1:4 v=\"2\" st=1",
+            "FLOW_MAPPING_END 13:1:4-14:1:5",
+            "BLOCK_END 14:2:0-14:2:0",
+            "STREAM_END 15:2:0-15:2:0"
+        ]
+    },
+    {
+        "name": "flow with outdented close",
+        "yaml": "- [\na\n]\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_SEQUENCE_START 0:0:0-0:0:0",
+            "BLOCK_ENTRY 0:0:0-1:0:1",
+            "FLOW_SEQUENCE_START 2:0:2-3:0:3",
+            "SCALAR 4:1:0-5:1:1 v=\"a\" st=1",
+            "FLOW_SEQUENCE_END 6:2:0-7:2:1",
+            "BLOCK_END 7:3:0-7:3:0",
+            "STREAM_END 8:3:0-8:3:0"
+        ]
+    },
+    {
+        "name": "comments crlf in flow",
+        "yaml": "[a,\r\n# c\r\nb]\r\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "FLOW_SEQUENCE_START 0:0:0-1:0:1",
+            "SCALAR 1:0:1-2:0:2 v=\"a\" st=1",
+            "FLOW_ENTRY 2:0:2-3:0:3",
+            "SCALAR 8:2:0-9:2:1 v=\"b\" st=1",
+            "FLOW_SEQUENCE_END 9:2:1-10:2:2",
+            "STREAM_END 11:3:0-11:3:0",
+            "#foot scan=3 tok=1 4:1:1-7:2:1 \"# c\""
+        ]
+    },
+    {
+        "name": "comments crlf in sequence",
+        "yaml": "- a\r\n# c\r\n- b\r\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_SEQUENCE_START 0:0:0-0:0:0",
+            "BLOCK_ENTRY 0:0:0-1:0:1",
+            "SCALAR 2:0:2-3:0:3 v=\"a\" st=1",
+            "BLOCK_ENTRY 8:2:0-9:2:1",
+            "SCALAR 10:2:2-11:2:3 v=\"b\" st=1",
+            "BLOCK_END 11:3:0-11:3:0",
+            "STREAM_END 12:3:0-12:3:0",
+            "#foot scan=4 tok=2 4:1:1-7:2:1 \"# c\""
+        ]
+    },
+    {
+        "name": "comments crlf nested",
+        "yaml": "a:\r\n  b: 1\r\n  # c\r\nd: 2\r\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_MAPPING_START 0:0:0-0:0:0",
+            "KEY 0:0:0-0:0:0",
+            "SCALAR 0:0:0-1:0:1 v=\"a\" st=1",
+            "VALUE 1:0:1-2:0:2",
+            "BLOCK_MAPPING_START 5:1:2-5:1:2",
+            "KEY 5:1:2-5:1:2",
+            "SCALAR 5:1:2-6:1:3 v=\"b\" st=1",
+            "VALUE 6:1:3-7:1:4",
+            "SCALAR 8:1:5-9:1:6 v=\"1\" st=1",
+            "BLOCK_END 12:2:3-12:2:3",
+            "KEY 16:3:0-16:3:0",
+            "SCALAR 16:3:0-17:3:1 v=\"d\" st=1",
+            "VALUE 17:3:1-18:3:2",
+            "SCALAR 19:3:3-20:3:4 v=\"2\" st=1",
+            "BLOCK_END 20:4:0-20:4:0",
+            "STREAM_END 21:4:0-21:4:0",
+            "#foot scan=12 tok=8 12:2:3-15:3:1 \"# c\""
+        ]
+    },
+    {
+        "name": "comments crlf blank lines",
+        "yaml": "# a\r\nk: v # l\r\n# f\r\n\r\n# g\r\nj: 1\r\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_MAPPING_START 4:1:0-4:1:0",
+            "KEY 4:1:0-4:1:0",
+            "SCALAR 4:1:0-5:1:1 v=\"k\" st=1",
+            "VALUE 5:1:1-6:1:2",
+            "SCALAR 7:1:3-8:1:4 v=\"v\" st=1",
+            "KEY 22:5:0-22:5:0",
+            "SCALAR 22:5:0-23:5:1 v=\"j\" st=1",
+            "VALUE 23:5:1-24:5:2",
+            "SCALAR 25:5:3-26:5:4 v=\"1\" st=1",
+            "BLOCK_END 26:6:0-26:6:0",
+            "STREAM_END 27:6:0-27:6:0",
+            "#head scan=0 tok=0 0:0:1-3:2:1 \"# a\\n\"",
+            "#line scan=12 tok=7 9:1:5-15:1:8 \"# l\"",
+            "#foot scan=12 tok=7 13:2:1-16:3:1 \"# f\"",
+            "#head scan=16 tok=18 18:6:1-21:8:1 \"# g\\n\""
+        ]
+    },
+    {
+        "name": "comments crlf head",
+        "yaml": "# a\r\n\r\n# b\r\nk: v\r\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_MAPPING_START 9:3:0-9:3:0",
+            "KEY 9:3:0-9:3:0",
+            "SCALAR 9:3:0-10:3:1 v=\"k\" st=1",
+            "VALUE 10:3:1-11:3:2",
+            "SCALAR 12:3:3-13:3:4 v=\"v\" st=1",
+            "BLOCK_END 13:4:0-13:4:0",
+            "STREAM_END 14:4:0-14:4:0",
+            "#head scan=0 tok=0 0:0:1-8:6:1 \"# a\\n\\n# b\\n\""
+        ]
+    },
+    {
+        "name": "comments with lone cr",
+        "yaml": "# a\rk: v\r# f\r",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_MAPPING_START 4:1:0-4:1:0",
+            "KEY 4:1:0-4:1:0",
+            "SCALAR 4:1:0-5:1:1 v=\"k\" st=1",
+            "VALUE 5:1:1-6:1:2",
+            "SCALAR 7:1:3-8:1:4 v=\"v\" st=1",
+            "BLOCK_END 9:2:1-9:2:1",
+            "STREAM_END 13:3:0-13:3:0",
+            "#head scan=0 tok=0 0:0:1-3:1:1 \"# a\"",
+            "#foot scan=9 tok=7 9:2:1-13:3:1 \"# f\""
+        ]
+    },
+    {
+        "name": "comment foot after nested",
+        "yaml": "a:\n  b: 1\n  # c\nd: 2\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_MAPPING_START 0:0:0-0:0:0",
+            "KEY 0:0:0-0:0:0",
+            "SCALAR 0:0:0-1:0:1 v=\"a\" st=1",
+            "VALUE 1:0:1-2:0:2",
+            "BLOCK_MAPPING_START 5:1:2-5:1:2",
+            "KEY 5:1:2-5:1:2",
+            "SCALAR 5:1:2-6:1:3 v=\"b\" st=1",
+            "VALUE 6:1:3-7:1:4",
+            "SCALAR 8:1:5-9:1:6 v=\"1\" st=1",
+            "BLOCK_END 12:2:3-12:2:3",
+            "KEY 16:3:0-16:3:0",
+            "SCALAR 16:3:0-17:3:1 v=\"d\" st=1",
+            "VALUE 17:3:1-18:3:2",
+            "SCALAR 19:3:3-20:3:4 v=\"2\" st=1",
+            "BLOCK_END 20:4:0-20:4:0",
+            "STREAM_END 21:4:0-21:4:0",
+            "#foot scan=12 tok=8 12:2:3-16:3:1 \"# c\""
+        ]
+    },
+    {
+        "name": "comment foot after deeper nested",
+        "yaml": "a:\n  b:\n    c: 1\n    # deep\n  # mid\n# top\nd: 2\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_MAPPING_START 0:0:0-0:0:0",
+            "KEY 0:0:0-0:0:0",
+            "SCALAR 0:0:0-1:0:1 v=\"a\" st=1",
+            "VALUE 1:0:1-2:0:2",
+            "BLOCK_MAPPING_START 5:1:2-5:1:2",
+            "KEY 5:1:2-5:1:2",
+            "SCALAR 5:1:2-6:1:3 v=\"b\" st=1",
+            "VALUE 6:1:3-7:1:4",
+            "BLOCK_MAPPING_START 12:2:4-12:2:4",
+            "KEY 12:2:4-12:2:4",
+            "SCALAR 12:2:4-13:2:5 v=\"c\" st=1",
+            "VALUE 13:2:5-14:2:6",
+            "SCALAR 15:2:7-16:2:8 v=\"1\" st=1",
+            "BLOCK_END 21:3:5-21:3:5",
+            "BLOCK_END 30:4:3-30:4:3",
+            "KEY 42:6:0-42:6:0",
+            "SCALAR 42:6:0-43:6:1 v=\"d\" st=1",
+            "VALUE 43:6:1-44:6:2",
+            "SCALAR 45:6:3-46:6:4 v=\"2\" st=1",
+            "BLOCK_END 46:7:0-46:7:0",
+            "STREAM_END 47:7:0-47:7:0",
+            "#foot scan=21 tok=15 21:3:5-30:4:3 \"# deep\"",
+            "#foot scan=30 tok=30 30:4:3-36:5:1 \"# mid\"",
+            "#head scan=36 tok=36 36:5:1-41:6:1 \"# top\""
+        ]
+    },
+    {
+        "name": "comment blank lines",
+        "yaml": "a: 1\n\n\n# c\n\n\nb: 2\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_MAPPING_START 0:0:0-0:0:0",
+            "KEY 0:0:0-0:0:0",
+            "SCALAR 0:0:0-1:0:1 v=\"a\" st=1",
+            "VALUE 1:0:1-2:0:2",
+            "SCALAR 3:0:3-4:0:4 v=\"1\" st=1",
+            "KEY 13:6:0-13:6:0",
+            "SCALAR 13:6:0-14:6:1 v=\"b\" st=1",
+            "VALUE 14:6:1-15:6:2",
+            "SCALAR 16:6:3-17:6:4 v=\"2\" st=1",
+            "BLOCK_END 17:7:0-17:7:0",
+            "STREAM_END 18:7:0-18:7:0",
+            "#head scan=7 tok=7 7:3:1-12:6:1 \"# c\\n\""
+        ]
+    },
+    {
+        "name": "comment block in sequence",
+        "yaml": "- a\n  # c1\n  # c2\n- b\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_SEQUENCE_START 0:0:0-0:0:0",
+            "BLOCK_ENTRY 0:0:0-1:0:1",
+            "SCALAR 2:0:2-3:0:3 v=\"a\" st=1",
+            "BLOCK_ENTRY 18:3:0-19:3:1",
+            "SCALAR 20:3:2-21:3:3 v=\"b\" st=1",
+            "BLOCK_END 21:4:0-21:4:0",
+            "STREAM_END 22:4:0-22:4:0",
+            "#head scan=6 tok=6 6:1:3-17:3:1 \"# c1\\n# c2\""
+        ]
+    },
+    {
+        "name": "comment head in sequence",
+        "yaml": "k:\n  # head\n  - a\n  # mid\n  - b\n# foot\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_MAPPING_START 0:0:0-0:0:0",
+            "KEY 0:0:0-0:0:0",
+            "SCALAR 0:0:0-1:0:1 v=\"k\" st=1",
+            "VALUE 1:0:1-2:0:2",
+            "BLOCK_SEQUENCE_START 14:2:2-14:2:2",
+            "BLOCK_ENTRY 14:2:2-15:2:3",
+            "SCALAR 16:2:4-17:2:5 v=\"a\" st=1",
+            "BLOCK_ENTRY 28:4:2-29:4:3",
+            "SCALAR 30:4:4-31:4:5 v=\"b\" st=1",
+            "BLOCK_END 31:5:0-31:5:0",
+            "BLOCK_END 32:5:1-32:5:1",
+            "STREAM_END 39:6:0-39:6:0",
+            "#head scan=2 tok=5 5:1:3-13:2:3 \"# head\"",
+            "#head scan=20 tok=20 20:3:3-27:4:3 \"# mid\"",
+            "#foot scan=32 tok=32 32:5:1-39:6:1 \"# foot\""
+        ]
+    },
+    {
+        "name": "comment more indented than next key",
+        "yaml": "a: 1\n   # indented comment\nb: 2\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_MAPPING_START 0:0:0-0:0:0",
+            "KEY 0:0:0-0:0:0",
+            "SCALAR 0:0:0-1:0:1 v=\"a\" st=1",
+            "VALUE 1:0:1-2:0:2",
+            "SCALAR 3:0:3-4:0:4 v=\"1\" st=1",
+            "KEY 27:2:0-27:2:0",
+            "SCALAR 27:2:0-28:2:1 v=\"b\" st=1",
+            "VALUE 28:2:1-29:2:2",
+            "SCALAR 30:2:3-31:2:4 v=\"2\" st=1",
+            "BLOCK_END 31:3:0-31:3:0",
+            "STREAM_END 32:3:0-32:3:0",
+            "#head scan=8 tok=8 8:1:4-26:2:1 \"# indented comment\""
+        ]
+    },
+    {
+        "name": "comment after flow value",
+        "yaml": "a: [1, 2] # t\n# f\nb: 3\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_MAPPING_START 0:0:0-0:0:0",
+            "KEY 0:0:0-0:0:0",
+            "SCALAR 0:0:0-1:0:1 v=\"a\" st=1",
+            "VALUE 1:0:1-2:0:2",
+            "FLOW_SEQUENCE_START 3:0:3-4:0:4",
+            "SCALAR 4:0:4-5:0:5 v=\"1\" st=1",
+            "FLOW_ENTRY 5:0:5-6:0:6",
+            "SCALAR 7:0:7-8:0:8 v=\"2\" st=1",
+            "FLOW_SEQUENCE_END 8:0:8-9:0:9",
+            "KEY 18:2:0-18:2:0",
+            "SCALAR 18:2:0-19:2:1 v=\"b\" st=1",
+            "VALUE 19:2:1-20:2:2",
+            "SCALAR 21:2:3-22:2:4 v=\"3\" st=1",
+            "BLOCK_END 22:3:0-22:3:0",
+            "STREAM_END 23:3:0-23:3:0",
+            "#line scan=13 tok=8 10:0:10-16:0:13 \"# t\"",
+            "#head scan=13 tok=14 14:1:1-17:2:1 \"# f\""
+        ]
+    },
+    {
+        "name": "comment after block scalar",
+        "yaml": "a: |\n  x\n# c\nb: 1\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_MAPPING_START 0:0:0-0:0:0",
+            "KEY 0:0:0-0:0:0",
+            "SCALAR 0:0:0-1:0:1 v=\"a\" st=1",
+            "VALUE 1:0:1-2:0:2",
+            "SCALAR 3:0:3-9:2:0 v=\"x\\n\" st=4",
+            "KEY 13:3:0-13:3:0",
+            "SCALAR 13:3:0-14:3:1 v=\"b\" st=1",
+            "VALUE 14:3:1-15:3:2",
+            "SCALAR 16:3:3-17:3:4 v=\"1\" st=1",
+            "BLOCK_END 17:4:0-17:4:0",
+            "STREAM_END 18:4:0-18:4:0",
+            "#head scan=9 tok=9 9:2:1-12:3:1 \"# c\""
+        ]
+    },
+    {
+        "name": "comment inside folded scalar",
+        "yaml": "a: >\n  x\n  # inside\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_MAPPING_START 0:0:0-0:0:0",
+            "KEY 0:0:0-0:0:0",
+            "SCALAR 0:0:0-1:0:1 v=\"a\" st=1",
+            "VALUE 1:0:1-2:0:2",
+            "SCALAR 3:0:3-20:3:0 v=\"x # inside\\n\" st=5",
+            "BLOCK_END 19:3:0-19:3:0",
+            "STREAM_END 20:3:0-20:3:0"
+        ]
+    },
+    {
+        "name": "comments around documents",
+        "yaml": "# c\n---\na\n# d\n...\n# e\n---\nb\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "DOCUMENT_START 4:1:0-7:1:3",
+            "SCALAR 8:2:0-9:2:1 v=\"a\" st=1",
+            "DOCUMENT_END 14:4:0-17:4:3",
+            "DOCUMENT_START 22:6:0-25:6:3",
+            "SCALAR 26:7:0-27:7:1 v=\"b\" st=1",
+            "STREAM_END 28:8:0-28:8:0",
+            "#head scan=0 tok=0 0:0:1-3:1:1 \"# c\"",
+            "#head scan=10 tok=10 10:3:1-13:4:1 \"# d\"",
+            "#head scan=17 tok=18 18:5:1-21:6:1 \"# e\""
+        ]
+    },
+    {
+        "name": "comment after tab",
+        "yaml": "a: 1\n\t# c\nb: 2\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_MAPPING_START 0:0:0-0:0:0",
+            "KEY 0:0:0-0:0:0",
+            "ERR yaml: line 2: found a tab character that violates indentation @2:0"
+        ]
+    },
+    {
+        "name": "comment after quoted scalars",
+        "yaml": "a: 'x' # c\nb: \"y\" # d\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_MAPPING_START 0:0:0-0:0:0",
+            "KEY 0:0:0-0:0:0",
+            "SCALAR 0:0:0-1:0:1 v=\"a\" st=1",
+            "VALUE 1:0:1-2:0:2",
+            "SCALAR 3:0:3-6:0:6 v=\"x\" st=2",
+            "KEY 11:1:0-11:1:0",
+            "SCALAR 11:1:0-12:1:1 v=\"b\" st=1",
+            "VALUE 12:1:1-13:1:2",
+            "SCALAR 14:1:3-17:1:6 v=\"y\" st=3",
+            "BLOCK_END 21:2:0-21:2:0",
+            "STREAM_END 22:2:0-22:2:0",
+            "#line scan=10 tok=3 7:0:7-13:0:10 \"# c\"",
+            "#line scan=21 tok=14 18:1:7-24:1:10 \"# d\""
+        ]
+    },
+    {
+        "name": "comment after anchor and alias",
+        "yaml": "a: &x 1 # c\nb: *x # d\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_MAPPING_START 0:0:0-0:0:0",
+            "KEY 0:0:0-0:0:0",
+            "SCALAR 0:0:0-1:0:1 v=\"a\" st=1",
+            "VALUE 1:0:1-2:0:2",
+            "ANCHOR 3:0:3-5:0:5 v=\"x\"",
+            "SCALAR 6:0:6-7:0:7 v=\"1\" st=1",
+            "KEY 12:1:0-12:1:0",
+            "SCALAR 12:1:0-13:1:1 v=\"b\" st=1",
+            "VALUE 13:1:1-14:1:2",
+            "ALIAS 15:1:3-17:1:5 v=\"x\"",
+            "BLOCK_END 21:2:0-21:2:0",
+            "STREAM_END 22:2:0-22:2:0",
+            "#line scan=11 tok=6 8:0:8-14:0:11 \"# c\"",
+            "#line scan=21 tok=15 18:1:6-24:1:9 \"# d\""
+        ]
+    },
+    {
+        "name": "comment after empty value",
+        "yaml": "a: # c\nb: 1\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_MAPPING_START 0:0:0-0:0:0",
+            "KEY 0:0:0-0:0:0",
+            "SCALAR 0:0:0-1:0:1 v=\"a\" st=1",
+            "VALUE 1:0:1-2:0:2",
+            "KEY 7:1:0-7:1:0",
+            "SCALAR 7:1:0-8:1:1 v=\"b\" st=1",
+            "VALUE 8:1:1-9:1:2",
+            "SCALAR 10:1:3-11:1:4 v=\"1\" st=1",
+            "BLOCK_END 11:2:0-11:2:0",
+            "STREAM_END 12:2:0-12:2:0",
+            "#line scan=6 tok=0 3:0:3-9:0:6 \"# c\""
+        ]
+    },
+    {
+        "name": "comment after key with nested",
+        "yaml": "a: # c\n  b: 1\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_MAPPING_START 0:0:0-0:0:0",
+            "KEY 0:0:0-0:0:0",
+            "SCALAR 0:0:0-1:0:1 v=\"a\" st=1",
+            "VALUE 1:0:1-2:0:2",
+            "BLOCK_MAPPING_START 9:1:2-9:1:2",
+            "KEY 9:1:2-9:1:2",
+            "SCALAR 9:1:2-10:1:3 v=\"b\" st=1",
+            "VALUE 10:1:3-11:1:4",
+            "SCALAR 12:1:5-13:1:6 v=\"1\" st=1",
+            "BLOCK_END 13:2:0-13:2:0",
+            "BLOCK_END 13:2:0-13:2:0",
+            "STREAM_END 14:2:0-14:2:0",
+            "#line scan=6 tok=0 3:0:3-9:0:6 \"# c\""
+        ]
+    },
+    {
+        "name": "comment before first key",
+        "yaml": "\n\n# c\n\na: 1\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_MAPPING_START 7:4:0-7:4:0",
+            "KEY 7:4:0-7:4:0",
+            "SCALAR 7:4:0-8:4:1 v=\"a\" st=1",
+            "VALUE 8:4:1-9:4:2",
+            "SCALAR 10:4:3-11:4:4 v=\"1\" st=1",
+            "BLOCK_END 11:5:0-11:5:0",
+            "STREAM_END 12:5:0-12:5:0",
+            "#head scan=0 tok=2 2:2:1-6:4:1 \"# c\\n\""
+        ]
+    },
+    {
+        "name": "comment at deeper indent first",
+        "yaml": "  # c\na: 1\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_MAPPING_START 6:1:0-6:1:0",
+            "KEY 6:1:0-6:1:0",
+            "SCALAR 6:1:0-7:1:1 v=\"a\" st=1",
+            "VALUE 7:1:1-8:1:2",
+            "SCALAR 9:1:3-10:1:4 v=\"1\" st=1",
+            "BLOCK_END 10:2:0-10:2:0",
+            "STREAM_END 11:2:0-11:2:0",
+            "#head scan=0 tok=2 2:0:3-5:1:1 \"# c\""
+        ]
+    },
+    {
+        "name": "multiline double with blank lines",
+        "yaml": "\"a\n\n\nb\n\n  c\"\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "SCALAR 0:0:0-12:5:4 v=\"a\\n\\nb\\nc\" st=3",
+            "STREAM_END 13:6:0-13:6:0"
+        ]
+    },
+    {
+        "name": "multiline single with blank lines",
+        "yaml": "'a\n\n\nb\n\n  c'\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "SCALAR 0:0:0-12:5:4 v=\"a\\n\\nb\\nc\" st=2",
+            "STREAM_END 13:6:0-13:6:0"
+        ]
+    },
+    {
+        "name": "double escaped newline with blank lines",
+        "yaml": "\"a\\\n\n\n  b\"\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "SCALAR 0:0:0-10:3:4 v=\"a\\n\\nb\" st=3",
+            "STREAM_END 11:4:0-11:4:0"
+        ]
+    },
+    {
+        "name": "double escaped newline then text",
+        "yaml": "\"a\\\n  b \\\n  c\"\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "SCALAR 0:0:0-14:2:4 v=\"ab c\" st=3",
+            "STREAM_END 15:3:0-15:3:0"
+        ]
+    },
+    {
+        "name": "double trailing spaces before break",
+        "yaml": "\"a  \t\n  b\"\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "SCALAR 0:0:0-10:1:4 v=\"a b\" st=3",
+            "STREAM_END 11:2:0-11:2:0"
+        ]
+    },
+    {
+        "name": "single multiline crlf",
+        "yaml": "'a\r\n\r\n  b'\r\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "SCALAR 0:0:0-8:2:4 v=\"a\\nb\" st=2",
+            "STREAM_END 9:3:0-9:3:0"
+        ]
+    },
+    {
+        "name": "single quote doubled before space",
+        "yaml": "'a'' b'' '\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "SCALAR 0:0:0-10:0:10 v=\"a' b' \" st=2",
+            "STREAM_END 11:1:0-11:1:0"
+        ]
+    },
+    {
+        "name": "double error on second line",
+        "yaml": "\"a\nb\\q\"\n",
+        "expected": [
+            "ERR yaml: line 2: found unknown escape character @2:1"
+        ]
+    },
+    {
+        "name": "single error end of stream second line",
+        "yaml": "'a\n  b",
+        "expected": [
+            "ERR yaml: line 2: found unexpected end of stream @2:3"
+        ]
+    },
+    {
+        "name": "literal indent indicator below parent",
+        "yaml": "a:\n  b: |1\n    x\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_MAPPING_START 0:0:0-0:0:0",
+            "KEY 0:0:0-0:0:0",
+            "SCALAR 0:0:0-1:0:1 v=\"a\" st=1",
+            "VALUE 1:0:1-2:0:2",
+            "BLOCK_MAPPING_START 5:1:2-5:1:2",
+            "KEY 5:1:2-5:1:2",
+            "SCALAR 5:1:2-6:1:3 v=\"b\" st=1",
+            "VALUE 6:1:3-7:1:4",
+            "SCALAR 8:1:5-17:3:0 v=\" x\\n\" st=4",
+            "BLOCK_END 16:3:0-16:3:0",
+            "BLOCK_END 16:3:0-16:3:0",
+            "STREAM_END 17:3:0-17:3:0"
+        ]
+    },
+    {
+        "name": "literal indent indicator at top",
+        "yaml": "- |2\n   x\n  y\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_SEQUENCE_START 0:0:0-0:0:0",
+            "BLOCK_ENTRY 0:0:0-1:0:1",
+            "SCALAR 2:0:2-14:3:0 v=\" x\\ny\\n\" st=4",
+            "BLOCK_END 13:3:0-13:3:0",
+            "STREAM_END 14:3:0-14:3:0"
+        ]
+    },
+    {
+        "name": "block scalar after seq with indent indicator keep",
+        "yaml": "- >1+\n  a\n\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "BLOCK_SEQUENCE_START 0:0:0-0:0:0",
+            "BLOCK_ENTRY 0:0:0-1:0:1",
+            "SCALAR 2:0:2-11:3:0 v=\" a\\n\\n\" st=5",
+            "BLOCK_END 10:3:0-10:3:0",
+            "STREAM_END 11:3:0-11:3:0"
+        ]
+    },
+    {
+        "name": "block scalar header comment crlf",
+        "yaml": "|\r\n a\r\n",
+        "expected": [
+            "STREAM_START 0:0:0-0:0:0",
+            "SCALAR 0:0:0-5:2:0 v=\"a\\n\" st=4",
+            "STREAM_END 5:2:0-5:2:0"
+        ]
+    },
+    {
         "name": "error line column mb",
         "yaml": "é: 1\né: \"x\n",
         "expected": [
