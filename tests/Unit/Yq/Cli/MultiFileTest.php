@@ -213,7 +213,7 @@ final class MultiFileTest extends TestCase
         $out = $this->stream('');
         $err = $this->stream('');
 
-        $code = new YqApplication()->run(array_map($this->fill(...), $args), $in, $out, $err);
+        $code = new YqApplication()->run($in, $out, $err, ...array_map($this->fill(...), $args));
 
         return [$code, $this->contents($out), $this->contents($err)];
     }
