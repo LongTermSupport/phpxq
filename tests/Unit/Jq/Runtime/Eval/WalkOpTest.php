@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval;
 
+use LTS\PhpXq\Jq\Runtime\Eval\AbstractSingleOp;
 use LTS\PhpXq\Jq\Runtime\Eval\ConstOp;
+use LTS\PhpXq\Jq\Runtime\Eval\Env;
 use LTS\PhpXq\Jq\Runtime\Eval\SingleWalkOp;
 use LTS\PhpXq\Jq\Runtime\Eval\WalkOp;
+use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\OpTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 
@@ -23,6 +26,36 @@ final class WalkOpTest extends OpTestCase
 
         self::assertEquals([$input], self::outputs(new WalkOp(self::identity()), $input));
         self::assertEquals([$input], self::outputs(new SingleWalkOp(self::identity()), $input));
+    }
+
+    public function testSingleWalkFiltersEveryNestedValueBottomUp(): void
+    {
+        $increment = new class extends AbstractSingleOp {
+            public function value(?Env $env, mixed $input): mixed
+            {
+                return \is_int($input) ? $input + 1 : $input;
+            }
+        };
+
+        $input    = self::object(['a' => 1, 'b' => [2, self::object(['c' => 3])]]);
+        $expected = self::object(['a' => 2, 'b' => [3, self::object(['c' => 4])]]);
+
+        self::assertEquals([$expected], self::outputs(new SingleWalkOp($increment), $input));
+    }
+
+    public function testSingleWalkAppliesTheFilterToTheRebuiltObject(): void
+    {
+        $sum = new class extends AbstractSingleOp {
+            public function value(?Env $env, mixed $input): mixed
+            {
+                return $input instanceof JsonObject ? array_sum(array_filter($input->toArray(), \is_int(...))) : $input;
+            }
+        };
+
+        $input = self::object(['a' => self::object(['x' => 1, 'y' => 2]), 'b' => 5]);
+
+        // the inner object becomes 3 first, so the outer one sums 3 and 5
+        self::assertSame([8], self::outputs(new SingleWalkOp($sum), $input));
     }
 
     public function testScalarsAreFilteredDirectly(): void

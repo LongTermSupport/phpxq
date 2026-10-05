@@ -168,6 +168,29 @@ final class CoreTest extends TestCase
         }
     }
 
+    public function testPreludeKeepsLoadingChunksAfterAMultiDefinitionChunk(): void
+    {
+        $registry = new DefaultBuiltinRegistry();
+        $registry->addPrelude("def a: 1; def b: 2;\ndef c: 3;");
+
+        $parser  = new Parser(new Lexer());
+        $program = new Compiler($registry, $parser, new FileModuleLoader([], $parser, new JsonDecoder()))
+            ->compile($parser->parse('[a, b, c]'))
+        ;
+
+        $seen = [];
+        $program->run(new StubContext(), null, static function (mixed $value) use (&$seen): void {
+            $seen[] = $value;
+        });
+
+        self::assertSame([[1, 2, 3]], $seen);
+    }
+
+    public function testBreakOutsideAnyLabelIsACompileError(): void
+    {
+        self::assertSame('$*label-out is not defined at <top-level>, line 1:', ProgramHarness::compileError('break $out'));
+    }
+
     public function testPreludeDefinitionsKeepTheIntrinsicsInOneChunk(): void
     {
         $registry = new DefaultBuiltinRegistry();

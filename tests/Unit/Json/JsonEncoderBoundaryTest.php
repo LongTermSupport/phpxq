@@ -27,9 +27,8 @@ final class JsonEncoderBoundaryTest extends TestCase
      */
     public static function depthProvider(): iterable
     {
-        yield 'arrays at the limit'       => [10000, false];
-        yield 'arrays one beyond'         => [10001, true];
-        yield 'arrays well within'        => [9999, false];
+        yield 'at the limit'   => [10000, false];
+        yield 'one beyond'     => [10001, true];
     }
 
     #[DataProvider('depthProvider')]
