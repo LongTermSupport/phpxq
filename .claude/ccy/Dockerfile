@@ -45,6 +45,17 @@ ENV COMPOSER_ALLOW_SUPERUSER=1
 # XDEBUG_MODE=coverage itself for the lanes that need coverage.
 ENV XDEBUG_MODE=off
 
+# actionlint: lints .github/workflows (expressions, job wiring, and shellcheck over every `run:` block).
+# Pinned and checksum-verified; the release system (docs/RELEASING.md) is workflow-heavy.
+ARG ACTIONLINT_VERSION=1.7.12
+ARG ACTIONLINT_SHA256=8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+RUN curl -fsSL -o /tmp/actionlint.tgz \
+        "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" && \
+    echo "${ACTIONLINT_SHA256}  /tmp/actionlint.tgz" | sha256sum -c - && \
+    tar -xzf /tmp/actionlint.tgz -C /usr/local/bin actionlint && \
+    rm /tmp/actionlint.tgz
+
 # Verify installations
 RUN php --version && \
-    composer --version
+    composer --version && \
+    actionlint -version

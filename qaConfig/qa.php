@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use LTS\PHPQA\Pipeline\Config\QaConfigBuilder;
+use QaConfig\ChangelogLaneSwitch;
 
 /**
  * Project QA configuration (see vendor/lts/php-qa-ci/templates/qaConfig-qa.php).
@@ -28,4 +29,10 @@ return static fn (QaConfigBuilder $qa): QaConfigBuilder => $qa
     // Members nothing reaches are reported. The one PHP entry point outside src/ and tests/ is the executable.
     ->withDeadCodeDetection(true)
     ->withDeadCodeEntryPoints('bin/phpxq')
+    // A change to anything a user receives or that decides how a release is built must be recorded under
+    // `## Unreleased` in CHANGELOG.md (or carry a `Changelog: none — <reason>` commit trailer). The recorded
+    // headings also decide the next version: docs/RELEASING.md. The lane is off on `main` itself, where it
+    // could only look for an `85.N.N` tag that phpxq never creates (qaConfig/ChangelogLaneSwitch.php).
+    ->withChangelogCheck(new ChangelogLaneSwitch('main')->appliesTo(__DIR__ . '/../.git'))
+    ->withChangelogWatchedPaths('src/', 'bin/', 'scripts/', 'packaging/', 'composer.json', 'box.json', 'install.sh')
 ;
