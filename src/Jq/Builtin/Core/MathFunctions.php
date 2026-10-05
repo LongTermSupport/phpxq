@@ -21,6 +21,12 @@ final readonly class MathFunctions
 
     private const float ASYMPTOTIC_FROM = 25.0;
 
+    /**
+     * The Hankel expansion needs the argument to dominate the squared order, so a large order keeps the
+     * integral form (whose cost grows with the argument) up to this argument.
+     */
+    private const float INTEGRAL_UP_TO = 100000.0;
+
     private const array Y0_COSINE_TERMS = [1.0, -0.1098628627e-2, 0.2734510407e-4, -0.2073370639e-5, 0.2093887211e-6];
 
     private const array Y0_SINE_TERMS = [-0.1562499995e-1, 0.1430488765e-3, -0.6911147651e-5, 0.7621095161e-6, -0.934945152e-7];
@@ -567,7 +573,8 @@ final readonly class MathFunctions
             return is_nan($x) ? $x : 0.0;
         }
 
-        if (abs($x) < self::ASYMPTOTIC_FROM) {
+        $magnitude = abs($x);
+        if ($magnitude < self::ASYMPTOTIC_FROM || ($magnitude < self::INTEGRAL_UP_TO && $order * $order > $magnitude)) {
             return self::besselIntegral($order, $x);
         }
 
