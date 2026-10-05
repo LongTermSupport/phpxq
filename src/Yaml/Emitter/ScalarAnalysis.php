@@ -238,13 +238,13 @@ final readonly class ScalarAnalysis
         $second = \ord($value[$i + 1]);
 
         return match (true) {
-            0xC2 === $byte                                                                                                                                             => $second >= 0xA0,
-            $byte > 0xC2 && $byte                                                                                                                                                 < 0xED => true,
-            0xED === $byte                                                                                                                                             => $second < 0xA0,
-            0xEE === $byte                                                                                                                                             => true,
-            0xEF === $byte                                                                                                                                             => (0xBB !== $second || 0xBF !== \ord($value[$i + 2]))
+            0xC2 === $byte                                                                                                                                                               => $second >= 0xA0,
+            $byte > 0xC2 && $byte                                                                                                                                                                   < 0xED => true,
+            0xED === $byte                                                                                                                                                               => $second < 0xA0,
+            0xEE === $byte                                                                                                                                                               => true,
+            0xEF === $byte                                                                                                                                                               => (0xBB !== $second || 0xBF !== \ord($value[$i + 2]))
                 && (0xBF !== $second || !\in_array(\ord($value[$i + 2]), [0xBE, 0xBF], true)),
-            default                                                                                                                                                    => false,
+            default                                                                                                                                                                      => false,
         };
     }
 
