@@ -281,7 +281,7 @@ final class ExpressionLexerBoundaryTest extends TestCase
         }
     }
 
-    private static function render(ExpressionToken $token): string
+    private function render(ExpressionToken $token): string
     {
         $kind = match ($token->kind) {
             ExpressionTokenKindEnum::Number       => 'Num',
@@ -309,6 +309,6 @@ final class ExpressionLexerBoundaryTest extends TestCase
 
     private function lex(string $source): string
     {
-        return implode(' ', array_map(self::render(...), new ExpressionLexer()->tokenize($source)));
+        return implode(' ', array_map($this->render(...), new ExpressionLexer()->tokenize($source)));
     }
 }

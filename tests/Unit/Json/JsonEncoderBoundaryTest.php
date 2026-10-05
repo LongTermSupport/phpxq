@@ -102,7 +102,7 @@ final class JsonEncoderBoundaryTest extends TestCase
     #[DataProvider('asciiProvider')]
     public function testAsciiEscapesOfSupplementaryCharacters(string $text, array $units): void
     {
-        $expected = '"' . implode('', array_map(static fn (string $unit): string => '\\u' . $unit, $units)) . '"';
+        $expected = '"' . implode('', array_map(static fn (string $unit): string => '\u' . $unit, $units)) . '"';
 
         self::assertSame($expected, new JsonEncoder()->encode($text, new EncodeOptions(indent: 0, ascii: true)));
     }

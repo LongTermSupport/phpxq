@@ -187,7 +187,7 @@ final class TomlParserTest extends TestCase
 
         yield 'empty literal string' => ["a = ''\nb = ''''''\n", '{"a":"","b":""}'];
 
-        yield 'multi-line literal keeps a carriage return that is not part of the first line break' => ["a = '''\rx'''\n", '{"a":"\\rx"}'];
+        yield 'multi-line literal keeps a carriage return that is not part of the first line break' => ["a = '''\rx'''\n", '{"a":"\rx"}'];
 
         yield 'multi-line basic strings' => [
             "a = \"\"\"\r\nx\"\"\"\nb = \"\"\"\nx\"\"\"\nc = \"\"\"x\"\"\"\"\nd = \"\"\"x\"\"\"\"\"\ne = \"\"\"\rx\"\"\"\n",
