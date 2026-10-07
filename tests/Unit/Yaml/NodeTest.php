@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Yaml;
 
+use LTS\PhpXq\Cli\Xdebug;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\NodeStyleEnum;
@@ -74,17 +75,23 @@ final class NodeTest extends TestCase
 
     public function testTheDepthLimitItselfIsAccepted(): void
     {
-        self::assertFalse(Node::depthExceeded(Node::MAX_DEPTH));
+        self::assertFalse(Node::depthExceeded(Node::maxDepth()));
     }
 
     public function testOneLevelBeyondTheDepthLimitIsRefused(): void
     {
-        self::assertTrue(Node::depthExceeded(Node::MAX_DEPTH + 1));
+        self::assertTrue(Node::depthExceeded(Node::maxDepth() + 1));
     }
 
     public function testTheDepthErrorNamesTheLimit(): void
     {
-        self::assertSame('exceeded max depth of ' . Node::MAX_DEPTH, Node::depthError());
+        self::assertSame('exceeded max depth of ' . Node::maxDepth(), Node::depthError());
+    }
+
+    public function testTheLimitIsLowerWhileAnXdebugModeIsActive(): void
+    {
+        self::assertSame(Xdebug::active() ? Node::MAX_DEPTH_UNDER_XDEBUG : Node::MAX_DEPTH, Node::maxDepth());
+        self::assertLessThan(Node::MAX_DEPTH, Node::MAX_DEPTH_UNDER_XDEBUG);
     }
 
     public function testDeepCopyKeepsAliasesToOutsideTargets(): void

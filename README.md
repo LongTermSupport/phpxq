@@ -193,6 +193,11 @@ thousands of times). It is competitive on larger inputs, where startup is a roun
 about 70 ms from a checkout or the PHAR and about 30 ms from the static binary, against about 40 ms
 (jq 1.6) for the native jq.
 
+**Xdebug.** It slows every PHP call, so when it is loaded with an active mode `bin/phpxq` re-runs itself
+with `XDEBUG_MODE=off` (this needs `ext-pcntl`; without it the run carries on as is). Set
+`PHPXQ_ALLOW_XDEBUG=1` to keep it on, for example to debug phpxq itself. With Xdebug kept on, `yq` accepts
+YAML nested up to 5,000 levels instead of 10,000, because Xdebug uses far more native stack per call.
+
 **jq throughput** (CPU milliseconds, lower is better; minimum of 3 runs; reference is jq 1.6, the
 version available on the benchmark host):
 

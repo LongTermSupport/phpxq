@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Support\Yq;
 
+use LTS\PhpXq\Cli\Xdebug;
 use LTS\PhpXq\Tests\Support\CliResult;
 use Symfony\Component\Process\Process;
 
@@ -34,7 +35,7 @@ final readonly class YqProcess
         $process = new Process(
             ['sh', '-c', 'ulimit -s "$1" && shift && "$@"', 'sh', (string)$stackKilobytes, \PHP_BINARY, \dirname(__DIR__, 3) . '/bin/phpxq', 'yq', ...$arguments],
             null,
-            ['XDEBUG_MODE' => $xdebugMode],
+            ['XDEBUG_MODE' => $xdebugMode, Xdebug::ALLOW_ENVIRONMENT_VARIABLE => '1'],
             $stdin,
             self::TIMEOUT_SECONDS,
         );

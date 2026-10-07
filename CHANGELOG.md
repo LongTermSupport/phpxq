@@ -20,6 +20,9 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 
 ### Added
 
+- Xdebug is switched off by default: when it is loaded with an active mode, `bin/phpxq` re-runs itself with
+  `XDEBUG_MODE=off` (it needs `ext-pcntl`; without it the run carries on as is). Set `PHPXQ_ALLOW_XDEBUG=1`
+  to keep it on. `yq` accepts YAML nested up to go-yaml's 10,000 levels, or 5,000 while Xdebug is on.
 - `jq`: a pure-PHP implementation of jq 1.8.2. The full filter language and builtin
   library as exercised by the upstream test suite, modules, regular expressions, date functions and the
   command-line surface (`--stream`, `--seq`, `--slurp`, `--raw-input`, `--arg`/`--args`/`--jsonargs`,
