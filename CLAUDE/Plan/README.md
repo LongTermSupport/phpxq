@@ -27,4 +27,4 @@ folder (e.g. `00001-feature-name/`) with a `PLAN.md` file.
 
 - **Total**: 9
 - **Active**: 3
-- **Completed**: 5
+- **Completed**: 6
