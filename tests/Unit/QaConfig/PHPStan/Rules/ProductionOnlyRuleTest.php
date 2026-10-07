@@ -10,6 +10,7 @@ use PHPStan\Node\InClassNode;
 use PHPStan\Rules\Rule;
 use PHPStan\Testing\RuleTestCase;
 use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\Large;
 use QaConfig\PHPStan\Rules\ProductionOnlyRule;
 
 /**
@@ -18,6 +19,7 @@ use QaConfig\PHPStan\Rules\ProductionOnlyRule;
  * @extends RuleTestCase<ProductionOnlyRule<InClassNode>>
  */
 #[CoversNothing]
+#[Large]
 final class ProductionOnlyRuleTest extends RuleTestCase
 {
     private const string FIXTURES = __DIR__ . '/../../../../Fixtures/Defence/ProductionOnly';

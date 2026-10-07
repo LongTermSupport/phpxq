@@ -7,6 +7,7 @@ namespace LTS\PhpXq\Tests\Unit\QaConfig\PHPStan\Rules;
 use PHPStan\Rules\Rule;
 use PHPStan\Testing\RuleTestCase;
 use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\Large;
 use QaConfig\PHPStan\Rules\UnguardedAliasRecursionRule;
 
 /**
@@ -15,6 +16,7 @@ use QaConfig\PHPStan\Rules\UnguardedAliasRecursionRule;
  * @extends RuleTestCase<UnguardedAliasRecursionRule>
  */
 #[CoversNothing]
+#[Large]
 final class UnguardedAliasRecursionRuleTest extends RuleTestCase
 {
     private const string FIXTURES = __DIR__ . '/../../../../Fixtures/Defence/AliasRecursion';
