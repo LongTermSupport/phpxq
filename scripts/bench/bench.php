@@ -7,4 +7,4 @@ use LTS\PhpXq\Tests\Support\Bench\BenchCli;
 require \dirname(__DIR__, 2) . '/vendor/autoload.php';
 
 /** @var list<string> $argv */
-exit(new BenchCli()->run(\array_slice($argv, 1), STDOUT, STDERR));
+exit(new BenchCli()->run(STDOUT, STDERR, ...\array_slice($argv, 1)));
