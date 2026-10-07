@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Tests\Unit\QaConfig\PHPStan\Rules;
 use PHPStan\Rules\Rule;
 use PHPStan\Testing\RuleTestCase;
 use PHPUnit\Framework\Attributes\CoversNothing;
-use PHPUnit\Framework\Attributes\Medium;
+use PHPUnit\Framework\Attributes\Large;
 use QaConfig\PHPStan\Rules\RecursionThroughNativeCallbackRule;
 
 /**
@@ -16,7 +16,7 @@ use QaConfig\PHPStan\Rules\RecursionThroughNativeCallbackRule;
  * @extends RuleTestCase<RecursionThroughNativeCallbackRule>
  */
 #[CoversNothing]
-#[Medium]
+#[Large]
 final class RecursionThroughNativeCallbackRuleTest extends RuleTestCase
 {
     private const string FIXTURES = __DIR__ . '/../../../../Fixtures/Defence/NativeCallback';
