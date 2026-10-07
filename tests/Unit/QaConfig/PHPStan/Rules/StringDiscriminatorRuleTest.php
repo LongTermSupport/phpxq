@@ -7,6 +7,7 @@ namespace LTS\PhpXq\Tests\Unit\QaConfig\PHPStan\Rules;
 use PHPStan\Rules\Rule;
 use PHPStan\Testing\RuleTestCase;
 use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\Medium;
 use QaConfig\PHPStan\Rules\StringDiscriminatorRule;
 
 /**
@@ -15,6 +16,7 @@ use QaConfig\PHPStan\Rules\StringDiscriminatorRule;
  * @extends RuleTestCase<StringDiscriminatorRule>
  */
 #[CoversNothing]
+#[Medium]
 final class StringDiscriminatorRuleTest extends RuleTestCase
 {
     private const string FIXTURE_NAMESPACE = 'LTS\PhpXq\Tests\Fixtures\Defence\StringDiscriminator';

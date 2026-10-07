@@ -7,6 +7,7 @@ namespace LTS\PhpXq\Tests\Unit\QaConfig\PHPStan\Rules;
 use PHPStan\Rules\Rule;
 use PHPStan\Testing\RuleTestCase;
 use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\Medium;
 use QaConfig\PHPStan\Rules\LoopInvariantConstructionRule;
 
 /**
@@ -15,6 +16,7 @@ use QaConfig\PHPStan\Rules\LoopInvariantConstructionRule;
  * @extends RuleTestCase<LoopInvariantConstructionRule>
  */
 #[CoversNothing]
+#[Medium]
 final class LoopInvariantConstructionRuleTest extends RuleTestCase
 {
     private const string FIXTURES = __DIR__ . '/../../../../Fixtures/Defence/LoopConstruction';
