@@ -40,13 +40,19 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 
 - `jq`: a program nested deeper than 10,000 levels (brackets, `|` or `//` operands, or nested constructs) is a
   compile error, `syntax error, program nested deeper than 10000 levels`, instead of a crash with a
-  segmentation fault. Programs are now parsed and compiled on the evaluation stack. Chains are not nesting
-  and have no limit: an array literal of 100,000 elements, which crashed, now runs.
+  segmentation fault. Programs are now parsed and compiled on the evaluation stack. Chains (`,`, `+`, `.a.b`,
+  `[0]`, `?`) are not nesting, but a chain other than `,` builds a tree as deep as it is long, and PHP crashed
+  freeing one of about 700,000 levels: the whole tree, chains included, is limited to 100,000 levels
+  (`syntax error, program tree deeper than 100000 levels, counting chained operations`). A comma chain is
+  built as a balanced tree and has no length limit, so an array literal of 100,000 elements, which crashed,
+  now runs.
 - `yq`: an expression nested deeper than 10,000 levels, including one read from the data by `eval`, is the
   error `Bad expression, nested deeper than 10000 levels` instead of a segmentation fault, and nested string
   interpolations are parsed in linear time (10,000 levels took minutes before). Chains (`|`, `,`, `+`,
-  `.a.b...`) are not nesting and have no limit, and expressions are evaluated on a large stack, so a chain of
-  30,000 steps no longer crashes while a coverage driver is loaded.
+  `.a.b...`) are not nesting; as for `jq`, the tree they build is limited to 100,000 levels
+  (`Bad expression, tree deeper than 100000 levels, counting chained operations`), except a `,` chain, which
+  is built balanced and has no length limit. Expressions are evaluated on a large stack, so a chain of 30,000
+  steps no longer crashes while a coverage driver is loaded.
 - `jq`: invalid UTF-8 in `--arg`, `--args`, `--rawfile`, argument names and the program text is replaced
   with U+FFFD, as jq does. It used to reach `explode` and similar builtins and end the run with an
   uncatchable `internal error: Uninitialized string offset`.

@@ -44,8 +44,10 @@ use LTS\PhpXq\Yq\Expression\ExpressionTokenKindEnum;
  * Nesting is limited to {@see NestingLimit::MAX_DEPTH} levels. `$depth` counts the expressions the parser is
  * inside: every bracket, operand of a higher-binding operator, interpolation or nested construct it recurses
  * into is one level below its parent, and the outermost expression is level 0. A chain the parser builds in a
- * loop (`|`, `,`, `+`, `.a.b`, `.[0]`, juxtaposed words) is not nesting and has no limit: union operands are
- * joined into a balanced tree, and the other chains are left-deep, as long as the expression text.
+ * loop (`|`, `,`, `+`, `.a.b`, `.[0]`, juxtaposed words) is not nesting: union operands are joined into a
+ * balanced tree, and the other chains are left-deep, as deep as they are long. `$reach` is the deepest level
+ * any node of the tree under construction has reached, chains included (a wrap pushes everything parsed so far
+ * one level down), and it is limited to {@see NestingLimit::MAX_TREE_DEPTH}.
  *
  * @internal
  */
@@ -54,6 +56,8 @@ final class PrattParser
     private const int OUTSIDE_THE_EXPRESSION = -1;
 
     private const string TOO_DEEP = 'Bad expression, nested deeper than %d levels';
+
+    private const string TOO_LONG = 'Bad expression, tree deeper than %d levels, counting chained operations';
 
     private const string MISSING_PAREN = 'Bad expression, could not find matching `)`';
 
@@ -71,6 +75,8 @@ final class PrattParser
 
     private bool $union = true;
 
+    private int $reach;
+
     /**
      * @param list<ExpressionToken> $tokens always ends with an EndOfInput token
      * @param int                   $depth  the level enclosing the expression: an interpolation's is its string's
@@ -79,6 +85,7 @@ final class PrattParser
         private readonly array $tokens,
         private int $depth = self::OUTSIDE_THE_EXPRESSION,
     ) {
+        $this->reach = $depth;
     }
 
     /**
@@ -100,9 +107,11 @@ final class PrattParser
 
     private function parseExpr(int $minBp): ExpressionNodeInterface
     {
-        $outer = $this->depth;
+        $outer      = $this->depth;
+        $outerReach = $this->reach;
         $this->nest();
-        $left = $this->parseOperand();
+        $this->reach = $this->depth;
+        $left        = $this->parseOperand();
         while (true) {
             $info = $this->binaryInfo($this->tokens[$this->pos]);
             if (null === $info || $info[0] < $minBp) {
@@ -110,13 +119,16 @@ final class PrattParser
             }
 
             ++$this->pos;
-            $rightBp = $info[1] ? $info[0] : $info[0] + 1;
-            $left    = BinaryOperatorEnum::Union === $info[2]
+            $leftReach = $this->reach;
+            $rightBp   = $info[1] ? $info[0] : $info[0] + 1;
+            $left      = BinaryOperatorEnum::Union === $info[2]
                 ? $this->parseUnionChain($left, $rightBp)
                 : new Binary($info[2], $left, $this->parseExpr($rightBp), $info[3]);
+            $this->deepen($leftReach + 1);
         }
 
         $this->depth = $outer;
+        $this->reach = max($outerReach, $this->reach);
 
         return $left;
     }
@@ -163,6 +175,21 @@ final class PrattParser
         ++$this->depth;
         if ($this->depth > NestingLimit::MAX_DEPTH) {
             throw $this->fail(\sprintf(self::TOO_DEEP, NestingLimit::MAX_DEPTH));
+        }
+
+        $this->deepen($this->depth);
+    }
+
+    /**
+     * Records that the tree under construction reaches the given level.
+     *
+     * @throws ExpressionSyntaxException past {@see NestingLimit::MAX_TREE_DEPTH} levels
+     */
+    private function deepen(int $level): void
+    {
+        $this->reach = max($this->reach, $level);
+        if ($this->reach > NestingLimit::MAX_TREE_DEPTH) {
+            throw $this->fail(\sprintf(self::TOO_LONG, NestingLimit::MAX_TREE_DEPTH));
         }
     }
 
@@ -228,7 +255,9 @@ final class PrattParser
 
     private function parseOperand(bool $allowBind = true): ExpressionNodeInterface
     {
-        $node = $this->parsePrimary();
+        $outerReach  = $this->reach;
+        $this->reach = $this->depth;
+        $node        = $this->parsePrimary();
         while (true) {
             $node  = $this->parsePostfix($node);
             $token = $this->tokens[$this->pos];
@@ -238,7 +267,9 @@ final class PrattParser
 
             $word = $token->text;
             if ($allowBind && ('as' === $word || ('ref' === $word && ExpressionTokenKindEnum::Variable === $this->tokens[$this->pos + 1]->kind))) {
-                $node = $this->parseBind($node, $word);
+                $nodeReach = $this->reach;
+                $node      = $this->parseBind($node, $word);
+                $this->deepen($nodeReach + 1);
 
                 break;
             }
@@ -248,8 +279,12 @@ final class PrattParser
             }
 
             ++$this->pos;
-            $node = new Binary(BinaryOperatorEnum::Pipe, $node, $this->finishCall($word));
+            $nodeReach = $this->reach;
+            $node      = new Binary(BinaryOperatorEnum::Pipe, $node, $this->finishCall($word));
+            $this->deepen($nodeReach + 1);
         }
+
+        $this->reach = max($outerReach, $this->reach);
 
         return $node;
     }
@@ -547,12 +582,14 @@ final class PrattParser
     private function parsePostfix(ExpressionNodeInterface $node): ExpressionNodeInterface
     {
         while (true) {
-            $next = $this->postfixStep($node);
+            $nodeReach = $this->reach;
+            $next      = $this->postfixStep($node);
             if (!$next instanceof ExpressionNodeInterface) {
                 return $node;
             }
 
             $node = $next;
+            $this->deepen($nodeReach + 1);
         }
     }
 
@@ -684,7 +721,9 @@ final class PrattParser
             }
 
             $hasNodes = true;
-            $parts[]  = new self($part, $this->depth)->parseAll();
+            $nested   = new self($part, $this->depth);
+            $parts[]  = $nested->parseAll();
+            $this->deepen($nested->reach);
         }
 
         return $hasNodes ? new Interpolation($parts) : $this->literalString($text);

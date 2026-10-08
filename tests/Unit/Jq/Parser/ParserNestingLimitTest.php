@@ -22,7 +22,8 @@ use PHPUnit\Framework\TestCase;
  * A program nested deeper than {@see NestingLimit::MAX_DEPTH} levels is a syntax error, whether the nesting
  * comes from brackets, from a right-recursive operator (`|`, `//`) or from a nested construct. The outermost
  * expression is level 0 and each of them adds one. A chain the parser builds in a loop (`,`, `+`, `.a`, `[0]`,
- * `?`) is not nesting and parses at any length.
+ * `?`) is not nesting; a left-deep one counts towards {@see NestingLimit::MAX_TREE_DEPTH} instead, and a comma
+ * chain parses as a balanced tree at any length.
  *
  * Deep parses run on the evaluation fiber, as the CLI runs them, so a coverage driver's native frames cannot
  * overflow the process stack.
@@ -35,7 +36,11 @@ final class ParserNestingLimitTest extends TestCase
 {
     private const string TOO_DEEP = 'syntax error, program nested deeper than 10000 levels at <top-level>, line 1, column ';
 
+    private const string TOO_LONG = 'syntax error, program tree deeper than 100000 levels, counting chained operations';
+
     private const int LONG_CHAIN = 30000;
+
+    private const string INDEX_STEP = '[0]';
 
     private const string OBJECT_OPEN = '{a:';
 
@@ -122,7 +127,54 @@ final class ParserNestingLimitTest extends TestCase
         yield 'conjunctions'    => ['', 'true and ', 'true'];
         yield 'field chains'    => ['', '.a', ''];
         yield 'optional chains' => ['.', '?', ''];
-        yield 'index chains'    => ['.', '[0]', ''];
+        yield 'index chains'    => ['.', self::INDEX_STEP, ''];
+    }
+
+    /**
+     * A chain is left-deep, and PHP frees a left-deep tree recursively on the native stack, which overflows near
+     * 700,000 levels: the tree, chains included, is capped at {@see NestingLimit::MAX_TREE_DEPTH} levels.
+     */
+    #[DataProvider('leftDeepChains')]
+    public function testAChainPastTheTreeLimitIsASyntaxError(string $prefix, string $link, string $last): void
+    {
+        // one link more than the limit allows even where the first link is the chain's operand (`.a.a`)
+        $source = $prefix . str_repeat($link, NestingLimit::MAX_TREE_DEPTH + 2) . $last;
+
+        self::assertStringStartsWith(self::TOO_LONG, self::compileError($source));
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string}> text before the chain, a repeated link, the end
+     */
+    public static function leftDeepChains(): iterable
+    {
+        foreach (self::chains() as $name => $chain) {
+            if (!str_contains($chain[1], ',')) {
+                yield $name => $chain;
+            }
+        }
+    }
+
+    public function testACommaChainPastTheTreeLimitParsesAsABalancedTree(): void
+    {
+        $source = '[' . str_repeat('0,', 2 * NestingLimit::MAX_TREE_DEPTH) . '0]';
+
+        self::assertInstanceOf(NodeInterface::class, self::parse($source)->body);
+    }
+
+    public function testAChainAtTheTreeLimitParses(): void
+    {
+        // the leaf `.` sits under MAX_TREE_DEPTH index steps
+        self::assertInstanceOf(NodeInterface::class, self::parse('.' . str_repeat(self::INDEX_STEP, NestingLimit::MAX_TREE_DEPTH))->body);
+        self::assertStringStartsWith(self::TOO_LONG, self::compileError('.' . str_repeat(self::INDEX_STEP, NestingLimit::MAX_TREE_DEPTH + 1)));
+    }
+
+    public function testNestingAndChainsAddUpToTheTreeLimit(): void
+    {
+        $nested = self::nest('[', '.' . str_repeat(self::INDEX_STEP, NestingLimit::MAX_TREE_DEPTH - 100), ']', 100);
+
+        self::assertInstanceOf(NodeInterface::class, self::parse($nested)->body);
+        self::assertStringStartsWith(self::TOO_LONG, self::compileError('[' . $nested . ']'));
     }
 
     #[DataProvider('wrappers')]
@@ -140,7 +192,7 @@ final class ParserNestingLimitTest extends TestCase
     {
         yield 'comma'        => [', 1'];
         yield 'addition'     => [' + 1'];
-        yield 'postfix step' => ['[0]'];
+        yield 'postfix step' => [self::INDEX_STEP];
         yield 'optional'     => ['?'];
     }
 

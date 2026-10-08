@@ -36,7 +36,7 @@ final class JqApplicationNestingTest extends TestCase
     }
 
     /**
-     * A long chain is not nesting: jq 1.6 runs both, and a hundred thousand array elements used to overflow
+     * A long chain is not nesting: jq 1.6 runs these, and a hundred thousand array elements used to overflow
      * the stack under a coverage driver.
      */
     public function testLongChainsCompileAndRun(): void
@@ -48,6 +48,21 @@ final class JqApplicationNestingTest extends TestCase
         self::assertSame(['', self::LONG_CHAIN . "\n"], [$elements->stderr, $elements->stdout]);
         self::assertSame(['', self::LONG_CHAIN . "\n"], [$sum->stderr, $sum->stdout]);
         self::assertSame(['', "null\n"], [$fields->stderr, $fields->stdout]);
+    }
+
+    /**
+     * The longest chain the tree limit accepts runs and its program is freed; one link more is a compile error.
+     */
+    public function testAChainAtTheTreeLimitRunsAndOnePastItIsACompileError(): void
+    {
+        // the first term sits under MAX_TREE_DEPTH additions
+        $terms   = NestingLimit::MAX_TREE_DEPTH + 1;
+        $atLimit = new CliRunner()->run(['jq', '-n', implode('+', array_fill(0, $terms, '1'))]);
+        $past    = new CliRunner()->run(['jq', '-n', implode('+', array_fill(0, $terms + 1, '1'))]);
+
+        self::assertSame([JqExitCode::OK, '', $terms . "\n"], [$atLimit->exitCode, $atLimit->stderr, $atLimit->stdout]);
+        self::assertSame([JqExitCode::COMPILE_ERROR, ''], [$past->exitCode, $past->stdout]);
+        self::assertStringStartsWith('jq: error: syntax error, program tree deeper than 100000 levels, counting chained operations', $past->stderr);
     }
 
     public function testAProgramPastTheNestingLimitIsACompileError(): void

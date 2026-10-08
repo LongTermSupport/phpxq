@@ -60,8 +60,11 @@ use LTS\PhpXq\Limits\NestingLimit;
  * Nesting is limited to {@see NestingLimit::MAX_DEPTH} levels. `$depth` counts the expressions the parser is
  * inside: every bracket, right-recursive operand (`|`, `//`, `-`) or nested construct it recurses into is one
  * level below its parent, and the outermost expression is level 0. A chain the parser builds in a loop (`,`,
- * `+`, `.a.b`, `.[0]`, `?`) is not nesting and has no limit: `,` operands are joined into a balanced tree, and
- * the other chains are left-deep, as long as the program text.
+ * `+`, `.a.b`, `.[0]`, `?`) is not nesting: `,` operands are joined into a balanced tree, and the other chains
+ * are left-deep, as deep as they are long. `$reach` is the deepest level any node of the tree under
+ * construction has reached, chains included (a wrap pushes everything parsed so far one level down); the
+ * tree is capped at {@see NestingLimit::MAX_TREE_DEPTH}, because PHP frees a tree recursively on the native
+ * stack.
  *
  * @api
  */
@@ -158,6 +161,8 @@ final class Parser implements ParserInterface
 
     private int $depth = self::OUTSIDE_THE_PROGRAM;
 
+    private int $reach = self::OUTSIDE_THE_PROGRAM;
+
     private bool $bindingAllowed = true;
 
     private bool $unterminated = false;
@@ -171,6 +176,7 @@ final class Parser implements ParserInterface
         $this->tokens       = $this->lexer->tokenize($source);
         $this->pos          = 0;
         $this->depth        = self::OUTSIDE_THE_PROGRAM;
+        $this->reach        = self::OUTSIDE_THE_PROGRAM;
         $this->unterminated = false;
 
         try {
@@ -402,17 +408,21 @@ final class Parser implements ParserInterface
 
     private function parseExpr(int $min): NodeInterface
     {
-        $outer = $this->depth;
+        $outer      = $this->depth;
+        $outerReach = $this->reach;
         $this->nest();
-        $left = $this->parseUnary();
+        $this->reach = $this->depth;
+        $left        = $this->parseUnary();
         while (true) {
             $tok = $this->tokens[$this->pos];
             if (TokenTypeEnum::KwAs === $tok->type && $this->bindingAllowed && $min <= self::LEVEL_ALT) {
                 // `as` binds the whole operator expression on its left (`1 + 2 as $x | ...` binds 3).
                 ++$this->pos;
-                $patterns = $this->parsePatterns();
+                $leftReach = $this->reach;
+                $patterns  = $this->parsePatterns();
                 $this->expect(TokenTypeEnum::Pipe);
                 $left = new Bind($left, $patterns, $this->parsePipe());
+                $this->deepen($leftReach + 1);
 
                 break;
             }
@@ -423,10 +433,13 @@ final class Parser implements ParserInterface
             }
 
             ++$this->pos;
-            $left = self::LEVEL_COMMA === $level ? $this->parseCommaChain($left) : $this->parseOperation($tok->type, $level, $left);
+            $leftReach = $this->reach;
+            $left      = self::LEVEL_COMMA === $level ? $this->parseCommaChain($left) : $this->parseOperation($tok->type, $level, $left);
+            $this->deepen($leftReach + 1);
         }
 
         $this->depth = $outer;
+        $this->reach = max($outerReach, $this->reach);
 
         return $left;
     }
@@ -506,6 +519,24 @@ final class Parser implements ParserInterface
                 $this->tokens[$this->pos],
             );
         }
+
+        $this->deepen($this->depth);
+    }
+
+    /**
+     * Records that some node of the tree being built now sits at the level.
+     *
+     * @throws JqCompileException past {@see NestingLimit::MAX_TREE_DEPTH} levels
+     */
+    private function deepen(int $level): void
+    {
+        $this->reach = max($this->reach, $level);
+        if ($this->reach > NestingLimit::MAX_TREE_DEPTH) {
+            throw $this->compileError(
+                \sprintf('syntax error, program tree deeper than %d levels, counting chained operations', NestingLimit::MAX_TREE_DEPTH),
+                $this->tokens[$this->pos],
+            );
+        }
     }
 
     private function assignOp(TokenTypeEnum $type): AssignOpEnum
@@ -580,15 +611,21 @@ final class Parser implements ParserInterface
 
     private function parsePostfix(): NodeInterface
     {
-        $term = $this->parsePrimary();
+        $outerReach  = $this->reach;
+        $this->reach = $this->depth;
+        $term        = $this->parsePrimary();
         while (true) {
-            $next = $this->postfixStep($term);
+            $termReach = $this->reach;
+            $next      = $this->postfixStep($term);
             if (!$next instanceof NodeInterface) {
                 break;
             }
 
             $term = $next;
+            $this->deepen($termReach + 1);
         }
+
+        $this->reach = max($outerReach, $this->reach);
 
         return $term;
     }

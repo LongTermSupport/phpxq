@@ -19,7 +19,8 @@ use PHPUnit\Framework\TestCase;
  * An expression nested deeper than {@see NestingLimit::MAX_DEPTH} levels is a syntax error, whether the nesting
  * comes from brackets, from a right-associative operator, from a nested construct or from string
  * interpolations. The outermost expression is level 0 and each of them adds one. A chain the parser builds in a
- * loop (`|`, `,`, `+`, `.a`, `[0]`, juxtaposed words) is not nesting and parses at any length.
+ * loop (`|`, `,`, `+`, `.a`, `[0]`, juxtaposed words) is not nesting; a left-deep one counts towards
+ * {@see NestingLimit::MAX_TREE_DEPTH} instead, and a union chain parses as a balanced tree at any length.
  *
  * Deep parses run on a large fiber stack, so a coverage driver's native frames cannot overflow the process
  * stack.
@@ -31,6 +32,10 @@ use PHPUnit\Framework\TestCase;
 final class PrattParserNestingLimitTest extends TestCase
 {
     private const string TOO_DEEP = 'Bad expression, nested deeper than 10000 levels';
+
+    private const string TOO_LONG = 'Bad expression, tree deeper than 100000 levels, counting chained operations';
+
+    private const string INDEX_STEP = '[0]';
 
     private const int LINEAR_PARSE_BUDGET_NANOSECONDS = 4_000_000_000;
 
@@ -53,12 +58,7 @@ final class PrattParserNestingLimitTest extends TestCase
     {
         $source = $prefix . self::nest($open, $leaf, $close, NestingLimit::MAX_DEPTH - $fixedLevels + 1) . $suffix;
 
-        try {
-            self::parse($source);
-            self::fail('expected a syntax error');
-        } catch (ExpressionSyntaxException $expressionSyntaxException) {
-            self::assertSame(self::TOO_DEEP, $expressionSyntaxException->getMessage());
-        }
+        self::assertSame(self::TOO_DEEP, self::syntaxError($source));
     }
 
     /**
@@ -111,6 +111,59 @@ final class PrattParserNestingLimitTest extends TestCase
         yield 'juxtaposed words'    => ['.', ' x', ''];
     }
 
+    /**
+     * A chain is left-deep, and PHP frees a left-deep tree recursively on the native stack, which overflows near
+     * 700,000 levels: the tree, chains included, is capped at {@see NestingLimit::MAX_TREE_DEPTH} levels.
+     */
+    #[DataProvider('leftDeepChains')]
+    public function testAChainPastTheTreeLimitIsASyntaxError(string $prefix, string $link, string $last): void
+    {
+        // one link more than the limit allows even where the first link is the chain's operand (`.a.a`)
+        $source = $prefix . str_repeat($link, NestingLimit::MAX_TREE_DEPTH + 2) . $last;
+
+        self::assertSame(self::TOO_LONG, self::syntaxError($source));
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string}> text before the chain, a repeated link, the end
+     */
+    public static function leftDeepChains(): iterable
+    {
+        foreach (self::chains() as $name => $chain) {
+            if (!str_contains($chain[1], ',')) {
+                yield $name => $chain;
+            }
+        }
+    }
+
+    public function testAUnionChainPastTheTreeLimitParsesAsABalancedTree(): void
+    {
+        self::assertCount(1, self::parse('[' . str_repeat('0, ', 2 * NestingLimit::MAX_TREE_DEPTH) . '0]'));
+    }
+
+    public function testAChainAtTheTreeLimitParses(): void
+    {
+        // the leaf `.` sits under MAX_TREE_DEPTH index steps
+        self::assertCount(1, self::parse('.' . str_repeat(self::INDEX_STEP, NestingLimit::MAX_TREE_DEPTH)));
+        self::assertSame(self::TOO_LONG, self::syntaxError('.' . str_repeat(self::INDEX_STEP, NestingLimit::MAX_TREE_DEPTH + 1)));
+    }
+
+    public function testNestingAndChainsAddUpToTheTreeLimit(): void
+    {
+        $nested = self::nest('[', '.' . str_repeat(self::INDEX_STEP, NestingLimit::MAX_TREE_DEPTH - 100), ']', 100);
+
+        self::assertCount(1, self::parse($nested));
+        self::assertSame(self::TOO_LONG, self::syntaxError('[' . $nested . ']'));
+    }
+
+    public function testAChainInsideAnInterpolationCountsTowardsTheTreeLimit(): void
+    {
+        $string = self::INTERPOLATION_OPEN . '.' . str_repeat(self::INDEX_STEP, NestingLimit::MAX_TREE_DEPTH - 1) . self::INTERPOLATION_CLOSE;
+
+        self::assertCount(1, self::parse($string));
+        self::assertSame(self::TOO_LONG, self::syntaxError($string . self::INDEX_STEP));
+    }
+
     #[DataProvider('wrappers')]
     public function testAChainAfterAnOperandAtTheLimitParses(string $wrapper): void
     {
@@ -134,13 +187,7 @@ final class PrattParserNestingLimitTest extends TestCase
         $string = self::nest(self::INTERPOLATION_OPEN, self::nest('[', '1', ']', NestingLimit::MAX_DEPTH - 1), self::INTERPOLATION_CLOSE, 1);
 
         self::assertCount(1, self::parse($string));
-
-        try {
-            self::parse('[' . $string . ']');
-            self::fail('expected a syntax error');
-        } catch (ExpressionSyntaxException $expressionSyntaxException) {
-            self::assertSame(self::TOO_DEEP, $expressionSyntaxException->getMessage());
-        }
+        self::assertSame(self::TOO_DEEP, self::syntaxError('[' . $string . ']'));
     }
 
     public function testADeeplyInterpolatedStringParsesInLinearTime(): void
@@ -160,6 +207,17 @@ final class PrattParserNestingLimitTest extends TestCase
     private static function parse(string $source): array
     {
         return EvaluationStack::run(static fn (): array => [new PrattParser(new ExpressionLexer()->tokenize($source))->parseAll()]);
+    }
+
+    private static function syntaxError(string $source): string
+    {
+        try {
+            self::parse($source);
+        } catch (ExpressionSyntaxException $expressionSyntaxException) {
+            return $expressionSyntaxException->getMessage();
+        }
+
+        self::fail('expected a syntax error');
     }
 
     private static function nest(string $open, string $leaf, string $close, int $depth): string
