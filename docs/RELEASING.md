@@ -263,12 +263,14 @@ and a stub `gh`; the pure decisions are covered by `vendor/bin/phpunit --testsui
 - **A release is wrong or unwanted:** close the release pull request. Nothing is published until it merges.
 - **Workflow failed before `release`:** nothing was published and no tag exists. Fix on `main`; the
   release pull request refreshes. Re-run the failed `Release` run if the cause was transient.
-- **Workflow failed in `release` after the tag was created:** check the Releases page. If a release
-  exists with missing assets, delete the release and the tag (`gh release delete vX.Y.Z --cleanup-tag`),
-  then re-run the workflow from the `release` branch.
-- **`verify` failed:** the release is live but its install path is broken. Delete it as above and
-  re-run, or ship a fix as the next patch version. Prefer the next patch version once users could have
-  downloaded the release.
+- **Workflow failed in `release` after the tag was created:** check the Releases page. The `v*` tag ruleset
+  (step 7) blocks deleting or moving the tag, so the version cannot be published again. If the release exists
+  with an asset missing, attach the asset from the run's artefacts (`gh release upload vX.Y.Z <file>`, then
+  regenerate and re-upload `SHA256SUMS` with `--clobber`). Otherwise ship the fix as the next patch version.
+- **`verify` failed:** the release is live but its install path is broken. Mark it as not the latest
+  (`gh release edit vX.Y.Z --latest=false`, or delete the release but not the tag) and ship the fix as the next
+  patch version. Removing the tag itself needs a repository admin to bypass the tag ruleset; do that only when
+  the tag must not exist at all, never to re-publish the same version.
 - **Preflight says `VERSION says X but the newest section of CHANGELOG.md is Y`:** someone edited `VERSION` or a
   version section by hand. Revert it; only the release pull request writes them.
 - **The back-merge was not opened or conflicts on a file other than `CHANGELOG.md`/`VERSION`:**
