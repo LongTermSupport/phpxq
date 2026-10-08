@@ -41,12 +41,11 @@ use LTS\PhpXq\Yq\Expression\ExpressionTokenKindEnum;
  * Field names after a dot are string literals (`.a.0` is the key "0"); `.[expr]` keeps the expression, so
  * `.[0]` is an integer key. Inside `{ }` values a `,` separates entries and so is not the union operator.
  *
- * Nesting is limited to {@see NestingLimit::MAX_DEPTH} levels, so the evaluator, which walks the AST
- * recursively, never meets a deeper one. `$depth` is the AST level of the node being parsed: every bracket,
- * operand, postfix step, interpolation or nested construct the parser recurses into is one level below its
- * parent, and the outermost expression is level 0. `$reach` is the deepest level any node of the operand chain
- * being built has reached: an operator, a postfix step or a juxtaposed word wraps everything parsed so far in a
- * new node without recursing, pushing all of it one level further down, so each wrap deepens the reach too.
+ * Nesting is limited to {@see NestingLimit::MAX_DEPTH} levels. `$depth` counts the expressions the parser is
+ * inside: every bracket, operand of a higher-binding operator, interpolation or nested construct it recurses
+ * into is one level below its parent, and the outermost expression is level 0. A chain the parser builds in a
+ * loop (`|`, `,`, `+`, `.a.b`, `.[0]`, juxtaposed words) is not nesting and has no limit: union operands are
+ * joined into a balanced tree, and the other chains are left-deep, as long as the expression text.
  *
  * @internal
  */
@@ -72,8 +71,6 @@ final class PrattParser
 
     private bool $union = true;
 
-    private int $reach;
-
     /**
      * @param list<ExpressionToken> $tokens always ends with an EndOfInput token
      * @param int                   $depth  the level enclosing the expression: an interpolation's is its string's
@@ -82,7 +79,6 @@ final class PrattParser
         private readonly array $tokens,
         private int $depth = self::OUTSIDE_THE_EXPRESSION,
     ) {
-        $this->reach = $depth;
     }
 
     /**
@@ -104,11 +100,9 @@ final class PrattParser
 
     private function parseExpr(int $minBp): ExpressionNodeInterface
     {
-        $outer      = $this->depth;
-        $outerReach = $this->reach;
+        $outer = $this->depth;
         $this->nest();
-        $this->reach = $this->depth;
-        $left        = $this->parseOperand();
+        $left = $this->parseOperand();
         while (true) {
             $info = $this->binaryInfo($this->tokens[$this->pos]);
             if (null === $info || $info[0] < $minBp) {
@@ -116,39 +110,58 @@ final class PrattParser
             }
 
             ++$this->pos;
-            $leftReach = $this->reach;
-            $right     = $this->parseExpr($info[1] ? $info[0] : $info[0] + 1);
-            $left      = new Binary($info[2], $left, $right, $info[3]);
-            $this->deepen($leftReach + 1);
+            $rightBp = $info[1] ? $info[0] : $info[0] + 1;
+            $left    = BinaryOperatorEnum::Union === $info[2]
+                ? $this->parseUnionChain($left, $rightBp)
+                : new Binary($info[2], $left, $this->parseExpr($rightBp), $info[3]);
         }
 
         $this->depth = $outer;
-        $this->reach = max($outerReach, $this->reach);
 
         return $left;
     }
 
     /**
-     * One level deeper for the node about to be parsed; the caller restores the level it saved once that node
-     * is complete.
+     * After the first `,` of a chain: every operand of the chain, joined into a balanced tree of unions. The
+     * union is associative, so the results keep their order however the operands are grouped, and a chain of
+     * any length stays a tree of logarithmic depth.
+     */
+    private function parseUnionChain(ExpressionNodeInterface $first, int $rightBp): ExpressionNodeInterface
+    {
+        $operands = [$first, $this->parseExpr($rightBp)];
+        while (ExpressionTokenKindEnum::Operator === $this->tokens[$this->pos]->kind && ',' === $this->tokens[$this->pos]->text) {
+            ++$this->pos;
+            $operands[] = $this->parseExpr($rightBp);
+        }
+
+        // join neighbours pairwise, round after round, until one tree is left
+        while (\count($operands) > 1) {
+            $joined = [];
+            $count  = \count($operands);
+            for ($i = 0; $i + 1 < $count; $i += 2) {
+                $joined[] = new Binary(BinaryOperatorEnum::Union, $operands[$i], $operands[$i + 1]);
+            }
+
+            if (1 === $count % 2) {
+                $joined[] = $operands[$count - 1];
+            }
+
+            $operands = $joined;
+        }
+
+        return $operands[0];
+    }
+
+    /**
+     * One level deeper for the expression about to be parsed; the caller restores the level it saved once that
+     * expression is complete.
      *
      * @throws ExpressionSyntaxException past {@see NestingLimit::MAX_DEPTH} levels
      */
     private function nest(): void
     {
         ++$this->depth;
-        $this->deepen($this->depth);
-    }
-
-    /**
-     * Records that some node of the operand chain now sits at the level.
-     *
-     * @throws ExpressionSyntaxException past {@see NestingLimit::MAX_DEPTH} levels
-     */
-    private function deepen(int $level): void
-    {
-        $this->reach = max($this->reach, $level);
-        if ($this->reach > NestingLimit::MAX_DEPTH) {
+        if ($this->depth > NestingLimit::MAX_DEPTH) {
             throw $this->fail(\sprintf(self::TOO_DEEP, NestingLimit::MAX_DEPTH));
         }
     }
@@ -215,9 +228,7 @@ final class PrattParser
 
     private function parseOperand(bool $allowBind = true): ExpressionNodeInterface
     {
-        $outerReach  = $this->reach;
-        $this->reach = $this->depth;
-        $node        = $this->parsePrimary();
+        $node = $this->parsePrimary();
         while (true) {
             $node  = $this->parsePostfix($node);
             $token = $this->tokens[$this->pos];
@@ -225,11 +236,9 @@ final class PrattParser
                 break;
             }
 
-            $word      = $token->text;
-            $nodeReach = $this->reach;
+            $word = $token->text;
             if ($allowBind && ('as' === $word || ('ref' === $word && ExpressionTokenKindEnum::Variable === $this->tokens[$this->pos + 1]->kind))) {
                 $node = $this->parseBind($node, $word);
-                $this->deepen($nodeReach + 1);
 
                 break;
             }
@@ -240,10 +249,7 @@ final class PrattParser
 
             ++$this->pos;
             $node = new Binary(BinaryOperatorEnum::Pipe, $node, $this->finishCall($word));
-            $this->deepen($nodeReach + 1);
         }
-
-        $this->reach = max($outerReach, $this->reach);
 
         return $node;
     }
@@ -541,14 +547,12 @@ final class PrattParser
     private function parsePostfix(ExpressionNodeInterface $node): ExpressionNodeInterface
     {
         while (true) {
-            $nodeReach = $this->reach;
-            $next      = $this->postfixStep($node);
+            $next = $this->postfixStep($node);
             if (!$next instanceof ExpressionNodeInterface) {
                 return $node;
             }
 
             $node = $next;
-            $this->deepen($nodeReach + 1);
         }
     }
 
@@ -679,10 +683,8 @@ final class PrattParser
                 continue;
             }
 
-            $hasNodes      = true;
-            $interpolation = new self($part, $this->depth);
-            $parts[]       = $interpolation->parseAll();
-            $this->deepen($interpolation->reach);
+            $hasNodes = true;
+            $parts[]  = new self($part, $this->depth)->parseAll();
         }
 
         return $hasNodes ? new Interpolation($parts) : $this->literalString($text);

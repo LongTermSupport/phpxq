@@ -17,9 +17,9 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * An expression nested deeper than {@see NestingLimit::MAX_DEPTH} levels is a syntax error, whether the nesting
- * comes from brackets, from a right-associative operator, from a chain the parser builds in a loop or from
- * string interpolations: each of them becomes an AST as deep, which the evaluator walks recursively. The
- * outermost expression is level 0 and every bracket, operator, postfix step or nested construct adds one.
+ * comes from brackets, from a right-associative operator, from a nested construct or from string
+ * interpolations. The outermost expression is level 0 and each of them adds one. A chain the parser builds in a
+ * loop (`|`, `,`, `+`, `.a`, `[0]`, juxtaposed words) is not nesting and parses at any length.
  *
  * Deep parses run on a large fiber stack, so a coverage driver's native frames cannot overflow the process
  * stack.
@@ -33,6 +33,12 @@ final class PrattParserNestingLimitTest extends TestCase
     private const string TOO_DEEP = 'Bad expression, nested deeper than 10000 levels';
 
     private const int LINEAR_PARSE_BUDGET_NANOSECONDS = 4_000_000_000;
+
+    private const int LONG_CHAIN = 30000;
+
+    private const string INTERPOLATION_OPEN = '"\(';
+
+    private const string INTERPOLATION_CLOSE = ')"';
 
     #[DataProvider('shapes')]
     public function testNestingAtTheLimitParses(string $prefix, string $open, string $leaf, string $close, string $suffix, int $fixedLevels): void
@@ -65,18 +71,11 @@ final class PrattParserNestingLimitTest extends TestCase
         yield 'parentheses'          => ['', '(', '1', ')', '', 0];
         yield 'object values'        => ['', '{"a": ', '1', '}', '', 0];
         yield 'object keys'          => ['', '{', '1', ': 1}', '', 0];
-        yield 'pipes'                => ['', '1 | ', '1', '', '', 0];
-        yield 'unions'               => ['', '1, ', '1', '', '', 0];
-        yield 'additions'            => ['', '1 + ', '1', '', '', 0];
-        yield 'alternatives'         => ['', '1 // ', '1', '', '', 0];
         yield 'assignments'          => ['', '.a = ', '1', '', '', 0];
-        yield 'field chains'         => ['', '', '.a', '.a', '', 0];
-        yield 'index chains'         => ['', '', '.', '[0]', '', 0];
-        yield 'juxtaposed words'     => ['', '', '.', ' x', '', 0];
         yield 'elif chains'          => ['if 1 then 1 ', 'elif 1 then 1 ', '', '', 'end', 1];
         yield 'reduce sources'       => ['', 'reduce ', '.', ' as $x (0; 1)', '', 0];
         yield 'bindings'             => ['', '. as $x | ', '1', '', '', 0];
-        yield 'string interpolation' => ['', '"\(', '1', ')"', '', 0];
+        yield 'string interpolation' => ['', self::INTERPOLATION_OPEN, '1', self::INTERPOLATION_CLOSE, '', 0];
     }
 
     public function testSiblingsDoNotAddUpToTheLimit(): void
@@ -87,17 +86,35 @@ final class PrattParserNestingLimitTest extends TestCase
         self::assertCount(1, self::parse($deep . ', ' . $deep . ' | ' . $deep));
     }
 
-    #[DataProvider('wrappers')]
-    public function testAnOperatorAfterADeepOperandPushesItOneLevelDown(string $wrapper): void
+    /**
+     * A chain the parser builds in a loop is not nesting, however long: Go yq accepts these.
+     */
+    #[DataProvider('chains')]
+    public function testALongChainParses(string $prefix, string $link, string $last): void
     {
-        self::assertCount(1, self::parse(self::nest('[', '1', ']', NestingLimit::MAX_DEPTH - 1) . $wrapper));
+        self::assertCount(1, self::parse($prefix . str_repeat($link, self::LONG_CHAIN) . $last));
+    }
 
-        try {
-            self::parse(self::nest('[', '1', ']', NestingLimit::MAX_DEPTH) . $wrapper);
-            self::fail('expected a syntax error');
-        } catch (ExpressionSyntaxException $expressionSyntaxException) {
-            self::assertSame(self::TOO_DEEP, $expressionSyntaxException->getMessage());
-        }
+    /**
+     * @return iterable<string, array{string, string, string}> text before the chain, a repeated link, the end
+     */
+    public static function chains(): iterable
+    {
+        yield 'collection elements' => ['[', '0, ', '0]'];
+        yield 'unions'              => ['', '1, ', '1'];
+        yield 'pipes'               => ['', '1 | ', '1'];
+        yield 'additions'           => ['', '1 + ', '1'];
+        yield 'alternatives'        => ['', '1 // ', '1'];
+        yield 'conjunctions'        => ['', 'true and ', 'true'];
+        yield 'field chains'        => ['', '.a', ''];
+        yield 'index chains'        => ['.', '[0]', ''];
+        yield 'juxtaposed words'    => ['.', ' x', ''];
+    }
+
+    #[DataProvider('wrappers')]
+    public function testAChainAfterAnOperandAtTheLimitParses(string $wrapper): void
+    {
+        self::assertCount(1, self::parse(self::nest('[', '1', ']', NestingLimit::MAX_DEPTH) . str_repeat($wrapper, self::LONG_CHAIN)));
     }
 
     /**
@@ -108,19 +125,18 @@ final class PrattParserNestingLimitTest extends TestCase
         yield 'union'           => [', 1'];
         yield 'pipe'            => [' | 1'];
         yield 'addition'        => [' + 1'];
-        yield 'binding'         => [' as $x | 1'];
         yield 'postfix step'    => ['[0]'];
         yield 'juxtaposed word' => [' x'];
     }
 
     public function testAnInterpolationCountsTowardsTheLevelsAroundIt(): void
     {
-        $inner = self::nest('[', '1', ']', NestingLimit::MAX_DEPTH - 1);
+        $string = self::nest(self::INTERPOLATION_OPEN, self::nest('[', '1', ']', NestingLimit::MAX_DEPTH - 1), self::INTERPOLATION_CLOSE, 1);
 
-        self::assertCount(1, self::parse('"\(' . $inner . ')"'));
+        self::assertCount(1, self::parse($string));
 
         try {
-            self::parse('"\(' . $inner . ')" | 1');
+            self::parse('[' . $string . ']');
             self::fail('expected a syntax error');
         } catch (ExpressionSyntaxException $expressionSyntaxException) {
             self::assertSame(self::TOO_DEEP, $expressionSyntaxException->getMessage());
@@ -129,7 +145,7 @@ final class PrattParserNestingLimitTest extends TestCase
 
     public function testADeeplyInterpolatedStringParsesInLinearTime(): void
     {
-        $source = self::nest('"\(', '1', ')"', NestingLimit::MAX_DEPTH);
+        $source = self::nest(self::INTERPOLATION_OPEN, '1', self::INTERPOLATION_CLOSE, NestingLimit::MAX_DEPTH);
         $start  = hrtime(true);
 
         self::parse($source);

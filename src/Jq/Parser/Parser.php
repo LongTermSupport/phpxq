@@ -57,12 +57,11 @@ use LTS\PhpXq\Limits\NestingLimit;
  * parsed with postfix chains; `as` bindings, `def` and `label` take the whole remaining pipe as their
  * body, as the grammar's lowest-precedence rules do.
  *
- * Nesting is limited to {@see NestingLimit::MAX_DEPTH} levels, so the compiler and the evaluator, which walk
- * the AST recursively, never meet a deeper one. `$depth` is the AST level of the node being parsed: every
- * bracket, operand, postfix step or nested construct the parser recurses into is one level below its parent,
- * and the outermost expression is level 0. `$reach` is the deepest level any node of the operand chain being
- * built has reached: a left-associative operator or a postfix step wraps everything parsed so far in a new
- * node without recursing, pushing all of it one level further down, so each wrap deepens the reach too.
+ * Nesting is limited to {@see NestingLimit::MAX_DEPTH} levels. `$depth` counts the expressions the parser is
+ * inside: every bracket, right-recursive operand (`|`, `//`, `-`) or nested construct it recurses into is one
+ * level below its parent, and the outermost expression is level 0. A chain the parser builds in a loop (`,`,
+ * `+`, `.a.b`, `.[0]`, `?`) is not nesting and has no limit: `,` operands are joined into a balanced tree, and
+ * the other chains are left-deep, as long as the program text.
  *
  * @api
  */
@@ -159,8 +158,6 @@ final class Parser implements ParserInterface
 
     private int $depth = self::OUTSIDE_THE_PROGRAM;
 
-    private int $reach = self::OUTSIDE_THE_PROGRAM;
-
     private bool $bindingAllowed = true;
 
     private bool $unterminated = false;
@@ -174,7 +171,6 @@ final class Parser implements ParserInterface
         $this->tokens       = $this->lexer->tokenize($source);
         $this->pos          = 0;
         $this->depth        = self::OUTSIDE_THE_PROGRAM;
-        $this->reach        = self::OUTSIDE_THE_PROGRAM;
         $this->unterminated = false;
 
         try {
@@ -406,21 +402,17 @@ final class Parser implements ParserInterface
 
     private function parseExpr(int $min): NodeInterface
     {
-        $outer      = $this->depth;
-        $outerReach = $this->reach;
+        $outer = $this->depth;
         $this->nest();
-        $this->reach = $this->depth;
-        $left        = $this->parseUnary();
+        $left = $this->parseUnary();
         while (true) {
             $tok = $this->tokens[$this->pos];
             if (TokenTypeEnum::KwAs === $tok->type && $this->bindingAllowed && $min <= self::LEVEL_ALT) {
                 // `as` binds the whole operator expression on its left (`1 + 2 as $x | ...` binds 3).
                 ++$this->pos;
-                $leftReach   = $this->reach;
-                $patterns    = $this->parsePatterns();
+                $patterns = $this->parsePatterns();
                 $this->expect(TokenTypeEnum::Pipe);
                 $left = new Bind($left, $patterns, $this->parsePipe());
-                $this->deepen($leftReach + 1);
 
                 break;
             }
@@ -431,15 +423,43 @@ final class Parser implements ParserInterface
             }
 
             ++$this->pos;
-            $leftReach = $this->reach;
-            $left      = $this->parseOperation($tok->type, $level, $left);
-            $this->deepen($leftReach + 1);
+            $left = self::LEVEL_COMMA === $level ? $this->parseCommaChain($left) : $this->parseOperation($tok->type, $level, $left);
         }
 
         $this->depth = $outer;
-        $this->reach = max($outerReach, $this->reach);
 
         return $left;
+    }
+
+    /**
+     * After the first `,` of a chain: every operand of the chain, joined into a balanced tree of {@see Comma}
+     * nodes. `,` is associative, so the outputs keep their order however the operands are grouped, and a
+     * chain of any length (an array literal of a hundred thousand elements) stays a tree of logarithmic depth.
+     */
+    private function parseCommaChain(NodeInterface $first): NodeInterface
+    {
+        $operands = [$first, $this->parseExpr(self::LEVEL_ALT)];
+        while (TokenTypeEnum::Comma === $this->tokens[$this->pos]->type) {
+            ++$this->pos;
+            $operands[] = $this->parseExpr(self::LEVEL_ALT);
+        }
+
+        // join neighbours pairwise, round after round, until one tree is left
+        while (\count($operands) > 1) {
+            $joined = [];
+            $count  = \count($operands);
+            for ($i = 0; $i + 1 < $count; $i += 2) {
+                $joined[] = new Comma($operands[$i], $operands[$i + 1]);
+            }
+
+            if (1 === $count % 2) {
+                $joined[] = $operands[$count - 1];
+            }
+
+            $operands = $joined;
+        }
+
+        return $operands[0];
     }
 
     /**
@@ -450,9 +470,6 @@ final class Parser implements ParserInterface
         switch ($level) {
             case self::LEVEL_PIPE:
                 return new Pipe($left, $this->parseExpr(self::LEVEL_PIPE));
-
-            case self::LEVEL_COMMA:
-                return new Comma($left, $this->parseExpr(self::LEVEL_ALT));
 
             case self::LEVEL_ALT:
                 return new Binary(BinaryOpEnum::Alt, $left, $this->parseExpr(self::LEVEL_ALT));
@@ -483,18 +500,7 @@ final class Parser implements ParserInterface
     private function nest(): void
     {
         ++$this->depth;
-        $this->deepen($this->depth);
-    }
-
-    /**
-     * Records that some node of the operand chain now sits at the level.
-     *
-     * @throws JqCompileException past {@see NestingLimit::MAX_DEPTH} levels
-     */
-    private function deepen(int $level): void
-    {
-        $this->reach = max($this->reach, $level);
-        if ($this->reach > NestingLimit::MAX_DEPTH) {
+        if ($this->depth > NestingLimit::MAX_DEPTH) {
             throw $this->compileError(
                 \sprintf('syntax error, program nested deeper than %d levels', NestingLimit::MAX_DEPTH),
                 $this->tokens[$this->pos],
@@ -574,21 +580,15 @@ final class Parser implements ParserInterface
 
     private function parsePostfix(): NodeInterface
     {
-        $outerReach  = $this->reach;
-        $this->reach = $this->depth;
-        $term        = $this->parsePrimary();
+        $term = $this->parsePrimary();
         while (true) {
-            $termReach = $this->reach;
-            $next      = $this->postfixStep($term);
+            $next = $this->postfixStep($term);
             if (!$next instanceof NodeInterface) {
                 break;
             }
 
             $term = $next;
-            $this->deepen($termReach + 1);
         }
-
-        $this->reach = max($outerReach, $this->reach);
 
         return $term;
     }

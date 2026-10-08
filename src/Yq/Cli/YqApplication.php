@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Cli;
 
 use LogicException;
+use LTS\PhpXq\Jq\Runtime\EvaluationStack;
 use LTS\PhpXq\Yaml\Emitter\YamlEmitter;
 use LTS\PhpXq\Yaml\Emitter\YamlEmitterInterface;
 use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
@@ -88,7 +89,10 @@ final readonly class YqApplication implements YqApplicationInterface
         }
 
         try {
-            return $this->dispatch($parsed, $stdin, $stdout);
+            // the evaluator walks the expression recursively, and a chain such as `.a.a.a...` is as deep as it
+            // is long: under a coverage driver every PHP call also takes native stack, so it runs on the
+            // evaluation fiber's large stack rather than the process stack
+            return EvaluationStack::run(fn (): int => $this->dispatch($parsed, $stdin, $stdout));
         } catch (UsageException $e) {
             fwrite($stderr, self::ERROR_PREFIX . $e->getMessage() . "\n" . HelpText::usage($parsed->command) . "\n");
         } catch (CliException|EvaluationException|ExpressionSyntaxException|FormatException|YamlSyntaxException|LogicException $e) {

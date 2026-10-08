@@ -22,6 +22,8 @@ use PHPUnit\Framework\TestCase;
 #[Medium]
 final class JqApplicationNestingTest extends TestCase
 {
+    private const int LONG_CHAIN = 100000;
+
     public function testAProgramAtTheNestingLimitCompilesAndRuns(): void
     {
         $program = str_repeat('[', NestingLimit::MAX_DEPTH) . '1' . str_repeat(']', NestingLimit::MAX_DEPTH);
@@ -31,6 +33,21 @@ final class JqApplicationNestingTest extends TestCase
         self::assertSame('', $result->stderr);
         self::assertSame(JqExitCode::OK, $result->exitCode);
         self::assertSame($program . "\n", $result->stdout);
+    }
+
+    /**
+     * A long chain is not nesting: jq 1.6 runs both, and a hundred thousand array elements used to overflow
+     * the stack under a coverage driver.
+     */
+    public function testLongChainsCompileAndRun(): void
+    {
+        $elements = new CliRunner()->run(['jq', '-n', '[' . implode(',', array_fill(0, self::LONG_CHAIN, '0')) . '] | length']);
+        $sum      = new CliRunner()->run(['jq', '-n', implode('+', array_fill(0, self::LONG_CHAIN, '1'))]);
+        $fields   = new CliRunner()->run(['jq', '-n', '{} | ' . str_repeat('.a', self::LONG_CHAIN)]);
+
+        self::assertSame(['', self::LONG_CHAIN . "\n"], [$elements->stderr, $elements->stdout]);
+        self::assertSame(['', self::LONG_CHAIN . "\n"], [$sum->stderr, $sum->stdout]);
+        self::assertSame(['', "null\n"], [$fields->stderr, $fields->stdout]);
     }
 
     public function testAProgramPastTheNestingLimitIsACompileError(): void
