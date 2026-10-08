@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Expression\Parser;
 
+use LTS\PhpXq\Limits\NestingLimit;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yq\Expression\Ast\Binary;
 use LTS\PhpXq\Yq\Expression\Ast\BinaryOperatorEnum;
@@ -22,7 +23,6 @@ use LTS\PhpXq\Yq\Expression\Ast\RecursiveDescent;
 use LTS\PhpXq\Yq\Expression\Ast\Reduce;
 use LTS\PhpXq\Yq\Expression\Ast\Slice;
 use LTS\PhpXq\Yq\Expression\Ast\VariableRef;
-use LTS\PhpXq\Yq\Expression\ExpressionLexer;
 use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 use LTS\PhpXq\Yq\Expression\ExpressionSyntaxException;
 use LTS\PhpXq\Yq\Expression\ExpressionToken;
@@ -41,10 +41,21 @@ use LTS\PhpXq\Yq\Expression\ExpressionTokenKindEnum;
  * Field names after a dot are string literals (`.a.0` is the key "0"); `.[expr]` keeps the expression, so
  * `.[0]` is an integer key. Inside `{ }` values a `,` separates entries and so is not the union operator.
  *
+ * Nesting is limited to {@see NestingLimit::MAX_DEPTH} levels, so the evaluator, which walks the AST
+ * recursively, never meets a deeper one. `$depth` is the AST level of the node being parsed: every bracket,
+ * operand, postfix step, interpolation or nested construct the parser recurses into is one level below its
+ * parent, and the outermost expression is level 0. `$reach` is the deepest level any node of the operand chain
+ * being built has reached: an operator, a postfix step or a juxtaposed word wraps everything parsed so far in a
+ * new node without recursing, pushing all of it one level further down, so each wrap deepens the reach too.
+ *
  * @internal
  */
 final class PrattParser
 {
+    private const int OUTSIDE_THE_EXPRESSION = -1;
+
+    private const string TOO_DEEP = 'Bad expression, nested deeper than %d levels';
+
     private const string MISSING_PAREN = 'Bad expression, could not find matching `)`';
 
     private const string MISSING_BRACKET = 'Bad expression, could not find matching `]`';
@@ -61,16 +72,17 @@ final class PrattParser
 
     private bool $union = true;
 
-    private ?ExpressionLexer $subLexer = null;
+    private int $reach;
 
     /**
-     * @param list<ExpressionToken> $tokens     always ends with an EndOfInput token
-     * @param int                   $baseOffset added to error offsets so a nested expression reports absolute positions
+     * @param list<ExpressionToken> $tokens always ends with an EndOfInput token
+     * @param int                   $depth  the level enclosing the expression: an interpolation's is its string's
      */
     public function __construct(
         private readonly array $tokens,
-        private readonly int $baseOffset = 0,
+        private int $depth = self::OUTSIDE_THE_EXPRESSION,
     ) {
+        $this->reach = $depth;
     }
 
     /**
@@ -92,16 +104,52 @@ final class PrattParser
 
     private function parseExpr(int $minBp): ExpressionNodeInterface
     {
-        $left = $this->parseOperand();
+        $outer      = $this->depth;
+        $outerReach = $this->reach;
+        $this->nest();
+        $this->reach = $this->depth;
+        $left        = $this->parseOperand();
         while (true) {
             $info = $this->binaryInfo($this->tokens[$this->pos]);
             if (null === $info || $info[0] < $minBp) {
-                return $left;
+                break;
             }
 
             ++$this->pos;
-            $right = $this->parseExpr($info[1] ? $info[0] : $info[0] + 1);
-            $left  = new Binary($info[2], $left, $right, $info[3]);
+            $leftReach = $this->reach;
+            $right     = $this->parseExpr($info[1] ? $info[0] : $info[0] + 1);
+            $left      = new Binary($info[2], $left, $right, $info[3]);
+            $this->deepen($leftReach + 1);
+        }
+
+        $this->depth = $outer;
+        $this->reach = max($outerReach, $this->reach);
+
+        return $left;
+    }
+
+    /**
+     * One level deeper for the node about to be parsed; the caller restores the level it saved once that node
+     * is complete.
+     *
+     * @throws ExpressionSyntaxException past {@see NestingLimit::MAX_DEPTH} levels
+     */
+    private function nest(): void
+    {
+        ++$this->depth;
+        $this->deepen($this->depth);
+    }
+
+    /**
+     * Records that some node of the operand chain now sits at the level.
+     *
+     * @throws ExpressionSyntaxException past {@see NestingLimit::MAX_DEPTH} levels
+     */
+    private function deepen(int $level): void
+    {
+        $this->reach = max($this->reach, $level);
+        if ($this->reach > NestingLimit::MAX_DEPTH) {
+            throw $this->fail(\sprintf(self::TOO_DEEP, NestingLimit::MAX_DEPTH));
         }
     }
 
@@ -167,26 +215,37 @@ final class PrattParser
 
     private function parseOperand(bool $allowBind = true): ExpressionNodeInterface
     {
-        $node = $this->parsePrimary();
+        $outerReach  = $this->reach;
+        $this->reach = $this->depth;
+        $node        = $this->parsePrimary();
         while (true) {
             $node  = $this->parsePostfix($node);
             $token = $this->tokens[$this->pos];
             if (ExpressionTokenKindEnum::Word !== $token->kind) {
-                return $node;
+                break;
             }
 
-            $word = $token->text;
+            $word      = $token->text;
+            $nodeReach = $this->reach;
             if ($allowBind && ('as' === $word || ('ref' === $word && ExpressionTokenKindEnum::Variable === $this->tokens[$this->pos + 1]->kind))) {
-                return $this->parseBind($node, $word);
+                $node = $this->parseBind($node, $word);
+                $this->deepen($nodeReach + 1);
+
+                break;
             }
 
             if (isset(self::RESERVED[$word])) {
-                return $node;
+                break;
             }
 
             ++$this->pos;
             $node = new Binary(BinaryOperatorEnum::Pipe, $node, $this->finishCall($word));
+            $this->deepen($nodeReach + 1);
         }
+
+        $this->reach = max($outerReach, $this->reach);
+
+        return $node;
     }
 
     private function parseBind(ExpressionNodeInterface $source, string $word): ExpressionNodeInterface
@@ -335,8 +394,12 @@ final class PrattParser
         if (ExpressionTokenKindEnum::Word === $token->kind) {
             if ('elif' === $token->text) {
                 ++$this->pos;
+                $outer = $this->depth;
+                $this->nest();
+                $elif        = new Conditional($condition, $then, $this->parseIfBody());
+                $this->depth = $outer;
 
-                return new Conditional($condition, $then, $this->parseIfBody());
+                return $elif;
             }
 
             if ('else' === $token->text) {
@@ -352,7 +415,10 @@ final class PrattParser
     private function parsePrefixReduce(): ExpressionNodeInterface
     {
         ++$this->pos;
-        $source = $this->parseOperand(false);
+        $outer = $this->depth;
+        $this->nest();
+        $source      = $this->parseOperand(false);
+        $this->depth = $outer;
         $this->expectWord('as');
         $variable = $this->tokens[$this->pos];
         if (ExpressionTokenKindEnum::Variable !== $variable->kind) {
@@ -447,7 +513,10 @@ final class PrattParser
         }
 
         if (!$key instanceof Literal) {
-            $key = $this->parseOperand(false);
+            $outer = $this->depth;
+            $this->nest();
+            $key         = $this->parseOperand(false);
+            $this->depth = $outer;
             $this->expect(ExpressionTokenKindEnum::Colon, 'Bad expression, could not find matching `}`');
 
             return new ObjectEntry($key, $this->parseNoUnion());
@@ -472,35 +541,55 @@ final class PrattParser
     private function parsePostfix(ExpressionNodeInterface $node): ExpressionNodeInterface
     {
         while (true) {
-            $token = $this->tokens[$this->pos];
-            if (ExpressionTokenKindEnum::LeftBracket === $token->kind) {
-                $node = $this->parseBracket($node);
-
-                continue;
-            }
-
-            if (ExpressionTokenKindEnum::Dot !== $token->kind) {
+            $nodeReach = $this->reach;
+            $next      = $this->postfixStep($node);
+            if (!$next instanceof ExpressionNodeInterface) {
                 return $node;
             }
 
-            $next = $this->tokens[$this->pos + 1];
-            if ($next->offset !== $token->offset + 1) {
-                return $node;
-            }
-
-            if (ExpressionTokenKindEnum::Word === $next->kind) {
-                $this->pos += 2;
-                $node       = $this->field($node, $this->literalString($next->text));
-            } elseif (ExpressionTokenKindEnum::String === $next->kind) {
-                $this->pos += 2;
-                $node       = $this->field($node, $this->stringNode($next));
-            } elseif (ExpressionTokenKindEnum::LeftBracket === $next->kind) {
-                ++$this->pos;
-                $node = $this->parseBracket($node);
-            } else {
-                return $node;
-            }
+            $node = $next;
+            $this->deepen($nodeReach + 1);
         }
+    }
+
+    /**
+     * The node wrapped in the postfix step at the current token, or null when no step follows.
+     */
+    private function postfixStep(ExpressionNodeInterface $node): ?ExpressionNodeInterface
+    {
+        $token = $this->tokens[$this->pos];
+        if (ExpressionTokenKindEnum::LeftBracket === $token->kind) {
+            return $this->parseBracket($node);
+        }
+
+        if (ExpressionTokenKindEnum::Dot !== $token->kind) {
+            return null;
+        }
+
+        $next = $this->tokens[$this->pos + 1];
+        if ($next->offset !== $token->offset + 1) {
+            return null;
+        }
+
+        if (ExpressionTokenKindEnum::Word === $next->kind) {
+            $this->pos += 2;
+
+            return $this->field($node, $this->literalString($next->text));
+        }
+
+        if (ExpressionTokenKindEnum::String === $next->kind) {
+            $this->pos += 2;
+
+            return $this->field($node, $this->stringNode($next));
+        }
+
+        if (ExpressionTokenKindEnum::LeftBracket === $next->kind) {
+            ++$this->pos;
+
+            return $this->parseBracket($node);
+        }
+
+        return null;
     }
 
     private function parseBracket(ExpressionNodeInterface $base): ExpressionNodeInterface
@@ -579,10 +668,10 @@ final class PrattParser
             return $this->literalString($token->text);
         }
 
-        $parts      = [];
-        $hasNodes   = false;
-        $text       = '';
-        foreach (StringLiteral::split($token->text) as $part) {
+        $parts    = [];
+        $hasNodes = false;
+        $text     = '';
+        foreach ($token->parts as $part) {
             if (\is_string($part)) {
                 $parts[] = $part;
                 $text   .= $part;
@@ -590,23 +679,13 @@ final class PrattParser
                 continue;
             }
 
-            $hasNodes = true;
-            $parts[]  = $this->subParse($part[0], $this->baseOffset + $token->offset + 1 + $part[1]);
+            $hasNodes      = true;
+            $interpolation = new self($part, $this->depth);
+            $parts[]       = $interpolation->parseAll();
+            $this->deepen($interpolation->reach);
         }
 
         return $hasNodes ? new Interpolation($parts) : $this->literalString($text);
-    }
-
-    private function subParse(string $source, int $base): ExpressionNodeInterface
-    {
-        try {
-            $this->subLexer ??= new ExpressionLexer();
-            $tokens         = $this->subLexer->tokenize($source);
-        } catch (ExpressionSyntaxException $expressionSyntaxException) {
-            throw new ExpressionSyntaxException($expressionSyntaxException->getMessage(), $expressionSyntaxException->offset + $base);
-        }
-
-        return new self($tokens, $base)->parseAll();
     }
 
     private function expect(ExpressionTokenKindEnum $kind, string $message): void
@@ -630,6 +709,6 @@ final class PrattParser
 
     private function fail(string $message): ExpressionSyntaxException
     {
-        return new ExpressionSyntaxException($message, $this->baseOffset + $this->tokens[$this->pos]->offset);
+        return new ExpressionSyntaxException($message, $this->tokens[$this->pos]->offset);
     }
 }

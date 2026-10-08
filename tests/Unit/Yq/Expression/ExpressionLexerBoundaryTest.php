@@ -189,9 +189,9 @@ final class ExpressionLexerBoundaryTest extends TestCase
             "a" "b"➜Str:a@0 Str:b@4 EOF:@7
             'a' 'b'➜Str:a@0 Str:b@4 EOF:@7
             'a\'➜Str:a\@0 EOF:@4
-            "x\(1)y" 2➜RawStr:x\(1)y@0 Num:2@9 EOF:@10
-            "a\\(b"➜RawStr:a\\(b@0 EOF:@7
-            "\("x")" 1➜RawStr:\("x")@0 Num:1@9 EOF:@10
+            "x\(1)y" 2➜RawStr:@0 Num:2@9 EOF:@10
+            "a\\(b"➜RawStr:@0 EOF:@7
+            "\("x")" 1➜RawStr:@0 Num:1@9 EOF:@10
             "é"➜Str:é@0 EOF:@4
             { }➜LC:{@0 RC:}@2 EOF:@3
             [ ]➜LB:[@0 RB:]@2 EOF:@3
