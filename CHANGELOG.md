@@ -13,6 +13,11 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 
 ## Unreleased
 
+### Fixed
+
+- `yq`: reading a long YAML line that contains a non-ASCII character is linear again. A 110 KB single-line
+  flow map with one `é` took 13 s and now takes about 1.5 s; a 360 KB one no longer runs past a minute.
+
 ## 0.1.0 — 2026-10-08
 
 ### Changed — breaking
