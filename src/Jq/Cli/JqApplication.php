@@ -15,6 +15,7 @@ use LTS\PhpXq\Jq\Runtime\CompiledProgramInterface;
 use LTS\PhpXq\Jq\Runtime\EvaluationStack;
 use LTS\PhpXq\Jq\Runtime\JqCompileException;
 use LTS\PhpXq\Json\Codec\JqColors;
+use LTS\PhpXq\Json\Codec\Utf8;
 use LTS\PhpXq\Json\ColorScheme;
 use LTS\PhpXq\Json\JsonDecoder;
 use LTS\PhpXq\Json\JsonDecoderInterface;
@@ -121,6 +122,9 @@ final readonly class JqApplication
         if (!\is_string($source)) {
             return $source;
         }
+
+        // like jq, which reads the program as a jq string: invalid UTF-8 in its literals becomes U+FFFD
+        $source = Utf8::sanitize($source);
 
         // one fiber for the whole run: parsing and compiling recurse as deeply as the program nests, and
         // creating a fiber per input costs more than a small program does

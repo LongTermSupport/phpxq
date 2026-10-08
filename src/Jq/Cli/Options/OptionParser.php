@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Jq\Cli\Options;
 
 use LTS\PhpXq\Jq\Cli\FileReader;
+use LTS\PhpXq\Json\Codec\Utf8;
 use LTS\PhpXq\Json\JsonDecoderInterface;
 use LTS\PhpXq\Json\JsonSyntaxException;
 use RuntimeException;
@@ -74,7 +75,7 @@ final readonly class OptionParser
                 } elseif ($jsonArgs) {
                     $positional[] = $this->decodeOrRefuse($text, '--jsonargs');
                 } else {
-                    $positional[] = $text;
+                    $positional[] = Utf8::sanitize($text);
                 }
 
                 continue;
@@ -336,7 +337,7 @@ final readonly class OptionParser
                         throw new UsageException('jq: --arg takes two parameters (e.g. --arg varname value)');
                     }
 
-                    $named += [$args[$i + 1] => $args[$i + 2]];
+                    $named += [Utf8::sanitize($args[$i + 1]) => Utf8::sanitize($args[$i + 2])];
                     $i     += 2;
 
                     break;
@@ -346,7 +347,7 @@ final readonly class OptionParser
                         throw new UsageException('jq: --argjson takes two parameters (e.g. --argjson varname text)');
                     }
 
-                    $named += [$args[$i + 1] => $this->decodeOrRefuse($args[$i + 2], '--argjson')];
+                    $named += [Utf8::sanitize($args[$i + 1]) => $this->decodeOrRefuse($args[$i + 2], '--argjson')];
                     $i     += 2;
 
                     break;
@@ -358,7 +359,7 @@ final readonly class OptionParser
                         throw new UsageException(\sprintf('jq: --%s takes two parameters (e.g. --%s varname filename)', $which, $which));
                     }
 
-                    $named += [$args[$i + 1] => $this->loadFile($which, $args[$i + 1], $args[$i + 2])];
+                    $named += [Utf8::sanitize($args[$i + 1]) => $this->loadFile($which, $args[$i + 1], $args[$i + 2])];
                     $i     += 2;
 
                     break;
@@ -428,7 +429,7 @@ final readonly class OptionParser
         }
 
         if ('rawfile' === $which) {
-            return $contents;
+            return Utf8::sanitize($contents);
         }
 
         try {

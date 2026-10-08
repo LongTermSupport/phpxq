@@ -21,6 +21,9 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 - `yq`: an expression nested deeper than 10,000 levels, including one read from the data by `eval`, is the
   error `Bad expression, nested deeper than 10000 levels` instead of a segmentation fault, and nested string
   interpolations are parsed in linear time (10,000 levels took minutes before).
+- `jq`: invalid UTF-8 in `--arg`, `--args`, `--rawfile`, argument names and the program text is replaced
+  with U+FFFD, as jq does. It used to reach `explode` and similar builtins and end the run with an
+  uncatchable `internal error: Uninitialized string offset`.
 
 ## 0.1.0 — 2026-10-08
 

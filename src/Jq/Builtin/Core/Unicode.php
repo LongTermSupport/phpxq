@@ -29,10 +29,12 @@ final readonly class Unicode
     }
 
     /**
-     * @return list<int>
+     * @return list<int> invalid UTF-8, which the value model should never hold, decodes as jq would decode it
+     *                   on input: each invalid sequence is one U+FFFD, so the decoder never reads past the end
      */
     public static function codepoints(string $text): array
     {
+        $text  = Utf8::sanitize($text);
         $bytes = \strlen($text);
         $out   = [];
         for ($i = 0; $i < $bytes; ++$i) {
