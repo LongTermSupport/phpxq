@@ -122,9 +122,9 @@ final readonly class FastBlockParser
             }
 
             $comment   = $m[9];
-            $dash      = null !== ($m[3] ?? null);
-            $key       = $m[5] ?? null;
-            $valueOnly = $m[8] ?? null;
+            $dash      = null !== $m[3];
+            $key       = $m[5];
+            $valueOnly = $m[8];
             if (!$dash && null === $key) {
                 return null;
             }
@@ -261,7 +261,7 @@ final readonly class FastBlockParser
             }
 
             $target->content[] = $scalar;
-            $valueText         = $m[7] ?? null;
+            $valueText         = $m[7];
             if (null !== $valueText) {
                 $scalar = clone $scalarProto;
                 if ("'" === $valueText[0] || '"' === $valueText[0]) {

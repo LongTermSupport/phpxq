@@ -116,7 +116,7 @@ final class BenchCliTest extends TestCase
     /**
      * @return resource
      */
-    private function stream()
+    private function stream(): mixed
     {
         $stream = fopen('php://memory', 'w+b');
         self::assertIsResource($stream);

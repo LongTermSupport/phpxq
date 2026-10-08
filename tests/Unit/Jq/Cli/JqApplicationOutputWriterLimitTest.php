@@ -79,7 +79,7 @@ final class JqApplicationOutputWriterLimitTest extends TestCase
     /**
      * @return resource
      */
-    private function memory()
+    private function memory(): mixed
     {
         $stream = fopen('php://memory', 'w+b');
         if (false === $stream) {

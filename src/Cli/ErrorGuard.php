@@ -57,7 +57,7 @@ final readonly class ErrorGuard
     }
 
     /**
-     * @param ?array{type: int, message: string, file: string, line: int} $error as from error_get_last()
+     * @param ?array{type: int, message: string, file: string, line: int, ...} $error as from error_get_last()
      */
     public static function describeFatal(?array $error): ?string
     {

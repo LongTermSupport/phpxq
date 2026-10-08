@@ -21,6 +21,9 @@ final class UriAndCsvEncoderTest extends TestCase
 {
     private const string STANDARD_ALPHABET = '+/8=';
 
+    /**
+     * @param callable(): mixed $encode
+     */
     #[DataProvider('rejectedCases')]
     public function testEncodersRejectWhatTheyCannotWrite(callable $encode, string $expectedMessage): void
     {

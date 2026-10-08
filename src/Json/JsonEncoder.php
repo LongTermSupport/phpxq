@@ -151,7 +151,7 @@ final class JsonEncoder implements JsonEncoderInterface
             $colon = '' === $unit ? ':' : ': ';
             $parts = [];
             foreach ($this->members($value, $sortKeys) as $key => $member) {
-                $parts[] = ($this->keys[$ascii][$key] ??= $this->quote((string)$key, $ascii)) . $colon . $this->plain($member, $child, $unit, $sortKeys, $ascii, $depth + 1);
+                $parts[] = ($this->keys[$ascii ? 1 : 0][$key] ??= $this->quote((string)$key, $ascii)) . $colon . $this->plain($member, $child, $unit, $sortKeys, $ascii, $depth + 1);
             }
 
             return '{' . $child . implode(',' . $child, $parts) . $newline . '}';

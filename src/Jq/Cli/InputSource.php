@@ -56,7 +56,7 @@ final class InputSource implements InputProviderInterface, InputPositionInterfac
      */
     public function __construct(
         private readonly array $files,
-        private $stdin,
+        private readonly mixed $stdin,
         private readonly JsonDecoderInterface $decoder,
         private readonly CliOptions $options,
         private readonly Closure $warn,

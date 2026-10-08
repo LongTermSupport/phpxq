@@ -20,7 +20,7 @@ spl_autoload_register(static function (string $class): void {
     }
 });
 
-/** @var list<string> $argv */
+/** @var non-empty-list<string> $argv */
 
 // Xdebug slows every call, so an active one is switched off by re-running this script, unless
 // PHPXQ_ALLOW_XDEBUG keeps it. Nothing happens when Xdebug is not loaded, which is every production host.

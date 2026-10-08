@@ -71,6 +71,9 @@ final readonly class ControlFunctions
         throw new JqException($input);
     }
 
+    /**
+     * @param Closure(mixed): void $emit
+     */
     private static function error1(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
     {
         $args[0]->run($input, static function (mixed $message): never {
@@ -79,7 +82,8 @@ final readonly class ControlFunctions
     }
 
     /**
-     * @param ?list<mixed> $path
+     * @param ?list<mixed>                       $path
+     * @param Closure(?list<mixed>, mixed): void $emit
      */
     private static function error1Paths(RuntimeContextInterface $c, ?array $path, mixed $input, Closure $emit, FilterInterface ...$args): void
     {

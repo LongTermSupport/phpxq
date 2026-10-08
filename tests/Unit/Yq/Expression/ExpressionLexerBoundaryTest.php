@@ -216,7 +216,7 @@ final class ExpressionLexerBoundaryTest extends TestCase
     public static function whitespaceProvider(): Generator
     {
         foreach ([' ', "\t", "\r", "\n"] as $space) {
-            yield \sprintf('name ends at %s', json_encode($space)) => [$space];
+            yield \sprintf('name ends at %s', json_encode($space, \JSON_THROW_ON_ERROR)) => [$space];
         }
     }
 

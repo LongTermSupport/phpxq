@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Support\Conformance;
 
+use Closure;
 use LTS\PhpXq\Cli\FrontControllerInterface;
 use LTS\PhpXq\Tests\Support\CliRunner;
 use LTS\PhpXq\Tests\Support\Conformance\ConformanceCase;
@@ -44,7 +45,7 @@ final class YqConformanceSuiteTest extends TestCase
         self::assertSame(['one', 'two'], array_map(static fn (ConformanceCase $case): string => $case->id, $cases));
 
         $captured = [];
-        $runner   = new CliRunner($this->controller(static function (array $args, string $stdin, $out) use (&$captured): int {
+        $runner   = new CliRunner($this->controller(static function (array $args, string $stdin, mixed $out) use (&$captured): int {
             $captured[] = [$args, $stdin];
             fwrite($out, "1\n");
 
@@ -60,7 +61,7 @@ final class YqConformanceSuiteTest extends TestCase
         $this->write(['name' => 'one', 'command' => null, 'flags' => [], 'expression' => '.', 'input' => '', 'expected' => "1\n"]);
         $case = [...new YqConformanceSuite($this->file)->cases()][0];
 
-        $runner = new CliRunner($this->controller(static function (array $args, string $stdin, $out): int {
+        $runner = new CliRunner($this->controller(static function (array $args, string $stdin, mixed $out): int {
             fwrite($out, "2\n");
 
             return 0;
@@ -74,7 +75,7 @@ final class YqConformanceSuiteTest extends TestCase
         $this->write(['name' => 'empty', 'command' => null, 'flags' => [], 'expression' => '.', 'input' => '', 'expected' => '']);
         $case = [...new YqConformanceSuite($this->file)->cases()][0];
 
-        $runner = new CliRunner($this->controller(static function (array $args, string $stdin, $out, $err): int {
+        $runner = new CliRunner($this->controller(static function (array $args, string $stdin, mixed $out, mixed $err): int {
             fwrite($err, 'not implemented');
 
             return 70;
@@ -110,15 +111,15 @@ final class YqConformanceSuiteTest extends TestCase
     }
 
     /**
-     * @param callable(list<string>, string, resource, resource): int $handler
+     * @param Closure(list<string>, string, resource, resource): int $handler
      */
-    private function controller(callable $handler): FrontControllerInterface
+    private function controller(Closure $handler): FrontControllerInterface
     {
         return new readonly class($handler) implements FrontControllerInterface {
             /**
-             * @param callable(list<string>, string, resource, resource): int $handler
+             * @param Closure(list<string>, string, resource, resource): int $handler
              */
-            public function __construct(private mixed $handler)
+            public function __construct(private Closure $handler)
             {
             }
 
