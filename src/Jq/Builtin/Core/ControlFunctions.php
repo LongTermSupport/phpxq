@@ -7,16 +7,20 @@ namespace LTS\PhpXq\Jq\Builtin\Core;
 use ArrayIterator;
 use Closure;
 use InfiniteIterator;
+use LogicException;
 use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
+use LTS\PhpXq\Jq\Runtime\EvaluationStack;
 use LTS\PhpXq\Jq\Runtime\FilterInterface;
 use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Json\Values;
+use SplQueue;
+use Throwable;
 
 /**
  * Generators and control: empty, error, select, map, range, limit, first, last, skip, isempty, any, all,
- * recurse and repeat. Those valid in a path expression (`path(first(.a, .b))`) are path-aware.
+ * recurse, repeat, until and while. Those valid in a path expression (`path(first(.a, .b))`) are path-aware.
  *
  * @internal
  */
@@ -51,6 +55,8 @@ final readonly class ControlFunctions
         $registry->register(new PathStreamFunction(self::RECURSE, 1, self::recurse1(...), self::recurse1Paths(...)));
         $registry->register(new PathStreamFunction(self::RECURSE, 2, self::recurse2(...), self::recurse2Paths(...)));
         $registry->register(new StreamFunction('repeat', 1, self::repeat(...)));
+        $registry->register(new PathStreamFunction('until', 2, self::until(...), self::untilPaths(...)));
+        $registry->register(new PathStreamFunction('while', 2, self::loopWhile(...), self::loopWhilePaths(...)));
     }
 
     private static function nothing(): void
@@ -542,6 +548,159 @@ final readonly class ControlFunctions
     {
         foreach (new InfiniteIterator(new ArrayIterator([true])) as $ignored) {
             $args[0]->run($input, $emit);
+        }
+    }
+
+    /**
+     * `def until(cond; update): def _until: if cond then . else (update | _until) end; _until;`
+     *
+     * @param Closure(mixed): void $emit
+     */
+    private static function until(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
+    {
+        [$condition, $update] = $args;
+        self::loop($input, static function (mixed $value, Closure $continue, Closure $flush) use ($condition, $update, $emit): void {
+            $condition->run($value, static function (mixed $done) use ($value, $update, $emit, $continue, $flush): void {
+                $flush();
+                if (Values::isTruthy($done)) {
+                    $emit($value);
+
+                    return;
+                }
+
+                $update->run($value, $continue);
+            });
+        });
+    }
+
+    /**
+     * @param ?list<mixed>                       $path
+     * @param Closure(?list<mixed>, mixed): void $emit
+     */
+    private static function untilPaths(RuntimeContextInterface $c, ?array $path, mixed $input, Closure $emit, FilterInterface ...$args): void
+    {
+        [$condition, $update] = $args;
+        self::loop([$path, $input], static function (mixed $state, Closure $continue, Closure $flush) use ($condition, $update, $emit): void {
+            [$at, $value] = self::pathState($state);
+            $condition->run($value, static function (mixed $done) use ($at, $value, $update, $emit, $continue, $flush): void {
+                $flush();
+                if (Values::isTruthy($done)) {
+                    $emit($at, $value);
+
+                    return;
+                }
+
+                $update->paths($at, $value, static function (?array $next, mixed $child) use ($continue): void {
+                    $continue([$next, $child]);
+                });
+            });
+        });
+    }
+
+    /**
+     * `def while(cond; update): def _while: if cond then ., (update | _while) else empty end; _while;`
+     *
+     * @param Closure(mixed): void $emit
+     */
+    private static function loopWhile(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
+    {
+        [$condition, $update] = $args;
+        self::loop($input, static function (mixed $value, Closure $continue, Closure $flush) use ($condition, $update, $emit): void {
+            $condition->run($value, static function (mixed $going) use ($value, $update, $emit, $continue, $flush): void {
+                $flush();
+                if (!Values::isTruthy($going)) {
+                    return;
+                }
+
+                $emit($value);
+                $update->run($value, $continue);
+            });
+        });
+    }
+
+    /**
+     * @param ?list<mixed>                       $path
+     * @param Closure(?list<mixed>, mixed): void $emit
+     */
+    private static function loopWhilePaths(RuntimeContextInterface $c, ?array $path, mixed $input, Closure $emit, FilterInterface ...$args): void
+    {
+        [$condition, $update] = $args;
+        self::loop([$path, $input], static function (mixed $state, Closure $continue, Closure $flush) use ($condition, $update, $emit): void {
+            [$at, $value] = self::pathState($state);
+            $condition->run($value, static function (mixed $going) use ($at, $value, $update, $emit, $continue, $flush): void {
+                $flush();
+                if (!Values::isTruthy($going)) {
+                    return;
+                }
+
+                $emit($at, $value);
+                $update->paths($at, $value, static function (?array $next, mixed $child) use ($continue): void {
+                    $continue([$next, $child]);
+                });
+            });
+        });
+    }
+
+    /**
+     * @return array{?list<mixed>, mixed}
+     */
+    private static function pathState(mixed $state): array
+    {
+        if (!\is_array($state) || !\array_key_exists(0, $state) || !\array_key_exists(1, $state)) {
+            throw new LogicException('A path loop state is a path and a value');
+        }
+
+        $path = $state[0];
+        if (null !== $path && (!\is_array($path) || !array_is_list($path))) {
+            throw new LogicException('A path loop state starts with a path');
+        }
+
+        return [$path, $state[1]];
+    }
+
+    /**
+     * Runs a jq loop whose recursive call sits in tail position. Each step either emits or hands the states to
+     * continue from to `$continue`; the last state a step hands over becomes the next iteration, and only the
+     * earlier ones (a branching condition or update) recurse, so a loop with one state per step runs in
+     * constant stack, as jq's tail-call optimisation runs it. A step calls `$flush` before it emits, and a step
+     * that throws has its earlier states run first, so outputs and errors come in jq's order.
+     *
+     * @param Closure(mixed, Closure(mixed): void, Closure(): void): void $step
+     *
+     * @throws JqException past {@see EvaluationStack::MAX_CALL_DEPTH} nested branches
+     */
+    private static function loop(mixed $state, Closure $step, int $branches = 0): void
+    {
+        if ($branches > EvaluationStack::MAX_CALL_DEPTH) {
+            throw JqException::fromMessage(EvaluationStack::DEPTH_EXCEEDED);
+        }
+
+        while (true) {
+            /** @var SplQueue<mixed> $pending at most the one state a step handed over last */
+            $pending = new SplQueue();
+            $flush   = static function () use ($pending, $step, $branches): void {
+                if (!$pending->isEmpty()) {
+                    self::loop($pending->dequeue(), $step, $branches + 1);
+                }
+            };
+            $continue = static function (mixed $next) use ($pending, $flush): void {
+                $flush();
+                $pending->enqueue($next);
+            };
+
+            try {
+                $step($state, $continue, $flush);
+            } catch (Throwable $throwable) {
+                $flush();
+
+                throw $throwable;
+            }
+
+            if ($pending->isEmpty()) {
+                return;
+            }
+
+            $state = $pending->dequeue();
         }
     }
 }

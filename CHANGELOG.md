@@ -13,6 +13,11 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 
 ## Unreleased
 
+### Fixed
+
+- `jq`: `until` and `while` run any number of iterations, as jq's tail-call optimisation lets them;
+  `0 | until(. >= 30000; . + 1)` failed with `Evaluation too deep` after 20,000.
+
 ### Security
 
 - `jq`: a program nested deeper than 10,000 levels (brackets, operator chains, postfix chains or nested
