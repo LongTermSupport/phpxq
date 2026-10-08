@@ -25,6 +25,10 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
   integer arguments are clamped (`.[0:1e30]` is the whole array), `1e30 | from_unix` gives the latest
   representable time, an XML character reference beyond Unicode (`&#x99999999999999999999;`) is kept
   literally, and a Lua `\u{...}` escape beyond Unicode or naming a surrogate is the error `invalid \u escape`.
+- `jq`: a `/` in a regex conditional `(?(...)` or a group name no longer ends the pattern early with PHP's
+  `Unknown modifier` message, and `(*...)` is read as an Oniguruma callout as jq reads it: `(*FAIL)` works, and
+  PCRE verbs and options such as `(*ACCEPT)` or `(*LIMIT_MATCH=1)` are rejected (`undefined callout name`,
+  `invalid callout name`) instead of changing how the pattern matches.
 
 ### Security
 
