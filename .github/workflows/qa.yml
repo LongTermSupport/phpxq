@@ -146,12 +146,19 @@ jobs:
       # itself off on main, qaConfig/ChangelogLaneSwitch.php), static analysis, the unit and gap-aware
       # conformance tests with coverage, and Infection. Only an unfiltered run lets Infection reuse the
       # phpunit lane's coverage; any `-t` selection makes it run the whole suite a second time.
+      #
+      # Off the default branch Infection mutates only the src/ files changed since the default branch
+      # (qaConfig/qa.php, PHPXQ_INFECTION_DIFF_BASE): a full mutation run takes hours. A push to the default
+      # branch, and the release workflow, mutate everything.
       - name: Full QA pipeline
         env:
           CI: 'true'
+          PHPXQ_INFECTION_DIFF_BASE: ${{ github.ref_name != github.event.repository.default_branch && format('origin/{0}', github.event.repository.default_branch) || '' }}
         run: vendor/bin/qa
 
       - name: Coverage and mutation lanes ran and meet their floors
+        env:
+          PHPXQ_INFECTION_DIFF_BASE: ${{ github.ref_name != github.event.repository.default_branch && format('origin/{0}', github.event.repository.default_branch) || '' }}
         run: scripts/check-qa-measurements.bash
 
       - name: Upstream shell conformance (jq shtest, yq acceptance)

@@ -10,6 +10,7 @@ use LTS\PhpXq\Tests\Support\Conformance\ConformanceSuiteInterface;
 use LTS\PhpXq\Tests\Support\Conformance\GapList;
 use LTS\PhpXq\Tests\Support\Conformance\JqConformanceSuite;
 use LTS\PhpXq\Tests\Support\Conformance\YqConformanceSuite;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Large;
 use PHPUnit\Framework\TestCase;
@@ -19,8 +20,13 @@ use PHPUnit\Framework\TestCase;
  * raw per-case suites (which ignore known-gaps.txt), this fails on an unexpected failure and on a known gap
  * that now passes, exactly as scripts/conformance-report.php does.
  *
+ * It records no coverage: each of its two tests runs a whole upstream suite, so Infection, which skips a mutant
+ * whose covering tests take longer than its timeout, would skip every mutant it covers. Line coverage and the
+ * mutation score are therefore what the unit suite earns on its own.
+ *
  * @internal
  */
+#[CoversNothing]
 #[Large]
 final class GapAwareConformanceTest extends TestCase
 {

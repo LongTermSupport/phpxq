@@ -24,6 +24,9 @@ return static fn (QaConfigBuilder $qa): QaConfigBuilder => $qa
     // Mutation-score ratchet: both floors sit at the score the suite earns today (never 100, which would
     // make every legitimately equivalent mutant a failure), so a change cannot quietly weaken the tests.
     ->withInfectionFloors(90, 90)
+    // PHPXQ_INFECTION_DIFF_BASE (a git ref, set by the QA workflow off the default branch) limits mutation to
+    // the src/ files changed since that ref, against the same covered-MSI floor; unset, every file is mutated.
+    ->withInfectionDiffBase(false === getenv('PHPXQ_INFECTION_DIFF_BASE') || '' === getenv('PHPXQ_INFECTION_DIFF_BASE') ? null : getenv('PHPXQ_INFECTION_DIFF_BASE'))
     // Declarations carrying a native type, per kind: every one does. A resource is declared `mixed` with a
     // `@param resource` / `@return resource` tag, as PHP has no native resource type.
     ->withTypeCoverageFloors(returnType: 100, paramType: 100, propertyType: 100, constantType: 100)
