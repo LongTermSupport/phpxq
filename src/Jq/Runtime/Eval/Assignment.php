@@ -8,7 +8,6 @@ use Closure;
 use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Jq\Runtime\PathOps;
 use LTS\PhpXq\Json\JsonObject;
-use LTS\PhpXq\Limits\AllocationLimit;
 
 /**
  * Applying a computation to every path of an assignment's left-hand side: the shared core of `=`, `|=` and
@@ -188,9 +187,7 @@ final readonly class Assignment
             $highest = max($highest, (int)$key);
         }
 
-        if ($highest > AllocationLimit::MAX_ARRAY_INDEX || AllocationLimit::padsTooFar($highest, \count($elements))) {
-            throw new JqException(PathOps::INDEX_TOO_LARGE);
-        }
+        PathOps::checkPadding($highest, \count($elements));
 
         for ($i = \count($elements); $i <= $highest; ++$i) {
             $elements[] = null;

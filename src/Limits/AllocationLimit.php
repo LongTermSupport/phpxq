@@ -16,13 +16,16 @@ final readonly class AllocationLimit
     /** jq's own limit on an array index: larger ones are an error even when nothing needs padding. */
     public const int MAX_ARRAY_INDEX = 536870911;
 
-    /** The most null elements one assignment may add to reach an index past the end of an array. */
-    public const int MAX_PADDING = 1048576;
+    /**
+     * The most null elements one assignment may add to reach an index past the end of an array: 2^28, far beyond
+     * any padding jq 1.6 or Go yq is used for, and still short of what a PHP array that size would need.
+     */
+    public const int MAX_PADDING = 268435456;
 
-    /** The longest string jq's string repetition (`"ab" * n`) may build. */
-    public const int MAX_STRING_BYTES = 268435456;
+    /** The longest string jq's string repetition (`"ab" * n`) may build: 1 GiB, beyond what jq 1.6 builds. */
+    public const int MAX_STRING_BYTES = 1073741824;
 
-    /** The yq error text for padding past {@see self::MAX_PADDING}; jq keeps its own "Array index too large". */
+    /** The yq error text for padding past {@see self::MAX_PADDING}; jq words its own. */
     public const string PADDING_ERROR = 'cannot pad a sequence to index %d: more than %d new entries';
 
     private function __construct()

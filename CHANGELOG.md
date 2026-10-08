@@ -51,8 +51,11 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
   with U+FFFD, as jq does. It used to reach `explode` and similar builtins and end the run with an
   uncatchable `internal error: Uninitialized string offset`.
 - Small programs and inputs can no longer force huge allocations that end in an uncatchable out-of-memory
-  error. Assigning to an array index more than 1,048,576 places past the end is an error (`jq`: `Array index too large`; `yq`, including a properties key such as `a.999999999`: `cannot pad a sequence ...`), and jq
-  refuses to repeat a string into more than 256 MiB (`Repeat string result too long`).
+  error. Assigning to an array index more than 2^28 (268,435,456) places past the end is an error (`jq`:
+  `Cannot pad array to index ...`; `yq`, including a properties key such as `a.999999999`:
+  `cannot pad a sequence ...`), and jq refuses to repeat a string into more than 1 GiB
+  (`Repeat string result too long`). Padding and repetition that jq 1.6 and Go yq perform
+  (`null | .[2000000] = 1`, `"x" * 300000000`) still work.
 
 ## 0.1.0 — 2026-10-08
 

@@ -32,10 +32,29 @@ final readonly class PathOps
 
     public const string INDEX_TOO_LARGE = 'Array index too large';
 
+    public const string PADDING_TOO_FAR = 'Cannot pad array to index %d: more than %d nulls would be added';
+
     private const int MAX_PATH_DEPTH = 10000;
 
     private function __construct()
     {
+    }
+
+    /**
+     * Refuses an index past jq's own limit, and one so far past the end of an array of $count elements that
+     * padding up to it would exceed {@see AllocationLimit::MAX_PADDING}.
+     *
+     * @throws JqException
+     */
+    public static function checkPadding(int $index, int $count): void
+    {
+        if ($index > AllocationLimit::MAX_ARRAY_INDEX) {
+            throw new JqException(self::INDEX_TOO_LARGE);
+        }
+
+        if (AllocationLimit::padsTooFar($index, $count)) {
+            throw new JqException(\sprintf(self::PADDING_TOO_FAR, $index, AllocationLimit::MAX_PADDING));
+        }
     }
 
     /**
@@ -175,9 +194,7 @@ final readonly class PathOps
             }
         }
 
-        if ($index > AllocationLimit::MAX_ARRAY_INDEX || AllocationLimit::padsTooFar($index, $count)) {
-            throw new JqException(self::INDEX_TOO_LARGE);
-        }
+        self::checkPadding($index, $count);
 
         for ($i = $count; $i < $index; ++$i) {
             $array[] = null;

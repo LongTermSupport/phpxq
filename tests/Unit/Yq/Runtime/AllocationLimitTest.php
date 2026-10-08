@@ -72,7 +72,8 @@ final class AllocationLimitTest extends TestCase
      */
     public static function allowed(): iterable
     {
-        yield 'index assignment up to the limit' => [['-n', '.[' . AllocationLimit::MAX_PADDING . '] = 1 | length'], '', (string)(AllocationLimit::MAX_PADDING + 1)];
+        // padding that Go yq performs: a long way below the limit, which only stops what cannot fit in memory
+        yield 'nested index two million places'  => [['-n', '.b[2000000] = 1 | .b | length'], '', '2000001'];
         yield 'properties index'                 => [['-p', 'props', '-o', 'json', '-I0', '.'], "a.2 = x\n", '{"a":[null,null,"x"]}'];
         yield 'repeat'                           => [['-n', '"ab" * 3'], '', 'ababab'];
         yield 'repeat up to 10 MiB'              => [['-n', '"ab" * 5242880 | length'], '', '10485760'];
