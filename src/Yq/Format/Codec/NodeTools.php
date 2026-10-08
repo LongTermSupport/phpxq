@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\AliasExpansion;
+use LTS\PhpXq\Yaml\MergeSources;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\NodeStyleEnum;
@@ -275,7 +276,7 @@ final readonly class NodeTools
                 continue;
             }
 
-            foreach (self::mergeSources($value) as $source) {
+            foreach (MergeSources::of($value) as $source) {
                 $id = spl_object_id($source);
                 if (isset($merging[$id])) {
                     continue;
@@ -297,34 +298,6 @@ final readonly class NodeTools
         unset($merging[spl_object_id($mapping)]);
 
         return $pairs;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    private static function mergeSources(Node $value): array
-    {
-        if (NodeKindEnum::Alias === $value->kind) {
-            $target = self::unwrap($value);
-
-            return NodeKindEnum::Mapping === $target->kind ? [$target] : [];
-        }
-
-        $sources = [];
-        if (NodeKindEnum::Sequence === $value->kind) {
-            foreach ($value->content as $item) {
-                if (NodeKindEnum::Alias !== $item->kind) {
-                    continue;
-                }
-
-                $item = self::unwrap($item);
-                if (NodeKindEnum::Mapping === $item->kind) {
-                    $sources[] = $item;
-                }
-            }
-        }
-
-        return $sources;
     }
 
     private static function identity(Node $key): string

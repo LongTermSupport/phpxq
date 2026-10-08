@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Fixtures\Defence\AliasRecursion;
 
+use LTS\PhpXq\Yaml\MergeSources;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yq\Format\Codec\NodeTools;
-use LTS\PhpXq\Yq\Runtime\Traversal;
 
 /**
  * Each recursive method follows an alias through a helper rather than directly: an own method whose return
@@ -42,11 +42,11 @@ final class ResolvesThroughHelpers
         return $total;
     }
 
-    public static function viaMergeTargets(Node $mapping): int
+    public static function viaMergeSources(Node $mapping): int
     {
         $total = 1;
-        foreach (Traversal::mergeTargets($mapping) as $target) {
-            $total += self::viaMergeTargets($target);
+        foreach (MergeSources::of($mapping) as $target) {
+            $total += self::viaMergeSources($target);
         }
 
         return $total;

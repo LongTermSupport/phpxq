@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime;
 
 use LTS\PhpXq\Yaml\AliasExpansion;
+use LTS\PhpXq\Yaml\MergeSources;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\NodeStyleEnum;
@@ -188,7 +189,7 @@ final readonly class Anchors
             }
 
             $seen = [];
-            foreach (Traversal::mergeTargets($map->content[$i + 1]) as $target) {
+            foreach (MergeSources::of($map->content[$i + 1]) as $target) {
                 if (isset($merging[spl_object_id($target)])) {
                     continue;
                 }

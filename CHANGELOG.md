@@ -13,6 +13,12 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 
 ## Unreleased
 
+### Fixed
+
+- `yq`: the output formats now merge what navigation merges. A `<<` merge key whose value is an inline
+  mapping (`<<: {a: 1}`), a sequence holding inline mappings, or an alias of a sequence was honoured by `.a`
+  but dropped by `-o json` and the other encoders.
+
 ### Security
 
 - `yq`: a merge key that merges the mapping it sits in (`a: &a {x: 1, <<: *a}`) no longer crashes the

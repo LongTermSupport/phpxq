@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Runtime;
 
+use LTS\PhpXq\Yaml\MergeSources;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
@@ -159,31 +160,6 @@ final readonly class Traversal
     }
 
     /**
-     * The mappings a `<<` value merges in: an alias or a mapping, or a sequence of them.
-     *
-     * @return list<Node>
-     */
-    public static function mergeTargets(Node $value): array
-    {
-        $value = NodeOps::deref($value);
-        if (NodeKindEnum::Mapping === $value->kind) {
-            return [$value];
-        }
-
-        $targets = [];
-        if (NodeKindEnum::Sequence === $value->kind) {
-            foreach ($value->content as $item) {
-                $item = NodeOps::deref($item);
-                if (NodeKindEnum::Mapping === $item->kind) {
-                    $targets[] = $item;
-                }
-            }
-        }
-
-        return $targets;
-    }
-
-    /**
      * Every value of a mapping or item of a sequence.
      *
      * @return list<Candidate>
@@ -326,7 +302,7 @@ final readonly class Traversal
                 continue;
             }
 
-            $targets = self::mergeTargets($content[$i + 1]);
+            $targets = MergeSources::of($content[$i + 1]);
             if ($fixedMerge || $reverseTargets) {
                 $targets = array_reverse($targets);
             }

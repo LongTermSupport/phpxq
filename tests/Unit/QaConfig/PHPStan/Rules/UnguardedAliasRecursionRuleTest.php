@@ -56,7 +56,7 @@ final class UnguardedAliasRecursionRuleTest extends RuleTestCase
         $this->analyse([self::FIXTURES . '/ResolvesThroughHelpers.php'], [
             [$this->message('pairs', self::HELPERS_CLASS), 23],
             [$this->message('transitive', self::HELPERS_CLASS), 35],
-            [$this->message('viaMergeTargets', self::HELPERS_CLASS), 45],
+            [$this->message('viaMergeSources', self::HELPERS_CLASS), 45],
         ]);
     }
 
@@ -78,7 +78,7 @@ final class UnguardedAliasRecursionRuleTest extends RuleTestCase
     private function message(string $method, string $class = 'FollowsAliasesUnbounded'): string
     {
         return \sprintf(
-            '%s::%s() recurses into a node reached through an alias (NodeOps::deref, NodeTools::unwrap, Traversal::mergeTargets, aliasTarget, or an own method returning what one of them found) with no depth bound: a cyclic alias such as `&a [*a]` never ends. Take an int $depth, compare it with a MAX_DEPTH constant and fail past it.',
+            '%s::%s() recurses into a node reached through an alias (NodeOps::deref, NodeTools::unwrap, MergeSources::of, aliasTarget, or an own method returning what one of them found) with no depth bound: a cyclic alias such as `&a [*a]` never ends. Take an int $depth, compare it with a MAX_DEPTH constant and fail past it.',
             $class,
             $method,
         );

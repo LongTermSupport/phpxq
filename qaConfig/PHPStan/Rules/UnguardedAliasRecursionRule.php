@@ -61,9 +61,9 @@ final readonly class UnguardedAliasRecursionRule implements Rule
 
     /** @var array<string, list<string>> */
     private const array RESOLVERS = [
-        'nodeops'   => ['deref', 'unwrap'],
-        'nodetools' => ['deref', 'unwrap'],
-        'traversal' => ['mergetargets'],
+        'nodeops'      => ['deref', 'unwrap'],
+        'nodetools'    => ['deref', 'unwrap'],
+        'mergesources' => ['of'],
     ];
 
     private const string ALIAS_PROPERTY = 'aliastarget';
@@ -95,7 +95,7 @@ final readonly class UnguardedAliasRecursionRule implements Rule
 
             if ($this->recursesIntoResolvedNode($method, $graph, $short, $own)) {
                 $errors[] = RuleErrorBuilder::message(\sprintf(
-                    '%s::%s() recurses into a node reached through an alias (NodeOps::deref, NodeTools::unwrap, Traversal::mergeTargets, aliasTarget, or an own method returning what one of them found) with no depth bound: a cyclic alias such as `&a [*a]` never ends. Take an int $depth, compare it with a MAX_DEPTH constant and fail past it.',
+                    '%s::%s() recurses into a node reached through an alias (NodeOps::deref, NodeTools::unwrap, MergeSources::of, aliasTarget, or an own method returning what one of them found) with no depth bound: a cyclic alias such as `&a [*a]` never ends. Take an int $depth, compare it with a MAX_DEPTH constant and fail past it.',
                     $class->name instanceof Identifier ? $class->name->toString() : 'class@anonymous',
                     $name,
                 ))->identifier(self::IDENTIFIER)->line($method->name->getStartLine())->build();
