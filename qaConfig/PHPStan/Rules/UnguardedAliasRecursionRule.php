@@ -22,12 +22,18 @@ use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
+use PhpParser\Node\Stmt\ClassLike;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Foreach_;
 use PhpParser\Node\Stmt\Return_;
 use PhpParser\NodeFinder;
+use PhpParser\NodeTraverser;
+use PhpParser\NodeVisitor\NameResolver;
+use PhpParser\Parser;
+use PhpParser\ParserFactory;
 use PHPStan\Analyser\Scope;
 use PHPStan\Node\InClassNode;
+use PHPStan\Reflection\ReflectionProvider;
 use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleErrorBuilder;
 
@@ -41,7 +47,9 @@ use PHPStan\Rules\RuleErrorBuilder;
  *
  * An alias is resolved by a read of `aliasTarget`, by a call to a resolver of another class (`RESOLVERS`, lower-case
  * method names by lower-case short class name: `NodeOps::deref()`, `NodeTools::unwrap()`, the merge-source
- * resolver), or by a call to an own method whose return value comes from one of those, found transitively.
+ * resolver), or by a call to a method whose return value comes from one of those, found transitively: an own
+ * method, or a static method of another class, whose source is read and judged the same way (so a merge-target
+ * helper living in a traversal class counts as well).
  *
  * A recursive call is accepted, because it still terminates, when
  *
@@ -55,7 +63,7 @@ use PHPStan\Rules\RuleErrorBuilder;
  *
  * @implements Rule<InClassNode>
  */
-final readonly class UnguardedAliasRecursionRule implements Rule
+final class UnguardedAliasRecursionRule implements Rule
 {
     public const string IDENTIFIER = 'phpxq.unguardedAliasRecursion';
 
@@ -70,6 +78,26 @@ final readonly class UnguardedAliasRecursionRule implements Rule
 
     /** @var list<string> */
     private const array GUARD_NAMES = ['depth', 'nesting', 'remaining', 'budget'];
+
+    /** @var list<string> */
+    private const array RELATIVE_NAMES = ['self', 'static', 'parent'];
+
+    /**
+     * The methods of other classes that return a resolved node, by fully qualified class name; a class being
+     * worked out is already present (empty), so classes that call each other end.
+     *
+     * @var array<string, array<string, true>>
+     */
+    private array $foreignResolvers = [];
+
+    /** Reads the source of other classes, built on first use. */
+    private ?Parser $parser = null;
+
+    public function __construct(
+        /** Locates the source file of another class. */
+        private readonly ReflectionProvider $reflectionProvider,
+    ) {
+    }
 
     public function getNodeType(): string
     {
@@ -95,7 +123,7 @@ final readonly class UnguardedAliasRecursionRule implements Rule
 
             if ($this->recursesIntoResolvedNode($method, $graph, $short, $own)) {
                 $errors[] = RuleErrorBuilder::message(\sprintf(
-                    '%s::%s() recurses into a node reached through an alias (NodeOps::deref, NodeTools::unwrap, MergeSources::of, aliasTarget, or an own method returning what one of them found) with no depth bound: a cyclic alias such as `&a [*a]` never ends. Take an int $depth, compare it with a MAX_DEPTH constant and fail past it.',
+                    '%s::%s() recurses into a node reached through an alias (NodeOps::deref, NodeTools::unwrap, MergeSources::of, aliasTarget, or a method of this or another class returning what one of them found) with no depth bound: a cyclic alias such as `&a [*a]` never ends. Take an int $depth, compare it with a MAX_DEPTH constant and fail past it.',
                     $class->name instanceof Identifier ? $class->name->toString() : 'class@anonymous',
                     $name,
                 ))->identifier(self::IDENTIFIER)->line($method->name->getStartLine())->build();
@@ -317,7 +345,7 @@ final readonly class UnguardedAliasRecursionRule implements Rule
      */
     private function derivesFromAlias(Node $expression, array $tainted, string $short, array $own): bool
     {
-        $found = new NodeFinder()->findFirst($expression, static function (Node $inside) use ($tainted, $short, $own): bool {
+        $found = new NodeFinder()->findFirst($expression, function (Node $inside) use ($tainted, $short, $own): bool {
             if ($inside instanceof Variable) {
                 return \is_string($inside->name) && isset($tainted[$inside->name]);
             }
@@ -334,13 +362,70 @@ final readonly class UnguardedAliasRecursionRule implements Rule
                 return true;
             }
 
-            return $inside instanceof StaticCall
-                && $inside->class instanceof Name
-                && $inside->name instanceof Identifier
-                && \in_array(strtolower($inside->name->toString()), self::RESOLVERS[strtolower($inside->class->getLast())] ?? [], true);
+            if (!$inside instanceof StaticCall || !$inside->class instanceof Name || !$inside->name instanceof Identifier) {
+                return false;
+            }
+
+            $method = strtolower($inside->name->toString());
+
+            return \in_array($method, self::RESOLVERS[strtolower($inside->class->getLast())] ?? [], true)
+                || isset($this->resolversOf($inside->class)[$method]);
         });
 
         return $found instanceof Node;
+    }
+
+    /**
+     * The methods of another class that return a resolved node, worked out from its source as for an own class.
+     *
+     * @return array<string, true> lower-case method names
+     */
+    private function resolversOf(Name $name): array
+    {
+        $className = $name->toString();
+        if (\in_array(strtolower($className), self::RELATIVE_NAMES, true)) {
+            return [];
+        }
+
+        if (isset($this->foreignResolvers[$className])) {
+            return $this->foreignResolvers[$className];
+        }
+
+        $this->foreignResolvers[$className] = [];
+        $class                              = $this->classNode($className);
+        if (!$class instanceof ClassLike) {
+            return [];
+        }
+
+        $short = $class->name instanceof Identifier ? strtolower($class->name->toString()) : '';
+
+        return $this->foreignResolvers[$className] = $this->ownResolvers(ClassCallGraph::of($class), $short);
+    }
+
+    /**
+     * The declaration of a class, parsed from the file reflection names, with names resolved as PHPStan resolves
+     * them; null when it has no readable source.
+     */
+    private function classNode(string $className): ?ClassLike
+    {
+        if (!$this->reflectionProvider->hasClass($className)) {
+            return null;
+        }
+
+        $file = $this->reflectionProvider->getClass($className)->getFileName();
+        $code = null === $file ? false : file_get_contents($file);
+        if (false === $code) {
+            return null;
+        }
+
+        $this->parser ??= new ParserFactory()->createForHostVersion();
+        $statements = $this->parser->parse($code) ?? [];
+        $traverser  = new NodeTraverser(new NameResolver());
+        $statements = $traverser->traverse($statements);
+
+        $found = new NodeFinder()->findFirst($statements, static fn (Node $node): bool => $node instanceof ClassLike && $node->namespacedName instanceof Name && 0 === strcasecmp($node->namespacedName->toString(), $className));
+
+        return $found instanceof ClassLike ? $found : null;
     }
 
     /**

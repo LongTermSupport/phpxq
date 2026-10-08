@@ -60,6 +60,17 @@ final class UnguardedAliasRecursionRuleTest extends RuleTestCase
         ]);
     }
 
+    /**
+     * The resolver lives in another class, as the merge-target helper of the old `explode` did: its source is read
+     * and judged like an own method's.
+     */
+    public function testItFlagsAliasesResolvedThroughAHelperOfAnotherClass(): void
+    {
+        $this->analyse([self::FIXTURES . '/ResolvesThroughAnotherClass.php'], [
+            [$this->message('fixedPairs', 'ResolvesThroughAnotherClass'), 21],
+        ]);
+    }
+
     public function testItAcceptsOwnHelpersThatReturnNothingResolvedAndBoundedCycles(): void
     {
         $this->analyse([self::FIXTURES . '/HelpersThatDoNotResolve.php'], []);
@@ -72,13 +83,13 @@ final class UnguardedAliasRecursionRuleTest extends RuleTestCase
 
     protected function getRule(): Rule
     {
-        return new UnguardedAliasRecursionRule();
+        return new UnguardedAliasRecursionRule($this->createReflectionProvider());
     }
 
     private function message(string $method, string $class = 'FollowsAliasesUnbounded'): string
     {
         return \sprintf(
-            '%s::%s() recurses into a node reached through an alias (NodeOps::deref, NodeTools::unwrap, MergeSources::of, aliasTarget, or an own method returning what one of them found) with no depth bound: a cyclic alias such as `&a [*a]` never ends. Take an int $depth, compare it with a MAX_DEPTH constant and fail past it.',
+            '%s::%s() recurses into a node reached through an alias (NodeOps::deref, NodeTools::unwrap, MergeSources::of, aliasTarget, or a method of this or another class returning what one of them found) with no depth bound: a cyclic alias such as `&a [*a]` never ends. Take an int $depth, compare it with a MAX_DEPTH constant and fail past it.',
             $class,
             $method,
         );

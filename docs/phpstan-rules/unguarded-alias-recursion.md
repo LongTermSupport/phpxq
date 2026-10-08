@@ -11,9 +11,9 @@ the method nor any method on the same recursion cycle compares an `int` paramete
 - a read of `aliasTarget`;
 - a call to a known resolver of another class: `NodeOps::deref()`, `NodeTools::unwrap()`, or the merge-key
   source resolver (the mappings a `<<` value merges in);
-- a call to an own method whose return value comes from any of these, found transitively. A private helper
-  that unwraps the merge sources is a resolver, so `pairs()` recursing into what that helper returned is
-  reported:
+- a call to an own method, or a static method of another class, whose return value comes from any of these,
+  found transitively by reading that method's source. A helper that unwraps the merge sources is a resolver
+  wherever it lives, so `pairs()` recursing into what that helper returned is reported:
 
 ```php
 public static function canonical(Node $node): string
@@ -58,7 +58,8 @@ count.
 ## Limits
 
 Only recursion inside one class is seen. The check that a cycle is bounded accepts the guard in any method
-of the cycle and does not verify that every member passes the depth along. A resolver of another class is
-known only when it is listed in the rule's `RESOLVERS`; a new public helper that returns a resolved node must
-be added there. A set of visited nodes is a real guard but is not recognised, so a walk that keeps one also
-takes a compared depth.
+of the cycle and does not verify that every member passes the depth along. Resolvers of other classes are
+found through static calls only; an instance method of another object is judged only when it is listed in the
+rule's `RESOLVERS`. A set of visited nodes is a real guard but is not recognised, so a walk that keeps one
+also takes a compared depth. A depth bound stops a cycle but not a fan-out: copying `a: &a [*a, *a]` to a
+depth of 200 is still 2^200 copies, so code that copies aliased content also keeps a set of its ancestors.
