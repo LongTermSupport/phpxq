@@ -51,8 +51,9 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
   the alias budget above counts a repeated merge source once.
 - `yq --split-exp`: file names come from the data, so a name must now be a plain path inside the current
   directory. A stream wrapper (`php://filter/...`, `file:///...`, `ftp://...`, `data:...`), a NUL byte, or a
-  path that climbs out of the directory (`../x`, an absolute path elsewhere) is refused before anything is
-  created. `.` and `..` inside the name are resolved, so `sub/../x` now writes `x` instead of failing.
+  path that climbs out of the directory (`../x`, an absolute path elsewhere, or through a symlink that already
+  exists there) is refused before anything is created. `.` and `..` inside the name are resolved, so
+  `sub/../x` now writes `x` instead of failing.
 - `yq -o xml`: a key, comment or directive could write markup into the output (`"x><evil/><y": 1`,
   `# c --> <evil/>`, `+directive: "DOCTYPE x><evil/><y"`). Element and attribute names may now not be
   empty or hold any of `< > & " ' = / ! ?`, processing-instruction targets must be XML names, a comment may

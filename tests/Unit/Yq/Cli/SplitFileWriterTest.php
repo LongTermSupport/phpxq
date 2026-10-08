@@ -102,6 +102,44 @@ final class SplitFileWriterTest extends TestCase
         yield 'climbing back inside' => ['sub/../' . self::OUT, self::OUT];
         yield 'absolute path inside' => ['{work}/' . self::OUT, self::OUT];
         yield 'colon later in the name' => ['out:1.yml', 'out:1.yml'];
+        yield 'wrapper-like name made plain by its dot segment' => ['./data:' . self::OUT, 'data:' . self::OUT];
+        yield 'php wrapper-like name made plain by its dot segment' => ['./php://' . self::OUT, 'php:/' . self::OUT];
+    }
+
+    /**
+     * A symlink inside the directory that leads out of it is followed by the file system, so the name is judged by
+     * where it really ends up.
+     */
+    #[DataProvider('symlinkEscapes')]
+    public function testASymlinkLeadingOutOfTheCurrentDirectoryIsRefused(string $link, string $target, string $name): void
+    {
+        symlink($this->root . $target, $this->work . '/' . $link);
+
+        [$code, $out, $err] = $this->split($name);
+
+        self::assertSame([1, ''], [$code, $out]);
+        self::assertStringContainsString('split file name', $err);
+        self::assertSame(['work'], $this->entries($this->root));
+        self::assertSame([$link], $this->entries($this->work));
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string}>
+     */
+    public static function symlinkEscapes(): iterable
+    {
+        yield 'directory link to the parent' => ['up', '', 'up/escaped.yml'];
+        yield 'directory link, deeper name' => ['up', '', 'up/new/escaped.yml'];
+        yield 'dangling file link' => [self::OUT, '/escaped.yml', self::OUT];
+    }
+
+    public function testASymlinkThatStaysInsideIsFollowed(): void
+    {
+        mkdir($this->work . '/real');
+        symlink($this->work . '/real', $this->work . '/inner');
+
+        self::assertSame([0, '', ''], $this->split('inner/' . self::OUT));
+        self::assertFileExists($this->work . '/real/' . self::OUT);
     }
 
     /**

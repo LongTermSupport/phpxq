@@ -80,18 +80,16 @@ final class SplitFileWriter
     }
 
     /**
-     * The file name taken from the data, as a plain path inside the current directory with `.` and `..` resolved.
-     * A stream wrapper (`php://filter/...`, `file:///...`, `data:...`) would reach past the file system or let the
-     * data pick a filter, and a path that climbs out of the directory would write anywhere the user can.
+     * The file name taken from the data, as an absolute plain path inside the current directory with `.` and `..`
+     * resolved. A stream wrapper (`php://filter/...`, `file:///...`, `data:...`) would reach past the file system or
+     * let the data pick a filter, and a path that climbs out of the directory, lexically or through a symlink that
+     * already exists, would write anywhere the user can.
      *
      * @throws CliException when the name is a stream wrapper or leaves the current directory
      */
     private function confined(string $name): string
     {
-        if (str_contains($name, "\0") || 1 === preg_match(self::STREAM_WRAPPER, $name)) {
-            throw new CliException(\sprintf(self::REFUSED, $name, 'stream wrappers are not allowed'));
-        }
-
+        $this->refuseWrapper($name, $name);
         $root = getcwd();
         if (false === $root) {
             throw new CliException(\sprintf(self::REFUSED, $name, 'the current directory cannot be read'));
@@ -110,13 +108,47 @@ final class SplitFileWriter
             }
         }
 
-        $path   = '/' . implode('/', $segments);
-        $inside = rtrim($root, '/') . '/';
-        if (!str_starts_with($path, $inside)) {
+        $path     = '/' . implode('/', $segments);
+        $realRoot = realpath($root);
+        $this->refuseWrapper($name, $path);
+        if (!$this->isInside($path, $root) || !$this->isInside($this->resolvedPath($path), false === $realRoot ? $root : $realRoot)) {
             throw new CliException(\sprintf(self::REFUSED, $name, self::OUTSIDE));
         }
 
-        return substr($path, \strlen($inside));
+        return $path;
+    }
+
+    /**
+     * @throws CliException when the path is a NUL-bearing name or one PHP would hand to a stream wrapper
+     */
+    private function refuseWrapper(string $name, string $path): void
+    {
+        if (str_contains($path, "\0") || 1 === preg_match(self::STREAM_WRAPPER, $path)) {
+            throw new CliException(\sprintf(self::REFUSED, $name, 'stream wrappers are not allowed'));
+        }
+    }
+
+    private function isInside(string $path, string $root): bool
+    {
+        return str_starts_with($path, rtrim($root, '/') . '/');
+    }
+
+    /**
+     * Where the path really leads: its deepest part that exists (the path itself when it does, a dangling symlink
+     * included), with every symlink resolved, then the rest; '' when an existing part cannot be resolved.
+     */
+    private function resolvedPath(string $path): string
+    {
+        $existing = $path;
+        $rest     = '';
+        while ('/' !== $existing && !file_exists($existing) && !is_link($existing)) {
+            $rest     = '/' . basename($existing) . $rest;
+            $existing = \dirname($existing);
+        }
+
+        $real = realpath($existing);
+
+        return false === $real ? '' : rtrim($real, '/') . $rest;
     }
 
     private function extension(FormatEnum $format): string
