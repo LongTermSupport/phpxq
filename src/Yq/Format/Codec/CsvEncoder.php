@@ -29,7 +29,7 @@ final readonly class CsvEncoder implements EncoderInterface
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
-        $root = NodeTools::unwrap($node);
+        $root = NodeTools::expandableRoot($node, $options->yamlFixMergeAnchorToSpec);
         if (NodeKindEnum::Scalar === $root->kind) {
             return $root->value . "\n";
         }
@@ -65,13 +65,13 @@ final readonly class CsvEncoder implements EncoderInterface
             return $out;
         }
 
-        return $this->objects($root, $separator, $resultIndex);
+        return $this->objects($root, $separator, $options->yamlFixMergeAnchorToSpec, $resultIndex);
     }
 
-    private function objects(Node $root, string $separator, int $resultIndex): string
+    private function objects(Node $root, string $separator, bool $fixedMerge, int $resultIndex): string
     {
         $header = [];
-        foreach (NodeTools::pairs(NodeTools::unwrap($root->content[0])) as [$key]) {
+        foreach (NodeTools::pairs(NodeTools::unwrap($root->content[0]), $fixedMerge) as [$key]) {
             $header[] = NodeTools::keyText($key);
         }
 
@@ -83,7 +83,7 @@ final readonly class CsvEncoder implements EncoderInterface
             }
 
             $values = [];
-            foreach (NodeTools::pairs($item) as [$key, $value]) {
+            foreach (NodeTools::pairs($item, $fixedMerge) as [$key, $value]) {
                 $values[NodeTools::keyText($key)] = $value;
             }
 

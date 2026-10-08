@@ -17,6 +17,20 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 
 - `yq`: string repetition follows Go yq: the count must be an `!!int` (`"ab" * 2.5` is now `cannot multiply !!str with !!float`), a negative count is an error, and the result may not exceed 10 MiB.
 
+- `yq`: without `--yaml-fix-merge-anchor-to-spec`, the output formats still merge only aliases of mappings
+  and leave inline merge sources out, as the reference does, but a merge key whose alias points at a
+  sequence or a scalar (`<<: *list`) is now the reference's error `can only use merge anchors with maps (!!map) or sequences (!!seq) of maps, ...` instead of being silently dropped.
+
+- `yq`: merge keys are recognised as the reference recognises them for each use. Lookups (`.a`, `.[]`) follow
+  a key tagged `!!merge`, which a plain `<<` is, and no longer a `<<` with another tag (`!!str <<`, `!x <<`);
+  a merge key is still found, read and deleted by its own text (`."<<"`, `.foo` on `!!merge foo`).
+  `.[]` and `.*` follow every key tagged `!!merge`, whatever its name, so `{!!merge foo: {x: 5}, x: 7}`
+  yields `7` once; the other listings (`to_entries`, `with_entries`, `map`, sorting) merge only through a
+  `<<` tagged `!!merge`, as before. With `--yaml-fix-merge-anchor-to-spec`, a mapping holding several merge
+  keys takes them from the last back, so the earliest one's values win.
+  Without `--yaml-fix-merge-anchor-to-spec`, the output formats and `explode` merge through any `<<` key,
+  quoted or tagged, as the reference does; with it, only through a `<<` tagged `!!merge`.
+
 ### Fixed
 
 - `yq`: reading a long YAML line that contains a non-ASCII character is linear again. A 110 KB single-line
@@ -57,6 +71,17 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 - `jq`: the regex `l` (longest match) modifier takes linear time over the subject; with `g` it was
   quadratic (`[match("a"; "gl")]` over 4,000 characters took 12 seconds, 20,000 now take a fraction of one).
 
+- `yq --yaml-fix-merge-anchor-to-spec`: the output formats now merge what navigation merges. A `<<` merge
+  key whose value is an inline mapping (`<<: {a: 1}`), a sequence holding inline mappings, or an alias of a
+  sequence was honoured by `.a` but dropped by `-o json` and the other encoders, and by format operators
+  such as `@json`, which now also follow the flag.
+- `yq`: a lookup through a chain of more than 32 mappings that each merge the next (`a1: {<<: *a0}`,
+  `a2: {<<: *a1}`, ...) silently lost the keys beyond the 32nd; chains are now followed as deep as a
+  document may nest.
+- `yq`: when the regex engine gives up (the backtracking limit, or a malformed UTF-8 string such as one from
+  `@base64d`), `test`, `match`, `capture`, `sub` and `*` wildcards in `==` and key lookups now raise an error,
+  as `jq` does, instead of silently answering false, no match or the unchanged input.
+
 ### Security
 
 - `jq`: a program nested deeper than 10,000 levels (brackets, `|` or `//` operands, or nested constructs) is a
@@ -92,6 +117,37 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 
   Padding and repetition below these bounds behave as before (`null | .[2000000] = 1`, `"x" * 300000000`),
   including running out of memory when the `memory_limit` cannot hold the result.
+
+- `yq`: a merge key that merges the mapping it sits in (`a: &a {x: 1, <<: *a}`) no longer crashes the
+  process with a segmentation fault in the JSON, properties, TOML, Lua, shell, HCL, XML and KYAML encoders
+  or in `explode` with `--yaml-fix-merge-anchor-to-spec`; the re-entered mapping counts as already merged.
+- `yq`: `explode` of an alias or merge key that refers to a node containing it (`a: &a [*a, *a]`,
+  `a: &a {b: {<<: *a}}`) copied it level upon level until time ran out, in either merge mode; it is now
+  refused at once with `cannot explode: an alias or merge key refers to a node that contains it`.
+- `yq`: an alias bomb (a few hundred bytes of nested aliases that expand to billions of nodes) is refused with
+  `document contains excessive aliasing`, as go-yaml words it, by every output format that writes aliases out
+  as copies, by format operators such as `@json` and by `explode`, instead of running until time or memory
+  ran out. A document is refused when it would write out more than four million nodes, whatever its own size
+  (padding a bomb with plain items does not raise the limit), or more than a million nodes at more than a
+  thousand times its own size. Templates that merge a shared base into thousands of items are written as
+  before. A `<<` key counts as a merge exactly when the writer in that merge mode merges through it, so a
+  tagged key (`!x <<`) cannot hide a bomb. YAML output keeps the aliases and is unaffected.
+- `yq`: a mapping merged along many paths (`<<: [*a, *a, ...]`, level upon level) is expanded once per lookup,
+  so `.key` lookups, `.[]` and the encoders take linear rather than exponential time over such merge chains;
+  the alias budget above counts a repeated merge source once.
+- `yq --split-exp`: file names come from the data, so a name must now be a plain path inside the current
+  directory. A stream wrapper (`php://filter/...`, `file:///...`, `ftp://...`, `data:...`), a NUL byte, or a
+  path that climbs out of the directory (`../x`, an absolute path elsewhere, or through a symlink that already
+  exists there) is refused before anything is created. `.` and `..` inside the name are resolved, so
+  `sub/../x` now writes `x` instead of failing.
+- `yq -o xml`: a key, comment or directive could write markup into the output (`"x><evil/><y": 1`,
+  `# c --> <evil/>`, `+directive: "DOCTYPE x><evil/><y"`). Element and attribute names may now not be
+  empty or hold any of `< > & " ' = / ! ?`, processing-instruction targets must be XML names, a comment may
+  not contain `-->`, a processing instruction may not contain `?>`, and a directive's `<` and `>` must
+  balance outside quotes and comments, as the reference checks; each is a format error, worded as the
+  reference words it where it refuses the same thing. Names the reference writes as they are, such as `200`
+  or `my key`, are still written.
+
 
 ## 0.1.0 — 2026-10-08
 

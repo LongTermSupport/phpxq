@@ -187,7 +187,7 @@ final readonly class Evaluator implements EvaluatorInterface
         $fixed = $context->services->yamlFixMergeAnchorToSpec;
         $out   = [];
         foreach ($bases as $base) {
-            foreach (Traversal::values($base, $fixed) as $child) {
+            foreach (Traversal::values($base, $fixed, listing: false) as $child) {
                 $out[] = $child;
             }
         }

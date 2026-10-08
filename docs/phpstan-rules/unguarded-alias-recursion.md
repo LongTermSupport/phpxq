@@ -4,10 +4,16 @@
 
 ## What fires
 
-A recursive method that resolves a YAML alias on the way down (`NodeOps::deref()`,
-`NodeTools::unwrap()` or a read of `aliasTarget`) and recurses into what it found, when neither the
-method nor any method on the same recursion cycle compares an `int` parameter named `depth`, `nesting`,
-`remaining` or `budget` with a named constant:
+A recursive method that resolves a YAML alias on the way down and recurses into what it found, when neither
+the method nor any method on the same recursion cycle compares an `int` parameter named `depth`, `nesting`,
+`remaining` or `budget` with a named constant. An alias is resolved by:
+
+- a read of `aliasTarget`;
+- a call to a known resolver of another class: `NodeOps::deref()`, `NodeTools::unwrap()`, or the merge-key
+  source resolver (the mappings a `<<` value merges in);
+- a call to an own method, or a static method of another class, whose return value comes from any of these,
+  found transitively by reading that method's source. A helper that unwraps the merge sources is a resolver
+  wherever it lives, so `pairs()` recursing into what that helper returned is reported:
 
 ```php
 public static function canonical(Node $node): string
@@ -25,7 +31,9 @@ public static function canonical(Node $node): string
 An alias points at the node carrying its anchor, and the anchor may sit above the alias:
 `d: &y [*y, 2]`. Walking `content` alone is a walk over a tree and ends. Following aliases while
 descending is a walk over a graph that can contain a cycle, so the recursion never ends: the process
-spins until memory or time runs out (`yq '.d | unique'` hung before the bound existed).
+spins until memory or time runs out (`yq '.d | unique'` hung before the bound existed), or the native stack
+overflows and PHP segfaults: a merge key that merges its own mapping (`a: &a {x: 1, <<: *a}`) crashed
+`yq -o json` and `explode` that way.
 
 ## The correct construction
 
@@ -50,4 +58,8 @@ count.
 ## Limits
 
 Only recursion inside one class is seen. The check that a cycle is bounded accepts the guard in any method
-of the cycle and does not verify that every member passes the depth along.
+of the cycle and does not verify that every member passes the depth along. Resolvers of other classes are
+found through static calls only; an instance method of another object is judged only when it is listed in the
+rule's `RESOLVERS`. A set of visited nodes is a real guard but is not recognised, so a walk that keeps one
+also takes a compared depth. A depth bound stops a cycle but not a fan-out: copying `a: &a [*a, *a]` to a
+depth of 200 is still 2^200 copies, so code that copies aliased content also keeps a set of its ancestors.

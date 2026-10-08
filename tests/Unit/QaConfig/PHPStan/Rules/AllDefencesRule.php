@@ -30,7 +30,7 @@ final readonly class AllDefencesRule implements Rule
 
     public function __construct(ReflectionProvider $reflectionProvider)
     {
-        $this->aliasRecursion      = new UnguardedAliasRecursionRule();
+        $this->aliasRecursion      = new UnguardedAliasRecursionRule($reflectionProvider);
         $this->nativeCallback      = new RecursionThroughNativeCallbackRule($reflectionProvider);
         $this->loopConstruction    = new LoopInvariantConstructionRule();
         $this->stringDiscriminator = new StringDiscriminatorRule();
