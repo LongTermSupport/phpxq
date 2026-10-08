@@ -60,19 +60,17 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
   uncatchable `internal error: Uninitialized string offset`.
 
 - Some single operations that could grow a value without bound are now refused with an ordinary, catchable
-  error. These checks do not rule out running out of memory, which remains a fatal error:
+  error when they pass fixed bounds. These bounds do not prevent running out of memory, which remains a fatal
+  error: an operation within them can still exhaust the `memory_limit` or the host.
 
   - `jq` enforces jq 1.6's own index bound: an array index above 536,870,911 is `Array index too large`.
   - Padding an array or sequence with more than 2^28 (268,435,456) nulls to reach a far index is refused
     (`jq`: `Cannot pad array to index ...`; `yq`, including a properties key such as `a.999999999`:
     `cannot pad a sequence ...`).
-  - When a `memory_limit` is set, padding whose estimated size exceeds the memory left is also refused
-    (`... would not fit in the memory_limit`). With `memory_limit=-1`, padding up to 2^28 is attempted and
-    can still exhaust the host's memory, and a yq padding of millions of entries needs about 420 bytes each.
   - `jq` refuses to repeat a string into more than 1 GiB (`Repeat string result too long`).
 
-  Padding and repetition that jq 1.6 and Go yq perform (`null | .[2000000] = 1`, `"x" * 300000000`) still
-  work when the memory to hold them is available.
+  Padding and repetition below these bounds behave as before (`null | .[2000000] = 1`, `"x" * 300000000`),
+  including running out of memory when the `memory_limit` cannot hold the result.
 
 ## 0.1.0 — 2026-10-08
 

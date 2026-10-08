@@ -39,7 +39,7 @@ final class Detached
     /**
      * Makes the candidate (and every placeholder above it) part of the tree.
      *
-     * @throws EvaluationException when padding a sequence is refused by {@see AllocationLimit}
+     * @throws EvaluationException when a sequence would be padded past {@see AllocationLimit::MAX_PADDING}
      */
     public static function attach(Candidate $candidate): void
     {
@@ -68,9 +68,8 @@ final class Detached
 
         if (NodeKindEnum::Sequence === $parent->kind) {
             $index = (int)$key->value;
-            $refusal = AllocationLimit::sequencePaddingError($index, \count($parent->content));
-            if (null !== $refusal) {
-                throw new EvaluationException($refusal);
+            if (AllocationLimit::padsTooFar($index, \count($parent->content))) {
+                throw new EvaluationException(AllocationLimit::paddingError($index));
             }
 
             while (\count($parent->content) < $index) {

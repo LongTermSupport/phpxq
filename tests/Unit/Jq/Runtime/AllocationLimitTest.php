@@ -16,9 +16,8 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Padding an array up to a far index and repeating a string fail with an ordinary jq error past the fixed bounds
- * of {@see AllocationLimit}, and padding also fails when it would not fit in what the memory_limit leaves.
- * Running out of memory is a fatal error no `try` can catch; these checks narrow the ways to reach it, they do
- * not rule it out.
+ * of {@see AllocationLimit}. Those bounds do not prevent running out of memory, which stays a fatal error no
+ * `try` can catch.
  *
  * @internal
  */
@@ -31,14 +30,6 @@ final class AllocationLimitTest extends TestCase
     private const string INDEX_TOO_LARGE = '"Array index too large"';
 
     private const string REPEAT_TOO_LONG = '"Repeat string result too long"';
-
-    private const string MEMORY_LIMIT = 'memory_limit';
-
-    private const int HEADROOM = 268435456;
-
-    private const int TOO_MANY_FOR_THE_HEADROOM = 10000000;
-
-    private const int FITS_IN_THE_HEADROOM = 1000000;
 
     #[DataProvider('refused')]
     public function testHugeAllocationsAreCatchableErrors(string $program, string $error): void
@@ -74,32 +65,12 @@ final class AllocationLimitTest extends TestCase
      */
     public static function allowed(): iterable
     {
-        // padding that jq 1.6 performs: a long way below the limit, which only stops what cannot fit in memory
+        // padding and repetition that jq 1.6 performs, a long way below the bounds
         yield 'padding two million places'       => ['null | .[2000000] = 1 | length', '2000001'];
         yield 'setpath a million and a half'     => ['[] | setpath([1500000]; 1) | length', '1500001'];
         yield 'a far index inside a long array'  => ['[range(2000010)] | .[2000005] = "x" | .[2000005]', '"x"'];
         yield 'repeat below the limit'           => ['"ab" * 100000 | length', '200000'];
         yield 'repeat as far as jq 1.6 does'     => ['"x" * 300000000 | length', '300000000'];
-    }
-
-    /**
-     * Under a memory_limit that leaves 256 MiB, ten million nulls are refused before padding starts, while a
-     * million still fit and run.
-     */
-    public function testPaddingThatWouldNotFitInTheMemoryLimitIsACatchableError(): void
-    {
-        $saved = ini_get(self::MEMORY_LIMIT);
-        self::assertNotFalse(ini_set(self::MEMORY_LIMIT, (string)(memory_get_usage(true) + self::HEADROOM)));
-        try {
-            $refused = $this->jq('try (null | .[' . self::TOO_MANY_FOR_THE_HEADROOM . '] = 1) catch .');
-            $fits    = $this->jq('[1] | .[' . self::FITS_IN_THE_HEADROOM . '] = 1 | length');
-        } finally {
-            ini_set(self::MEMORY_LIMIT, $saved);
-        }
-
-        $padding = self::TOO_MANY_FOR_THE_HEADROOM;
-        self::assertSame('"' . \sprintf(PathOps::PADDING_OUT_OF_MEMORY, $padding, $padding) . "\"\n", $refused);
-        self::assertSame((self::FITS_IN_THE_HEADROOM + 1) . "\n", $fits);
     }
 
     private static function paddingError(int $index): string

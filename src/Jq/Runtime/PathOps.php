@@ -34,8 +34,6 @@ final readonly class PathOps
 
     public const string PADDING_TOO_FAR = 'Cannot pad array to index %d: more than %d nulls would be added';
 
-    public const string PADDING_OUT_OF_MEMORY = 'Cannot pad array to index %d: %d nulls would not fit in the memory_limit';
-
     private const int MAX_PATH_DEPTH = 10000;
 
     private function __construct()
@@ -44,7 +42,7 @@ final readonly class PathOps
 
     /**
      * Refuses an index past jq's own limit, and one so far past the end of an array of $count elements that
-     * padding up to it would exceed {@see AllocationLimit::MAX_PADDING} or what the memory_limit leaves.
+     * padding up to it would exceed {@see AllocationLimit::MAX_PADDING}.
      *
      * @throws JqException
      */
@@ -56,10 +54,6 @@ final readonly class PathOps
 
         if (AllocationLimit::padsTooFar($index, $count)) {
             throw new JqException(\sprintf(self::PADDING_TOO_FAR, $index, AllocationLimit::MAX_PADDING));
-        }
-
-        if (AllocationLimit::exceedsMemoryLimit($index - $count, AllocationLimit::JQ_PADDED_ENTRY_BYTES)) {
-            throw new JqException(\sprintf(self::PADDING_OUT_OF_MEMORY, $index, $index - $count));
         }
     }
 
