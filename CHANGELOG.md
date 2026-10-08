@@ -13,6 +13,30 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 
 ## Unreleased
 
+### Fixed
+
+- `yq`: reading a long YAML line that contains a non-ASCII character is linear again. A 110 KB single-line
+  flow map with one `é` took 13 s and now takes about 1.5 s; a 360 KB one no longer runs past a minute.
+- `jq`: `indices`, `index` and `rindex` on a non-ASCII string are linear in the number of matches.
+  `"é" * 20000 | indices("é")` took 8 s and now takes 0.3 s.
+- `jq`: slicing a non-ASCII string (`$s[$i:$j]`) no longer splits the whole string into characters on
+  every slice. Taking every one-character slice of an 8,000-character string took about 20 s and now takes
+  under 2 s.
+- `jq`: `add` over objects and object `+` and `*` build the result in one pass instead of copying it once
+  per key. `[range(80000) | {(tostring): .}] | add` took 70 s and now takes under 3 s; `{} + $o` on a
+  20,000-key object went from 4 s to 0.2 s, and on 160,000 keys runs in under a second.
+- `jq`: `reduce` and `foreach` whose update is `. + x`, `. += x` or `.[k] = x` grow the accumulator in place
+  instead of copying it on every step. `reduce range(40000) as $i ([]; . + [$i])` took 8 s and now takes
+  0.25 s; `reduce range(40000) as $i ({}; .[$i | tostring] = $i)` went from 4.7 s to 0.4 s.
+- `jq`: `sub`/`gsub` join their output once instead of re-concatenating it at every match, and deleting
+  many members of one object (`del(.[])`, `delpaths`) copies the object once. `gsub` over 200,000 matches
+  went from 8.7 s to 3 s; `del(.[])` on a 20,000-key object from 12 s to 3.5 s.
+- `jq`: comparing objects (`sort`, `unique`, `group_by`, `==` and the other comparisons) sorts each
+  object's keys once instead of on every comparison, which halves the time to sort and deduplicate 50,000
+  ten-key objects.
+- `yq`: reading HCL with many attributes or block labels in one body is linear. 20,000 attributes took
+  over two minutes and now take 2 s.
+
 ## 0.1.0 — 2026-10-08
 
 ### Changed — breaking

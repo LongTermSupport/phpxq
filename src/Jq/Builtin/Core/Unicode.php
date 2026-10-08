@@ -95,14 +95,6 @@ final readonly class Unicode
         return false === $parts ? [] : $parts;
     }
 
-    /**
-     * Number of codepoints in the first $bytes bytes of $text ($bytes sits on a character boundary).
-     */
-    public static function offsetOf(string $text, int $bytes): int
-    {
-        return $bytes - self::continuations(substr($text, 0, $bytes));
-    }
-
     public static function trim(string $text, bool $left, bool $right): string
     {
         $pattern = self::TRIM_CLASS;

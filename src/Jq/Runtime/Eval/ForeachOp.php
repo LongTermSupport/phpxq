@@ -14,12 +14,17 @@ use Closure;
  */
 final readonly class ForeachOp implements OpInterface
 {
+    /**
+     * @param ?AccumulatorUpdate $inPlace the update in its in-place form, when it has one; it must compute
+     *                                    what $update computes
+     */
     public function __construct(
         private OpInterface $source,
         private BinderInterface $binder,
         private OpInterface $init,
         private OpInterface $update,
         private ?OpInterface $extract,
+        private ?AccumulatorUpdate $inPlace = null,
     ) {
     }
 
@@ -29,7 +34,19 @@ final readonly class ForeachOp implements OpInterface
             $state   = $initial;
             $update  = $this->update;
             $extract = $this->extract;
-            SourceBindings::each($this->source, $this->binder, $env, $input, static function (?Env $bound) use (&$state, $update, $extract, $emit): void {
+            $inPlace = $this->inPlace;
+            SourceBindings::each($this->source, $this->binder, $env, $input, static function (?Env $bound) use (&$state, $update, $extract, $inPlace, $emit): void {
+                if ($inPlace instanceof AccumulatorUpdate) {
+                    $inPlace->apply($bound, $state);
+                    if ($extract instanceof OpInterface) {
+                        $extract->run($bound, $state, $emit);
+                    } else {
+                        $emit($state);
+                    }
+
+                    return;
+                }
+
                 $current = $state;
                 $state   = null;
                 $update->run($bound, $current, static function (mixed $value) use (&$state, $extract, $bound, $emit): void {

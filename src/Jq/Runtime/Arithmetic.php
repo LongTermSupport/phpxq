@@ -77,12 +77,7 @@ final readonly class Arithmetic
         }
 
         if ($left instanceof JsonObject && $right instanceof JsonObject) {
-            $members = $left;
-            foreach ($right->entries() as $key => $value) {
-                $members = $members->with($key, $value);
-            }
-
-            return $members;
+            return new JsonObject(array_replace($left->toArray(), $right->toArray()));
         }
 
         throw ErrorText::typeError2($left, $right, 'cannot be added');
@@ -287,16 +282,14 @@ final readonly class Arithmetic
             throw new JqException('Object merge too deep');
         }
 
-        $merged = $left;
-        foreach ($right->entries() as $key => $value) {
-            $existing = $merged->get($key);
-            if ($value instanceof JsonObject && $existing instanceof JsonObject) {
-                $merged = $merged->with($key, self::mergeDeep($existing, $value, $depth + 1));
-            } else {
-                $merged = $merged->with($key, $value);
-            }
+        $merged = $left->toArray();
+        foreach ($right->toArray() as $key => $value) {
+            $existing     = $merged[$key] ?? null;
+            $merged[$key] = $value instanceof JsonObject && $existing instanceof JsonObject
+                ? self::mergeDeep($existing, $value, $depth + 1)
+                : $value;
         }
 
-        return $merged;
+        return new JsonObject($merged);
     }
 }
