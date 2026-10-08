@@ -89,7 +89,7 @@ final class AllocationLimitTest extends TestCase
     public function testPaddingThatWouldNotFitInTheMemoryLimitIsACatchableError(): void
     {
         $saved = ini_get(self::MEMORY_LIMIT);
-        ini_set(self::MEMORY_LIMIT, (string)(memory_get_usage() + self::HEADROOM));
+        self::assertNotFalse(ini_set(self::MEMORY_LIMIT, (string)(memory_get_usage(true) + self::HEADROOM)));
         try {
             $refused = $this->jq('try (null | .[' . self::TOO_MANY_FOR_THE_HEADROOM . '] = 1) catch .');
             $fits    = $this->jq('[1] | .[' . self::FITS_IN_THE_HEADROOM . '] = 1 | length');

@@ -85,7 +85,7 @@ final class AllocationLimitTest extends TestCase
     {
         $tooMany = self::TOO_MANY_FOR_THE_HEADROOM;
         $saved   = ini_get(self::MEMORY_LIMIT);
-        ini_set(self::MEMORY_LIMIT, (string)(memory_get_usage() + self::HEADROOM));
+        self::assertNotFalse(ini_set(self::MEMORY_LIMIT, (string)(memory_get_usage(true) + self::HEADROOM)));
         try {
             $assigned   = new CliRunner()->run(['yq', '-n', self::assignAt('.a', $tooMany)]);
             $properties = new CliRunner()->run(['yq', ...self::FROM_PROPERTIES], self::propertyAt($tooMany));

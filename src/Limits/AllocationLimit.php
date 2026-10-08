@@ -64,7 +64,8 @@ final readonly class AllocationLimit
             return false;
         }
 
-        return $entries > intdiv(max(0, $limit - memory_get_usage()), $bytesPerEntry);
+        // the limit is enforced against the memory PHP holds from the system, not only what is in use
+        return $entries > intdiv(max(0, $limit - memory_get_usage(true)), $bytesPerEntry);
     }
 
     /**
