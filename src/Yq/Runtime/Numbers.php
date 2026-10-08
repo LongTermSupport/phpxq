@@ -115,6 +115,32 @@ final readonly class Numbers
         return $text;
     }
 
+    /**
+     * The int a number stands for where an int is required (an index, a count, a unix time): a float is
+     * truncated towards zero, clamped to the int range when it lies outside it, and NaN is 0. PHP refuses
+     * to cast an out-of-range float, so every such conversion goes through here.
+     */
+    public static function toInt(int|float $value): int
+    {
+        if (\is_int($value)) {
+            return $value;
+        }
+
+        if (is_nan($value)) {
+            return 0;
+        }
+
+        if ($value >= (float)\PHP_INT_MAX) {
+            return \PHP_INT_MAX;
+        }
+
+        if ($value <= (float)\PHP_INT_MIN) {
+            return \PHP_INT_MIN;
+        }
+
+        return (int)$value;
+    }
+
     public static function tagOf(int|float $value): string
     {
         return \is_int($value) ? CoreSchema::TAG_INT : CoreSchema::TAG_FLOAT;

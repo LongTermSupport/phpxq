@@ -261,7 +261,7 @@ final readonly class Evaluator implements EvaluatorInterface
         foreach ($this->evaluate($expression, $context) as $match) {
             $number = Numbers::of(Cands::node($match));
             if (null !== $number) {
-                return (int)$number;
+                return Numbers::toInt($number);
             }
         }
 

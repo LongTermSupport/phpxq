@@ -75,7 +75,7 @@ final readonly class Args
 
         $number = Numbers::of($node);
 
-        return null === $number ? null : (int)$number;
+        return null === $number ? null : Numbers::toInt($number);
     }
 
     /**

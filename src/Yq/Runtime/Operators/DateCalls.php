@@ -73,7 +73,7 @@ final readonly class DateCalls implements CallOperatorInterface
                     throw new EvaluationException(\sprintf('cannot convert %s to a unix time', $node->value));
                 }
 
-                $time = new DateTimeImmutable('@' . (int)$seconds)->setTimezone(new DateTimeZone(date_default_timezone_get()));
+                $time = new DateTimeImmutable('@' . Numbers::toInt($seconds))->setTimezone(new DateTimeZone(date_default_timezone_get()));
 
                 return Cands::derive($this->dateNode($time, $layout), $match);
 

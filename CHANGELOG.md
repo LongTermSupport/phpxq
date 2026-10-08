@@ -13,10 +13,18 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 
 ## Unreleased
 
+### Changed
+
+- `yq`: string repetition follows Go yq: the count must be an `!!int` (`"ab" * 2.5` is now `cannot multiply !!str with !!float`), a negative count is an error, and the result may not exceed 10 MiB.
+
 ### Fixed
 
 - `jq`: `until` and `while` run any number of iterations, as jq's tail-call optimisation lets them;
   `0 | until(. >= 30000; . + 1)` failed with `Evaluation too deep` after 20,000.
+- `yq`: numbers too large for an integer no longer end the run with an `internal error`. Slice bounds and
+  integer arguments are clamped (`.[0:1e30]` is the whole array), `1e30 | from_unix` gives the latest
+  representable time, an XML character reference beyond Unicode (`&#x99999999999999999999;`) is kept
+  literally, and a Lua `\u{...}` escape beyond Unicode or naming a surrogate is the error `invalid \u escape`.
 
 ### Security
 
@@ -32,10 +40,6 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 - Small programs and inputs can no longer force huge allocations that end in an uncatchable out-of-memory
   error. Assigning to an array index more than 1,048,576 places past the end is an error (`jq`: `Array index too large`; `yq`, including a properties key such as `a.999999999`: `cannot pad a sequence ...`), and jq
   refuses to repeat a string into more than 256 MiB (`Repeat string result too long`).
-
-### Changed
-
-- `yq`: string repetition follows Go yq: the count must be an `!!int` (`"ab" * 2.5` is now `cannot multiply !!str with !!float`), a negative count is an error, and the result may not exceed 10 MiB.
 
 ## 0.1.0 — 2026-10-08
 
