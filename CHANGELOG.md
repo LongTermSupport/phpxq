@@ -25,6 +25,9 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 - `jq`: `add` over objects and object `+` and `*` build the result in one pass instead of copying it once
   per key. `[range(80000) | {(tostring): .}] | add` took 70 s and now takes under 3 s; `{} + $o` on a
   20,000-key object went from 4 s to 0.2 s, and on 160,000 keys runs in under a second.
+- `jq`: `reduce` and `foreach` whose update is `. + x`, `. += x` or `.[k] = x` grow the accumulator in place
+  instead of copying it on every step. `reduce range(40000) as $i ([]; . + [$i])` took 8 s and now takes
+  0.25 s; `reduce range(40000) as $i ({}; .[$i | tostring] = $i)` went from 4.7 s to 0.4 s.
 
 ## 0.1.0 — 2026-10-08
 

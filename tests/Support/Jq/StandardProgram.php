@@ -11,6 +11,7 @@ use LTS\PhpXq\Jq\Parser\Parser;
 use LTS\PhpXq\Jq\Runtime\Compiler;
 use LTS\PhpXq\Jq\Runtime\FileModuleLoader;
 use LTS\PhpXq\Jq\Runtime\JqCompileException;
+use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Json\EncodeOptions;
 use LTS\PhpXq\Json\JsonDecoder;
 use LTS\PhpXq\Json\JsonEncoder;
@@ -54,6 +55,7 @@ final class StandardProgram
      * @return list<string> the compact JSON of every output of the program on the JSON input
      *
      * @throws JqCompileException
+     * @throws JqException        when the program fails at run time
      */
     public static function outputs(string $program, string $input = 'null'): array
     {

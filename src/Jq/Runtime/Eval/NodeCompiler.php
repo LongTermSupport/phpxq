@@ -485,8 +485,9 @@ final readonly class NodeCompiler
         $source           = $this->compile($node->source, $scope);
         $init             = $this->compile($node->init, $scope);
         [$binder, $inner] = $this->pattern($node->pattern, $scope);
+        [$update, $inPlace] = $this->accumulatorUpdate($node->update, $inner);
 
-        return new ReduceOp($source, $binder, $init, $this->compile($node->update, $inner));
+        return new ReduceOp($source, $binder, $init, $update, $inPlace);
     }
 
     private function foreach(ForeachLoop $node, ?Scope $scope): OpInterface
@@ -494,14 +495,59 @@ final readonly class NodeCompiler
         $source           = $this->compile($node->source, $scope);
         $init             = $this->compile($node->init, $scope);
         [$binder, $inner] = $this->pattern($node->pattern, $scope);
+        [$update, $inPlace] = $this->accumulatorUpdate($node->update, $inner);
 
         return new ForeachOp(
             $source,
             $binder,
             $init,
-            $this->compile($node->update, $inner),
+            $update,
             $node->extract instanceof NodeInterface ? $this->compile($node->extract, $inner) : null,
+            $inPlace,
         );
+    }
+
+    /**
+     * A reduce or foreach update compiled as usual, and also in its in-place form when it is `. + x`,
+     * `. += x` or `.[k] = x` with x and k giving one value each. Both forms share the compiled operands and
+     * are built as {@see self::binary()}, {@see self::assign()} and {@see self::index()} build them.
+     *
+     * @return array{OpInterface, ?AccumulatorUpdate}
+     *
+     * @throws JqCompileException
+     */
+    private function accumulatorUpdate(NodeInterface $update, ?Scope $scope): array
+    {
+        if ($update instanceof Binary && BinaryOpEnum::Add === $update->op && $update->left instanceof Identity) {
+            $operand = $this->compile($update->right, $scope);
+            if (!$operand instanceof SingleOpInterface) {
+                return [new OperatorOp(new IdentityOp(), $operand, Arithmetic::add(...)), null];
+            }
+
+            return [new SingleOperatorOp(new IdentityOp(), $operand, Arithmetic::add(...)), AccumulatorUpdate::append($operand)];
+        }
+
+        if ($update instanceof Assign && AssignOpEnum::Add === $update->op && $update->left instanceof Identity) {
+            $operand = $this->compile($update->right, $scope);
+            $general = new ArithAssignOp(new IdentityOp(), $operand, Arithmetic::add(...));
+
+            return [$general, $operand instanceof SingleOpInterface ? AccumulatorUpdate::append($operand) : null];
+        }
+
+        if ($update instanceof Assign && AssignOpEnum::Set === $update->op && $update->left instanceof Index && $update->left->target instanceof Identity) {
+            $key   = $this->compile($update->left->index, $scope);
+            $value = $this->compile($update->right, $scope);
+            $path  = match (true) {
+                $key instanceof ConstOp && \is_string($key->constant) => new FieldOp($key->constant),
+                $key instanceof SingleOpInterface                     => new SingleIndexOp(new IdentityOp(), $key),
+                default                                               => new IndexOp(new IdentityOp(), $key),
+            };
+            $inPlace = $key instanceof SingleOpInterface && $value instanceof SingleOpInterface ? AccumulatorUpdate::setKey($key, $value) : null;
+
+            return [new SetAssignOp($path, $value), $inPlace];
+        }
+
+        return [$this->compile($update, $scope), null];
     }
 
     /**
