@@ -26,6 +26,12 @@ final class XmlEncoderMarkupInjectionTest extends TestCase
 {
     private const string BAD_NAME = 'not a valid XML name';
 
+    private const string BAD_TARGET = 'xml: EncodeToken of ProcInst with invalid Target';
+
+    private const string COMMENT_END = 'xml: EncodeToken of Comment containing --> marker';
+
+    private const string BAD_DIRECTIVE = 'xml: EncodeToken of Directive containing wrong < or > markers';
+
     #[DataProvider('injections')]
     public function testMarkupInjectionIsRefused(string $yaml, string $reason): void
     {
@@ -48,15 +54,15 @@ final class XmlEncoderMarkupInjectionTest extends TestCase
         yield 'element name with a quote' => ["\"a'b\": 1\n", self::BAD_NAME];
         yield 'element name opening a declaration' => ["\"a!b\": 1\n", self::BAD_NAME];
         yield 'element name opening an instruction' => ["\"a?b\": 1\n", self::BAD_NAME];
-        yield 'empty element name' => ["\"\": 1\n", self::BAD_NAME];
+        yield 'empty element name' => ["\"\": 1\n", 'xml: start tag with no name'];
         yield 'attribute name' => ["a:\n  \"+@x=\\\"1\\\" onload\": 2\n", self::BAD_NAME];
-        yield 'processing instruction target' => ["\"+p_a b\": c\n", self::BAD_NAME];
-        yield 'processing instruction target starting with a digit' => ["+p_1a: c\n", self::BAD_NAME];
-        yield 'comment closing early' => ["# c --> <evil/>\na: 1\n", 'comment cannot contain -->'];
-        yield 'comment on a value closing early' => ["a: 1 # c --> d\n", 'comment cannot contain -->'];
-        yield 'processing instruction closing early' => ["\"+p_xml-stylesheet\": 'href=\"a\" ?><evil/>'\n", 'processing instruction cannot contain ?>'];
-        yield 'directive closing early' => ["+directive: \"DOCTYPE x><evil/><y\"\n", 'Directive containing wrong < or > markers'];
-        yield 'directive left open' => ["+directive: \"DOCTYPE x <\"\na: 1\n", 'Directive containing wrong < or > markers'];
+        yield 'processing instruction target' => ["\"+p_a b\": c\n", self::BAD_TARGET];
+        yield 'processing instruction target starting with a digit' => ["+p_1a: c\n", self::BAD_TARGET];
+        yield 'comment closing early' => ["# c --> <evil/>\na: 1\n", self::COMMENT_END];
+        yield 'comment on a value closing early' => ["a: 1 # c --> d\n", self::COMMENT_END];
+        yield 'processing instruction closing early' => ["\"+p_xml-stylesheet\": 'href=\"a\" ?><evil/>'\n", 'xml: EncodeToken of ProcInst containing ?> marker'];
+        yield 'directive closing early' => ["+directive: \"DOCTYPE x><evil/><y\"\n", self::BAD_DIRECTIVE];
+        yield 'directive left open' => ["+directive: \"DOCTYPE x <\"\na: 1\n", self::BAD_DIRECTIVE];
     }
 
     #[DataProvider('validNames')]

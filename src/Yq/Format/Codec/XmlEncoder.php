@@ -43,6 +43,18 @@ final readonly class XmlEncoder implements EncoderInterface
     /** The reference's refusal of a directive whose `<` and `>` do not balance outside quotes and comments. */
     private const string BAD_DIRECTIVE = 'xml: EncodeToken of Directive containing wrong < or > markers';
 
+    /** The reference's refusal of a processing-instruction target that is not an XML name. */
+    private const string BAD_TARGET = 'xml: EncodeToken of ProcInst with invalid Target';
+
+    /** The reference's refusal of processing-instruction text that would end it early. */
+    private const string BAD_PROC_INST = 'xml: EncodeToken of ProcInst containing ?> marker';
+
+    /** The reference's refusal of comment text that would end it early. */
+    private const string BAD_COMMENT = 'xml: EncodeToken of Comment containing --> marker';
+
+    /** The reference's refusal of an empty element or attribute name. */
+    private const string NO_NAME = 'xml: start tag with no name';
+
     public function format(): FormatEnum
     {
         return FormatEnum::Xml;
@@ -50,7 +62,7 @@ final readonly class XmlEncoder implements EncoderInterface
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
-        $root = NodeTools::expandableRoot($node);
+        $root = NodeTools::expandableRoot($node, $options->yamlFixMergeAnchorToSpec);
         if (NodeKindEnum::Scalar === $root->kind) {
             return $this->escapeText($root->value) . "\n";
         }
@@ -182,31 +194,31 @@ final readonly class XmlEncoder implements EncoderInterface
         $text   = NodeTools::unwrap($value);
         $target = substr($key, \strlen(XmlReader::PROC_INST_PREFIX));
         if (1 !== preg_match(self::XML_NAME, $target)) {
-            throw $this->invalidName($target);
+            throw new FormatException(self::BAD_TARGET);
         }
 
         if (str_contains($text->value, self::PROC_INST_END)) {
-            throw new FormatException('xml: a processing instruction cannot contain ' . self::PROC_INST_END);
+            throw new FormatException(self::BAD_PROC_INST);
         }
 
         return '<?' . $target . ('' === $text->value ? '' : ' ' . $text->value) . self::PROC_INST_END;
     }
 
     /**
-     * @throws FormatException when the name is empty or holds a character that would let a key write markup
+     * @throws FormatException when the name is empty (the reference's error) or holds a character that would let a
+     *                         key write markup
      */
     private function name(string $name): string
     {
-        if ('' === $name || false !== strpbrk($name, self::NAME_MARKUP)) {
-            throw $this->invalidName($name);
+        if ('' === $name) {
+            throw new FormatException(self::NO_NAME);
+        }
+
+        if (false !== strpbrk($name, self::NAME_MARKUP)) {
+            throw new FormatException(\sprintf('xml: %s is not a valid XML name', json_encode($name, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE)));
         }
 
         return $name;
-    }
-
-    private function invalidName(string $name): FormatException
-    {
-        return new FormatException(\sprintf('xml: %s is not a valid XML name', json_encode($name, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE)));
     }
 
     /**
@@ -277,7 +289,7 @@ final readonly class XmlEncoder implements EncoderInterface
 
         $text = implode(' ', $parts);
         if (str_contains($text, self::COMMENT_END)) {
-            throw new FormatException('xml: a comment cannot contain ' . self::COMMENT_END);
+            throw new FormatException(self::BAD_COMMENT);
         }
 
         return '<!--' . (str_starts_with($text, "\n") ? '' : ' ') . $text . (str_ends_with($text, "\n") ? '' : ' ') . '-->';
