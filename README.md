@@ -176,8 +176,8 @@ or an unlisted failure breaks the build):
 
 - [jq known gaps](tests/Conformance/Jq/known-gaps.txt): one case, an artefact of the upstream test
   runner (it has no `input` callback), not of the CLI.
-- [yq known gaps](tests/Conformance/Yq/known-gaps.txt): nine documentation examples. Three depend on a
-  frozen clock, two on Go's seeded `math/rand`, two use the `system` operator, which is intentionally
+- [yq known gaps](tests/Conformance/Yq/known-gaps.txt): seven documentation examples. Three depend on a
+  frozen clock, two use the `system` operator, which is intentionally
   unsupported (it spawns processes), and two are damaged upstream fixtures.
 
 Other differences you may notice:

@@ -11,6 +11,8 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * A malformed expression keeps the reference's first line and then says where in the expression the parser stopped.
+ *
+ * @internal
  */
 #[CoversNothing]
 #[Medium]

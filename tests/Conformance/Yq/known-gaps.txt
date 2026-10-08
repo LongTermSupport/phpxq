@@ -16,8 +16,6 @@
 operators/datetime.md: Now	upstream asserts a frozen clock (2021-05-19T01:02:03Z); now is the real time here
 operators/datetime.md: To Unix	upstream asserts a frozen clock (2021-05-19T01:02:03Z); now is the real time here
 operators/datetime.md: Timezone: from standard RFC3339 format	upstream asserts a frozen clock (2021-05-19T01:02:03Z); now is the real time here
-operators/shuffle.md: Shuffle array	shuffle output is random and the upstream example pins a Go math/rand seeded sequence
-operators/shuffle.md: Shuffle array in place	shuffle output is random and the upstream example pins a Go math/rand seeded sequence
 operators/system-operators.md: Run a command with an argument	the system operator spawns an external process, deliberately unsupported by phpxq
 operators/system-operators.md: Run a command without arguments	the system operator spawns an external process, deliberately unsupported by phpxq
 
