@@ -13,6 +13,13 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 
 ## Unreleased
 
+### Security
+
+- `install.sh` downloads over HTTPS only: curl refuses a plain-HTTP redirect and an older TLS than 1.2, GNU
+  wget runs with `--https-only`, and a `PHPXQ_BASE_URL` that is not `https://` is refused. `--links` no longer
+  replaces an existing `jq` or `yq` link that points elsewhere (a version-manager shim, for example), and an
+  interrupted install stops instead of carrying on.
+
 ## 0.1.0 — 2026-10-08
 
 ### Changed — breaking
