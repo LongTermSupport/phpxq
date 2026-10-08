@@ -25,6 +25,8 @@ final class Compare
 
     /**
      * Matches `$subject` against a pattern where `*` stands for any run of characters.
+     *
+     * @throws EvaluationException when the engine gives up (backtracking limit, malformed UTF-8 subject)
      */
     public static function glob(string $subject, string $pattern): bool
     {
@@ -47,7 +49,7 @@ final class Compare
             self::$globs[$pattern] = $regex;
         }
 
-        return 1 === preg_match($regex, $subject);
+        return 1 === GoRegex::checked(preg_match($regex, $subject));
     }
 
     /**

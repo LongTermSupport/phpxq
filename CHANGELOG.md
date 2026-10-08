@@ -18,6 +18,9 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 - `yq`: the output formats now merge what navigation merges. A `<<` merge key whose value is an inline
   mapping (`<<: {a: 1}`), a sequence holding inline mappings, or an alias of a sequence was honoured by `.a`
   but dropped by `-o json` and the other encoders.
+- `yq`: when the regex engine gives up (the backtracking limit, or a malformed UTF-8 string such as one from
+  `@base64d`), `test`, `match`, `capture`, `sub` and `*` wildcards in `==` and key lookups now raise an error,
+  as `jq` does, instead of silently answering false, no match or the unchanged input.
 
 ### Security
 

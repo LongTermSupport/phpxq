@@ -59,27 +59,29 @@ final class GoRegex
         return $regex;
     }
 
+    /**
+     * @throws EvaluationException when the engine gives up (backtracking limit, malformed UTF-8 subject)
+     */
     public static function test(string $regex, string $subject): bool
     {
-        return 1 === preg_match($regex, $subject);
+        return 1 === self::checked(preg_match($regex, $subject));
     }
 
     /**
      * Match records: for each match the text, rune offset and length and its capture groups.
      *
      * @return list<array{string: string, offset: int, length: int, captures: list<array{string: ?string, offset: int, length: int, name: string}>}>
+     *
+     * @throws EvaluationException when the engine gives up (backtracking limit, malformed UTF-8 subject)
      */
     public static function matches(string $regex, string $subject, bool $global): array
     {
         $flags = \PREG_OFFSET_CAPTURE | \PREG_UNMATCHED_AS_NULL;
         $found = [];
         if ($global) {
-            if (false === preg_match_all($regex, $subject, $all, \PREG_SET_ORDER | $flags)) {
-                return [];
-            }
-
+            self::checked(preg_match_all($regex, $subject, $all, \PREG_SET_ORDER | $flags));
             $found = $all;
-        } elseif (1 === preg_match($regex, $subject, $one, $flags)) {
+        } elseif (1 === self::checked(preg_match($regex, $subject, $one, $flags))) {
             $found = [$one];
         }
 
@@ -93,6 +95,8 @@ final class GoRegex
 
     /**
      * Replaces every match (or the first when not `$global`) expanding Go's `$1`, `${1}`, `$name` and `$$`.
+     *
+     * @throws EvaluationException when the engine gives up (backtracking limit, malformed UTF-8 subject)
      */
     public static function replace(string $regex, string $replacement, string $subject, bool $global = true): string
     {
@@ -103,8 +107,31 @@ final class GoRegex
             $subject,
             $limit,
         );
+        if (null === $result) {
+            throw self::engineError();
+        }
 
-        return $result ?? $subject;
+        return $result;
+    }
+
+    /**
+     * The result of a PCRE match call, or the engine's own error as an evaluation error: `false` means the
+     * engine gave up, not that nothing matched.
+     *
+     * @throws EvaluationException when the call failed
+     */
+    public static function checked(false|int $result): int
+    {
+        if (false === $result) {
+            throw self::engineError();
+        }
+
+        return $result;
+    }
+
+    private static function engineError(): EvaluationException
+    {
+        return new EvaluationException(preg_last_error_msg());
     }
 
     /**
