@@ -103,9 +103,10 @@ final readonly class NodeTools
      */
     public static function pairs(Node $mapping): array
     {
-        $merging = [];
+        $expanded = [];
+        $merging  = [];
 
-        return self::mergedPairs($mapping, $merging, 0);
+        return self::mergedPairs($mapping, $expanded, $merging, 0);
     }
 
     /**
@@ -220,15 +221,19 @@ final readonly class NodeTools
     }
 
     /**
-     * @param array<int, true> $merging the mappings whose expansion is under way, by object id: a merge source met
-     *                                  again while it is being expanded (`a: &a {<<: *a}`) is a cycle, and its
-     *                                  pairs are already being taken, so it is skipped
+     * @param array<int, list<array{Node, Node}>> $expanded the pairs of the sources already expanded in this call,
+     *                                                      by object id: a source merged along many paths
+     *                                                      (`<<: [*a, *a, ...]` level upon level) is expanded once
+     * @param array<int, true>                    $merging  the mappings whose expansion is under way, by object id:
+     *                                                      a merge source met again while it is being expanded
+     *                                                      (`a: &a {<<: *a}`) is a cycle, and its pairs are already
+     *                                                      being taken, so it is skipped
      *
      * @return list<array{Node, Node}>
      *
      * @throws FormatException when merge keys reach through more than MAX_MERGE_DEPTH mappings
      */
-    private static function mergedPairs(Node $mapping, array &$merging, int $depth): array
+    private static function mergedPairs(Node $mapping, array &$expanded, array &$merging, int $depth): array
     {
         if ($depth > self::MAX_MERGE_DEPTH) {
             throw new FormatException(self::MERGE_TOO_DEEP);
@@ -271,11 +276,13 @@ final readonly class NodeTools
             }
 
             foreach (self::mergeSources($value) as $source) {
-                if (isset($merging[spl_object_id($source)])) {
+                $id = spl_object_id($source);
+                if (isset($merging[$id])) {
                     continue;
                 }
 
-                foreach (self::mergedPairs($source, $merging, $depth + 1) as [$mergedKey, $mergedValue]) {
+                $expanded[$id] ??= self::mergedPairs($source, $expanded, $merging, $depth + 1);
+                foreach ($expanded[$id] as [$mergedKey, $mergedValue]) {
                     $identity = self::identity($mergedKey);
                     if (isset($taken[$identity])) {
                         continue;

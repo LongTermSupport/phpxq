@@ -25,6 +25,9 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
   ran out. The budget is go-yaml's: more than 100 aliased nodes, more than 1000 nodes in all, and an aliased
   share above 99% (falling to 10% for documents of 4,000,000 nodes). YAML output keeps the aliases and is
   unaffected.
+- `yq`: a mapping merged along many paths (`<<: [*a, *a, ...]`, level upon level) is expanded once per lookup,
+  so `.key` lookups and `.[]` over such merge chains take linear rather than exponential time; the encoders
+  count merge sources against the alias budget above.
 
 ## 0.1.0 — 2026-10-08
 

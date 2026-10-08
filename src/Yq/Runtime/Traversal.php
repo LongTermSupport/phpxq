@@ -143,14 +143,19 @@ final readonly class Traversal
      * (`explode`). The spec-fixed resolution writes the merged entries first (later list items first) and
      * then lets the mapping's own keys win.
      *
+     * Each merge target's own entries are worked out once and replayed wherever it is merged again, so a
+     * target merged along many paths (`<<: [*a, *a, ...]` level upon level) costs its size once rather than
+     * once per path. A target met again while it is being expanded (`a: &a {<<: *a}`) is a cycle whose entries
+     * are already being written, and is skipped.
+     *
      * @return array<int|string, array{Node, Node}>
      */
     public static function entries(Node $map, bool $fixedMerge, bool $reverseTargets = false): array
     {
-        $out = [];
-        self::collect($map, $fixedMerge, $reverseTargets, $out, 0);
+        $expanded = [];
+        $merging  = [];
 
-        return $out;
+        return self::collect($map, $fixedMerge, $reverseTargets, $expanded, $merging, 0);
     }
 
     /**
@@ -291,49 +296,64 @@ final readonly class Traversal
     }
 
     /**
-     * @param array<int|string, array{Node, Node}> $out
+     * The entries one mapping yields, its merge targets expanded. Writing them into the caller's entries one by
+     * one gives what writing them there directly would have: a key keeps its first position and takes its last
+     * value.
+     *
+     * @param array<int, array<int|string, array{Node, Node}>> $expanded the entries of the targets already
+     *                                                                   expanded in this lookup, by object id
+     * @param array<int, true>                                 $merging  the mappings whose expansion is under
+     *                                                                   way, by object id
+     *
+     * @return array<int|string, array{Node, Node}>
      */
-    private static function collect(Node $map, bool $fixedMerge, bool $reverseTargets, array &$out, int $depth): void
+    private static function collect(Node $map, bool $fixedMerge, bool $reverseTargets, array &$expanded, array &$merging, int $depth): array
     {
+        $out = [];
         if ($depth > self::MAX_MERGE_DEPTH) {
-            return;
+            return $out;
         }
 
-        $content = $map->content;
-        $count   = \count($content);
-        if ($fixedMerge) {
-            for ($i = 0; $i < $count; $i += 2) {
-                if (NodeOps::isMergeKey($content[$i])) {
-                    foreach (array_reverse(self::mergeTargets($content[$i + 1])) as $target) {
-                        self::collect($target, $fixedMerge, $reverseTargets, $out, $depth + 1);
-                    }
-                }
-            }
-
-            for ($i = 0; $i < $count; $i += 2) {
-                if (!NodeOps::isMergeKey($content[$i])) {
-                    $out[$content[$i]->value] = [$content[$i], $content[$i + 1]];
-                }
-            }
-
-            return;
-        }
-
+        $merging[spl_object_id($map)] = true;
+        $content                      = $map->content;
+        $count                        = \count($content);
         for ($i = 0; $i < $count; $i += 2) {
-            if (NodeOps::isMergeKey($content[$i])) {
-                $targets = self::mergeTargets($content[$i + 1]);
-                if ($reverseTargets) {
-                    $targets = array_reverse($targets);
-                }
-
-                foreach ($targets as $target) {
-                    self::collect($target, $fixedMerge, $reverseTargets, $out, $depth + 1);
+            if (!NodeOps::isMergeKey($content[$i])) {
+                if (!$fixedMerge) {
+                    $out[$content[$i]->value] = [$content[$i], $content[$i + 1]];
                 }
 
                 continue;
             }
 
-            $out[$content[$i]->value] = [$content[$i], $content[$i + 1]];
+            $targets = self::mergeTargets($content[$i + 1]);
+            if ($fixedMerge || $reverseTargets) {
+                $targets = array_reverse($targets);
+            }
+
+            foreach ($targets as $target) {
+                $id = spl_object_id($target);
+                if (isset($merging[$id])) {
+                    continue;
+                }
+
+                $expanded[$id] ??= self::collect($target, $fixedMerge, $reverseTargets, $expanded, $merging, $depth + 1);
+                foreach ($expanded[$id] as $name => $entry) {
+                    $out[$name] = $entry;
+                }
+            }
         }
+
+        if ($fixedMerge) {
+            for ($i = 0; $i < $count; $i += 2) {
+                if (!NodeOps::isMergeKey($content[$i])) {
+                    $out[$content[$i]->value] = [$content[$i], $content[$i + 1]];
+                }
+            }
+        }
+
+        unset($merging[spl_object_id($map)]);
+
+        return $out;
     }
 }
