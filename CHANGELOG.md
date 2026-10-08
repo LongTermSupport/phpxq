@@ -13,6 +13,8 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 
 ## Unreleased
 
+## 0.1.0 — 2026-10-08
+
 ### Changed — breaking
 
 - **The PHAR and source install need PHP 8.5 with `ext-ctype`, `ext-json` and `ext-mbstring`.** They are
