@@ -62,6 +62,27 @@ final class OutOfRangeNumberTest extends TestCase
         self::assertSame($stdout, $result->stdout);
     }
 
+    /**
+     * @return iterable<string, array{list<string>, string, string, string}>
+     */
+    public static function handled(): iterable
+    {
+        yield 'slice end past the int range'    => [[...self::NULL_TO_JSON, '[1,2] | .[0:1e30]'], '', '', self::parseIntError(self::HUGE)];
+        yield 'slice start past the int range'  => [[...self::NULL_TO_JSON, '[1,2] | .[1e30:]'], '', '', self::parseIntError(self::HUGE)];
+        yield 'slice end below the int range'   => [[...self::NULL_TO_JSON, '[1,2] | .[0:-1e30]'], '', '', self::parseIntError('-1e30')];
+        yield 'slice end with a fraction'       => [[...self::NULL_TO_JSON, '[1,2] | .[0:1.5]'], '', '', self::parseIntError(self::FRACTION)];
+        yield 'string slice with a fraction'    => [['-n', '"abc" | .[0:1.5]'], '', '', self::parseIntError(self::FRACTION)];
+        yield 'integer argument past the range' => [['-n', '[[1,[2]]] | flatten(1e30)'], '', '', self::parseIntError(self::HUGE)];
+        yield 'an int slice bound still works'  => [[...self::NULL_TO_JSON, '[1,2,3] | .[0:2]'], '', "[1,2]\n", ''];
+        yield 'unix time past the int range'    => [['-n', '1e30 | from_unix'], '', '', "Error: cannot convert 1e30 to a unix time\n"];
+        yield 'unix time with a fraction'       => [['-n', '1.5 | from_unix'], '', "1970-01-01T00:00:01Z\n", ''];
+        yield 'xml reference past the range'    => [self::XML_TO_JSON, "<a>&#x99999999999999999999;</a>\n", "{\"a\":\"&#x99999999999999999999;\"}\n", ''];
+        yield 'xml reference past unicode'      => [self::XML_TO_JSON, "<a>&#x110000;</a>\n", "{\"a\":\"&#x110000;\"}\n", ''];
+        yield 'lua escape past unicode'         => [self::FROM_LUA, "return {a=\"\\u{110000}\"}\n", '', self::BAD_LUA_ESCAPE];
+        yield 'lua escape past the int range'   => [self::FROM_LUA, "return {a=\"\\u{99999999999999999999}\"}\n", '', self::BAD_LUA_ESCAPE];
+        yield 'lua escape of a surrogate'       => [self::FROM_LUA, "return {a=\"\\u{D800}\"}\n", '', self::BAD_LUA_ESCAPE];
+    }
+
     #[DataProvider('integers')]
     public function testIntOfAcceptsOnlyIntegers(string $text, string $tag, ?int $expected): void
     {
@@ -103,27 +124,6 @@ final class OutOfRangeNumberTest extends TestCase
         yield 'not a number'              => ['.nan', CoreSchema::TAG_FLOAT, self::INVALID_SYNTAX];
         yield 'an int past the range'     => ['99999999999999999999', CoreSchema::TAG_INT, 'value out of range'];
         yield 'an int below the range'    => ['-99999999999999999999', CoreSchema::TAG_INT, 'value out of range'];
-    }
-
-    /**
-     * @return iterable<string, array{list<string>, string, string, string}>
-     */
-    public static function handled(): iterable
-    {
-        yield 'slice end past the int range'    => [[...self::NULL_TO_JSON, '[1,2] | .[0:1e30]'], '', '', self::parseIntError(self::HUGE)];
-        yield 'slice start past the int range'  => [[...self::NULL_TO_JSON, '[1,2] | .[1e30:]'], '', '', self::parseIntError(self::HUGE)];
-        yield 'slice end below the int range'   => [[...self::NULL_TO_JSON, '[1,2] | .[0:-1e30]'], '', '', self::parseIntError('-1e30')];
-        yield 'slice end with a fraction'       => [[...self::NULL_TO_JSON, '[1,2] | .[0:1.5]'], '', '', self::parseIntError(self::FRACTION)];
-        yield 'string slice with a fraction'    => [['-n', '"abc" | .[0:1.5]'], '', '', self::parseIntError(self::FRACTION)];
-        yield 'integer argument past the range' => [['-n', '[[1,[2]]] | flatten(1e30)'], '', '', self::parseIntError(self::HUGE)];
-        yield 'an int slice bound still works'  => [[...self::NULL_TO_JSON, '[1,2,3] | .[0:2]'], '', "[1,2]\n", ''];
-        yield 'unix time past the int range'    => [['-n', '1e30 | from_unix'], '', '', "Error: cannot convert 1e30 to a unix time\n"];
-        yield 'unix time with a fraction'       => [['-n', '1.5 | from_unix'], '', "1970-01-01T00:00:01Z\n", ''];
-        yield 'xml reference past the range'    => [self::XML_TO_JSON, "<a>&#x99999999999999999999;</a>\n", "{\"a\":\"&#x99999999999999999999;\"}\n", ''];
-        yield 'xml reference past unicode'      => [self::XML_TO_JSON, "<a>&#x110000;</a>\n", "{\"a\":\"&#x110000;\"}\n", ''];
-        yield 'lua escape past unicode'         => [self::FROM_LUA, "return {a=\"\\u{110000}\"}\n", '', self::BAD_LUA_ESCAPE];
-        yield 'lua escape past the int range'   => [self::FROM_LUA, "return {a=\"\\u{99999999999999999999}\"}\n", '', self::BAD_LUA_ESCAPE];
-        yield 'lua escape of a surrogate'       => [self::FROM_LUA, "return {a=\"\\u{D800}\"}\n", '', self::BAD_LUA_ESCAPE];
     }
 
     private static function parseIntError(string $text): string

@@ -215,7 +215,7 @@ final readonly class XmlEncoder implements EncoderInterface
         }
 
         if (false !== strpbrk($name, self::NAME_MARKUP)) {
-            throw new FormatException(\sprintf('xml: %s is not a valid XML name', json_encode($name, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE)));
+            throw new FormatException(\sprintf('xml: %s is not a valid XML name', json_encode($name, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR)));
         }
 
         return $name;

@@ -556,7 +556,7 @@ final readonly class ControlFunctions
     }
 
     /**
-     * `def until(cond; update): def _until: if cond then . else (update | _until) end; _until;`
+     * `def until(cond; update): def _until: if cond then . else (update | _until) end; _until;`.
      *
      * @param Closure(mixed): void $emit
      */
@@ -602,7 +602,7 @@ final readonly class ControlFunctions
     }
 
     /**
-     * `def while(cond; update): def _while: if cond then ., (update | _while) else empty end; _while;`
+     * `def while(cond; update): def _while: if cond then ., (update | _while) else empty end; _while;`.
      *
      * @param Closure(mixed): void $emit
      */

@@ -52,8 +52,8 @@ final class RegexTranslatorDelimiterTest extends TestCase
     {
         try {
             RegexTranslator::translate($source, false, false);
-        } catch (JqException $exception) {
-            self::assertSame($source . ' (at offset 0) is not a valid regex: ' . $reason, $exception->getMessage());
+        } catch (JqException $jqException) {
+            self::assertSame($source . ' (at offset 0) is not a valid regex: ' . $reason, $jqException->getMessage());
 
             return;
         }

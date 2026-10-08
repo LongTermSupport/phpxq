@@ -39,7 +39,7 @@ final class ExpressionLexerInterpolationTest extends TestCase
         $token = new ExpressionLexer()->tokenize($source)[0];
 
         self::assertTrue($token->raw);
-        self::assertSame($expected, self::render($token));
+        self::assertSame($expected, $this->render($token));
     }
 
     /**
@@ -54,8 +54,8 @@ final class ExpressionLexerInterpolationTest extends TestCase
         yield 'quoted paren in source'        => ['"\(.a + ")")x"', [['.@3', 'a@4', '+@6', ')@8', '@11'], 'x']];
         yield 'single quoted paren'           => ['"\(\')\')"', [[')@3', '@6']]];
         yield 'interpolation then text'       => ['"\(.a) tail"', [['.@3', 'a@4', '@5'], ' tail']];
-        yield 'backslash after interpolation' => ['"\(.a)\\\\"', [['.@3', 'a@4', '@5'], '\\']];
-        yield 'escaped backslash before paren' => ['"\\\\(x"', ['\(x']];
+        yield 'backslash after interpolation' => ['"\(.a)\\\"', [['.@3', 'a@4', '@5'], '\\']];
+        yield 'escaped backslash before paren' => ['"\\\(x"', ['\(x']];
         yield 'empty interpolation'           => ['"\()"', [['@3']]];
         yield 'nested string interpolation'   => ['"\("\(1)")"', [['@3', '@9']]];
     }
@@ -65,7 +65,7 @@ final class ExpressionLexerInterpolationTest extends TestCase
         $inner = new ExpressionLexer()->tokenize('"a\("b\(1)")"')[0]->parts[1];
 
         self::assertIsArray($inner);
-        self::assertSame(['b', ['1@8', '@9']], self::render($inner[0]));
+        self::assertSame(['b', ['1@8', '@9']], $this->render($inner[0]));
     }
 
     #[DataProvider('endProvider')]
@@ -81,8 +81,8 @@ final class ExpressionLexerInterpolationTest extends TestCase
     {
         yield 'plain'                    => ['"abc" |', 6];
         yield 'escaped quote'            => ['"a\"b" |', 7];
-        yield 'escaped backslash'        => ['"a\\\\" |', 6];
-        yield 'escaped paren'            => ['"\\\\(x" |', 7];
+        yield 'escaped backslash'        => ['"a\\\" |', 6];
+        yield 'escaped paren'            => ['"\\\(x" |', 7];
         yield 'interpolation'            => ['"\(1)ab" |', 9];
         yield 'two interpolations'       => ['"\(1)\(2)" |', 11];
         yield 'nested paren pair'        => ['"\((1))" |', 9];
@@ -161,7 +161,7 @@ final class ExpressionLexerInterpolationTest extends TestCase
     /**
      * @return list<string|list<string>>
      */
-    private static function render(ExpressionToken $token): array
+    private function render(ExpressionToken $token): array
     {
         return array_map(
             static fn (array|string $part): array|string => \is_string($part)

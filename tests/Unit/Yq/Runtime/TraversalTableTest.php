@@ -128,7 +128,7 @@ final class TraversalTableTest extends TestCase
     public function testLookupThroughAMergeKeyFindsTheMergedEntries(): void
     {
         $map = NodeOps::map([
-            self::mergeKey(), NodeOps::map([NodeOps::str('x'), NodeOps::int(1)]),
+            $this->mergeKey(), NodeOps::map([NodeOps::str('x'), NodeOps::int(1)]),
             NodeOps::str('y'), NodeOps::int(2),
         ]);
 
@@ -151,7 +151,7 @@ final class TraversalTableTest extends TestCase
     public function testMergedEntriesFollowTheMergeOrder(): void
     {
         $merged = NodeOps::map([NodeOps::str('x'), NodeOps::int(2), NodeOps::str('z'), NodeOps::int(3)]);
-        $map    = NodeOps::map([NodeOps::str('x'), NodeOps::int(1), self::mergeKey(), $merged]);
+        $map    = NodeOps::map([NodeOps::str('x'), NodeOps::int(1), $this->mergeKey(), $merged]);
 
         $legacy = Traversal::entries($map, false);
         $fixed  = Traversal::entries($map, true);
@@ -164,7 +164,7 @@ final class TraversalTableTest extends TestCase
     /**
      * A `<<` key as the parser reads a plain one: tagged `!!merge`.
      */
-    private static function mergeKey(): Node
+    private function mergeKey(): Node
     {
         return Node::scalar(MergeKey::NAME, MergeKey::TAG);
     }

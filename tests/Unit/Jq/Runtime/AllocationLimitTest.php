@@ -47,8 +47,8 @@ final class AllocationLimitTest extends TestCase
         yield 'setpath far past the end'       => ['null | setpath([' . $past . ']; 1)', self::paddingError($past)];
         yield 'assignment far past the end'    => ['null | .[' . $past . '] = 1', self::paddingError($past)];
         yield 'update far past the end'        => ['[1] | .[' . ($past + 1) . '] |= 1', self::paddingError($past + 1)];
-        yield 'past jq\'s own index limit'     => ['[] | .[' . (AllocationLimit::MAX_ARRAY_INDEX + 1) . '] = 1', self::INDEX_TOO_LARGE];
-        yield 'jq\'s index limit is also far'  => ['[] | .[' . AllocationLimit::MAX_ARRAY_INDEX . '] = 1', self::paddingError(AllocationLimit::MAX_ARRAY_INDEX)];
+        yield "past jq's own index limit"     => ['[] | .[' . (AllocationLimit::MAX_ARRAY_INDEX + 1) . '] = 1', self::INDEX_TOO_LARGE];
+        yield "jq's index limit is also far"  => ['[] | .[' . AllocationLimit::MAX_ARRAY_INDEX . '] = 1', self::paddingError(AllocationLimit::MAX_ARRAY_INDEX)];
         yield 'repeat past the string limit'   => ['"x" * ' . (AllocationLimit::MAX_STRING_BYTES + 1), self::REPEAT_TOO_LONG];
         yield 'repeat of a longer string'      => ['"ab" * ' . (intdiv(AllocationLimit::MAX_STRING_BYTES, 2) + 1), self::REPEAT_TOO_LONG];
         yield 'repeat a huge number of times'  => ['"x" * 2147483647', self::REPEAT_TOO_LONG];

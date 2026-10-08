@@ -28,7 +28,7 @@ final class YqApplicationNestingTest extends TestCase
     public function testLongChainsRun(): void
     {
         $union  = new CliRunner()->run(['yq', '-n', '[' . implode(', ', array_fill(0, self::LONG_CHAIN, '0')) . '] | length']);
-        $sum    = new CliRunner()->run(['yq', '-n', self::sum(self::LONG_CHAIN)]);
+        $sum    = new CliRunner()->run(['yq', '-n', $this->sum(self::LONG_CHAIN)]);
         $fields = new CliRunner()->run(['yq', '-n', str_repeat('.a', self::LONG_CHAIN)]);
         $pipes  = new CliRunner()->run(['yq', '-n', '1' . str_repeat(' | . + 1', self::LONG_CHAIN)]);
 
@@ -45,8 +45,8 @@ final class YqApplicationNestingTest extends TestCase
     {
         // the first term sits under MAX_TREE_DEPTH additions
         $terms   = NestingLimit::MAX_TREE_DEPTH + 1;
-        $atLimit = new CliRunner()->run(['yq', '-n', self::sum($terms)]);
-        $past    = new CliRunner()->run(['yq', '-n', self::sum($terms + 1)]);
+        $atLimit = new CliRunner()->run(['yq', '-n', $this->sum($terms)]);
+        $past    = new CliRunner()->run(['yq', '-n', $this->sum($terms + 1)]);
 
         self::assertSame(['', $terms . "\n"], [$atLimit->stderr, $atLimit->stdout]);
         self::assertSame("Error: Bad expression, tree deeper than 100000 levels, counting chained operations\n", $past->stderr);
@@ -65,7 +65,7 @@ final class YqApplicationNestingTest extends TestCase
     /**
      * `1 + 1 + ...` with the given number of terms.
      */
-    private static function sum(int $terms): string
+    private function sum(int $terms): string
     {
         return implode(' + ', array_fill(0, $terms, '1'));
     }

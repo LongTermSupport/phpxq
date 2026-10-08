@@ -43,5 +43,4 @@ final readonly class AllocationLimit
     {
         return \sprintf(self::PADDING_ERROR, $index, self::MAX_PADDING);
     }
-
 }

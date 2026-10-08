@@ -25,14 +25,13 @@ use LTS\PhpXq\Limits\AllocationLimit;
  */
 final readonly class PathOps
 {
-    private const array INDEXED_AS = [
-        'string' => 'object',
-        'number' => 'array',
-    ];
-
     public const string INDEX_TOO_LARGE = 'Array index too large';
 
     public const string PADDING_TOO_FAR = 'Cannot pad array to index %d: more than %d nulls would be added';
+    private const array INDEXED_AS      = [
+        'string' => 'object',
+        'number' => 'array',
+    ];
 
     private const int MAX_PATH_DEPTH = 10000;
 

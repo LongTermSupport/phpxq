@@ -46,7 +46,7 @@ final readonly class RegexEngine
         $longest = $regex->longest ? new LongestMatches($regex, $subject, $ascii) : null;
 
         do {
-            $groups = null === $longest ? self::search($regex, $subject, $offset, $ascii) : $longest->from($offset);
+            $groups = $longest instanceof LongestMatches ? $longest->from($offset) : self::search($regex, $subject, $offset, $ascii);
             if (null === $groups) {
                 break;
             }

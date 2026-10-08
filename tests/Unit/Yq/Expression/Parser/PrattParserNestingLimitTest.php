@@ -48,7 +48,7 @@ final class PrattParserNestingLimitTest extends TestCase
     #[DataProvider('shapes')]
     public function testNestingAtTheLimitParses(string $prefix, string $open, string $leaf, string $close, string $suffix, int $fixedLevels): void
     {
-        $source = $prefix . self::nest($open, $leaf, $close, NestingLimit::MAX_DEPTH - $fixedLevels) . $suffix;
+        $source = $prefix . $this->nest($open, $leaf, $close, NestingLimit::MAX_DEPTH - $fixedLevels) . $suffix;
 
         self::assertCount(1, self::parse($source));
     }
@@ -56,14 +56,14 @@ final class PrattParserNestingLimitTest extends TestCase
     #[DataProvider('shapes')]
     public function testNestingPastTheLimitIsASyntaxError(string $prefix, string $open, string $leaf, string $close, string $suffix, int $fixedLevels): void
     {
-        $source = $prefix . self::nest($open, $leaf, $close, NestingLimit::MAX_DEPTH - $fixedLevels + 1) . $suffix;
+        $source = $prefix . $this->nest($open, $leaf, $close, NestingLimit::MAX_DEPTH - $fixedLevels + 1) . $suffix;
 
-        self::assertSame(self::TOO_DEEP, self::syntaxError($source));
+        self::assertSame(self::TOO_DEEP, $this->syntaxError($source));
     }
 
     /**
      * @return iterable<string, array{string, string, string, string, string, int}> fixed prefix, text repeated
-     *                                                                               before the leaf, the leaf, text repeated after it, fixed suffix, levels the fixed text adds
+     *                                                                              before the leaf, the leaf, text repeated after it, fixed suffix, levels the fixed text adds
      */
     public static function shapes(): iterable
     {
@@ -81,7 +81,7 @@ final class PrattParserNestingLimitTest extends TestCase
     public function testSiblingsDoNotAddUpToTheLimit(): void
     {
         // `(A, B) | C`: A sits under the pipe and the union, two levels down
-        $deep = self::nest('[', '1', ']', NestingLimit::MAX_DEPTH - 2);
+        $deep = $this->nest('[', '1', ']', NestingLimit::MAX_DEPTH - 2);
 
         self::assertCount(1, self::parse($deep . ', ' . $deep . ' | ' . $deep));
     }
@@ -121,7 +121,7 @@ final class PrattParserNestingLimitTest extends TestCase
         // one link more than the limit allows even where the first link is the chain's operand (`.a.a`)
         $source = $prefix . str_repeat($link, NestingLimit::MAX_TREE_DEPTH + 2) . $last;
 
-        self::assertSame(self::TOO_LONG, self::syntaxError($source));
+        self::assertSame(self::TOO_LONG, $this->syntaxError($source));
     }
 
     /**
@@ -145,15 +145,15 @@ final class PrattParserNestingLimitTest extends TestCase
     {
         // the leaf `.` sits under MAX_TREE_DEPTH index steps
         self::assertCount(1, self::parse('.' . str_repeat(self::INDEX_STEP, NestingLimit::MAX_TREE_DEPTH)));
-        self::assertSame(self::TOO_LONG, self::syntaxError('.' . str_repeat(self::INDEX_STEP, NestingLimit::MAX_TREE_DEPTH + 1)));
+        self::assertSame(self::TOO_LONG, $this->syntaxError('.' . str_repeat(self::INDEX_STEP, NestingLimit::MAX_TREE_DEPTH + 1)));
     }
 
     public function testNestingAndChainsAddUpToTheTreeLimit(): void
     {
-        $nested = self::nest('[', '.' . str_repeat(self::INDEX_STEP, NestingLimit::MAX_TREE_DEPTH - 100), ']', 100);
+        $nested = $this->nest('[', '.' . str_repeat(self::INDEX_STEP, NestingLimit::MAX_TREE_DEPTH - 100), ']', 100);
 
         self::assertCount(1, self::parse($nested));
-        self::assertSame(self::TOO_LONG, self::syntaxError('[' . $nested . ']'));
+        self::assertSame(self::TOO_LONG, $this->syntaxError('[' . $nested . ']'));
     }
 
     public function testAChainInsideAnInterpolationCountsTowardsTheTreeLimit(): void
@@ -161,13 +161,13 @@ final class PrattParserNestingLimitTest extends TestCase
         $string = self::INTERPOLATION_OPEN . '.' . str_repeat(self::INDEX_STEP, NestingLimit::MAX_TREE_DEPTH - 1) . self::INTERPOLATION_CLOSE;
 
         self::assertCount(1, self::parse($string));
-        self::assertSame(self::TOO_LONG, self::syntaxError($string . self::INDEX_STEP));
+        self::assertSame(self::TOO_LONG, $this->syntaxError($string . self::INDEX_STEP));
     }
 
     #[DataProvider('wrappers')]
     public function testAChainAfterAnOperandAtTheLimitParses(string $wrapper): void
     {
-        self::assertCount(1, self::parse(self::nest('[', '1', ']', NestingLimit::MAX_DEPTH) . str_repeat($wrapper, self::LONG_CHAIN)));
+        self::assertCount(1, self::parse($this->nest('[', '1', ']', NestingLimit::MAX_DEPTH) . str_repeat($wrapper, self::LONG_CHAIN)));
     }
 
     /**
@@ -184,15 +184,15 @@ final class PrattParserNestingLimitTest extends TestCase
 
     public function testAnInterpolationCountsTowardsTheLevelsAroundIt(): void
     {
-        $string = self::nest(self::INTERPOLATION_OPEN, self::nest('[', '1', ']', NestingLimit::MAX_DEPTH - 1), self::INTERPOLATION_CLOSE, 1);
+        $string = $this->nest(self::INTERPOLATION_OPEN, $this->nest('[', '1', ']', NestingLimit::MAX_DEPTH - 1), self::INTERPOLATION_CLOSE, 1);
 
         self::assertCount(1, self::parse($string));
-        self::assertSame(self::TOO_DEEP, self::syntaxError('[' . $string . ']'));
+        self::assertSame(self::TOO_DEEP, $this->syntaxError('[' . $string . ']'));
     }
 
     public function testADeeplyInterpolatedStringParsesInLinearTime(): void
     {
-        $source = self::nest(self::INTERPOLATION_OPEN, '1', self::INTERPOLATION_CLOSE, NestingLimit::MAX_DEPTH);
+        $source = $this->nest(self::INTERPOLATION_OPEN, '1', self::INTERPOLATION_CLOSE, NestingLimit::MAX_DEPTH);
         $start  = hrtime(true);
 
         self::parse($source);
@@ -209,7 +209,7 @@ final class PrattParserNestingLimitTest extends TestCase
         return EvaluationStack::run(static fn (): array => [new PrattParser(new ExpressionLexer()->tokenize($source))->parseAll()]);
     }
 
-    private static function syntaxError(string $source): string
+    private function syntaxError(string $source): string
     {
         try {
             self::parse($source);
@@ -220,7 +220,7 @@ final class PrattParserNestingLimitTest extends TestCase
         self::fail('expected a syntax error');
     }
 
-    private static function nest(string $open, string $leaf, string $close, int $depth): string
+    private function nest(string $open, string $leaf, string $close, int $depth): string
     {
         return str_repeat($open, $depth) . $leaf . str_repeat($close, $depth);
     }

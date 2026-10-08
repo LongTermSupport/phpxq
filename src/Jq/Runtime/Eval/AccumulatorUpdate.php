@@ -54,12 +54,12 @@ final readonly class AccumulatorUpdate
     {
         $operand = $this->operand->value($env, $state);
         if ($this->key instanceof SingleOpInterface) {
-            self::set($state, $this->key->value($env, $state), $operand);
+            $this->set($state, $this->key->value($env, $state), $operand);
 
             return;
         }
 
-        self::add($state, $operand);
+        $this->add($state, $operand);
     }
 
     /**
@@ -67,7 +67,7 @@ final readonly class AccumulatorUpdate
      *
      * @throws JqException
      */
-    private static function add(mixed &$state, mixed $operand): void
+    private function add(mixed &$state, mixed $operand): void
     {
         if (\is_array($state) && \is_array($operand)) {
             foreach ($operand as $value) {
@@ -104,7 +104,7 @@ final readonly class AccumulatorUpdate
      *
      * @throws JqException
      */
-    private static function set(mixed &$state, mixed $key, mixed $value): void
+    private function set(mixed &$state, mixed $key, mixed $value): void
     {
         if ($state instanceof JsonObject && \is_string($key)) {
             $members       = $state->toArray();

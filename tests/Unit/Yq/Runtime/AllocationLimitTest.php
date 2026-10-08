@@ -50,7 +50,7 @@ final class AllocationLimitTest extends TestCase
 
         yield 'index assignment far past the end' => [['-n', self::assignAt('.', $past)], '', \sprintf('cannot pad a sequence to index %d: more than %d new entries', $past, AllocationLimit::MAX_PADDING)];
         yield 'nested index far past the end'     => [['-n', self::assignAt('.a', $past)], '', \sprintf('cannot pad a sequence to index %d: more than %d new entries', $past, AllocationLimit::MAX_PADDING)];
-        yield 'properties index far past the end' => [self::FROM_PROPERTIES, self::propertyAt($past), \sprintf('bad file \'-\': properties: cannot pad a sequence to index %d: more than %d new entries', $past, AllocationLimit::MAX_PADDING)];
+        yield 'properties index far past the end' => [self::FROM_PROPERTIES, self::propertyAt($past), \sprintf("bad file '-': properties: cannot pad a sequence to index %d: more than %d new entries", $past, AllocationLimit::MAX_PADDING)];
         yield 'repeat past 10 MiB'                => [['-n', '"ab" * 100000000'], '', 'result of repeating string (2 bytes) by 100000000 would exceed 10485760 bytes'];
         yield 'repeat a huge float'               => [['-n', '"ab" * 1e12'], '', 'cannot multiply !!str with !!float'];
         yield 'repeat a fraction'                 => [['-n', '"ab" * 2.5'], '', 'cannot multiply !!str with !!float'];
