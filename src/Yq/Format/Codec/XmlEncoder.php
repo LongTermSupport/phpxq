@@ -22,14 +22,26 @@ final readonly class XmlEncoder implements EncoderInterface
     /** The deepest element nesting written; deeper usually means an alias cycle. */
     private const int MAX_DEPTH = 1000;
 
-    /** The XML 1.0 (fifth edition) `Name` production: a NameStartChar, then NameChars. */
+    /** The XML 1.0 (fifth edition) `Name` production, which processing-instruction targets must match. */
     private const string XML_NAME = '/^[:A-Z_a-z\x{C0}-\x{D6}\x{D8}-\x{F6}\x{F8}-\x{2FF}\x{370}-\x{37D}\x{37F}-\x{1FFF}\x{200C}-\x{200D}\x{2070}-\x{218F}\x{2C00}-\x{2FEF}\x{3001}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFFD}\x{10000}-\x{EFFFF}][:A-Z_a-z\x{C0}-\x{D6}\x{D8}-\x{F6}\x{F8}-\x{2FF}\x{370}-\x{37D}\x{37F}-\x{1FFF}\x{200C}-\x{200D}\x{2070}-\x{218F}\x{2C00}-\x{2FEF}\x{3001}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFFD}\x{10000}-\x{EFFFF}\-.0-9\x{B7}\x{300}-\x{36F}\x{203F}-\x{2040}]*$/Du';
 
-    /** What ends a comment early; XML forbids it anywhere inside one. */
-    private const string COMMENT_END = '--';
+    /**
+     * Characters that would let an element or attribute name close its tag, open another, start an attribute value
+     * or an entity; any other text is written as the reference writes it.
+     */
+    private const string NAME_MARKUP = '<>&"\'=/!?';
+
+    /** What opens a comment. */
+    private const string COMMENT_START = '<!--';
+
+    /** What ends a comment early. */
+    private const string COMMENT_END = '-->';
 
     /** What ends a processing instruction early. */
     private const string PROC_INST_END = '?>';
+
+    /** The reference's refusal of a directive whose `<` and `>` do not balance outside quotes and comments. */
+    private const string BAD_DIRECTIVE = 'xml: EncodeToken of Directive containing wrong < or > markers';
 
     public function format(): FormatEnum
     {
@@ -168,7 +180,11 @@ final readonly class XmlEncoder implements EncoderInterface
     private function procInst(string $key, Node $value): string
     {
         $text   = NodeTools::unwrap($value);
-        $target = $this->name(substr($key, \strlen(XmlReader::PROC_INST_PREFIX)));
+        $target = substr($key, \strlen(XmlReader::PROC_INST_PREFIX));
+        if (1 !== preg_match(self::XML_NAME, $target)) {
+            throw $this->invalidName($target);
+        }
+
         if (str_contains($text->value, self::PROC_INST_END)) {
             throw new FormatException('xml: a processing instruction cannot contain ' . self::PROC_INST_END);
         }
@@ -177,20 +193,68 @@ final readonly class XmlEncoder implements EncoderInterface
     }
 
     /**
-     * @throws FormatException when the name is not an XML name, which would let a key write markup
+     * @throws FormatException when the name is empty or holds a character that would let a key write markup
      */
     private function name(string $name): string
     {
-        if (1 !== preg_match(self::XML_NAME, $name)) {
-            throw new FormatException(\sprintf('xml: %s is not a valid XML name', json_encode($name, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE)));
+        if ('' === $name || false !== strpbrk($name, self::NAME_MARKUP)) {
+            throw $this->invalidName($name);
         }
 
         return $name;
     }
 
+    private function invalidName(string $name): FormatException
+    {
+        return new FormatException(\sprintf('xml: %s is not a valid XML name', json_encode($name, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE)));
+    }
+
+    /**
+     * @throws FormatException when the directive's `<` and `>` do not balance, which would let it write markup
+     */
     private function directive(Node $value): string
     {
-        return '<!' . NodeTools::unwrap($value)->value . '>';
+        $text = NodeTools::unwrap($value)->value;
+        if (!$this->isBalancedDirective($text)) {
+            throw new FormatException(self::BAD_DIRECTIVE);
+        }
+
+        return '<!' . $text . '>';
+    }
+
+    /**
+     * The reference's directive check: outside quotes and comments every `>` closes an earlier `<`, and nothing is
+     * left open at the end.
+     */
+    private function isBalancedDirective(string $text): bool
+    {
+        $depth     = 0;
+        $quote     = '';
+        $inComment = false;
+        for ($i = 0, $n = \strlen($text); $i < $n; ++$i) {
+            $char = $text[$i];
+            if ($inComment) {
+                $inComment = !('>' === $char && $i >= 2 && self::COMMENT_END === substr($text, $i - 2, 3));
+            } elseif ('' !== $quote) {
+                $quote = $char === $quote ? '' : $quote;
+            } elseif ("'" === $char || '"' === $char) {
+                $quote = $char;
+            } elseif ('<' === $char) {
+                if ($i + \strlen(self::COMMENT_START) < $n && str_starts_with(substr($text, $i), self::COMMENT_START)) {
+                    $inComment = true;
+                } else {
+                    ++$depth;
+                }
+            } elseif ('>' === $char) {
+                if (0 === $depth) {
+                    return false;
+                }
+
+                --$depth;
+            }
+        }
+
+        return 0 === $depth && '' === $quote && !$inComment;
     }
 
     /**
