@@ -39,12 +39,12 @@ final class ShellEncoder implements EncoderInterface
         }
 
         $out = '';
-        $this->walk($out, $root, $options->shellKeySeparator, 0);
+        $this->walk($out, $root, $options, 0);
 
         return $out;
     }
 
-    private function walk(string &$out, Node $node, string $separator, int $depth, string ...$parts): void
+    private function walk(string &$out, Node $node, FormatOptions $options, int $depth, string ...$parts): void
     {
         if ($depth > self::MAX_DEPTH) {
             throw new FormatException('shell: exceeded max depth (alias cycle?)');
@@ -52,21 +52,21 @@ final class ShellEncoder implements EncoderInterface
 
         $node = NodeTools::unwrap($node);
         if (NodeKindEnum::Scalar === $node->kind) {
-            $out .= implode($separator, $parts) . '=' . $this->value($node) . "\n";
+            $out .= implode($options->shellKeySeparator, $parts) . '=' . $this->value($node) . "\n";
 
             return;
         }
 
         if (NodeKindEnum::Sequence === $node->kind) {
             foreach ($node->content as $position => $item) {
-                $this->walk($out, $item, $separator, $depth + 1, ...[...$parts, (string)$position]);
+                $this->walk($out, $item, $options, $depth + 1, ...[...$parts, (string)$position]);
             }
 
             return;
         }
 
-        foreach (NodeTools::pairs($node) as [$key, $value]) {
-            $this->walk($out, $value, $separator, $depth + 1, ...[...$parts, $this->name(NodeTools::keyText($key))]);
+        foreach (NodeTools::pairs($node, $options->yamlFixMergeAnchorToSpec) as [$key, $value]) {
+            $this->walk($out, $value, $options, $depth + 1, ...[...$parts, $this->name(NodeTools::keyText($key))]);
         }
     }
 

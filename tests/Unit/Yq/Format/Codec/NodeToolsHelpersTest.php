@@ -67,11 +67,11 @@ final class NodeToolsHelpersTest extends TestCase
         $root = $this->parse("base: &b {x: 1}\nm:\n  a: 0\n  b: 0\n  <<: *b\n");
         $map  = $root->content[3];
 
-        $values = array_map(static fn (Node $node): string => $node->value, NodeTools::flatContent($map));
+        $values = array_map(static fn (Node $node): string => $node->value, NodeTools::flatContent($map, false));
         self::assertSame(['a', '0', 'b', '0', 'x', '1'], $values);
 
         $pairs = [];
-        foreach (NodeTools::pairs($map) as [$key, $value]) {
+        foreach (NodeTools::pairs($map, false) as [$key, $value]) {
             $pairs[] = $key->value . '=' . $value->value;
         }
 
@@ -84,7 +84,7 @@ final class NodeToolsHelpersTest extends TestCase
         $map  = $root->content[5];
 
         $pairs = [];
-        foreach (NodeTools::pairs($map) as [$key, $value]) {
+        foreach (NodeTools::pairs($map, false) as [$key, $value]) {
             $pairs[] = $key->value . '=' . $value->value;
         }
 
@@ -97,7 +97,7 @@ final class NodeToolsHelpersTest extends TestCase
         $map  = $root->content[3];
 
         $pairs = [];
-        foreach (NodeTools::pairs($map) as [$key, $value]) {
+        foreach (NodeTools::pairs($map, false) as [$key, $value]) {
             $pairs[] = $key->value . '=' . $value->value;
         }
 

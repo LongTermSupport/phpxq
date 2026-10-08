@@ -24,6 +24,8 @@ final readonly class NodeTools
 
     private const string MERGE_TOO_DEEP = 'merge keys are nested too deeply';
 
+    private const string LEGACY_MERGE_NOT_A_MAP = 'can only use merge anchors with maps (!!map) or sequences (!!seq) of maps, but got sequence containing %s';
+
     private function __construct()
     {
     }
@@ -77,14 +79,16 @@ final readonly class NodeTools
      * no merge key returns its own content list, so the common case allocates nothing.
      *
      * @return list<Node>
+     *
+     * @throws FormatException as {@see self::pairs()}
      */
-    public static function flatContent(Node $mapping): array
+    public static function flatContent(Node $mapping, bool $fixedMerge): array
     {
         $count = \count($mapping->content);
         for ($i = 0; $i < $count; $i += 2) {
             if (self::isMergeKey($mapping->content[$i])) {
                 $flat = [];
-                foreach (self::pairs($mapping) as [$key, $value]) {
+                foreach (self::pairs($mapping, $fixedMerge) as [$key, $value]) {
                     $flat[] = $key;
                     $flat[] = $value;
                 }
@@ -100,14 +104,21 @@ final readonly class NodeTools
      * The key/value pairs of a mapping with merge keys (`<<: *a`, `<<: [*a, *b]`) expanded in place.
      * An explicit key beats a merged one and an earlier merge source beats a later one.
      *
+     * Under `--yaml-fix-merge-anchor-to-spec` (`$fixedMerge`) every form of merge value is a source
+     * ({@see MergeSources::of()}); otherwise, as the reference's encoders do, only aliases are
+     * ({@see MergeSources::aliased()}): an inline mapping is dropped, and an alias of anything but a mapping is an
+     * error.
+     *
      * @return list<array{Node, Node}>
+     *
+     * @throws FormatException when a legacy merge alias names something other than a mapping, or merges nest too deeply
      */
-    public static function pairs(Node $mapping): array
+    public static function pairs(Node $mapping, bool $fixedMerge): array
     {
         $expanded = [];
         $merging  = [];
 
-        return self::mergedPairs($mapping, $expanded, $merging, 0);
+        return self::mergedPairs($mapping, $fixedMerge, $expanded, $merging, 0);
     }
 
     /**
@@ -232,9 +243,10 @@ final readonly class NodeTools
      *
      * @return list<array{Node, Node}>
      *
-     * @throws FormatException when merge keys reach through more than MAX_MERGE_DEPTH mappings
+     * @throws FormatException when merge keys reach through more than MAX_MERGE_DEPTH mappings, or a legacy merge
+     *                         alias names something other than a mapping
      */
-    private static function mergedPairs(Node $mapping, array &$expanded, array &$merging, int $depth): array
+    private static function mergedPairs(Node $mapping, bool $fixedMerge, array &$expanded, array &$merging, int $depth): array
     {
         if ($depth > self::MAX_MERGE_DEPTH) {
             throw new FormatException(self::MERGE_TOO_DEEP);
@@ -276,13 +288,13 @@ final readonly class NodeTools
                 continue;
             }
 
-            foreach (MergeSources::of($value) as $source) {
+            foreach (self::mergeSources($value, $fixedMerge) as $source) {
                 $id = spl_object_id($source);
                 if (isset($merging[$id])) {
                     continue;
                 }
 
-                $expanded[$id] ??= self::mergedPairs($source, $expanded, $merging, $depth + 1);
+                $expanded[$id] ??= self::mergedPairs($source, $fixedMerge, $expanded, $merging, $depth + 1);
                 foreach ($expanded[$id] as [$mergedKey, $mergedValue]) {
                     $identity = self::identity($mergedKey);
                     if (isset($taken[$identity])) {
@@ -298,6 +310,27 @@ final readonly class NodeTools
         unset($merging[spl_object_id($mapping)]);
 
         return $pairs;
+    }
+
+    /**
+     * @return list<Node>
+     *
+     * @throws FormatException when a legacy merge alias names something other than a mapping
+     */
+    private static function mergeSources(Node $value, bool $fixedMerge): array
+    {
+        if ($fixedMerge) {
+            return MergeSources::of($value);
+        }
+
+        $sources = MergeSources::aliased($value);
+        foreach ($sources as $source) {
+            if (NodeKindEnum::Mapping !== $source->kind) {
+                throw new FormatException(\sprintf(self::LEGACY_MERGE_NOT_A_MAP, $source->tag));
+            }
+        }
+
+        return $sources;
     }
 
     private static function identity(Node $key): string

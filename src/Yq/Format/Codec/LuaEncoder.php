@@ -37,7 +37,7 @@ final readonly class LuaEncoder implements EncoderInterface
         $root = NodeTools::expandableRoot($node);
         if ($options->luaGlobals && NodeKindEnum::Mapping === $root->kind) {
             $out = '';
-            foreach (NodeTools::pairs($root) as [$key, $value]) {
+            foreach (NodeTools::pairs($root, $options->yamlFixMergeAnchorToSpec) as [$key, $value]) {
                 $out .= $this->entry($key, $value, 0, $options->luaUnquoted, $options, true);
             }
 
@@ -74,7 +74,7 @@ final readonly class LuaEncoder implements EncoderInterface
             return $out . str_repeat("\t", $depth) . '}';
         }
 
-        $pairs = NodeTools::pairs($node);
+        $pairs = NodeTools::pairs($node, $options->yamlFixMergeAnchorToSpec);
         if ([] === $pairs) {
             return '{}';
         }

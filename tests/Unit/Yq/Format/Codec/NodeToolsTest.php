@@ -40,7 +40,7 @@ final class NodeToolsTest extends TestCase
         $map  = $root->content[3];
 
         $pairs = [];
-        foreach (NodeTools::pairs($map) as [$key, $value]) {
+        foreach (NodeTools::pairs($map, false) as [$key, $value]) {
             $pairs[] = $key->value . '=' . $value->value;
         }
 
@@ -53,7 +53,7 @@ final class NodeToolsTest extends TestCase
         $map  = $root->content[5];
 
         $pairs = [];
-        foreach (NodeTools::pairs($map) as [$key, $value]) {
+        foreach (NodeTools::pairs($map, false) as [$key, $value]) {
             $pairs[] = $key->value . '=' . $value->value;
         }
 
@@ -135,10 +135,10 @@ final class NodeToolsTest extends TestCase
     public function testFlatContentExpandsMergesOnlyWhenPresent(): void
     {
         $plain = Node::mapping([Node::scalar('a'), Node::scalar('1')]);
-        self::assertSame($plain->content, NodeTools::flatContent($plain));
+        self::assertSame($plain->content, NodeTools::flatContent($plain, false));
 
         $root   = $this->parse("base: &b {x: 1}\nm:\n  <<: *b\n  y: 2\n");
-        $values = array_map(static fn (Node $node): string => $node->value, NodeTools::flatContent($root->content[3]));
+        $values = array_map(static fn (Node $node): string => $node->value, NodeTools::flatContent($root->content[3], false));
 
         self::assertSame(['x', '1', 'y', '2'], $values);
     }

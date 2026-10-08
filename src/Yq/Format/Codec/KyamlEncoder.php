@@ -74,7 +74,7 @@ final readonly class KyamlEncoder implements EncoderInterface
             return $out . $close . ']';
         }
 
-        $pairs = NodeTools::pairs($node);
+        $pairs = NodeTools::pairs($node, $options->yamlFixMergeAnchorToSpec);
         if ([] === $pairs) {
             return '{}';
         }

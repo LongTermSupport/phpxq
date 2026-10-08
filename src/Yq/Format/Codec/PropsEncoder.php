@@ -76,7 +76,7 @@ final readonly class PropsEncoder implements EncoderInterface
             return;
         }
 
-        foreach (NodeTools::pairs($node) as [$key, $value]) {
+        foreach (NodeTools::pairs($node, $options->yamlFixMergeAnchorToSpec) as [$key, $value]) {
             $name         = NodeTools::keyText($key);
             $unwrapped    = NodeTools::unwrap($value);
             $keyComments  = NodeKindEnum::Scalar === $unwrapped->kind ? $this->join($key->headComment, $key->lineComment) : $key->headComment;

@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yaml;
 
 /**
- * What a `<<` merge key merges in, resolved one way for navigation, `explode` and every encoder.
+ * What a `<<` merge key merges in.
  *
- * The value may be a mapping, a sequence whose mappings are merged in order, or an alias of either; each sequence
- * item may itself be an alias. Anything else merges nothing. Alias chains are followed up to MAX_ALIAS_CHAIN
- * links, so a cyclic chain ends and merges nothing.
+ * {@see self::of()} is the full form, used by navigation and `explode` in both merge modes and by the encoders
+ * under `--yaml-fix-merge-anchor-to-spec`: the value may be a mapping, a sequence whose mappings are merged in
+ * order, or an alias of either; each sequence item may itself be an alias; anything else merges nothing.
+ * {@see self::aliased()} is the reference's legacy encoder form, which takes aliases only. Alias chains are
+ * followed up to MAX_ALIAS_CHAIN links, so a cyclic chain ends.
  */
 final readonly class MergeSources
 {
@@ -43,6 +45,31 @@ final readonly class MergeSources
         }
 
         return $sources;
+    }
+
+    /**
+     * The legacy (pre-spec) form the reference's encoders use: only aliases are merge sources, the value itself or
+     * the alias items of a sequence, and each yields its target whatever its kind (the caller refuses a target that
+     * is not a mapping). Inline mappings, inline items and scalars merge nothing.
+     *
+     * @return list<Node>
+     */
+    public static function aliased(Node $value): array
+    {
+        if (NodeKindEnum::Alias === $value->kind) {
+            return [self::resolve($value)];
+        }
+
+        $targets = [];
+        if (NodeKindEnum::Sequence === $value->kind) {
+            foreach ($value->content as $item) {
+                if (NodeKindEnum::Alias === $item->kind) {
+                    $targets[] = self::resolve($item);
+                }
+            }
+        }
+
+        return $targets;
     }
 
     private static function resolve(Node $node): Node

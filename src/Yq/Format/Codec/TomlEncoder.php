@@ -40,7 +40,7 @@ final readonly class TomlEncoder implements EncoderInterface
         }
 
         $out = '';
-        $this->section($out, $root, [], 0);
+        $this->section($out, $root, $options->yamlFixMergeAnchorToSpec, [], 0);
         $footer = $node->footComment;
         if ('' !== $footer) {
             $out .= ('' === $out ? '' : "\n") . $footer . "\n";
@@ -54,14 +54,14 @@ final readonly class TomlEncoder implements EncoderInterface
      * @param bool         $inItem whether `$map` is an item of an array of tables, which keeps nested
      *                             `[[arrays]]` snug against its header without a blank line
      */
-    private function section(string &$out, Node $map, array $path, int $depth, bool $inItem = false): void
+    private function section(string &$out, Node $map, bool $fixedMerge, array $path, int $depth, bool $inItem = false): void
     {
         if ($depth > self::MAX_DEPTH) {
             throw new FormatException('toml: exceeded max depth (alias cycle?)');
         }
 
         $tables = [];
-        foreach (NodeTools::pairs($map) as [$key, $value]) {
+        foreach (NodeTools::pairs($map, $fixedMerge) as [$key, $value]) {
             $resolved = NodeTools::unwrap($value);
             if ($this->isTable($resolved) || $this->isArrayOfTables($resolved)) {
                 $tables[] = [$key, $resolved];
@@ -70,13 +70,13 @@ final readonly class TomlEncoder implements EncoderInterface
             }
 
             $out .= $this->comments($key->headComment);
-            $out .= $this->name($key) . ' = ' . $this->inline($resolved, $depth + 1) . $this->trailing($key, $resolved) . "\n";
+            $out .= $this->name($key) . ' = ' . $this->inline($resolved, $fixedMerge, $depth + 1) . $this->trailing($key, $resolved) . "\n";
         }
 
         foreach ($tables as [$key, $value]) {
             $childPath = [...$path, $this->name($key)];
             if (NodeKindEnum::Mapping === $value->kind) {
-                $this->table($out, $key, $value, $depth, ...$childPath);
+                $this->table($out, $key, $value, $fixedMerge, $depth, ...$childPath);
 
                 continue;
             }
@@ -89,14 +89,14 @@ final readonly class TomlEncoder implements EncoderInterface
 
                 $out .= $this->comments($item->headComment);
                 $out .= '[[' . implode('.', $childPath) . "]]\n";
-                $this->section($out, $item, $childPath, $depth + 1, true);
+                $this->section($out, $item, $fixedMerge, $childPath, $depth + 1, true);
             }
         }
     }
 
-    private function table(string &$out, Node $key, Node $map, int $depth, string ...$path): void
+    private function table(string &$out, Node $key, Node $map, bool $fixedMerge, int $depth, string ...$path): void
     {
-        $pairs      = NodeTools::pairs($map);
+        $pairs      = NodeTools::pairs($map, $fixedMerge);
         $hasScalars = false;
         foreach ($pairs as [, $value]) {
             $resolved = NodeTools::unwrap($value);
@@ -111,7 +111,7 @@ final readonly class TomlEncoder implements EncoderInterface
             $out .= ('' === $out ? '' : "\n") . $this->comments($key->headComment) . '[' . implode('.', $path) . "]\n";
         }
 
-        $this->section($out, $map, array_values($path), $depth + 1);
+        $this->section($out, $map, $fixedMerge, array_values($path), $depth + 1);
     }
 
     private function isTable(Node $node): bool
@@ -128,7 +128,7 @@ final readonly class TomlEncoder implements EncoderInterface
         return array_all($node->content, fn (Node $item): bool => $this->isTable(NodeTools::unwrap($item)));
     }
 
-    private function inline(Node $node, int $depth): string
+    private function inline(Node $node, bool $fixedMerge, int $depth): string
     {
         if ($depth > self::MAX_DEPTH) {
             throw new FormatException('toml: exceeded max depth (alias cycle?)');
@@ -138,7 +138,7 @@ final readonly class TomlEncoder implements EncoderInterface
         if (NodeKindEnum::Sequence === $node->kind) {
             $items = [];
             foreach ($node->content as $item) {
-                $items[] = $this->inline($item, $depth + 1);
+                $items[] = $this->inline($item, $fixedMerge, $depth + 1);
             }
 
             return '[' . implode(', ', $items) . ']';
@@ -146,8 +146,8 @@ final readonly class TomlEncoder implements EncoderInterface
 
         if (NodeKindEnum::Mapping === $node->kind) {
             $entries = [];
-            foreach (NodeTools::pairs($node) as [$key, $value]) {
-                $entries[] = $this->name($key) . ' = ' . $this->inline($value, $depth + 1);
+            foreach (NodeTools::pairs($node, $fixedMerge) as [$key, $value]) {
+                $entries[] = $this->name($key) . ' = ' . $this->inline($value, $fixedMerge, $depth + 1);
             }
 
             return [] === $entries ? '{}' : '{ ' . implode(', ', $entries) . ' }';

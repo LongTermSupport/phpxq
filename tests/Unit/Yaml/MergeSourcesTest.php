@@ -53,6 +53,17 @@ final class MergeSourcesTest extends TestCase
         self::assertSame([], MergeSources::of(Node::alias('a', Node::scalar('x'))));
     }
 
+    public function testTheLegacyFormTakesOnlyAliasTargetsWhateverTheirKind(): void
+    {
+        $mapping = Node::mapping();
+        $scalar  = Node::scalar('5');
+
+        self::assertSame([$mapping], MergeSources::aliased(Node::alias('a', Node::alias('b', $mapping))));
+        self::assertSame([$mapping, $scalar], MergeSources::aliased(Node::sequence([Node::alias('a', $mapping), Node::mapping(), Node::alias('s', $scalar)])));
+        self::assertSame([], MergeSources::aliased(Node::mapping()));
+        self::assertSame([], MergeSources::aliased(Node::scalar('x')));
+    }
+
     public function testACyclicAliasChainMergesNothing(): void
     {
         $alias              = Node::alias('a', Node::mapping());

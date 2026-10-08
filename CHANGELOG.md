@@ -15,9 +15,13 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 
 ### Fixed
 
-- `yq`: the output formats now merge what navigation merges. A `<<` merge key whose value is an inline
-  mapping (`<<: {a: 1}`), a sequence holding inline mappings, or an alias of a sequence was honoured by `.a`
-  but dropped by `-o json` and the other encoders.
+- `yq --yaml-fix-merge-anchor-to-spec`: the output formats now merge what navigation merges. A `<<` merge
+  key whose value is an inline mapping (`<<: {a: 1}`), a sequence holding inline mappings, or an alias of a
+  sequence was honoured by `.a` but dropped by `-o json` and the other encoders, and by format operators
+  such as `@json`, which now also follow the flag.
+- `yq`: without `--yaml-fix-merge-anchor-to-spec`, the output formats merge only aliases of mappings, as the
+  reference does: inline merge sources are still left out, and a merge key whose alias points at a sequence
+  or a scalar (`<<: *list`) is now the reference's error `can only use merge anchors with maps (!!map) or sequences (!!seq) of maps, ...` instead of being silently dropped.
 - `yq`: when the regex engine gives up (the backtracking limit, or a malformed UTF-8 string such as one from
   `@base64d`), `test`, `match`, `capture`, `sub` and `*` wildcards in `==` and key lookups now raise an error,
   as `jq` does, instead of silently answering false, no match or the unchanged input.

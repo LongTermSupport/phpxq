@@ -61,7 +61,7 @@ final readonly class XmlEncoder implements EncoderInterface
 
     private function topLevel(XmlWriter $writer, Node $map, FormatOptions $options): void
     {
-        foreach (NodeTools::pairs($map) as [$key, $value]) {
+        foreach (NodeTools::pairs($map, $options->yamlFixMergeAnchorToSpec) as [$key, $value]) {
             $name = NodeTools::keyText($key);
             foreach ([$key->headComment, $key->lineComment] as $raw) {
                 $comment = $this->comment($raw);
@@ -112,7 +112,7 @@ final readonly class XmlEncoder implements EncoderInterface
 
     private function mapping(XmlWriter $writer, Node $map, string $name, FormatOptions $options, int $depth): void
     {
-        $pairs      = NodeTools::pairs($map);
+        $pairs      = NodeTools::pairs($map, $options->yamlFixMergeAnchorToSpec);
         $attributes = '';
         foreach ($pairs as [$key, $value]) {
             $keyName = NodeTools::keyText($key);
