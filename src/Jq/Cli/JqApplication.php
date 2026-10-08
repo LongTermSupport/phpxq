@@ -122,13 +122,16 @@ final readonly class JqApplication
             return $source;
         }
 
-        $program = $this->compile($source, $options, $console);
-        if (!$program instanceof CompiledProgramInterface) {
-            return $program;
-        }
+        // one fiber for the whole run: parsing and compiling recurse as deeply as the program nests, and
+        // creating a fiber per input costs more than a small program does
+        return EvaluationStack::run(function () use ($source, $options, $stdin, $stdout, $console): int {
+            $program = $this->compile($source, $options, $console);
+            if (!$program instanceof CompiledProgramInterface) {
+                return $program;
+            }
 
-        // one fiber for every input of the run: creating one per input costs more than a small program does
-        return EvaluationStack::run(fn (): int => $this->runProgram($program, $options, $stdin, $stdout, $console));
+            return $this->runProgram($program, $options, $stdin, $stdout, $console);
+        });
     }
 
     /**

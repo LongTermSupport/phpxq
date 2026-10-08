@@ -13,6 +13,12 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 
 ## Unreleased
 
+### Security
+
+- `jq`: a program nested deeper than 10,000 levels (brackets, operator chains, postfix chains or nested
+  constructs) is a compile error, `syntax error, program nested deeper than 10000 levels`, instead of a
+  crash with a segmentation fault. Programs are now parsed and compiled on the evaluation stack.
+
 ## 0.1.0 — 2026-10-08
 
 ### Changed — breaking
