@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Format\Codec;
 
+use LTS\PhpXq\Yaml\AliasExpansion;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\NodeStyleEnum;
@@ -48,6 +49,21 @@ final readonly class NodeTools
         }
 
         throw new FormatException('alias chain is too deep');
+    }
+
+    /**
+     * The node an encoder that writes aliases out as copies should start from, once the alias-expansion budget
+     * allows it.
+     *
+     * @throws FormatException when expanding the aliases would be excessive (an alias bomb)
+     */
+    public static function expandableRoot(Node $node): Node
+    {
+        if (AliasExpansion::isExcessive($node)) {
+            throw new FormatException(AliasExpansion::ERROR);
+        }
+
+        return self::unwrap($node);
     }
 
     public static function isMergeKey(Node $key): bool

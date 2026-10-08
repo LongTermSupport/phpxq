@@ -30,7 +30,7 @@ final readonly class TomlEncoder implements EncoderInterface
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
-        $root = NodeTools::unwrap($node);
+        $root = NodeTools::expandableRoot($node);
         if (NodeKindEnum::Scalar === $root->kind) {
             return $root->value . "\n";
         }

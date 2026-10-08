@@ -19,6 +19,12 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
   process with a segmentation fault in the JSON, properties, TOML, Lua, shell, HCL, XML and KYAML encoders
   or in `explode` with `--yaml-fix-merge-anchor-to-spec`; the re-entered mapping counts as already merged.
   Merge keys that reach through more than 32 mappings are now an error there instead of a crash.
+- `yq`: an alias bomb (a few hundred bytes of nested aliases that expand to billions of nodes) is refused with
+  `document contains excessive aliasing`, as go-yaml words it, by every output format that writes aliases out
+  as copies, by format operators such as `@json` and by `explode`, instead of running until time or memory
+  ran out. The budget is go-yaml's: more than 100 aliased nodes, more than 1000 nodes in all, and an aliased
+  share above 99% (falling to 10% for documents of 4,000,000 nodes). YAML output keeps the aliases and is
+  unaffected.
 
 ## 0.1.0 — 2026-10-08
 

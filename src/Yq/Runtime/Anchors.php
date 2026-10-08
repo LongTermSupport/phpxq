@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Runtime;
 
+use LTS\PhpXq\Yaml\AliasExpansion;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\NodeStyleEnum;
@@ -49,11 +50,17 @@ final readonly class Anchors
 
     /**
      * Rewrites the tree in place so it holds no aliases, anchors or merge keys.
+     *
+     * @throws EvaluationException when expanding the aliases would be excessive (an alias bomb)
      */
     public static function explode(Node $node, bool $fixedMerge, int $depth = 0): void
     {
         if ($depth > self::MAX_DEPTH) {
             return;
+        }
+
+        if (0 === $depth && AliasExpansion::isExcessive($node)) {
+            throw new EvaluationException(AliasExpansion::ERROR);
         }
 
         if (NodeKindEnum::Alias === $node->kind) {

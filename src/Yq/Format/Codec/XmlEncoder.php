@@ -28,7 +28,7 @@ final readonly class XmlEncoder implements EncoderInterface
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
-        $root = NodeTools::unwrap($node);
+        $root = NodeTools::expandableRoot($node);
         if (NodeKindEnum::Scalar === $root->kind) {
             return $this->escapeText($root->value) . "\n";
         }

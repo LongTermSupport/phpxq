@@ -34,7 +34,7 @@ final readonly class LuaEncoder implements EncoderInterface
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
-        $root = NodeTools::unwrap($node);
+        $root = NodeTools::expandableRoot($node);
         if ($options->luaGlobals && NodeKindEnum::Mapping === $root->kind) {
             $out = '';
             foreach (NodeTools::pairs($root) as [$key, $value]) {

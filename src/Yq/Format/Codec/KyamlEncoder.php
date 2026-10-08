@@ -29,7 +29,7 @@ final readonly class KyamlEncoder implements EncoderInterface
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
-        $root   = NodeTools::unwrap($node);
+        $root   = NodeTools::expandableRoot($node);
         $header = $node->headComment;
         if ('' === $header && NodeKindEnum::Mapping === $root->kind && [] !== $root->content) {
             $header                = $root->content[0]->headComment;
