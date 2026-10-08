@@ -31,6 +31,9 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 - `jq`: `sub`/`gsub` join their output once instead of re-concatenating it at every match, and deleting
   many members of one object (`del(.[])`, `delpaths`) copies the object once. `gsub` over 200,000 matches
   went from 8.7 s to 3 s; `del(.[])` on a 20,000-key object from 12 s to 3.5 s.
+- `jq`: comparing objects (`sort`, `unique`, `group_by`, `==` and the other comparisons) sorts each
+  object's keys once instead of on every comparison, which halves the time to sort and deduplicate 50,000
+  ten-key objects.
 
 ## 0.1.0 — 2026-10-08
 

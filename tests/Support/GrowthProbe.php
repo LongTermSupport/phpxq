@@ -12,7 +12,8 @@ use RuntimeException;
  * without depending on how fast or how busy the host is.
  *
  * The workload runs at a base size and at FACTOR times that size, best of RUNS each. Linear work grows by about
- * FACTOR, quadratic work by about FACTOR squared; LINEAR_CEILING sits between the two.
+ * FACTOR, quadratic work by about FACTOR squared; LINEAR_CEILING sits between the two. relativeCost()
+ * compares two workloads of the same size the same way.
  */
 final class GrowthProbe
 {
@@ -58,6 +59,18 @@ final class GrowthProbe
         $scaled = self::fastest($workload, $baseSize * self::FACTOR, $repeats);
 
         return $scaled / $base;
+    }
+
+    /**
+     * @param Closure(): mixed $workload
+     * @param Closure(): mixed $reference
+     *
+     * @return float the CPU time of $workload divided by that of $reference, the fastest of RUNS runs each
+     */
+    public static function relativeCost(Closure $workload, Closure $reference): float
+    {
+        return self::fastest(static fn (int $size): mixed => $workload(), 1, 1)
+            / self::fastest(static fn (int $size): mixed => $reference(), 1, 1);
     }
 
     /**
