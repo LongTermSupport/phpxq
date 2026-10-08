@@ -77,11 +77,13 @@ chmod +x phpxq.phar && ./phpxq.phar jq --version
 Needs PHP 8.5 with `ctype`, `json` and `mbstring`.
 
 ```bash
-composer global require lts/phpxq     # once listed on Packagist
-# or straight from the repository:
+composer global require lts/phpxq
+# or the development version straight from the repository:
 composer global config repositories.phpxq vcs https://github.com/LongTermSupport/phpxq
 composer global require lts/phpxq:dev-main
 ```
+
+The package is on Packagist as [lts/phpxq](https://packagist.org/packages/lts/phpxq).
 
 Composer places `phpxq` in its global `bin` directory.
 
