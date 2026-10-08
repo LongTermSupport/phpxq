@@ -8,13 +8,14 @@
 #
 # - var/qa/phpunit_logs/coverage.clover exists, and its statement and method coverage meet the floors below;
 # - var/qa/infection/summary-log.txt exists, is newer than the coverage report (so it is from this run),
-#   and reports no more skipped mutants than the cap below. With PHPXQ_INFECTION_DIFF_BASE set (the QA
-#   workflow off the default branch), mutation covers only the src/ files changed since that ref, and a
-#   change that touches no src/ file has no mutants to check.
+#   and reports no more skipped mutants than the cap below; the mutation score is printed.
+# - With PHPXQ_MUTATION_BASE set (CI runs scoped by scripts/mutation-scope.bash), the scope is recomputed
+#   from that ref: only a change that maps to no source file may have no summary. Without it the run must
+#   have been full, so a leftover scoped qaConfig/infection.json fails the check.
 #
 # The floors sit at the value the unit suite earns today and only ever move up (the cap only down); raising
 # them is plan 00011.
-# Usage: scripts/check-qa-measurements.bash   (after vendor/bin/qa, or vendor/bin/qa -t allTests)
+# Usage: scripts/check-qa-measurements.bash   (after vendor/bin/qa or vendor/bin/qa -t infection)
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -51,6 +52,23 @@ check_floor() {
     fi
 }
 
+# report_msi: prints the mutation score Infection computed from the summary counts, so a run can be ratcheted
+# (Infection itself enforces the floors in qaConfig/qa.php). Detected = killed + timed out + errored + syntax
+# errors; MSI is over every mutant it did not skip or ignore, covered MSI leaves out the uncovered ones too.
+report_msi() {
+    awk -F': *' '
+        { count[$1] = $2 }
+        END {
+            detected = count["Killed by Test Framework"] + count["Killed by Static Analysis"] + count["Timed Out"] + count["Errored"] + count["Syntax Errors"]
+            measured = count["Total"] - count["Skipped"] - count["Ignored"]
+            covered = measured - count["Not Covered"]
+            if (measured > 0) printf "mutation score: MSI %.2f%%", 100 * detected / measured
+            if (covered > 0) printf ", covered MSI %.2f%%", 100 * detected / covered
+            printf " (%d detected of %d measured, %d not covered)\n", detected, measured, count["Not Covered"]
+        }
+    ' "$summary"
+}
+
 if [[ ! -f "$clover" ]]; then
     fail "no coverage report at $clover_rel: the phpunit lane ran without a coverage driver (Xdebug or PCOV)"
 else
@@ -78,15 +96,19 @@ else
     check_floor methods "$covered_methods" "$methods" "$method_floor"
 fi
 
-diff_base="${PHPXQ_INFECTION_DIFF_BASE:-}"
-changed_sources=""
-if [[ -n "$diff_base" ]]; then
-    # The same file list php-qa-ci's diff mode mutates (InfectionDiffFilter): with none, it rightly skips.
-    changed_sources="$(git -C "$root" diff --name-only --diff-filter=AM "$diff_base...HEAD" -- src)"
+base="${PHPXQ_MUTATION_BASE:-}"
+scope=all
+if [[ -n "$base" ]]; then
+    # Recomputed here rather than trusted from the workflow: only a change that maps to no source may skip.
+    scope_report="$("$root/scripts/mutation-scope.bash" "$base")"
+    scope="$(printf '%s\n' "$scope_report" | awk -F= '$1 == "scope" { print $2 }')"
+    echo "mutation scope since $base: $scope"
+elif [[ -f "$root/qaConfig/infection.json" ]]; then
+    fail "qaConfig/infection.json (a scoped mutation config from scripts/mutation-scope.bash) is present, so a full run measured only part of src/; delete it"
 fi
 
-if [[ -n "$diff_base" && -z "$changed_sources" ]]; then
-    echo "mutants: none to check, no src/ file changed since $diff_base"
+if [[ "$scope" == none ]]; then
+    echo "mutants: none to check, the change maps to no source file"
 elif [[ ! -f "$summary" ]]; then
     fail "no Infection summary at $summary_rel: mutation testing did not run (php-qa-ci skips it without Xdebug) or did not finish"
 elif [[ -f "$clover" && "$summary" -ot "$clover" ]]; then
@@ -104,6 +126,7 @@ else
         if [[ "$total" -gt 0 && $((skipped * 100)) -gt $((total * max_skipped_percent)) ]]; then
             fail "Infection skipped $skipped of $total mutants, more than $max_skipped_percent% (their covering tests are slower than the timeout), and the mutation score leaves them out"
         fi
+        report_msi
     fi
 fi
 

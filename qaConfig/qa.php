@@ -21,14 +21,14 @@ return static fn (QaConfigBuilder $qa): QaConfigBuilder => $qa
     // Fixtures of the static defences' own tests (qaConfig/PHPStan/Rules): each is deliberately an instance of a
     // bug class, so the fixers must not rewrite it and PHPStan must not report it.
     ->withIgnoredPaths('tests/Fixtures/Defence')
-    // Measured floors that only move up: the MSI the unit suite earns on its own (the conformance gate
-    // records no coverage), rounded down. Measured at 89.2% (MSI and covered MSI alike) over the first 21,104
-    // of 26,219 mutants, where Infection stopped on a process timeout. The target is 90; plan 00011 raises
-    // these floors, with the line, method and skipped-mutant floors in scripts/check-qa-measurements.bash.
+    // PROVISIONAL measured floors, pending the first complete nightly run (.github/workflows/mutation-nightly.yml
+    // prints the MSI it measures): the score the unit suite earns on its own (the conformance gate records no
+    // coverage), rounded down. 89.2% was measured over only the first 21,104 of 26,219 mutants, where Infection
+    // stopped on a process timeout. They only move up; the target is 90, tracked in plan 00011 with the line,
+    // method and skipped-mutant floors in scripts/check-qa-measurements.bash.
     ->withInfectionFloors(89, 89)
-    // PHPXQ_INFECTION_DIFF_BASE (a git ref, set by the QA workflow off the default branch) limits mutation to
-    // the src/ files changed since that ref, against the same covered-MSI floor; unset, every file is mutated.
-    ->withInfectionDiffBase(false === getenv('PHPXQ_INFECTION_DIFF_BASE') || '' === getenv('PHPXQ_INFECTION_DIFF_BASE') ? null : getenv('PHPXQ_INFECTION_DIFF_BASE'))
+    // CI sets PHPXQ_INFECTION_SKIP=1 when scripts/mutation-scope.bash finds the change maps to no source file.
+    ->withInfection('1' !== getenv('PHPXQ_INFECTION_SKIP'))
     // Declarations carrying a native type, per kind: every one does. A resource is declared `mixed` with a
     // `@param resource` / `@return resource` tag, as PHP has no native resource type.
     ->withTypeCoverageFloors(returnType: 100, paramType: 100, propertyType: 100, constantType: 100)

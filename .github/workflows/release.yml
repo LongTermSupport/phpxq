@@ -8,7 +8,8 @@
 #   preflight  VERSION, the newest CHANGELOG.md section and the tags must agree and tag vX.Y.Z must be
 #              free, else it refuses. A commit whose `## Unreleased` still has entries (the push that
 #              creates the branch) is not a release commit: every later stage is skipped.
-#   qa         the full QA gate plus the unit and conformance suites
+#   qa         the full QA gate plus the unit and conformance suites; mutation covers what changed since the
+#              previous release tag (the nightly mutation workflow covers everything)
 #   phar       reproducible PHAR (built twice, must be byte-identical), smoke-tested
 #   binary     static binaries per platform, smoke-tested with an empty environment
 #   release    SHA256SUMS, git tag vX.Y.Z at the merged commit, GitHub Release with the changelog notes
@@ -64,14 +65,14 @@ jobs:
           fi
 
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
           fetch-tags: true
           persist-credentials: false
 
       - name: Set up PHP
-        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: '8.5'
           coverage: none
@@ -87,22 +88,25 @@ jobs:
         run: scripts/release-preflight.bash
 
   qa:
-    name: QA gate (full vendor/bin/qa, conformance)
+    name: QA gate (vendor/bin/qa, mutation since the last release, conformance)
     needs: preflight
     if: ${{ needs.preflight.outputs.releasable == 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 340
     steps:
-      # Full history: the changelog lane measures the release from its merge base with main.
+      # Full history and tags: the changelog lane measures the release from its merge base with main, and
+      # mutation testing from the previous release tag.
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          fetch-tags: true
           persist-credentials: false
 
       # Xdebug provides the coverage the phpunit lane reports and Infection mutates against. Without it
       # php-qa-ci skips mutation testing; scripts/check-qa-measurements.bash fails the gate if that happens.
       - name: Set up PHP
-        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: '8.5'
           coverage: xdebug
@@ -112,12 +116,35 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader --no-scripts
 
+      # Mutation testing covers what changed since the previous release tag (the nightly workflow runs the full
+      # pass). With no earlier tag, the first release, everything is mutated.
+      - name: Choose the mutation base (previous release tag)
+        id: base
+        run: |
+          set -euo pipefail
+          base=""
+          if previous="$(git describe --tags --abbrev=0 --match 'v*' HEAD^ 2>/dev/null)"; then
+            base="${previous}"
+          fi
+          echo "Mutation base: ${base:-(none, full run)}"
+          echo "ref=${base}" >> "${GITHUB_OUTPUT}"
+
+      - name: Scope mutation testing to the release
+        id: scope
+        if: ${{ steps.base.outputs.ref != '' }}
+        env:
+          BASE: ${{ steps.base.outputs.ref }}
+        run: scripts/mutation-scope.bash "${BASE}" --write
+
       - name: Full QA pipeline (coding standards read-only, static analysis, unit and conformance tests)
         env:
           CI: 'true'
+          PHPXQ_INFECTION_SKIP: ${{ steps.scope.outputs.scope == 'none' && '1' || '' }}
         run: vendor/bin/qa
 
       - name: Coverage and mutation lanes ran and meet their floors
+        env:
+          PHPXQ_MUTATION_BASE: ${{ steps.base.outputs.ref }}
         run: scripts/check-qa-measurements.bash
 
       - name: Upstream conformance, PHP and shell suites (known gaps enforced)
@@ -130,12 +157,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
       - name: Set up PHP
-        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: '8.5'
           coverage: none
@@ -149,7 +176,7 @@ jobs:
         run: scripts/smoke-test.bash --expect-version "${{ needs.preflight.outputs.version }}" dist/phpxq.phar
 
       - name: Upload PHAR
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: phar
           path: dist/phpxq.phar
@@ -180,12 +207,12 @@ jobs:
             optional: true
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
       - name: Set up PHP (runs the build scripts and Composer only; the binary embeds its own runtime)
-        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: '8.5'
           coverage: none
@@ -193,13 +220,13 @@ jobs:
           extensions: mbstring, phar
 
       - name: Download the PHAR
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: phar
           path: dist
 
       - name: Cache static-php-cli downloads
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: build/spc-${{ matrix.platform }}/downloads
           key: spc-${{ matrix.platform }}-${{ hashFiles('packaging/tools.env', 'packaging/extensions.txt', 'composer.json') }}
@@ -211,7 +238,7 @@ jobs:
         run: scripts/smoke-test.bash --static --expect-version "${{ needs.preflight.outputs.version }}" "dist/phpxq-${{ matrix.platform }}"
 
       - name: Upload binary
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: binary-${{ matrix.platform }}
           path: dist/phpxq-${{ matrix.platform }}
@@ -231,14 +258,14 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
           fetch-tags: true
           persist-credentials: false
 
       - name: Set up PHP
-        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: '8.5'
           coverage: none
@@ -249,7 +276,7 @@ jobs:
         run: composer install --no-interaction --no-progress --prefer-dist --no-scripts
 
       - name: Download every artefact
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: release-assets
           merge-multiple: true
@@ -317,14 +344,14 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout with history and tags
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
           fetch-tags: true
           persist-credentials: false
 
       - name: Set up PHP
-        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: '8.5'
           coverage: none
