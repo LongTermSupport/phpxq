@@ -212,8 +212,9 @@ final readonly class PropsDecoder implements DecoderInterface
                     throw new FormatException('properties: cannot use "' . $part . '" as an array index');
                 }
 
-                if (AllocationLimit::padsTooFar($part, \count($node->content))) {
-                    throw new FormatException('properties: ' . AllocationLimit::paddingError($part));
+                $refusal = AllocationLimit::sequencePaddingError($part, \count($node->content));
+                if (null !== $refusal) {
+                    throw new FormatException('properties: ' . $refusal);
                 }
 
                 while (\count($node->content) <= $part) {

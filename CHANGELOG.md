@@ -46,6 +46,7 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
   (`syntax error, program tree deeper than 100000 levels, counting chained operations`). A comma chain is
   built as a balanced tree and has no length limit, so an array literal of 100,000 elements, which crashed,
   now runs.
+
 - `yq`: an expression nested deeper than 10,000 levels, including one read from the data by `eval`, is the
   error `Bad expression, nested deeper than 10000 levels` instead of a segmentation fault, and nested string
   interpolations are parsed in linear time (10,000 levels took minutes before). Chains (`|`, `,`, `+`,
@@ -53,15 +54,25 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
   (`Bad expression, tree deeper than 100000 levels, counting chained operations`), except a `,` chain, which
   is built balanced and has no length limit. Expressions are evaluated on a large stack, so a chain of 30,000
   steps no longer crashes while a coverage driver is loaded.
+
 - `jq`: invalid UTF-8 in `--arg`, `--args`, `--rawfile`, argument names and the program text is replaced
   with U+FFFD, as jq does. It used to reach `explode` and similar builtins and end the run with an
   uncatchable `internal error: Uninitialized string offset`.
-- Small programs and inputs can no longer force huge allocations that end in an uncatchable out-of-memory
-  error. Assigning to an array index more than 2^28 (268,435,456) places past the end is an error (`jq`:
-  `Cannot pad array to index ...`; `yq`, including a properties key such as `a.999999999`:
-  `cannot pad a sequence ...`), and jq refuses to repeat a string into more than 1 GiB
-  (`Repeat string result too long`). Padding and repetition that jq 1.6 and Go yq perform
-  (`null | .[2000000] = 1`, `"x" * 300000000`) still work.
+
+- Some single operations that could grow a value without bound are now refused with an ordinary, catchable
+  error. These checks do not rule out running out of memory, which remains a fatal error:
+
+  - `jq` enforces jq 1.6's own index bound: an array index above 536,870,911 is `Array index too large`.
+  - Padding an array or sequence with more than 2^28 (268,435,456) nulls to reach a far index is refused
+    (`jq`: `Cannot pad array to index ...`; `yq`, including a properties key such as `a.999999999`:
+    `cannot pad a sequence ...`).
+  - When a `memory_limit` is set, padding whose estimated size exceeds the memory left is also refused
+    (`... would not fit in the memory_limit`). With `memory_limit=-1`, padding up to 2^28 is attempted and
+    can still exhaust the host's memory, and a yq padding of millions of entries needs about 420 bytes each.
+  - `jq` refuses to repeat a string into more than 1 GiB (`Repeat string result too long`).
+
+  Padding and repetition that jq 1.6 and Go yq perform (`null | .[2000000] = 1`, `"x" * 300000000`) still
+  work when the memory to hold them is available.
 
 ## 0.1.0 — 2026-10-08
 

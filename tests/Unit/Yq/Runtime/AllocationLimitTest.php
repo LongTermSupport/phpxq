@@ -15,9 +15,9 @@ use PHPUnit\Framework\Attributes\Medium;
 use PHPUnit\Framework\TestCase;
 
 /**
- * A tiny expression or input must not be able to make yq allocate without bound, because running out of
- * memory is a fatal error. Padding a sequence up to a far index fails past {@see AllocationLimit::MAX_PADDING}, and
- * repeating a string follows Go yq: an integer count only, never negative, and at most 10 MiB of result.
+ * Padding a sequence up to a far index fails past {@see AllocationLimit::MAX_PADDING}, or when it would not fit in
+ * what the memory_limit leaves, and repeating a string follows Go yq: an integer count only, never negative, and
+ * at most 10 MiB of result. Running out of memory is still possible by other routes; these checks narrow them.
  *
  * @internal
  */
@@ -27,6 +27,16 @@ use PHPUnit\Framework\TestCase;
 #[Medium]
 final class AllocationLimitTest extends TestCase
 {
+    private const array FROM_PROPERTIES = ['-p', 'props', '.'];
+
+    private const string MEMORY_LIMIT = 'memory_limit';
+
+    private const int HEADROOM = 268435456;
+
+    private const int TOO_MANY_FOR_THE_HEADROOM = 1000000;
+
+    private const int FITS_IN_THE_HEADROOM = 100000;
+
     /**
      * @param list<string> $args
      */
@@ -46,9 +56,9 @@ final class AllocationLimitTest extends TestCase
     {
         $past = AllocationLimit::MAX_PADDING + 1;
 
-        yield 'index assignment far past the end' => [['-n', '.[' . $past . '] = 1'], '', \sprintf('cannot pad a sequence to index %d: more than %d new entries', $past, AllocationLimit::MAX_PADDING)];
-        yield 'nested index far past the end'     => [['-n', '.a[' . $past . '] = 1'], '', \sprintf('cannot pad a sequence to index %d: more than %d new entries', $past, AllocationLimit::MAX_PADDING)];
-        yield 'properties index far past the end' => [['-p', 'props', '.'], 'a.' . $past . " = x\n", \sprintf('bad file \'-\': properties: cannot pad a sequence to index %d: more than %d new entries', $past, AllocationLimit::MAX_PADDING)];
+        yield 'index assignment far past the end' => [['-n', self::assignAt('.', $past)], '', \sprintf('cannot pad a sequence to index %d: more than %d new entries', $past, AllocationLimit::MAX_PADDING)];
+        yield 'nested index far past the end'     => [['-n', self::assignAt('.a', $past)], '', \sprintf('cannot pad a sequence to index %d: more than %d new entries', $past, AllocationLimit::MAX_PADDING)];
+        yield 'properties index far past the end' => [self::FROM_PROPERTIES, self::propertyAt($past), \sprintf('bad file \'-\': properties: cannot pad a sequence to index %d: more than %d new entries', $past, AllocationLimit::MAX_PADDING)];
         yield 'repeat past 10 MiB'                => [['-n', '"ab" * 100000000'], '', 'result of repeating string (2 bytes) by 100000000 would exceed 10485760 bytes'];
         yield 'repeat a huge float'               => [['-n', '"ab" * 1e12'], '', 'cannot multiply !!str with !!float'];
         yield 'repeat a fraction'                 => [['-n', '"ab" * 2.5'], '', 'cannot multiply !!str with !!float'];
@@ -68,6 +78,29 @@ final class AllocationLimitTest extends TestCase
     }
 
     /**
+     * Under a memory_limit that leaves 256 MiB, a million new entries are refused before padding starts, from an
+     * expression and from properties input alike, while a hundred thousand still fit and run.
+     */
+    public function testPaddingThatWouldNotFitInTheMemoryLimitIsAnError(): void
+    {
+        $tooMany = self::TOO_MANY_FOR_THE_HEADROOM;
+        $saved   = ini_get(self::MEMORY_LIMIT);
+        ini_set(self::MEMORY_LIMIT, (string)(memory_get_usage() + self::HEADROOM));
+        try {
+            $assigned   = new CliRunner()->run(['yq', '-n', self::assignAt('.a', $tooMany)]);
+            $properties = new CliRunner()->run(['yq', ...self::FROM_PROPERTIES], self::propertyAt($tooMany));
+            $fits       = new CliRunner()->run(['yq', '-n', self::assignAt('.a', self::FITS_IN_THE_HEADROOM) . ' | .a | length']);
+        } finally {
+            ini_set(self::MEMORY_LIMIT, $saved);
+        }
+
+        $error = \sprintf(AllocationLimit::PADDING_MEMORY_ERROR, $tooMany, $tooMany);
+        self::assertSame('Error: ' . $error . "\n", $assigned->stderr);
+        self::assertSame("Error: bad file '-': properties: " . $error . "\n", $properties->stderr);
+        self::assertSame(['', (self::FITS_IN_THE_HEADROOM + 1) . "\n"], [$fits->stderr, $fits->stdout]);
+    }
+
+    /**
      * @return iterable<string, array{list<string>, string, string}>
      */
     public static function allowed(): iterable
@@ -78,5 +111,21 @@ final class AllocationLimitTest extends TestCase
         yield 'repeat'                           => [['-n', '"ab" * 3'], '', 'ababab'];
         yield 'repeat up to 10 MiB'              => [['-n', '"ab" * 5242880 | length'], '', '10485760'];
         yield 'repeat zero times'                => [['-n', '"ab" * 0'], '', ''];
+    }
+
+    /**
+     * An expression assigning 1 at the index of the sequence the path names.
+     */
+    private static function assignAt(string $path, int $index): string
+    {
+        return $path . '[' . $index . '] = 1';
+    }
+
+    /**
+     * Properties input setting the index of the sequence `a`.
+     */
+    private static function propertyAt(int $index): string
+    {
+        return 'a.' . $index . " = x\n";
     }
 }
