@@ -29,6 +29,13 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 - `jq`: invalid UTF-8 in `--arg`, `--args`, `--rawfile`, argument names and the program text is replaced
   with U+FFFD, as jq does. It used to reach `explode` and similar builtins and end the run with an
   uncatchable `internal error: Uninitialized string offset`.
+- Small programs and inputs can no longer force huge allocations that end in an uncatchable out-of-memory
+  error. Assigning to an array index more than 1,048,576 places past the end is an error (`jq`: `Array index too large`; `yq`, including a properties key such as `a.999999999`: `cannot pad a sequence ...`), and jq
+  refuses to repeat a string into more than 256 MiB (`Repeat string result too long`).
+
+### Changed
+
+- `yq`: string repetition follows Go yq: the count must be an `!!int` (`"ab" * 2.5` is now `cannot multiply !!str with !!float`), a negative count is an error, and the result may not exceed 10 MiB.
 
 ## 0.1.0 — 2026-10-08
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Runtime;
 
+use LTS\PhpXq\Limits\AllocationLimit;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\NodeStyleEnum;
@@ -37,6 +38,8 @@ final class Detached
 
     /**
      * Makes the candidate (and every placeholder above it) part of the tree.
+     *
+     * @throws EvaluationException when a sequence would be padded past {@see AllocationLimit::MAX_PADDING}
      */
     public static function attach(Candidate $candidate): void
     {
@@ -65,6 +68,10 @@ final class Detached
 
         if (NodeKindEnum::Sequence === $parent->kind) {
             $index = (int)$key->value;
+            if (AllocationLimit::padsTooFar($index, \count($parent->content))) {
+                throw new EvaluationException(AllocationLimit::paddingError($index));
+            }
+
             while (\count($parent->content) < $index) {
                 $parent->content[] = NodeOps::null();
             }

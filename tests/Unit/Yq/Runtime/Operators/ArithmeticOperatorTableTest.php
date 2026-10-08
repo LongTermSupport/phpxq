@@ -72,8 +72,6 @@ final class ArithmeticOperatorTableTest extends TestCase
             .a * .b➜a: ab⏎b: 3⏎➜ababab⏎
             .a * .b➜a: 3⏎b: ab⏎➜ababab⏎
             .a * .b➜a: ab⏎b: 0⏎➜⏎
-            .a * .b➜a: ab⏎b: -1⏎➜⏎
-            .a * .b➜a: ab⏎b: 2.9⏎➜abab⏎
             .a * .b➜a: ab⏎b: 1⏎➜ab⏎
             .a * .b➜a: null⏎b: 3⏎➜3⏎
             .a * .b➜a: 3⏎b: null⏎➜3⏎
@@ -171,6 +169,10 @@ final class ArithmeticOperatorTableTest extends TestCase
             .a % .b➜a: x⏎b: 1⏎➜!!str (scalar) cannot be modded by !!int (scalar)
             .a % .b➜a: 1⏎b: x⏎➜!!int (scalar) cannot be modded by !!str (scalar)
             .a % .b➜a: 1⏎b: [1]⏎➜!!int (scalar) cannot be modded by !!seq (seq)
+            .a * .b➜a: ab⏎b: -1⏎➜cannot repeat string by a negative number (-1)
+            .a * .b➜a: ab⏎b: 2.9⏎➜cannot multiply !!str with !!float
+            .a * .b➜a: 2.9⏎b: ab⏎➜cannot multiply !!float with !!str
+            .a * .b➜a: ab⏎b: 6000000⏎➜result of repeating string (2 bytes) by 6000000 would exceed 10485760 bytes
             TABLE);
     }
 

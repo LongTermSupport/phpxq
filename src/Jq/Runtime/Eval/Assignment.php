@@ -8,6 +8,7 @@ use Closure;
 use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Jq\Runtime\PathOps;
 use LTS\PhpXq\Json\JsonObject;
+use LTS\PhpXq\Limits\AllocationLimit;
 
 /**
  * Applying a computation to every path of an assignment's left-hand side: the shared core of `=`, `|=` and
@@ -21,8 +22,6 @@ use LTS\PhpXq\Json\JsonObject;
  */
 final readonly class Assignment
 {
-    private const int MAX_INDEX = 536870911;
-
     private function __construct()
     {
     }
@@ -189,8 +188,8 @@ final readonly class Assignment
             $highest = max($highest, (int)$key);
         }
 
-        if ($highest > self::MAX_INDEX) {
-            throw new JqException('Array index too large');
+        if ($highest > AllocationLimit::MAX_ARRAY_INDEX || AllocationLimit::padsTooFar($highest, \count($elements))) {
+            throw new JqException(PathOps::INDEX_TOO_LARGE);
         }
 
         for ($i = \count($elements); $i <= $highest; ++$i) {

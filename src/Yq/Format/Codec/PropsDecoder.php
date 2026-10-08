@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Format\Codec;
 
+use LTS\PhpXq\Limits\AllocationLimit;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
@@ -209,6 +210,10 @@ final readonly class PropsDecoder implements DecoderInterface
             if (NodeKindEnum::Sequence === $node->kind) {
                 if (!\is_int($part)) {
                     throw new FormatException('properties: cannot use "' . $part . '" as an array index');
+                }
+
+                if (AllocationLimit::padsTooFar($part, \count($node->content))) {
+                    throw new FormatException('properties: ' . AllocationLimit::paddingError($part));
                 }
 
                 while (\count($node->content) <= $part) {

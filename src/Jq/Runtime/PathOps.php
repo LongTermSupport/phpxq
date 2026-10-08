@@ -9,6 +9,7 @@ use LTS\PhpXq\Jq\Runtime\Eval\ErrorText;
 use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Json\PreciseNumber;
 use LTS\PhpXq\Json\Values;
+use LTS\PhpXq\Limits\AllocationLimit;
 
 /**
  * getpath / setpath / delpaths on the value model: the single implementation used by the evaluator
@@ -29,7 +30,7 @@ final readonly class PathOps
         'number' => 'array',
     ];
 
-    private const int MAX_INDEX = 536870911;
+    public const string INDEX_TOO_LARGE = 'Array index too large';
 
     private const int MAX_PATH_DEPTH = 10000;
 
@@ -174,8 +175,8 @@ final readonly class PathOps
             }
         }
 
-        if ($index > self::MAX_INDEX) {
-            throw new JqException('Array index too large');
+        if ($index > AllocationLimit::MAX_ARRAY_INDEX || AllocationLimit::padsTooFar($index, $count)) {
+            throw new JqException(self::INDEX_TOO_LARGE);
         }
 
         for ($i = $count; $i < $index; ++$i) {
