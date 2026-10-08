@@ -42,6 +42,8 @@ final class MergeKeyRecognitionTest extends TestCase
 
     private const string QUOTED = '"<<"';
 
+    private const string MERGE_TAGGED_NAME = '!!merge foo';
+
     #[DataProvider('cases')]
     public function testEachUseRecognisesMergeKeysAsTheReferenceDoes(string $key, string $expected, string ...$arguments): void
     {
@@ -77,9 +79,17 @@ final class MergeKeyRecognitionTest extends TestCase
 
         yield '!x <<, spec-fixed explode' => [self::CUSTOM_TAGGED, "a: {x: 1}\nb: {!x <<: {x: 1}, y: 2}\n", self::FIXED_MERGE, self::EXPLODE];
 
-        yield '!!merge on another name, lookup' => ['!!merge foo', "1\n", self::LOOKUP];
+        yield '!!merge on another name, lookup' => [self::MERGE_TAGGED_NAME, "1\n", self::LOOKUP];
 
-        yield '!!merge on another name, legacy json' => ['!!merge foo', "{\"a\":{\"x\":1},\"b\":{\"foo\":{\"x\":1},\"y\":2}}\n", self::JSON, self::COMPACT, '.'];
+        yield '!!merge on another name, legacy json' => [self::MERGE_TAGGED_NAME, "{\"a\":{\"x\":1},\"b\":{\"foo\":{\"x\":1},\"y\":2}}\n", self::JSON, self::COMPACT, '.'];
+
+        foreach (['legacy' => [], 'spec-fixed' => [self::FIXED_MERGE]] as $mode => $flags) {
+            yield '!!merge on another name, lookup of its own name, ' . $mode => [self::MERGE_TAGGED_NAME, "{\"x\":1}\n", ...$flags, self::JSON, self::COMPACT, '.b.foo'];
+
+            yield '!!merge on another name, to_entries, ' . $mode => [self::MERGE_TAGGED_NAME, "[{\"key\":\"foo\",\"value\":{\"x\":1}},{\"key\":\"y\",\"value\":2}]\n", ...$flags, self::JSON, self::COMPACT, '.b | to_entries'];
+
+            yield '!!merge on another name, with_entries, ' . $mode => [self::MERGE_TAGGED_NAME, "{\"foo\":{\"x\":1},\"y\":2}\n", ...$flags, self::JSON, self::COMPACT, '.b | with_entries(.)'];
+        }
 
         yield 'plain <<, lookup' => ['<<', "1\n", self::LOOKUP];
 

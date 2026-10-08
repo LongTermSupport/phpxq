@@ -110,7 +110,7 @@ final readonly class Traversal
         $merge   = false;
         for ($i = 0; $i < $count; $i += 2) {
             $key = $content[$i];
-            if (MergeKey::NAME !== $name && MergeKey::navigates($key)) {
+            if ($key->value !== $name && MergeKey::navigates($key)) {
                 $merge = true;
 
                 continue;
@@ -176,7 +176,9 @@ final readonly class Traversal
             $count   = \count($content);
             $merge   = false;
             for ($i = 0; $i < $count; $i += 2) {
-                if (MergeKey::navigates($content[$i])) {
+                // Listing a mapping merges only through a `<<` tagged `!!merge`, as the reference does here: a
+                // `!!merge` tag on another name is listed under that name.
+                if (MergeKey::merges($content[$i], true)) {
                     $merge = true;
 
                     break;

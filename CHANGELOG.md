@@ -20,7 +20,9 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
   sequence or a scalar (`<<: *list`) is now the reference's error `can only use merge anchors with maps (!!map) or sequences (!!seq) of maps, ...` instead of being silently dropped.
 
 - `yq`: merge keys are recognised as the reference recognises them for each use. Lookups (`.a`, `.[]`) follow
-  a key tagged `!!merge`, which a plain `<<` is, and no longer a `<<` with another tag (`!!str <<`, `!x <<`).
+  a key tagged `!!merge`, which a plain `<<` is, and no longer a `<<` with another tag (`!!str <<`, `!x <<`);
+  a key tagged `!!merge` under another name is still found by that name, and listings (`to_entries`,
+  `with_entries`) merge only through a `<<` tagged `!!merge`.
   Without `--yaml-fix-merge-anchor-to-spec`, the output formats and `explode` merge through any `<<` key,
   quoted or tagged, as the reference does; with it, only through a `<<` tagged `!!merge`.
 
