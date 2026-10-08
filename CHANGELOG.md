@@ -31,6 +31,8 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
   `invalid callout name`) instead of changing how the pattern matches.
 - `yq`: an escaped tilde in a regular expression (`test("\\~")`, `sub("\\~"; "-")`) is a literal `~`, as in
   Go yq, instead of the error `invalid or unsupported Perl syntax`, and a `~` inside `\Q...\E` matches.
+- `jq`: the regex `l` (longest match) modifier takes linear time over the subject; with `g` it was
+  quadratic (`[match("a"; "gl")]` over 4,000 characters took 12 seconds, 20,000 now take a fraction of one).
 
 ### Security
 
