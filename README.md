@@ -303,6 +303,12 @@ PHAR and static binaries, smoke tests, the tag `vX.Y.Z` and the GitHub Release. 
 brings `VERSION` and the changelog on `main` in line. The flow, the version rules and the one-off GitHub
 settings are in [docs/RELEASING.md](docs/RELEASING.md).
 
+## Sponsor
+
+phpxq's development, including the AI tokens used to build it, is paid for by
+[Edmonds Commerce](https://www.edmondscommerce.co.uk/), a digital agency that builds and maintains
+e-commerce platforms and bespoke web applications. Thank you.
+
 ## Licence
 
 phpxq is released under the [MIT licence](LICENSE). Vendored upstream test fixtures are covered by
