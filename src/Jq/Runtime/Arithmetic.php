@@ -9,6 +9,7 @@ use LTS\PhpXq\Jq\Runtime\Eval\Text;
 use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Json\PreciseNumber;
 use LTS\PhpXq\Json\Values;
+use LTS\PhpXq\Limits\AllocationLimit;
 
 /**
  * jq's `+ - * / %` and unary minus over the value model, with jq's type rules and error messages
@@ -20,8 +21,6 @@ use LTS\PhpXq\Json\Values;
 final readonly class Arithmetic
 {
     private const int MAX_SAFE = 9007199254740992;
-
-    private const int MAX_STRING = 2147483647;
 
     private const int MAX_MERGE_DEPTH = 10000;
 
@@ -269,7 +268,7 @@ final readonly class Arithmetic
             return '';
         }
 
-        if (\strlen($text) * $times > self::MAX_STRING) {
+        if (\strlen($text) * $times > AllocationLimit::MAX_STRING_BYTES) {
             throw new JqException('Repeat string result too long');
         }
 

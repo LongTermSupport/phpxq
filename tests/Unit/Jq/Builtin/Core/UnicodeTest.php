@@ -26,6 +26,27 @@ final class UnicodeTest extends TestCase
         self::assertSame([97, 0xE9, 0x20AC, 0x1F600], Unicode::codepoints("a\u{e9}\u{20ac}\u{1f600}"));
     }
 
+    /**
+     * @param list<int> $expected
+     */
+    #[DataProvider('invalidUtf8')]
+    public function testCodepointsOfInvalidUtf8AreReplacementCharacters(string $text, array $expected): void
+    {
+        self::assertSame($expected, Unicode::codepoints($text));
+    }
+
+    /**
+     * @return iterable<string, array{string, list<int>}>
+     */
+    public static function invalidUtf8(): iterable
+    {
+        yield 'stray lead byte at the end'  => ["a\xFF", [97, 0xFFFD]];
+        yield 'truncated two-byte sequence' => ["a\xC3", [97, 0xFFFD]];
+        yield 'truncated three-byte form'   => ["\xE2\x82", [0xFFFD]];
+        yield 'truncated four-byte form'    => ["\xF0\x9F\x98", [0xFFFD]];
+        yield 'lone continuation byte'      => ["\x80b", [0xFFFD, 98]];
+    }
+
     #[DataProvider('encodings')]
     public function testEncode(int $codepoint, string $expected): void
     {

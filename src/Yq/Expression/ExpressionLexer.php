@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Expression;
 
+use LTS\PhpXq\Limits\NestingLimit;
 use LTS\PhpXq\Yq\Expression\Parser\StringLiteral;
 
 /**
@@ -19,9 +20,10 @@ use LTS\PhpXq\Yq\Expression\Parser\StringLiteral;
  * - A multiply operator takes yq's modifiers: `*`, optionally `=` (assign), then up to three of `+ ? d n c`
  *   provided no word character follows (otherwise the modifiers are not modifiers, `*dd` is `*` and `dd`).
  *   `=c` is assignment that clobbers custom tags, taken only when no word character follows the `c`.
- * - A double-quoted string's Token text is the decoded content; when it contains `\(` it is flagged `raw` and
- *   the text is the undecoded body so the parser can split out the interpolations. Single-quoted strings are
- *   verbatim.
+ * - A double-quoted string's Token text is the decoded content; when it contains `\(` it is flagged `raw`, its
+ *   text is empty and its parts hold the decoded literal text and the tokens of each interpolation. An interpolation is tokenized in the same pass, up to the `)` that balances its `\(`, so
+ *   every byte of a nested interpolation is scanned once however deep it nests (up to
+ *   {@see NestingLimit::MAX_DEPTH} levels). Single-quoted strings are verbatim.
  */
 final readonly class ExpressionLexer implements ExpressionLexerInterface
 {
@@ -35,12 +37,34 @@ final readonly class ExpressionLexer implements ExpressionLexerInterface
 
     private const string WORD_CHAR = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_';
 
+    private const string UNTERMINATED = 'Bad expression, unterminated string';
+
+    private const string MISSING_PAREN = 'Bad expression, could not find matching `)`';
+
+    private const string TOO_DEEP = 'Bad expression, nested deeper than %d levels';
+
     public function tokenize(string $expression): array
+    {
+        return $this->scan($expression, 0, 0)[0];
+    }
+
+    /**
+     * The tokens from $index to the end of the expression or, inside an interpolation, to the `)` closing it.
+     *
+     * @param int $nesting how many interpolations enclose $index
+     *
+     * @return array{non-empty-list<ExpressionToken>, int} the tokens, ending with an EndOfInput token, and the
+     *                                                     byte index just after them
+     *
+     * @throws ExpressionSyntaxException
+     */
+    private function scan(string $expression, int $index, int $nesting): array
     {
         $tokens = [];
         $length = \strlen($expression);
-        $index  = 0;
+        $start  = $index;
         $nameAt = -1;
+        $parens = 0;
 
         while (true) {
             if ($index === $nameAt) {
@@ -55,6 +79,10 @@ final readonly class ExpressionLexer implements ExpressionLexerInterface
 
             $index += strspn($expression, " \t\r\n", $index);
             if ($index >= $length) {
+                if ($nesting > 0) {
+                    throw new ExpressionSyntaxException(self::MISSING_PAREN, $start);
+                }
+
                 break;
             }
 
@@ -82,6 +110,24 @@ final readonly class ExpressionLexer implements ExpressionLexerInterface
                 continue;
             }
 
+            if ('"' === $char) {
+                [$tokens[], $index] = $this->doubleQuoted($expression, $index, $nesting);
+
+                continue;
+            }
+
+            if ($nesting > 0 && ')' === $char) {
+                if (0 === $parens) {
+                    $tokens[] = new ExpressionToken(ExpressionTokenKindEnum::EndOfInput, '', $index);
+
+                    return [$tokens, $index + 1];
+                }
+
+                --$parens;
+            } elseif ('(' === $char) {
+                ++$parens;
+            }
+
             $token    = $this->scanToken($expression, $index, $char);
             $tokens[] = $token;
             $index    = $this->tokenEnd($token, $expression);
@@ -89,20 +135,16 @@ final readonly class ExpressionLexer implements ExpressionLexerInterface
 
         $tokens[] = new ExpressionToken(ExpressionTokenKindEnum::EndOfInput, '', $length);
 
-        return $tokens;
+        return [$tokens, $length];
     }
 
     /**
-     * The source offset just after a token; a string's text is decoded so its end is recomputed.
+     * The source offset just after a token other than a double-quoted string.
      */
     private function tokenEnd(ExpressionToken $token, string $expression): int
     {
         if (ExpressionTokenKindEnum::String === $token->kind) {
-            $close = '"' === $expression[$token->offset]
-                ? StringLiteral::scanDouble($expression, $token->offset + 1)
-                : (int)strpos($expression, "'", $token->offset + 1);
-
-            return $close + 1;
+            return (int)strpos($expression, "'", $token->offset + 1) + 1;
         }
 
         return $token->offset + (ExpressionTokenKindEnum::Variable === $token->kind ? 1 : 0) + \strlen($token->text);
@@ -124,10 +166,6 @@ final readonly class ExpressionLexer implements ExpressionLexerInterface
         };
         if (null !== $kind) {
             return new ExpressionToken($kind, $char, $index);
-        }
-
-        if ('"' === $char) {
-            return $this->doubleQuoted($expression, $index);
         }
 
         if ("'" === $char) {
@@ -167,15 +205,59 @@ final readonly class ExpressionLexer implements ExpressionLexerInterface
         return new ExpressionToken(ExpressionTokenKindEnum::Operator, $operator, $index);
     }
 
-    private function doubleQuoted(string $expression, int $index): ExpressionToken
+    /**
+     * The double-quoted string opening at $index, with the tokens of its interpolations.
+     *
+     * @return array{ExpressionToken, int} the token and the byte index just after the closing quote
+     *
+     * @throws ExpressionSyntaxException
+     */
+    private function doubleQuoted(string $expression, int $index, int $nesting): array
     {
-        $close = StringLiteral::scanDouble($expression, $index + 1);
-        $body  = substr($expression, $index + 1, $close - $index - 1);
-        if (str_contains($body, '\(')) {
-            return new ExpressionToken(ExpressionTokenKindEnum::String, $body, $index, true);
+        $length  = \strlen($expression);
+        $parts   = [];
+        $literal = $index + 1;
+        $at      = $literal;
+        while (true) {
+            $at += strcspn($expression, '"\\', $at);
+            if ($at >= $length) {
+                throw new ExpressionSyntaxException(self::UNTERMINATED, $index);
+            }
+
+            if ('"' === $expression[$at]) {
+                break;
+            }
+
+            // a backslash ending the text leaves the string unterminated, which the next pass reports
+            if ($at + 1 >= $length || '(' !== $expression[$at + 1]) {
+                $at += 2;
+
+                continue;
+            }
+
+            if ($at > $literal) {
+                $parts[] = StringLiteral::decode(substr($expression, $literal, $at - $literal));
+            }
+
+            if ($nesting >= NestingLimit::MAX_DEPTH) {
+                throw new ExpressionSyntaxException(\sprintf(self::TOO_DEEP, NestingLimit::MAX_DEPTH), $at);
+            }
+
+            [$parts[], $at] = $this->scan($expression, $at + 2, $nesting + 1);
+            $literal        = $at;
         }
 
-        return new ExpressionToken(ExpressionTokenKindEnum::String, StringLiteral::decode($body), $index);
+        $tail = substr($expression, $literal, $at - $literal);
+        if ($literal === $index + 1 && !str_contains($tail, '\(')) {
+            return [new ExpressionToken(ExpressionTokenKindEnum::String, StringLiteral::decode($tail), $index), $at + 1];
+        }
+
+        if ('' !== $tail) {
+            $parts[] = StringLiteral::decode($tail);
+        }
+
+        // the text stays empty: copying each nested body into its token would cost memory quadratic in the depth
+        return [new ExpressionToken(ExpressionTokenKindEnum::String, '', $index, true, $parts), $at + 1];
     }
 
     private function operator(string $expression, int $index, string $char): ?string

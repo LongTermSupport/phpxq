@@ -68,8 +68,9 @@ final readonly class DateCalls implements CallOperatorInterface
                 return Cands::derive($this->dateNode(new DateTimeImmutable('now'), $layout), $match);
 
             case BuiltinNameEnum::FromUnix:
+                // a fraction of a second is dropped, as Go yq drops it; a time past the int range has no date
                 $seconds = Numbers::of($node);
-                if (null === $seconds) {
+                if (null === $seconds || \is_float($seconds) && !($seconds > \PHP_INT_MIN && $seconds < \PHP_INT_MAX)) {
                     throw new EvaluationException(\sprintf('cannot convert %s to a unix time', $node->value));
                 }
 

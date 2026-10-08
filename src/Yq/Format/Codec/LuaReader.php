@@ -371,9 +371,15 @@ final class LuaReader
                     throw $this->error('invalid \u escape');
                 }
 
+                $code = hexdec($m[1]);
+                $char = \is_int($code) ? mb_chr($code, 'UTF-8') : false;
+                if (false === $char) {
+                    throw $this->error('invalid \u escape');
+                }
+
                 $this->pos += \strlen($m[0]);
 
-                return mb_chr((int)hexdec($m[1]), 'UTF-8');
+                return $char;
             default:
                 if ($next >= '0' && $next <= '9') {
                     --$this->pos;

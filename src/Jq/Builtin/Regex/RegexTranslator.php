@@ -22,12 +22,27 @@ use LTS\PhpXq\Jq\Runtime\JqException;
  * `(?~...)`, other `\p{...}` names PCRE lacks, `\y`/`\Y`) are left to PCRE and fail as invalid regexes.
  *
  * PROPERTIES maps a normalised Oniguruma property name to its class body, and to the body to use for the
- * negation inside a character class (null when there is none).
+ * negation inside a character class (null when there is none). UNSUPPORTED_CALLOUTS lists Oniguruma's builtin
+ * callouts other than FAIL, which PCRE has no equivalent for; the error constants are Oniguruma's messages.
  *
  * @internal
  */
 final readonly class RegexTranslator
 {
+    public const string INVALID_CALLOUT_NAME = 'invalid callout name';
+
+    public const string UNDEFINED_CALLOUT_NAME = 'undefined callout name';
+
+    public const string INVALID_CALLOUT_ARG = 'invalid callout arg';
+
+    public const string END_PATTERN_IN_GROUP = 'end pattern in group';
+
+    public const string UNSUPPORTED_CALLOUT = 'callout (*%s) is not supported';
+
+    private const string FAIL = 'FAIL';
+
+    private const array UNSUPPORTED_CALLOUTS = ['MISMATCH', 'ERROR', 'COUNT', 'TOTAL_COUNT', 'MAX', 'CMP'];
+
     private const string HEX = '0-9a-fA-F';
 
     private const string WORD = '\p{L}\p{M}\p{Nd}\p{Nl}\p{Pc}';
@@ -271,11 +286,9 @@ final readonly class RegexTranslator
         $next   = substr($source, $i + 1, 1);
 
         if ('*' === $next) {
-            $close = strpos($source, ')', $i);
-            $stop  = false === $close ? $length : $close + 1;
-            $out  .= substr($source, $i, $stop - $i);
+            $out .= '(*' . self::FAIL . ')';
 
-            return $stop;
+            return self::checkCallout($source, $i);
         }
 
         if ('?' !== $next) {
@@ -298,7 +311,7 @@ final readonly class RegexTranslator
         if ('(' === $kind) {
             $close = strpos($source, ')', $i + 3);
             $stop  = false === $close ? $length : $close + 1;
-            $out  .= substr($source, $i, $stop - $i);
+            $out  .= self::escapeDelimiter(substr($source, $i, $stop - $i));
 
             return $stop;
         }
@@ -359,6 +372,45 @@ final readonly class RegexTranslator
 
         $name = substr($source, $nameStart, $end - $nameStart);
 
-        return [$open . $name . $close, $name, $end + 1];
+        return [$open . self::escapeDelimiter($name) . $close, $name, $end + 1];
+    }
+
+    /**
+     * Checks the Oniguruma callout `(*NAME)` or `(*NAME{args})` at $i and returns the index after it. Only
+     * `(*FAIL)` has a PCRE equivalent (spelt the same); every other callout is an error, with Oniguruma's
+     * message where Oniguruma rejects it too.
+     *
+     * @throws JqException for any callout but `(*FAIL)`
+     */
+    private static function checkCallout(string $source, int $i): int
+    {
+        $close = strpos($source, ')', $i);
+        if (false === $close) {
+            throw self::invalid($source, self::END_PATTERN_IN_GROUP);
+        }
+
+        $body = substr($source, $i + 2, $close - $i - 2);
+        if (self::FAIL === $body) {
+            return $close + 1;
+        }
+
+        if (1 !== preg_match('/^([A-Za-z_][A-Za-z0-9_]*)(?:$|[{\[])/D', $body, $name)) {
+            throw self::invalid($source, self::INVALID_CALLOUT_NAME);
+        }
+
+        if (self::FAIL === $name[1]) {
+            throw self::invalid($source, self::INVALID_CALLOUT_ARG);
+        }
+
+        if (\in_array($name[1], self::UNSUPPORTED_CALLOUTS, true)) {
+            throw self::invalid($source, \sprintf(self::UNSUPPORTED_CALLOUT, $name[1]));
+        }
+
+        throw self::invalid($source, self::UNDEFINED_CALLOUT_NAME);
+    }
+
+    private static function escapeDelimiter(string $text): string
+    {
+        return str_replace('/', '\/', $text);
     }
 }

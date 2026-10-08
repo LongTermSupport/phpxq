@@ -13,6 +13,10 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 
 ## Unreleased
 
+### Changed
+
+- `yq`: string repetition follows Go yq: the count must be an `!!int` (`"ab" * 2.5` is now `cannot multiply !!str with !!float`), a negative count is an error, and the result may not exceed 10 MiB.
+
 ### Fixed
 
 - `yq`: reading a long YAML line that contains a non-ASCII character is linear again. A 110 KB single-line
@@ -36,6 +40,58 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
   ten-key objects.
 - `yq`: reading HCL with many attributes or block labels in one body is linear. 20,000 attributes took
   over two minutes and now take 2 s.
+- `jq`: `until` and `while` run any number of iterations, as jq's tail-call optimisation lets them;
+  `0 | until(. >= 30000; . + 1)` failed with `Evaluation too deep` after 20,000.
+- `yq`: numbers too large for an integer no longer end the run with an `internal error`. A slice bound or
+  integer argument that is not an integer is Go yq's error (`.[0:1e30]` and `.[0:1.5]` are
+  `strconv.ParseInt: parsing "1e30": invalid syntax`; they used to be truncated), `1e30 | from_unix` is
+  `cannot convert 1e30 to a unix time`, an XML character reference beyond Unicode
+  (`&#x99999999999999999999;`) is kept literally, and a Lua `\u{...}` escape beyond Unicode or naming a
+  surrogate is the error `invalid \u escape`.
+- `jq`: a `/` in a regex conditional `(?(...)` or a group name no longer ends the pattern early with PHP's
+  `Unknown modifier` message, and `(*...)` is read as an Oniguruma callout as jq reads it: `(*FAIL)` works, and
+  PCRE verbs and options such as `(*ACCEPT)` or `(*LIMIT_MATCH=1)` are rejected (`undefined callout name`,
+  `invalid callout name`) instead of changing how the pattern matches.
+- `yq`: an escaped tilde in a regular expression (`test("\\~")`, `sub("\\~"; "-")`) is a literal `~`, as in
+  Go yq, instead of the error `invalid or unsupported Perl syntax`, and a `~` inside `\Q...\E` matches.
+- `jq`: the regex `l` (longest match) modifier takes linear time over the subject; with `g` it was
+  quadratic (`[match("a"; "gl")]` over 4,000 characters took 12 seconds, 20,000 now take a fraction of one).
+
+### Security
+
+- `jq`: a program nested deeper than 10,000 levels (brackets, `|` or `//` operands, or nested constructs) is a
+  compile error, `syntax error, program nested deeper than 10000 levels`, instead of a crash with a
+  segmentation fault. Programs are now parsed and compiled on the evaluation stack. Chains (`,`, `+`, `.a.b`,
+  `[0]`, `?`) are not nesting, but a chain other than `,` builds a tree as deep as it is long, and PHP crashed
+  freeing one of about 700,000 levels: the whole tree, chains included, is limited to 100,000 levels
+  (`syntax error, program tree deeper than 100000 levels, counting chained operations`). A comma chain is
+  built as a balanced tree and has no length limit, so an array literal of 100,000 elements, which crashed,
+  now runs.
+
+- `yq`: an expression nested deeper than 10,000 levels, including one read from the data by `eval`, is the
+  error `Bad expression, nested deeper than 10000 levels` instead of a segmentation fault, and nested string
+  interpolations are parsed in linear time (10,000 levels took minutes before). Chains (`|`, `,`, `+`,
+  `.a.b...`) are not nesting; as for `jq`, the tree they build is limited to 100,000 levels
+  (`Bad expression, tree deeper than 100000 levels, counting chained operations`), except a `,` chain, which
+  is built balanced and has no length limit. Expressions are evaluated on a large stack, so a chain of 30,000
+  steps no longer crashes while a coverage driver is loaded.
+
+- `jq`: invalid UTF-8 in `--arg`, `--args`, `--rawfile`, argument names and the program text is replaced
+  with U+FFFD, as jq does. It used to reach `explode` and similar builtins and end the run with an
+  uncatchable `internal error: Uninitialized string offset`.
+
+- Some single operations that could grow a value without bound are now refused with an ordinary, catchable
+  error when they pass fixed bounds. These bounds do not prevent running out of memory, which remains a fatal
+  error: an operation within them can still exhaust the `memory_limit` or the host.
+
+  - `jq` enforces jq 1.6's own index bound: an array index above 536,870,911 is `Array index too large`.
+  - Padding an array or sequence with more than 2^28 (268,435,456) nulls to reach a far index is refused
+    (`jq`: `Cannot pad array to index ...`; `yq`, including a properties key such as `a.999999999`:
+    `cannot pad a sequence ...`).
+  - `jq` refuses to repeat a string into more than 1 GiB (`Repeat string result too long`).
+
+  Padding and repetition below these bounds behave as before (`null | .[2000000] = 1`, `"x" * 300000000`),
+  including running out of memory when the `memory_limit` cannot hold the result.
 
 ## 0.1.0 — 2026-10-08
 
