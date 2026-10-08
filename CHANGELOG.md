@@ -37,6 +37,9 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 - `yq`: a merge key that merges the mapping it sits in (`a: &a {x: 1, <<: *a}`) no longer crashes the
   process with a segmentation fault in the JSON, properties, TOML, Lua, shell, HCL, XML and KYAML encoders
   or in `explode` with `--yaml-fix-merge-anchor-to-spec`; the re-entered mapping counts as already merged.
+- `yq`: `explode` of an alias or merge key that refers to a node containing it (`a: &a [*a, *a]`,
+  `a: &a {b: {<<: *a}}`) copied it level upon level until time ran out, in either merge mode; it is now
+  refused at once with `cannot explode: an alias or merge key refers to a node that contains it`.
 - `yq`: an alias bomb (a few hundred bytes of nested aliases that expand to billions of nodes) is refused with
   `document contains excessive aliasing`, as go-yaml words it, by every output format that writes aliases out
   as copies, by format operators such as `@json` and by `explode`, instead of running until time or memory

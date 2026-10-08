@@ -16,8 +16,13 @@ use LTS\PhpXq\Yaml\NodeStyleEnum;
  */
 final readonly class Anchors
 {
+    /** The refusal of an alias or merge key that refers to a node containing it. */
+    public const string CYCLE = 'cannot explode: an alias or merge key refers to a node that contains it';
+
+    /** How deep the anchor search and the explode walk go. */
     private const int MAX_DEPTH = 200;
 
+    /** The refusal of merge keys that reach through more mappings than a document may nest. */
     private const string MERGE_TOO_DEEP = 'merge keys are nested too deeply';
 
     private function __construct()
@@ -50,44 +55,73 @@ final readonly class Anchors
     /**
      * Rewrites the tree in place so it holds no aliases, anchors or merge keys.
      *
-     * @throws EvaluationException when expanding the aliases would be excessive (an alias bomb)
+     * @throws EvaluationException when expanding the aliases would be excessive (an alias bomb), or an alias or
+     *                             merge key refers to a node that contains it, which has no finite expansion
      */
-    public static function explode(Node $node, bool $fixedMerge, int $depth = 0): void
+    public static function explode(Node $node, bool $fixedMerge): void
+    {
+        if (AliasExpansion::isExcessive($node)) {
+            throw new EvaluationException(AliasExpansion::ERROR);
+        }
+
+        $ancestors = [];
+        self::walk($node, $fixedMerge, $ancestors, 0);
+    }
+
+    /**
+     * @param array<int, true> $ancestors the nodes being exploded around this one, by object id: the walk's own
+     *                                    ancestors and the targets of the aliases being copied
+     *
+     * @throws EvaluationException when an alias or merge key refers to one of the ancestors
+     */
+    private static function walk(Node $node, bool $fixedMerge, array &$ancestors, int $depth): void
     {
         if ($depth > self::MAX_DEPTH) {
             return;
         }
 
-        if (0 === $depth && AliasExpansion::isExcessive($node)) {
-            throw new EvaluationException(AliasExpansion::ERROR);
-        }
-
         if (NodeKindEnum::Alias === $node->kind) {
-            self::replaceAlias($node, $fixedMerge, $depth);
+            self::replaceAlias($node, $fixedMerge, $ancestors, $depth);
 
             return;
         }
 
-        $node->anchor = '';
+        $node->anchor   = '';
+        $id             = spl_object_id($node);
+        $ancestors[$id] = true;
 
         if (NodeKindEnum::Mapping === $node->kind) {
-            self::resolveMerges($node, $fixedMerge);
+            self::resolveMerges($node, $fixedMerge, $ancestors);
         }
 
         foreach ($node->content as $child) {
-            self::explode($child, $fixedMerge, $depth + 1);
+            self::walk($child, $fixedMerge, $ancestors, $depth + 1);
         }
+
+        unset($ancestors[$id]);
     }
 
-    private static function replaceAlias(Node $alias, bool $fixedMerge, int $depth): void
+    /**
+     * @param array<int, true> $ancestors see {@see self::walk()}
+     *
+     * @throws EvaluationException when the alias refers to one of the ancestors
+     */
+    private static function replaceAlias(Node $alias, bool $fixedMerge, array &$ancestors, int $depth): void
     {
         $target = NodeOps::deref($alias);
         if (NodeKindEnum::Alias === $target->kind) {
             return;
         }
 
-        $copy = $target->deepCopy();
-        self::explode($copy, $fixedMerge, $depth + 1);
+        $targetId = spl_object_id($target);
+        if (isset($ancestors[$targetId])) {
+            throw new EvaluationException(self::CYCLE);
+        }
+
+        $ancestors[$targetId] = true;
+        $copy                 = $target->deepCopy();
+        self::walk($copy, $fixedMerge, $ancestors, $depth + 1);
+        unset($ancestors[$targetId]);
         $alias->kind        = $copy->kind;
         $alias->tag         = $copy->tag;
         $alias->tagExplicit = $copy->tagExplicit;
@@ -101,19 +135,19 @@ final readonly class Anchors
         }
     }
 
-    private static function resolveMerges(Node $map, bool $fixedMerge): void
+    /**
+     * @param array<int, true> $ancestors see {@see self::walk()}
+     *
+     * @throws EvaluationException when a merge key reaches, directly or through other merges, one of the ancestors
+     */
+    private static function resolveMerges(Node $map, bool $fixedMerge, array $ancestors): void
     {
-        $hasMerge = false;
-        for ($i = 0, $n = \count($map->content); $i < $n; $i += 2) {
-            if (NodeOps::isMergeKey($map->content[$i])) {
-                $hasMerge = true;
-
-                break;
-            }
+        if (!self::hasMergeKey($map)) {
+            return;
         }
 
-        if (!$hasMerge) {
-            return;
+        if (self::mergesAnAncestor($map, $ancestors)) {
+            throw new EvaluationException(self::CYCLE);
         }
 
         $merging      = [];
@@ -209,6 +243,42 @@ final readonly class Anchors
         unset($merging[spl_object_id($map)]);
 
         return $flat;
+    }
+
+    /**
+     * Whether the mapping's merge sources, followed through their own merge keys, reach one of the ancestors other
+     * than the mapping itself (whose self-merge is skipped as already merged).
+     *
+     * @param array<int, true> $ancestors see {@see self::walk()}
+     */
+    private static function mergesAnAncestor(Node $map, array $ancestors): bool
+    {
+        $seen    = [spl_object_id($map) => true];
+        $pending = [$map];
+        while ([] !== $pending) {
+            $current = array_pop($pending);
+            for ($i = 0, $n = \count($current->content); $i < $n; $i += 2) {
+                if (!NodeOps::isMergeKey($current->content[$i])) {
+                    continue;
+                }
+
+                foreach (MergeSources::of($current->content[$i + 1]) as $source) {
+                    $id = spl_object_id($source);
+                    if (isset($seen[$id])) {
+                        continue;
+                    }
+
+                    if (isset($ancestors[$id])) {
+                        return true;
+                    }
+
+                    $seen[$id] = true;
+                    $pending[] = $source;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static function hasMergeKey(Node $map): bool
