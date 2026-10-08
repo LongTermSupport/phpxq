@@ -21,8 +21,11 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 
 - `yq`: merge keys are recognised as the reference recognises them for each use. Lookups (`.a`, `.[]`) follow
   a key tagged `!!merge`, which a plain `<<` is, and no longer a `<<` with another tag (`!!str <<`, `!x <<`);
-  a key tagged `!!merge` under another name is still found by that name, and listings (`to_entries`,
-  `with_entries`) merge only through a `<<` tagged `!!merge`.
+  a merge key is still found, read and deleted by its own text (`."<<"`, `.foo` on `!!merge foo`).
+  `.[]` and `.*` follow every key tagged `!!merge`, whatever its name, so `{!!merge foo: {x: 5}, x: 7}`
+  yields `7` once; the other listings (`to_entries`, `with_entries`, `map`, sorting) merge only through a
+  `<<` tagged `!!merge`, as before. With `--yaml-fix-merge-anchor-to-spec`, a mapping holding several merge
+  keys takes them from the last back, so the earliest one's values win.
   Without `--yaml-fix-merge-anchor-to-spec`, the output formats and `explode` merge through any `<<` key,
   quoted or tagged, as the reference does; with it, only through a `<<` tagged `!!merge`.
 

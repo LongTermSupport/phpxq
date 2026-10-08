@@ -100,6 +100,9 @@ final readonly class Traversal
     /**
      * Key lookup in a mapping, following merge keys. Returns [keyNode, valueNode] pairs.
      *
+     * As in the reference, a merge key whose own text is the wanted name is found as an ordinary entry (`."<<"`,
+     * `.foo` on `!!merge foo`), so it can be read and deleted, while every other merge key is followed.
+     *
      * @return list<array{Node, Node}>
      */
     public static function lookup(Node $map, string $name, bool $glob, bool $fixedMerge): array
@@ -107,22 +110,27 @@ final readonly class Traversal
         $content = $map->content;
         $count   = \count($content);
         $matches = [];
+        $named   = [];
         $merge   = false;
         for ($i = 0; $i < $count; $i += 2) {
             $key = $content[$i];
-            if ($key->value !== $name && MergeKey::navigates($key)) {
-                $merge = true;
+            if (!MergeKey::navigates($key)) {
+                if ($glob ? Compare::glob($key->value, $name) : $key->value === $name) {
+                    $matches[] = [$key, $content[$i + 1]];
+                }
 
                 continue;
             }
 
-            if ($glob ? Compare::glob($key->value, $name) : $key->value === $name) {
-                $matches[] = [$key, $content[$i + 1]];
+            if ($key->value === $name) {
+                $named[] = [$key, $content[$i + 1]];
+            } else {
+                $merge = true;
             }
         }
 
         if (!$merge) {
-            return $matches;
+            return [...$matches, ...$named];
         }
 
         $matches = [];
@@ -132,7 +140,7 @@ final readonly class Traversal
             }
         }
 
-        return $matches;
+        return [...$matches, ...$named];
     }
 
     /**
@@ -150,23 +158,29 @@ final readonly class Traversal
      *
      * @param bool $explode whether `explode` asks, which reverses the targets and, like the encoders, judges merge
      *                      keys as output does ({@see MergeKey::merges()}) rather than as navigation does
+     * @param bool $listing whether a listing asks (see {@see self::values()}), which merges only through a `<<`
+     *                      tagged `!!merge` and lists a `!!merge` tag on another name under that name
      *
      * @return array<int|string, array{Node, Node}>
      */
-    public static function entries(Node $map, bool $fixedMerge, bool $explode = false): array
+    public static function entries(Node $map, bool $fixedMerge, bool $explode = false, bool $listing = false): array
     {
         $expanded = [];
         $merging  = [];
 
-        return self::collect($map, $fixedMerge, $explode, $expanded, $merging, 0);
+        return self::collect($map, $fixedMerge, $explode, $listing, $expanded, $merging, 0);
     }
 
     /**
      * Every value of a mapping or item of a sequence.
      *
+     * `.[]` follows every merge key navigation follows (the `!!merge` tag, whatever the name), as the reference
+     * does. The other listings (`to_entries`, `with_entries`, `map`, sorting, ...) pass `$listing`: they merge only
+     * through a `<<` tagged `!!merge` and list a `!!merge` tag on another name as an ordinary entry, as before.
+     *
      * @return list<Candidate>
      */
-    public static function values(Candidate $base, bool $fixedMerge): array
+    public static function values(Candidate $base, bool $fixedMerge, bool $listing = true): array
     {
         $base = Cands::rooted($base);
         $node = NodeOps::deref($base->node);
@@ -176,9 +190,7 @@ final readonly class Traversal
             $count   = \count($content);
             $merge   = false;
             for ($i = 0; $i < $count; $i += 2) {
-                // Listing a mapping merges only through a `<<` tagged `!!merge`, as the reference does here: a
-                // `!!merge` tag on another name is listed under that name.
-                if (MergeKey::merges($content[$i], true)) {
+                if (self::isMergeKey($content[$i], $fixedMerge, false, $listing)) {
                     $merge = true;
 
                     break;
@@ -193,7 +205,7 @@ final readonly class Traversal
                 return $out;
             }
 
-            foreach (self::entries($node, $fixedMerge) as [$key, $value]) {
+            foreach (self::entries($node, $fixedMerge, false, $listing) as [$key, $value]) {
                 $out[] = Cands::child($value, $base, $key);
             }
 
@@ -242,9 +254,13 @@ final readonly class Traversal
         }
     }
 
-    private static function isMergeKey(Node $key, bool $fixedMerge, bool $explode): bool
+    private static function isMergeKey(Node $key, bool $fixedMerge, bool $explode, bool $listing): bool
     {
-        return $explode ? MergeKey::merges($key, $fixedMerge) : MergeKey::navigates($key);
+        if ($explode) {
+            return MergeKey::merges($key, $fixedMerge);
+        }
+
+        return $listing ? MergeKey::merges($key, true) : MergeKey::navigates($key);
     }
 
     /**
@@ -292,7 +308,7 @@ final readonly class Traversal
      *
      * @return array<int|string, array{Node, Node}>
      */
-    private static function collect(Node $map, bool $fixedMerge, bool $explode, array &$expanded, array &$merging, int $depth): array
+    private static function collect(Node $map, bool $fixedMerge, bool $explode, bool $listing, array &$expanded, array &$merging, int $depth): array
     {
         $out = [];
         if ($depth > Node::maxDepth()) {
@@ -302,8 +318,10 @@ final readonly class Traversal
         $merging[spl_object_id($map)] = true;
         $content                      = $map->content;
         $count                        = \count($content);
-        for ($i = 0; $i < $count; $i += 2) {
-            if (!self::isMergeKey($content[$i], $fixedMerge, $explode)) {
+        for ($n = 0; $n < $count; $n += 2) {
+            // The spec-fixed resolution takes a mapping's merge keys from the last back, so an earlier one wins.
+            $i = $fixedMerge ? $count - 2 - $n : $n;
+            if (!self::isMergeKey($content[$i], $fixedMerge, $explode, $listing)) {
                 if (!$fixedMerge) {
                     $out[$content[$i]->value] = [$content[$i], $content[$i + 1]];
                 }
@@ -322,7 +340,7 @@ final readonly class Traversal
                     continue;
                 }
 
-                $expanded[$id] ??= self::collect($target, $fixedMerge, $explode, $expanded, $merging, $depth + 1);
+                $expanded[$id] ??= self::collect($target, $fixedMerge, $explode, $listing, $expanded, $merging, $depth + 1);
                 foreach ($expanded[$id] as $name => $entry) {
                     $out[$name] = $entry;
                 }
@@ -331,7 +349,7 @@ final readonly class Traversal
 
         if ($fixedMerge) {
             for ($i = 0; $i < $count; $i += 2) {
-                if (!self::isMergeKey($content[$i], $fixedMerge, $explode)) {
+                if (!self::isMergeKey($content[$i], $fixedMerge, $explode, $listing)) {
                     $out[$content[$i]->value] = [$content[$i], $content[$i + 1]];
                 }
             }
