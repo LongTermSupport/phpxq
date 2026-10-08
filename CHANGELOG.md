@@ -34,6 +34,8 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 - `jq`: comparing objects (`sort`, `unique`, `group_by`, `==` and the other comparisons) sorts each
   object's keys once instead of on every comparison, which halves the time to sort and deduplicate 50,000
   ten-key objects.
+- `yq`: reading HCL with many attributes or block labels in one body is linear. 20,000 attributes took
+  over two minutes and now take 2 s.
 
 ## 0.1.0 — 2026-10-08
 
