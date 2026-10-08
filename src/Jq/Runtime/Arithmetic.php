@@ -100,7 +100,7 @@ final readonly class Arithmetic
         if (\is_array($left) && \is_array($right)) {
             $kept = [];
             foreach ($left as $element) {
-                $removed = array_any($right, static fn ($candidate): bool => Values::equals($element, $candidate));
+                $removed = array_any($right, static fn (mixed $candidate): bool => Values::equals($element, $candidate));
                 if (!$removed) {
                     $kept[] = $element;
                 }

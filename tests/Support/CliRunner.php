@@ -36,7 +36,7 @@ final readonly class CliRunner
     /**
      * @return resource
      */
-    private function stream(string $contents)
+    private function stream(string $contents): mixed
     {
         $stream = fopen('php://memory', 'w+b');
         if (false === $stream) {

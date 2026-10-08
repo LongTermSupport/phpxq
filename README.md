@@ -177,9 +177,8 @@ or an unlisted failure breaks the build):
 - [jq known gaps](tests/Conformance/Jq/known-gaps.txt): one case, an artefact of the upstream test
   runner (it has no `input` callback), not of the CLI.
 - [yq known gaps](tests/Conformance/Yq/known-gaps.txt): nine documentation examples. Three depend on a
-  frozen clock, one on Go's seeded `math/rand`, the `system` operator is intentionally unsupported
-  (it spawns processes), and the rest are an upstream header-preprocessing quirk and two damaged upstream
-  fixtures.
+  frozen clock, two on Go's seeded `math/rand`, two use the `system` operator, which is intentionally
+  unsupported (it spawns processes), and two are damaged upstream fixtures.
 
 Other differences you may notice:
 
@@ -242,7 +241,8 @@ PHP 8.5 environment is defined in `.claude/ccy/Dockerfile`.
 
 ```bash
 composer install                                      # dev dependencies (lts/php-qa-ci, PHPUnit)
-vendor/bin/qa                                         # full QA pipeline
+vendor/bin/qa                                         # full QA pipeline (needs Xdebug for Infection)
+scripts/check-qa-measurements.bash                    # after it: coverage and mutation ran, floors met
 vendor/bin/phpunit -c qaConfig/phpunit.xml --no-coverage   # unit tests
 ```
 

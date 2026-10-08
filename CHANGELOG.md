@@ -13,8 +13,6 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 
 ## Unreleased
 
-### Changed
-
 - `yq`: string repetition follows Go yq: the count must be an `!!int` (`"ab" * 2.5` is now `cannot multiply !!str with !!float`), a negative count is an error, and the result may not exceed 10 MiB.
 
 - `yq`: without `--yaml-fix-merge-anchor-to-spec`, the output formats still merge only aliases of mappings
@@ -30,6 +28,7 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
   keys takes them from the last back, so the earliest one's values win.
   Without `--yaml-fix-merge-anchor-to-spec`, the output formats and `explode` merge through any `<<` key,
   quoted or tagged, as the reference does; with it, only through a `<<` tagged `!!merge`.
+
 
 ### Fixed
 
@@ -81,6 +80,7 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 - `yq`: when the regex engine gives up (the backtracking limit, or a malformed UTF-8 string such as one from
   `@base64d`), `test`, `match`, `capture`, `sub` and `*` wildcards in `==` and key lookups now raise an error,
   as `jq` does, instead of silently answering false, no match or the unchanged input.
+
 
 ### Security
 
@@ -147,6 +147,11 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
   balance outside quotes and comments, as the reference checks; each is a format error, worded as the
   reference words it where it refuses the same thing. Names the reference writes as they are, such as `200`
   or `my key`, are still written.
+
+- `install.sh` downloads over HTTPS only: curl refuses a plain-HTTP redirect and an older TLS than 1.2, GNU
+  wget runs with `--https-only`, and a `PHPXQ_BASE_URL` that is not `https://` is refused. `--links` no longer
+  replaces an existing `jq` or `yq` link that points elsewhere (a version-manager shim, for example), and an
+  interrupted install stops instead of carrying on.
 
 
 ## 0.1.0 — 2026-10-08

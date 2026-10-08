@@ -15,9 +15,13 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 seed="${1:-1}"
 out="${2:-$root/untracked/scratch/diff}"
 mkdir -p "$out"
-rm -rf "$out/results"
+rm -rf "$out/results" "$out/cases.tsv" "$out/cases.filtered.tsv"
 mkdir -p "$out/results"
-php "$root/scripts/differential/generate.php" "$seed" "$out" > /dev/null
+# Without -e a failed generator would leave the run to an old cases.tsv (or none), so its status is checked.
+if ! php "$root/scripts/differential/generate.php" "$seed" "$out" > /dev/null; then
+    echo "DIFFERENTIAL: the case generator failed for seed $seed" >&2
+    exit 1
+fi
 
 known="$root/scripts/differential/known-differences.txt"
 report="$out/report.txt"

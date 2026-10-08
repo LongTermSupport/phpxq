@@ -6,7 +6,7 @@
   The raw per-case suites `jq` and `yq` ignore known-gaps.txt and are run explicitly with the testsuite
   option of vendor/bin/phpunit, passing this file as the config and the suite name (see README.md).
 -->
-<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/13.4/phpunit.xsd" colors="true" timeoutForLargeTests="300" timeoutForMediumTests="5" timeoutForSmallTests="1" failOnRisky="true" executionOrder="random" cacheDirectory="../var/qa/phpunit.cache" bootstrap="../tests/bootstrap.php" defaultTestSuite="unit,conformance" resolveDependencies="true">
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/13.4/phpunit.xsd" colors="true" timeoutForLargeTests="300" timeoutForMediumTests="5" timeoutForSmallTests="1" failOnRisky="true" failOnWarning="true" failOnNotice="true" failOnDeprecation="true" failOnPhpunitDeprecation="true" failOnPhpunitNotice="true" failOnPhpunitWarning="true" failOnIncomplete="true" failOnSkipped="true" failOnEmptyTestSuite="true" beStrictAboutOutputDuringTests="true" beStrictAboutTestsThatDoNotTestAnything="true" displayDetailsOnAllIssues="true" executionOrder="random" cacheDirectory="../var/qa/phpunit.cache" bootstrap="../tests/bootstrap.php" defaultTestSuite="unit,conformance" resolveDependencies="true">
   <php>
     <ini name="display_errors" value="1"/>
     <ini name="error_reporting" value="-1"/>
