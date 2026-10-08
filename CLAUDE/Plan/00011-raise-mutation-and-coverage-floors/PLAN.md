@@ -24,11 +24,12 @@ The code review (plan 00010, finding Q1) showed that the 90% mutation floor meas
 
 ### Phase 1: Baseline
 
-- [ ] ⬜ **Task 1.1**: Record the honest per-directory MSI and the escaped mutants list from the first full run
+- [ ] ⬜ **Task 1.1**: Record the honest per-directory MSI and the escaped mutants list from the first complete nightly run
+- [ ] ⬜ **Task 1.2**: Re-baseline the provisional 89/89 floor in `qaConfig/qa.php` from that first complete nightly MSI
 
 ### Phase 2: Climb
 
-- [ ] ⬜ **Task 2.1**: Kill escaped mutants directory by directory, raising the floor after each batch
+- [ ] ⬜ **Task 2.1**: Kill escaped mutants directory by directory, raising the floor after each batch to 90
 - [ ] ⬜ **Task 2.2**: Raise line and method coverage floors as coverage improves
 
 ### Phase 3: Upstream
