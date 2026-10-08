@@ -99,6 +99,19 @@ final readonly class RegexBuiltins implements BuiltinProviderInterface
     }
 
     /**
+     * The text before a match followed by one replacement output: what `gap + insert` gives, a string or a
+     * type error.
+     *
+     * @throws JqException
+     */
+    private static function piece(string $gap, mixed $insert): string
+    {
+        $piece = Arithmetic::add($gap, $insert);
+
+        return \is_string($piece) ? $piece : throw ErrorText::typeError2($gap, $insert, 'cannot be added');
+    }
+
+    /**
      * @return array{string, OnigRegex, bool} the subject, the compiled regex and whether the subject is ASCII
      *
      * @throws JqException
@@ -235,7 +248,7 @@ final readonly class RegexBuiltins implements BuiltinProviderInterface
 
             [$subject, $regex, $ascii] = self::prepare($input, $values[0], $flags);
 
-            /** @var array<int, mixed> $results */
+            /** @var array<int, list<string>> $results the pieces of each output, joined once at the end */
             $results  = [];
             $count    = 0;
             $previous = 0;
@@ -250,8 +263,8 @@ final readonly class RegexBuiltins implements BuiltinProviderInterface
                 });
 
                 foreach ($inserts as $index => $insert) {
-                    $results[$index] = Arithmetic::add($results[$index] ?? null, Arithmetic::add($gap, $insert));
-                    $count           = max($count, $index + 1);
+                    $results[$index][] = self::piece($gap, $insert);
+                    $count             = max($count, $index + 1);
                 }
 
                 $previous = $start + \strlen((string)$groups[0][0]);
@@ -265,7 +278,7 @@ final readonly class RegexBuiltins implements BuiltinProviderInterface
 
             $tail = substr($subject, $previous);
             for ($index = 0; $index < $count; ++$index) {
-                $emit(Arithmetic::add($results[$index] ?? null, $tail));
+                $emit(Arithmetic::add(isset($results[$index]) ? implode('', $results[$index]) : null, $tail));
             }
         }, ...$parameters);
     }

@@ -249,15 +249,16 @@ final readonly class PathOps
         }
 
         if ($value instanceof JsonObject) {
+            $members = $value->toArray();
             foreach ($keys as $key) {
                 if (!\is_string($key)) {
                     throw new JqException(\sprintf('Cannot delete field at %s index of object', self::keyKind($key)));
                 }
 
-                $value = $value->without($key);
+                unset($members[$key]);
             }
 
-            return $value;
+            return new JsonObject($members);
         }
 
         if (\is_array($value)) {

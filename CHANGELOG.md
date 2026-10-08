@@ -28,6 +28,9 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 - `jq`: `reduce` and `foreach` whose update is `. + x`, `. += x` or `.[k] = x` grow the accumulator in place
   instead of copying it on every step. `reduce range(40000) as $i ([]; . + [$i])` took 8 s and now takes
   0.25 s; `reduce range(40000) as $i ({}; .[$i | tostring] = $i)` went from 4.7 s to 0.4 s.
+- `jq`: `sub`/`gsub` join their output once instead of re-concatenating it at every match, and deleting
+  many members of one object (`del(.[])`, `delpaths`) copies the object once. `gsub` over 200,000 matches
+  went from 8.7 s to 3 s; `del(.[])` on a 20,000-key object from 12 s to 3.5 s.
 
 ## 0.1.0 — 2026-10-08
 
