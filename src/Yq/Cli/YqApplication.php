@@ -35,6 +35,9 @@ final readonly class YqApplication implements YqApplicationInterface
     /** What every error message written to stderr starts with. */
     private const string ERROR_PREFIX = 'Error: ';
 
+    /** The line after a malformed expression's message, naming the 0-based byte offset the parser stopped at. */
+    private const string SYNTAX_OFFSET_NOTE = "  at offset %d of the expression\n";
+
     private ArgumentParser $parser;
 
     private EvaluateCommand $evaluate;
@@ -95,7 +98,9 @@ final readonly class YqApplication implements YqApplicationInterface
             return EvaluationStack::run(fn (): int => $this->dispatch($parsed, $stdin, $stdout));
         } catch (UsageException $e) {
             fwrite($stderr, self::ERROR_PREFIX . $e->getMessage() . "\n" . HelpText::usage($parsed->command) . "\n");
-        } catch (CliException|EvaluationException|ExpressionSyntaxException|FormatException|YamlSyntaxException|LogicException $e) {
+        } catch (ExpressionSyntaxException $e) {
+            fwrite($stderr, self::ERROR_PREFIX . $e->getMessage() . "\n" . \sprintf(self::SYNTAX_OFFSET_NOTE, $e->offset));
+        } catch (CliException|EvaluationException|FormatException|YamlSyntaxException|LogicException $e) {
             if ($e instanceof CliException && CliException::BROKEN_PIPE === $e->getCode()) {
                 return CliException::BROKEN_PIPE_EXIT;
             }

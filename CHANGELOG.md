@@ -15,6 +15,9 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 
 ### Changed
 
+- `yq`: a malformed expression keeps the reference's `Error: Bad expression, ...` line and then adds a second line on
+  standard error naming where the parser stopped: `  at offset 3 of the expression` (a 0-based byte offset).
+
 - `yq`: string repetition follows Go yq: the count must be an `!!int` (`"ab" * 2.5` is now `cannot multiply !!str with !!float`), a negative count is an error, and the result may not exceed 10 MiB.
 
 - `yq`: without `--yaml-fix-merge-anchor-to-spec`, the output formats still merge only aliases of mappings

@@ -49,7 +49,7 @@ final class ParserNestingLimitTest extends TestCase
     {
         $source = $prefix . $this->nest($open, $leaf, $close, NestingLimit::MAX_DEPTH - $fixedLevels) . $suffix;
 
-        self::assertInstanceOf(NodeInterface::class, self::parse($source)->body);
+        self::assertInstanceOf(NodeInterface::class, $this->parse($source)->body);
     }
 
     #[DataProvider('shapes')]
@@ -100,7 +100,7 @@ final class ParserNestingLimitTest extends TestCase
         $deep   = $this->nest('[', '1', ']', NestingLimit::MAX_DEPTH - 2);
         $source = $deep . ',' . $deep . '|' . $deep;
 
-        self::assertInstanceOf(NodeInterface::class, self::parse($source)->body);
+        self::assertInstanceOf(NodeInterface::class, $this->parse($source)->body);
     }
 
     /**
@@ -111,7 +111,7 @@ final class ParserNestingLimitTest extends TestCase
     {
         $source = $prefix . str_repeat($link, self::LONG_CHAIN) . $last;
 
-        self::assertInstanceOf(NodeInterface::class, self::parse($source)->body);
+        self::assertInstanceOf(NodeInterface::class, $this->parse($source)->body);
     }
 
     /**
@@ -159,13 +159,13 @@ final class ParserNestingLimitTest extends TestCase
     {
         $source = '[' . str_repeat('0,', 2 * NestingLimit::MAX_TREE_DEPTH) . '0]';
 
-        self::assertInstanceOf(NodeInterface::class, self::parse($source)->body);
+        self::assertInstanceOf(NodeInterface::class, $this->parse($source)->body);
     }
 
     public function testAChainAtTheTreeLimitParses(): void
     {
         // the leaf `.` sits under MAX_TREE_DEPTH index steps
-        self::assertInstanceOf(NodeInterface::class, self::parse('.' . str_repeat(self::INDEX_STEP, NestingLimit::MAX_TREE_DEPTH))->body);
+        self::assertInstanceOf(NodeInterface::class, $this->parse('.' . str_repeat(self::INDEX_STEP, NestingLimit::MAX_TREE_DEPTH))->body);
         self::assertStringStartsWith(self::TOO_LONG, $this->compileError('.' . str_repeat(self::INDEX_STEP, NestingLimit::MAX_TREE_DEPTH + 1)));
     }
 
@@ -173,7 +173,7 @@ final class ParserNestingLimitTest extends TestCase
     {
         $nested = $this->nest('[', '.' . str_repeat(self::INDEX_STEP, NestingLimit::MAX_TREE_DEPTH - 100), ']', 100);
 
-        self::assertInstanceOf(NodeInterface::class, self::parse($nested)->body);
+        self::assertInstanceOf(NodeInterface::class, $this->parse($nested)->body);
         self::assertStringStartsWith(self::TOO_LONG, $this->compileError('[' . $nested . ']'));
     }
 
@@ -182,7 +182,7 @@ final class ParserNestingLimitTest extends TestCase
     {
         $source = $this->nest('[', '1', ']', NestingLimit::MAX_DEPTH) . str_repeat($wrapper, self::LONG_CHAIN);
 
-        self::assertInstanceOf(NodeInterface::class, self::parse($source)->body);
+        self::assertInstanceOf(NodeInterface::class, $this->parse($source)->body);
     }
 
     /**
@@ -204,7 +204,7 @@ final class ParserNestingLimitTest extends TestCase
     public function testCommaOperandsKeepTheirOrder(): void
     {
         $items = [];
-        $node  = self::parse('1, 2, 3, 4, 5')->body;
+        $node  = $this->parse('1, 2, 3, 4, 5')->body;
         $stack = [$node];
         while ([] !== $stack) {
             $next = array_pop($stack);
@@ -228,7 +228,7 @@ final class ParserNestingLimitTest extends TestCase
         self::assertSame(self::TOO_DEEP . (NestingLimit::MAX_DEPTH + 2) . ':', $this->compileError($this->nest('[', '1', ']', NestingLimit::MAX_DEPTH + 1)));
     }
 
-    private static function parse(string $source): Program
+    private function parse(string $source): Program
     {
         return EvaluationStack::run(static fn (): Program => new Parser(new Lexer())->parse($source));
     }
@@ -236,7 +236,7 @@ final class ParserNestingLimitTest extends TestCase
     private function compileError(string $source): string
     {
         try {
-            self::parse($source);
+            $this->parse($source);
         } catch (JqCompileException $jqCompileException) {
             return $jqCompileException->getMessage();
         }

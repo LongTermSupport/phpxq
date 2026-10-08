@@ -28,6 +28,7 @@ final readonly class PathOps
     public const string INDEX_TOO_LARGE = 'Array index too large';
 
     public const string PADDING_TOO_FAR = 'Cannot pad array to index %d: more than %d nulls would be added';
+
     private const array INDEXED_AS      = [
         'string' => 'object',
         'number' => 'array',

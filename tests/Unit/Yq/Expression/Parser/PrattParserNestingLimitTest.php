@@ -50,7 +50,7 @@ final class PrattParserNestingLimitTest extends TestCase
     {
         $source = $prefix . $this->nest($open, $leaf, $close, NestingLimit::MAX_DEPTH - $fixedLevels) . $suffix;
 
-        self::assertCount(1, self::parse($source));
+        self::assertCount(1, $this->parse($source));
     }
 
     #[DataProvider('shapes')]
@@ -83,7 +83,7 @@ final class PrattParserNestingLimitTest extends TestCase
         // `(A, B) | C`: A sits under the pipe and the union, two levels down
         $deep = $this->nest('[', '1', ']', NestingLimit::MAX_DEPTH - 2);
 
-        self::assertCount(1, self::parse($deep . ', ' . $deep . ' | ' . $deep));
+        self::assertCount(1, $this->parse($deep . ', ' . $deep . ' | ' . $deep));
     }
 
     /**
@@ -92,7 +92,7 @@ final class PrattParserNestingLimitTest extends TestCase
     #[DataProvider('chains')]
     public function testALongChainParses(string $prefix, string $link, string $last): void
     {
-        self::assertCount(1, self::parse($prefix . str_repeat($link, self::LONG_CHAIN) . $last));
+        self::assertCount(1, $this->parse($prefix . str_repeat($link, self::LONG_CHAIN) . $last));
     }
 
     /**
@@ -138,13 +138,13 @@ final class PrattParserNestingLimitTest extends TestCase
 
     public function testAUnionChainPastTheTreeLimitParsesAsABalancedTree(): void
     {
-        self::assertCount(1, self::parse('[' . str_repeat('0, ', 2 * NestingLimit::MAX_TREE_DEPTH) . '0]'));
+        self::assertCount(1, $this->parse('[' . str_repeat('0, ', 2 * NestingLimit::MAX_TREE_DEPTH) . '0]'));
     }
 
     public function testAChainAtTheTreeLimitParses(): void
     {
         // the leaf `.` sits under MAX_TREE_DEPTH index steps
-        self::assertCount(1, self::parse('.' . str_repeat(self::INDEX_STEP, NestingLimit::MAX_TREE_DEPTH)));
+        self::assertCount(1, $this->parse('.' . str_repeat(self::INDEX_STEP, NestingLimit::MAX_TREE_DEPTH)));
         self::assertSame(self::TOO_LONG, $this->syntaxError('.' . str_repeat(self::INDEX_STEP, NestingLimit::MAX_TREE_DEPTH + 1)));
     }
 
@@ -152,7 +152,7 @@ final class PrattParserNestingLimitTest extends TestCase
     {
         $nested = $this->nest('[', '.' . str_repeat(self::INDEX_STEP, NestingLimit::MAX_TREE_DEPTH - 100), ']', 100);
 
-        self::assertCount(1, self::parse($nested));
+        self::assertCount(1, $this->parse($nested));
         self::assertSame(self::TOO_LONG, $this->syntaxError('[' . $nested . ']'));
     }
 
@@ -160,14 +160,14 @@ final class PrattParserNestingLimitTest extends TestCase
     {
         $string = self::INTERPOLATION_OPEN . '.' . str_repeat(self::INDEX_STEP, NestingLimit::MAX_TREE_DEPTH - 1) . self::INTERPOLATION_CLOSE;
 
-        self::assertCount(1, self::parse($string));
+        self::assertCount(1, $this->parse($string));
         self::assertSame(self::TOO_LONG, $this->syntaxError($string . self::INDEX_STEP));
     }
 
     #[DataProvider('wrappers')]
     public function testAChainAfterAnOperandAtTheLimitParses(string $wrapper): void
     {
-        self::assertCount(1, self::parse($this->nest('[', '1', ']', NestingLimit::MAX_DEPTH) . str_repeat($wrapper, self::LONG_CHAIN)));
+        self::assertCount(1, $this->parse($this->nest('[', '1', ']', NestingLimit::MAX_DEPTH) . str_repeat($wrapper, self::LONG_CHAIN)));
     }
 
     /**
@@ -186,7 +186,7 @@ final class PrattParserNestingLimitTest extends TestCase
     {
         $string = $this->nest(self::INTERPOLATION_OPEN, $this->nest('[', '1', ']', NestingLimit::MAX_DEPTH - 1), self::INTERPOLATION_CLOSE, 1);
 
-        self::assertCount(1, self::parse($string));
+        self::assertCount(1, $this->parse($string));
         self::assertSame(self::TOO_DEEP, $this->syntaxError('[' . $string . ']'));
     }
 
@@ -195,7 +195,7 @@ final class PrattParserNestingLimitTest extends TestCase
         $source = $this->nest(self::INTERPOLATION_OPEN, '1', self::INTERPOLATION_CLOSE, NestingLimit::MAX_DEPTH);
         $start  = hrtime(true);
 
-        self::parse($source);
+        $this->parse($source);
 
         // re-scanning the inner text at every level took minutes at this depth
         self::assertLessThan(self::LINEAR_PARSE_BUDGET_NANOSECONDS, hrtime(true) - $start);
@@ -204,7 +204,7 @@ final class PrattParserNestingLimitTest extends TestCase
     /**
      * @return non-empty-list<ExpressionNodeInterface> the parsed expression
      */
-    private static function parse(string $source): array
+    private function parse(string $source): array
     {
         return EvaluationStack::run(static fn (): array => [new PrattParser(new ExpressionLexer()->tokenize($source))->parseAll()]);
     }
@@ -212,7 +212,7 @@ final class PrattParserNestingLimitTest extends TestCase
     private function syntaxError(string $source): string
     {
         try {
-            self::parse($source);
+            $this->parse($source);
         } catch (ExpressionSyntaxException $expressionSyntaxException) {
             return $expressionSyntaxException->getMessage();
         }

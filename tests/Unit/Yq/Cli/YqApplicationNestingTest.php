@@ -49,7 +49,10 @@ final class YqApplicationNestingTest extends TestCase
         $past    = new CliRunner()->run(['yq', '-n', $this->sum($terms + 1)]);
 
         self::assertSame(['', $terms . "\n"], [$atLimit->stderr, $atLimit->stdout]);
-        self::assertSame("Error: Bad expression, tree deeper than 100000 levels, counting chained operations\n", $past->stderr);
+        self::assertSame(
+            "Error: Bad expression, tree deeper than 100000 levels, counting chained operations\n  at offset 400005 of the expression\n",
+            $past->stderr,
+        );
         self::assertSame('', $past->stdout);
     }
 
@@ -58,7 +61,10 @@ final class YqApplicationNestingTest extends TestCase
         $depth  = NestingLimit::MAX_DEPTH + 1;
         $result = new CliRunner()->run(['yq', '-n', str_repeat('(', $depth) . '1' . str_repeat(')', $depth)]);
 
-        self::assertSame("Error: Bad expression, nested deeper than 10000 levels\n", $result->stderr);
+        self::assertSame(
+            "Error: Bad expression, nested deeper than 10000 levels\n  at offset 10001 of the expression\n",
+            $result->stderr,
+        );
         self::assertSame('', $result->stdout);
     }
 
