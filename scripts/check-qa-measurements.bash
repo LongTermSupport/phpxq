@@ -29,8 +29,8 @@ summary="$root/$summary_rel"
 # Measured with Xdebug, the CI coverage driver (PCOV counts slightly more statements as covered: 93.36%).
 line_floor=92.83
 method_floor=81.39
-# Percent of generated mutants Infection may skip: measured 10.3% (2180 of 21104, unit suite only).
-max_skipped_percent=11
+# Percent of generated mutants Infection may skip: measured 13.9% (3811 of 27419, a complete unit-suite run).
+max_skipped_percent=14
 
 failed=0
 fail() {

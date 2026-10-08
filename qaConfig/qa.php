@@ -21,12 +21,11 @@ return static fn (QaConfigBuilder $qa): QaConfigBuilder => $qa
     // Fixtures of the static defences' own tests (qaConfig/PHPStan/Rules): each is deliberately an instance of a
     // bug class, so the fixers must not rewrite it and PHPStan must not report it.
     ->withIgnoredPaths('tests/Fixtures/Defence')
-    // PROVISIONAL measured floors, pending the first complete nightly run (.github/workflows/mutation-nightly.yml
-    // prints the MSI it measures): the score the unit suite earns on its own (the conformance gate records no
-    // coverage), rounded down. 89.2% was measured over only the first 21,104 of 26,219 mutants, where Infection
-    // stopped on a process timeout. They only move up; the target is 90, tracked in plan 00011 with the line,
-    // method and skipped-mutant floors in scripts/check-qa-measurements.bash.
-    ->withInfectionFloors(89, 89)
+    // Measured floors: the score the unit suite earns on its own (the conformance gate records no coverage),
+    // rounded down. A complete run of all 27,419 mutants scored 88.18% (covered 88%), so the floors are 88. They
+    // only move up; the target is 90, tracked in plan 00011 with the line, method and skipped-mutant floors in
+    // scripts/check-qa-measurements.bash.
+    ->withInfectionFloors(88, 88)
     // CI sets PHPXQ_INFECTION_SKIP=1 when scripts/mutation-scope.bash finds the change maps to no source file.
     ->withInfection('1' !== getenv('PHPXQ_INFECTION_SKIP'))
     // Declarations carrying a native type, per kind: every one does. A resource is declared `mixed` with a

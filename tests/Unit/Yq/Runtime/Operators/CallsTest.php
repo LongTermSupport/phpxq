@@ -40,15 +40,6 @@ final class CallsTest extends TestCase
         self::assertSame($expected, YqHarness::run($expression, $input, '' === $input));
     }
 
-    public function testShuffleReturnsAPermutationOfTheSameElements(): void
-    {
-        $input = "- 1\n- 2\n- 2\n- 3\n- 4\n- 5\n";
-        for ($run = 0; $run < 20; ++$run) {
-            self::assertSame("- 1\n- 2\n- 2\n- 3\n- 4\n- 5\n", YqHarness::run('shuffle | sort', $input, false));
-            self::assertSame("6\n", YqHarness::run('shuffle | length', $input, false));
-        }
-    }
-
     /**
      * @return iterable<string, array{string, string, string}>
      */
@@ -146,5 +137,14 @@ final class CallsTest extends TestCase
         yield 'and or not' => ['(true and false) or (false | not)', '', "true\n"];
         yield 'comparison strings' => ['"a" < "b"', '', "true\n"];
         yield 'equality across types' => ['1 == "1"', '', "true\n"];
+    }
+
+    public function testShuffleReturnsAPermutationOfTheSameElements(): void
+    {
+        $input = "- 1\n- 2\n- 2\n- 3\n- 4\n- 5\n";
+        for ($run = 0; $run < 20; ++$run) {
+            self::assertSame("- 1\n- 2\n- 2\n- 3\n- 4\n- 5\n", YqHarness::run('shuffle | sort', $input, false));
+            self::assertSame("6\n", YqHarness::run('shuffle | length', $input, false));
+        }
     }
 }
