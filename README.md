@@ -239,7 +239,8 @@ PHP 8.5 environment is defined in `.claude/ccy/Dockerfile`.
 
 ```bash
 composer install                                      # dev dependencies (lts/php-qa-ci, PHPUnit)
-vendor/bin/qa                                         # full QA pipeline
+vendor/bin/qa                                         # full QA pipeline (needs Xdebug for Infection)
+scripts/check-qa-measurements.bash                    # after it: coverage and mutation ran, floors met
 vendor/bin/phpunit -c qaConfig/phpunit.xml --no-coverage   # unit tests
 ```
 

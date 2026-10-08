@@ -1,87 +1,34 @@
 # ============================================================================
-# PHP QA CI — Inline-Barrier Workflow Template (autofix → read-only gate)
+# QA: autofix (pull requests from this repository) then the read-only gate
 # ============================================================================
-# Two jobs, daisy-chained with `needs:`:
+# Two jobs, chained with `needs:`:
 #
-#   autofix (PR only, WRITES + commits back)  ──needs──►  gate (READ-ONLY qa)
+#   autofix (same-repository PR only, writes and commits back)  ──needs──►  gate (read-only QA)
 #
-# 1. autofix runs ONLY on pull_request. It checks out the PR branch TIP, applies
-#    the fixers in WRITE mode (QA_READONLY=0 → Rector + PHP CS Fixer rewrite),
-#    and if anything changed commits + pushes it back to the PR branch. It is
-#    SKIPPED on push to the default branch (already clean, from an auto-fixed PR).
+# 1. autofix runs only on a pull request whose head branch lives in this repository. It checks out the
+#    branch tip, runs the fixers in write mode (QA_READONLY=0: Rector and PHP CS Fixer rewrite), and if
+#    anything changed commits and pushes the fix back to the branch. A fork pull request cannot be pushed
+#    to with this repository's token, so autofix is skipped for it and the gate checks the PR as submitted.
 #
-# 2. gate `needs: autofix`, checks out the SAME (possibly auto-fixed) tip and runs
-#    coding-standards + static analysis READ-ONLY. php-qa-ci auto-enables read-only
-#    on GitHub Actions (GITHUB_ACTIONS=true → detectReadOnly), so Rector + CS Fixer
-#    run as --dry-run and FAIL on any pending change; PHPStan + arkitect run normally.
+# 2. gate checks out the same (possibly auto-fixed) tip and runs the full `vendor/bin/qa` pipeline (coding
+#    standards, linting, the changelog lane, static analysis, tests with coverage, mutation testing), the
+#    measurement floors (scripts/check-qa-measurements.bash) and the upstream shell conformance suites.
+#    php-qa-ci turns on read-only mode on GitHub Actions, so Rector and CS Fixer run as --dry-run and fail
+#    on any change.
 #
-# WHY NO PAT / NO RE-TRIGGER IS NEEDED
-# ------------------------------------
-# The gate validates the fixed tip in the SAME run. The autofix push uses the
-# default GITHUB_TOKEN, which deliberately starts NO new workflow run — so there
-# is no loop, no cancellation, and nothing to wait for. (A re-trigger-based
-# design would need a PAT; this one does not.)
+# A push made with GITHUB_TOKEN starts no workflow run, so when autofix pushes a fix the new head commit
+# would never get its own gate check and branch protection would wait for it for ever. autofix therefore
+# dispatches this workflow on the branch after pushing (workflow_dispatch is the event GITHUB_TOKEN may
+# start), which reports the gate check on the new head commit.
 #
-# REQUIRED GITHUB CONFIGURATION
-# -----------------------------
-# - Settings → Actions → General → Workflow permissions → "Read and write".
-# - (Recommended) protect the default branch and require the "gate" check.
+# Triggers: every push, but the gate runs for a push only on the default branch (a feature branch is covered
+# by its pull request), so nothing runs twice and no branch name is hard-coded.
 #
-# DEFAULT BRANCH IS DYNAMIC (no hardcoded name)
-# ---------------------------------------------
-# `on:` filters cannot use expressions, so rather than hardcode `main`/`master`
-# this template triggers on ALL pushes and GUARDS the gate to run, for push
-# events, only on the default branch (github.event.repository.default_branch).
-# PRs always run. Net: PR → autofix+gate; push to default (post-merge) → gate;
-# push to a feature branch → skipped (its PR covers it) — no double-runs, no
-# hardcoded branch name. (A feature push with no PR yields an empty skipped run.)
+# Required GitHub configuration: Settings > Actions > General > Workflow permissions "Read and write", and
+# the default branch protected with the "QA gate (read-only qa)" check required.
 #
-# WHAT IS PRE-WIRED (so this is copy-and-go for most repos)
-# ---------------------------------------------------------
-# - `PHP_QA_CI_DISABLE_CONFIG_PUSH: 'true'` (workflow env) — stops the composer
-#   plugins writing Claude config / managed source into the tree (the read-only
-#   gate would otherwise fail on that drift).
-# - `composer install --no-scripts` — skips framework post-install scripts that
-#   need runtime env absent in CI. The php-qa-ci plugin still runs (plugin event).
-# - "Install SSH deploy keys" step — a NO-OP unless the CI_SSH_DEPLOY_BUNDLE secret
-#   is set (see below); private-dependency repos work, public-only repos unaffected.
-# - The gate runs coding-standards + static analysis (tests deferred — see NOTES).
-#
-# THE ONE THING YOU MUST CHECK
-# ----------------------------
-# - Custom composer bin-dir: this template calls `vendor/bin/qa`. If composer.json
-#   sets `config.bin-dir` (e.g. `bin`), replace EVERY `vendor/bin/qa` below with
-#   `<bin-dir>/qa`. Verify: `grep -n 'vendor/bin/qa' .github/workflows/qa.yml`
-#   should then match only this comment.
-#
-# PRIVATE FIRST-PARTY DEPENDENCIES (ballicom/*, lts/* via github_deploy_* aliases)
-# --------------------------------------------------------------------------------
-# If composer.lock pins any dep to a `github_deploy_*` SSH alias, CI's GITHUB_TOKEN
-# cannot clone it. Provision the existing READ-ONLY deploy keys ONCE, from a dev
-# container that holds them:
-#   vendor/lts/php-qa-ci/scripts/ci-push-ssh-deploy-bundle.bash
-# It auto-discovers the aliases from composer.lock, bundles the matching keys, and
-# sets the CI_SSH_DEPLOY_BUNDLE repo secret. The install step above then unpacks it.
-# (lts/php-qa-ci itself is public — needs no key.)
-#
-# FAIL-FAST: the "Verify deploy keys cover every private dep" step (right after the
-# install step, in BOTH jobs) cross-checks the aliases composer.lock requires against
-# the keys the bundle actually installed. If the bundle is stale (a new private dep
-# was added but the secret wasn't re-pushed) or unset, it fails immediately naming the
-# missing alias(es) + the one-command fix — instead of the cryptic
-# "ssh: Could not resolve hostname github_deploy_<name>" that composer emits far later.
-# After adding a new private first-party dep, re-run ci-push-ssh-deploy-bundle.bash.
-#
-# NOTES
-# -----
-# - Tests are deferred: the gate runs `qa -t allCS` + `qa -t allStatic` only, because
-#   a PHPUnit suite usually needs a DB / services not on the runner. When your suite
-#   runs without external services, add a tests step + a `services:` block to `gate`.
-#
-# INSTALLATION
-# ------------
-#   mkdir -p .github/workflows
-#   cp vendor/lts/php-qa-ci/templates/github-actions/qa-autofix.yml .github/workflows/qa.yml
+# Every action is pinned to a commit SHA (the tag it was taken from is in the trailing comment), and no
+# checkout leaves the token in .git/config, so the PR code that composer and the fixers run cannot read it.
 # ============================================================================
 
 name: QA
@@ -106,133 +53,32 @@ env:
   PHP_QA_CI_DISABLE_CONFIG_PUSH: 'true'
 
 jobs:
-  # --------------------------------------------------------------------------
-  # PR-only: apply fixers in WRITE mode and commit them back to the PR branch,
-  # so the gate below validates the fixed tree in this same run.
-  # --------------------------------------------------------------------------
   autofix:
     name: Auto-fix (apply fixers, commit back) [inline barrier]
-    if: ${{ github.event_name == 'pull_request' }}
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       contents: write
     steps:
-      - name: Checkout the PR branch tip (push-capable)
-        uses: actions/checkout@v4
+      - name: Checkout the PR branch tip
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
-
-      - name: Detect PHP version from composer.json
-        id: php
-        run: |
-          CONSTRAINT=$(jq -r '.require.php // "^8.5"' composer.json)
-          PHP_VERSION=8.5
-          for V in 8.5 8.4 8.3 8.2 8.1 8.0; do
-            if [[ "$CONSTRAINT" == *"$V"* ]]; then PHP_VERSION="$V"; break; fi
-          done
-          echo "version=$PHP_VERSION" >> "$GITHUB_OUTPUT"
+          persist-credentials: false
 
       - name: Set up PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
-          php-version: ${{ steps.php.outputs.version }}
+          php-version: '8.5'
           coverage: none
           tools: composer:v2
           extensions: mbstring, intl, json, zip, dom, curl, libxml, xml, simplexml, iconv, pdo
 
-      - name: Install SSH deploy keys for private first-party deps (no-op if none)
-        # If composer.lock pins private repos to github_deploy_* SSH aliases, CI's
-        # GITHUB_TOKEN cannot clone them. Provision the read-only keys ONCE with
-        #   vendor/lts/php-qa-ci/scripts/ci-push-ssh-deploy-bundle.bash
-        # run from a dev container that holds them — it sets the CI_SSH_DEPLOY_BUNDLE
-        # secret. This step unpacks that secret and recreates the host aliases. If the
-        # secret is unset (all deps are public), it is a clean no-op.
-        env:
-          CI_SSH_DEPLOY_BUNDLE: ${{ secrets.CI_SSH_DEPLOY_BUNDLE }}
-        run: |
-          set -euo pipefail
-          if [ -z "${CI_SSH_DEPLOY_BUNDLE}" ]; then
-            echo "No CI_SSH_DEPLOY_BUNDLE secret — assuming all dependencies are public; skipping."
-            exit 0
-          fi
-          mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          printf '%s' "${CI_SSH_DEPLOY_BUNDLE}" | base64 -d | tar -xzf - -C ~/.ssh
-          ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> ~/.ssh/known_hosts
-          for key in ~/.ssh/github_deploy_*; do
-            [ -f "$key" ] || continue
-            chmod 600 "$key"
-            printf 'Host %s\n  HostName github.com\n  User git\n  IdentityFile %s\n  IdentitiesOnly yes\n' \
-              "$(basename "$key")" "$key" >> ~/.ssh/config
-          done
-
-      - name: Verify deploy keys cover every private dep (fail fast, clear message)
-        # FAIL-FAST GUARD for the #1 cryptic CI failure. composer.lock can pin a
-        # private first-party dep to a github_deploy_* SSH alias; if the
-        # CI_SSH_DEPLOY_BUNDLE secret does not carry that key (stale bundle after
-        # a new dep was added, or unset entirely), `composer install` dies deep in
-        # a `git clone` with:
-        #     ssh: Could not resolve hostname github_deploy_<x>: ... name resolution
-        # — which says nothing about the real cause. This step compares the aliases
-        # composer.lock REQUIRES against the keys the bundle actually installed and,
-        # if any are missing, names them up front with the one-command fix.
-        #
-        # It is inline (not the vendored ci-push-ssh-deploy-bundle.bash helper)
-        # BECAUSE it must run BEFORE `composer install` — at which point vendor/ (and
-        # thus that script) does not exist yet. It needs only composer.lock, jq, and
-        # the ~/.ssh keys the previous step unpacked. The discovery jq mirrors
-        # scripts/ci-push-ssh-deploy-bundle.bash (same source of truth: the
-        # github_deploy_* aliases in composer.lock).
-        run: |
-          set -euo pipefail
-          # Fail loudly on a malformed lock: otherwise an unparseable composer.lock
-          # yields an empty alias list and this step falsely reports "all public",
-          # masking the real breakage until composer errors one step later.
-          jq empty composer.lock
-          # Aliases this lock REQUIRES an SSH deploy key for (process substitution,
-          # so a no-match `grep` exit does not trip errexit).
-          mapfile -t required < <(
-            jq -r '(.packages + (.["packages-dev"] // []))[].source.url // empty' composer.lock \
-              | grep -oE '^github_deploy_[a-z0-9_]+' | sort -u
-          )
-          if [ "${#required[@]}" -eq 0 ]; then
-            echo "No github_deploy_* aliases in composer.lock — all deps are public; nothing to verify."
-            exit 0
-          fi
-          # A key is "available" iff the previous step wrote ~/.ssh/<alias> (it only
-          # creates the matching Host alias when the bundle contained that key).
-          present=()
-          missing=()
-          for alias in "${required[@]}"; do
-            if [ -f "$HOME/.ssh/$alias" ]; then present+=("$alias"); else missing+=("$alias"); fi
-          done
-          if [ "${#missing[@]}" -gt 0 ]; then
-            echo "::error::CI_SSH_DEPLOY_BUNDLE is missing deploy key(s) for: ${missing[*]}"
-            {
-              echo ""
-              echo "composer.lock requires ${#required[@]} private-dep SSH alias(es):"
-              echo "    required : ${required[*]}"
-              echo "    present  : ${present[*]:-(none)}"
-              echo "    MISSING  : ${missing[*]}"
-              echo ""
-              echo "Without these keys 'composer install' will fail cloning the missing repos"
-              echo "with 'ssh: Could not resolve hostname github_deploy_<name>'."
-              echo ""
-              echo "FIX (once): from a dev container that holds the read-only deploy keys, run"
-              echo "    vendor/lts/php-qa-ci/scripts/ci-push-ssh-deploy-bundle.bash"
-              echo "It re-discovers ALL aliases from composer.lock, bundles their keys, and (re)sets"
-              echo "the CI_SSH_DEPLOY_BUNDLE repository secret. If the secret was unset, it creates it."
-            } >&2
-            exit 1
-          fi
-          echo "OK: CI_SSH_DEPLOY_BUNDLE provides all ${#required[@]} required deploy key(s): ${required[*]}"
-
+      # --no-scripts skips post-install scripts; the php-qa-ci composer plugin still runs (a plugin event),
+      # which is why PHP_QA_CI_DISABLE_CONFIG_PUSH is set above.
       - name: Install dependencies
-        # --no-scripts skips framework post-install scripts (e.g. Symfony @auto-scripts
-        # cache:clear / assets:install) that need runtime env not present in CI. The
-        # php-qa-ci composer PLUGIN still runs (a plugin event, not a script) — which is
-        # why PHP_QA_CI_DISABLE_CONFIG_PUSH is set above. Drop --no-scripts if your
-        # project's post-install scripts are required and CI-safe.
         run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader --no-scripts
 
       - name: Apply fixers in write mode (Rector + PHP CS Fixer)
@@ -240,9 +86,10 @@ jobs:
         # auto-enables read-only). This only formats — the gate verifies read-only.
         run: QA_READONLY=0 vendor/bin/qa -t allCS
 
-      - name: Commit & push any fixes back to the PR branch
+      - name: Commit and push any fixes back to the PR branch, then start QA on the new head
         env:
           HEAD_REF: ${{ github.head_ref }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if [ -z "$(git status --porcelain)" ]; then
@@ -255,16 +102,13 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "ci: apply automated code-style fixes [autofix]"
+          gh auth setup-git
           git push origin "HEAD:${HEAD_REF}"
-          echo "Auto-fix: pushed; the gate job checks out this fixed tip in the same run."
+          gh workflow run qa.yml --ref "${HEAD_REF}"
+          echo "Auto-fix: pushed, and started QA on the new head commit so its gate check reports."
 
-  # --------------------------------------------------------------------------
-  # The read-only gate. `needs: autofix` so it validates the committed-back tip.
-  # Runs on PRs and on push to the DEFAULT branch (resolved dynamically); a push
-  # to a non-default branch is skipped (its PR covers it) — no double-run, no
-  # hardcoded branch name. On the default-branch push autofix is skipped
-  # (result 'skipped', not 'failure'), so the gate runs on the pushed commit.
-  # --------------------------------------------------------------------------
+  # Runs on pull requests, manual runs and pushes to the default branch. autofix is skipped (not failed) on
+  # pushes and fork pull requests, so the gate then runs on the commit as it is.
   gate:
     name: QA gate (read-only qa)
     needs: autofix
@@ -275,154 +119,40 @@ jobs:
               || github.ref_name == github.event.repository.default_branch) }}
     runs-on: ubuntu-latest
     steps:
+      # A same-repository PR is checked at its branch tip (which autofix may just have moved); a fork PR at
+      # the merge ref GitHub provides, because its branch does not exist in this repository.
       - name: Checkout the (possibly auto-fixed) tip
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ github.head_ref || github.ref }}
+          ref: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) && github.head_ref || github.ref }}
           # Full history: the changelog lane below measures the change from the merge base with main.
           fetch-depth: 0
+          persist-credentials: false
 
-      - name: Detect PHP version from composer.json
-        id: php
-        run: |
-          CONSTRAINT=$(jq -r '.require.php // "^8.5"' composer.json)
-          PHP_VERSION=8.5
-          for V in 8.5 8.4 8.3 8.2 8.1 8.0; do
-            if [[ "$CONSTRAINT" == *"$V"* ]]; then PHP_VERSION="$V"; break; fi
-          done
-          echo "version=$PHP_VERSION" >> "$GITHUB_OUTPUT"
-
+      # Xdebug provides the coverage the phpunit lane reports and Infection mutates against. Without it
+      # php-qa-ci skips mutation testing; scripts/check-qa-measurements.bash fails the gate if that happens.
       - name: Set up PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
-          php-version: ${{ steps.php.outputs.version }}
-          coverage: none
+          php-version: '8.5'
+          coverage: xdebug
           tools: composer:v2
           extensions: mbstring, intl, json, zip, dom, curl, libxml, xml, simplexml, iconv, pdo
 
-      - name: Install SSH deploy keys for private first-party deps (no-op if none)
-        # If composer.lock pins private repos to github_deploy_* SSH aliases, CI's
-        # GITHUB_TOKEN cannot clone them. Provision the read-only keys ONCE with
-        #   vendor/lts/php-qa-ci/scripts/ci-push-ssh-deploy-bundle.bash
-        # run from a dev container that holds them — it sets the CI_SSH_DEPLOY_BUNDLE
-        # secret. This step unpacks that secret and recreates the host aliases. If the
-        # secret is unset (all deps are public), it is a clean no-op.
-        env:
-          CI_SSH_DEPLOY_BUNDLE: ${{ secrets.CI_SSH_DEPLOY_BUNDLE }}
-        run: |
-          set -euo pipefail
-          if [ -z "${CI_SSH_DEPLOY_BUNDLE}" ]; then
-            echo "No CI_SSH_DEPLOY_BUNDLE secret — assuming all dependencies are public; skipping."
-            exit 0
-          fi
-          mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          printf '%s' "${CI_SSH_DEPLOY_BUNDLE}" | base64 -d | tar -xzf - -C ~/.ssh
-          ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> ~/.ssh/known_hosts
-          for key in ~/.ssh/github_deploy_*; do
-            [ -f "$key" ] || continue
-            chmod 600 "$key"
-            printf 'Host %s\n  HostName github.com\n  User git\n  IdentityFile %s\n  IdentitiesOnly yes\n' \
-              "$(basename "$key")" "$key" >> ~/.ssh/config
-          done
-
-      - name: Verify deploy keys cover every private dep (fail fast, clear message)
-        # FAIL-FAST GUARD for the #1 cryptic CI failure. composer.lock can pin a
-        # private first-party dep to a github_deploy_* SSH alias; if the
-        # CI_SSH_DEPLOY_BUNDLE secret does not carry that key (stale bundle after
-        # a new dep was added, or unset entirely), `composer install` dies deep in
-        # a `git clone` with:
-        #     ssh: Could not resolve hostname github_deploy_<x>: ... name resolution
-        # — which says nothing about the real cause. This step compares the aliases
-        # composer.lock REQUIRES against the keys the bundle actually installed and,
-        # if any are missing, names them up front with the one-command fix.
-        #
-        # It is inline (not the vendored ci-push-ssh-deploy-bundle.bash helper)
-        # BECAUSE it must run BEFORE `composer install` — at which point vendor/ (and
-        # thus that script) does not exist yet. It needs only composer.lock, jq, and
-        # the ~/.ssh keys the previous step unpacked. The discovery jq mirrors
-        # scripts/ci-push-ssh-deploy-bundle.bash (same source of truth: the
-        # github_deploy_* aliases in composer.lock).
-        run: |
-          set -euo pipefail
-          # Fail loudly on a malformed lock: otherwise an unparseable composer.lock
-          # yields an empty alias list and this step falsely reports "all public",
-          # masking the real breakage until composer errors one step later.
-          jq empty composer.lock
-          # Aliases this lock REQUIRES an SSH deploy key for (process substitution,
-          # so a no-match `grep` exit does not trip errexit).
-          mapfile -t required < <(
-            jq -r '(.packages + (.["packages-dev"] // []))[].source.url // empty' composer.lock \
-              | grep -oE '^github_deploy_[a-z0-9_]+' | sort -u
-          )
-          if [ "${#required[@]}" -eq 0 ]; then
-            echo "No github_deploy_* aliases in composer.lock — all deps are public; nothing to verify."
-            exit 0
-          fi
-          # A key is "available" iff the previous step wrote ~/.ssh/<alias> (it only
-          # creates the matching Host alias when the bundle contained that key).
-          present=()
-          missing=()
-          for alias in "${required[@]}"; do
-            if [ -f "$HOME/.ssh/$alias" ]; then present+=("$alias"); else missing+=("$alias"); fi
-          done
-          if [ "${#missing[@]}" -gt 0 ]; then
-            echo "::error::CI_SSH_DEPLOY_BUNDLE is missing deploy key(s) for: ${missing[*]}"
-            {
-              echo ""
-              echo "composer.lock requires ${#required[@]} private-dep SSH alias(es):"
-              echo "    required : ${required[*]}"
-              echo "    present  : ${present[*]:-(none)}"
-              echo "    MISSING  : ${missing[*]}"
-              echo ""
-              echo "Without these keys 'composer install' will fail cloning the missing repos"
-              echo "with 'ssh: Could not resolve hostname github_deploy_<name>'."
-              echo ""
-              echo "FIX (once): from a dev container that holds the read-only deploy keys, run"
-              echo "    vendor/lts/php-qa-ci/scripts/ci-push-ssh-deploy-bundle.bash"
-              echo "It re-discovers ALL aliases from composer.lock, bundles their keys, and (re)sets"
-              echo "the CI_SSH_DEPLOY_BUNDLE repository secret. If the secret was unset, it creates it."
-            } >&2
-            exit 1
-          fi
-          echo "OK: CI_SSH_DEPLOY_BUNDLE provides all ${#required[@]} required deploy key(s): ${required[*]}"
-
       - name: Install dependencies
-        # --no-scripts skips framework post-install scripts (e.g. Symfony @auto-scripts
-        # cache:clear / assets:install) that need runtime env not present in CI. The
-        # php-qa-ci composer PLUGIN still runs (a plugin event, not a script) — which is
-        # why PHP_QA_CI_DISABLE_CONFIG_PUSH is set above. Drop --no-scripts if your
-        # project's post-install scripts are required and CI-safe.
         run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader --no-scripts
 
-      # Read-only gate (GITHUB_ACTIONS=true → fixers run --dry-run and FAIL on any
-      # pending change). Defaults to coding-standards + static analysis: a PHPUnit
-      # suite usually needs a DB / services not present on the runner, so tests are
-      # deferred. When your suite runs WITHOUT external services, add a tests step
-      # (`vendor/bin/qa -t allTests`, or the full `vendor/bin/qa`) plus a `services:`
-      # block to this job.
-      - name: Coding standards — read-only check (Rector + PHP CS Fixer)
+      # The whole pipeline in one run: coding standards (read-only), linting, the changelog lane (it switches
+      # itself off on main, qaConfig/ChangelogLaneSwitch.php), static analysis, the unit and gap-aware
+      # conformance tests with coverage, and Infection. Only an unfiltered run lets Infection reuse the
+      # phpunit lane's coverage; any `-t` selection makes it run the whole suite a second time.
+      - name: Full QA pipeline
         env:
           CI: 'true'
-        run: vendor/bin/qa -t allCS
+        run: vendor/bin/qa
 
-      # Every change to a shipped path needs a CHANGELOG.md entry under `## Unreleased` (or a
-      # `Changelog: none - <reason>` commit trailer): the entries choose the next version. The lane measures
-      # from the merge base with main, so it runs on pull requests and branches, not on main itself.
-      - name: Changelog records the change
-        if: ${{ github.ref_name != github.event.repository.default_branch }}
-        env:
-          CI: 'true'
-        run: vendor/bin/qa -t changelog
-
-      - name: Static analysis (PHPStan + PHPArkitect)
-        env:
-          CI: 'true'
-        run: vendor/bin/qa -t allStatic
-
-      - name: Tests (unit + gap-aware upstream conformance)
-        env:
-          CI: 'true'
-        run: vendor/bin/qa -t phpunit
+      - name: Coverage and mutation lanes ran and meet their floors
+        run: scripts/check-qa-measurements.bash
 
       - name: Upstream shell conformance (jq shtest, yq acceptance)
         run: scripts/conformance-shell.bash all

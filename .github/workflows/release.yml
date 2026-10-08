@@ -54,7 +54,6 @@ jobs:
       releasable: ${{ steps.pre.outputs.releasable }}
       version: ${{ steps.pre.outputs.version }}
       tag: ${{ steps.pre.outputs.tag }}
-      prerelease: ${{ steps.pre.outputs.prerelease }}
     steps:
       - name: Releases only come from the release branch
         run: |
@@ -69,6 +68,7 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+          persist-credentials: false
 
       - name: Set up PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
@@ -97,12 +97,15 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
+      # Xdebug provides the coverage the phpunit lane reports and Infection mutates against. Without it
+      # php-qa-ci skips mutation testing; scripts/check-qa-measurements.bash fails the gate if that happens.
       - name: Set up PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
           php-version: '8.5'
-          coverage: none
+          coverage: xdebug
           tools: composer:v2
           extensions: mbstring, intl, json, zip, dom, curl, libxml, xml, simplexml, iconv, pdo, phar
 
@@ -113,6 +116,9 @@ jobs:
         env:
           CI: 'true'
         run: vendor/bin/qa
+
+      - name: Coverage and mutation lanes ran and meet their floors
+        run: scripts/check-qa-measurements.bash
 
       - name: Upstream conformance, PHP and shell suites (known gaps enforced)
         run: scripts/conformance.bash all
@@ -125,6 +131,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Set up PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
@@ -173,6 +181,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Set up PHP (runs the build scripts and Composer only; the binary embeds its own runtime)
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
@@ -225,6 +235,7 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+          persist-credentials: false
 
       - name: Set up PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
@@ -254,19 +265,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.preflight.outputs.tag }}
           VERSION: ${{ needs.preflight.outputs.version }}
-          PRERELEASE: ${{ needs.preflight.outputs.prerelease }}
         run: |
           set -euo pipefail
           scripts/release.bash notes "${VERSION}" > "${RUNNER_TEMP}/release-notes.md"
-          flags=()
-          if [ "${PRERELEASE}" = "true" ]; then
-            flags+=(--prerelease)
-          fi
           gh release create "${TAG}" release-assets/* \
             --target "${GITHUB_SHA}" \
             --title "phpxq ${VERSION}" \
-            --notes-file "${RUNNER_TEMP}/release-notes.md" \
-            "${flags[@]}"
+            --notes-file "${RUNNER_TEMP}/release-notes.md"
           echo "Published ${TAG}: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${TAG}" >> "${GITHUB_STEP_SUMMARY}"
 
   verify:
@@ -296,7 +301,7 @@ jobs:
 
       - name: Say loudly that the published release needs attention
         if: ${{ failure() }}
-        run: echo "::error title=Release published but verification FAILED::${{ needs.preflight.outputs.tag }} is live and may be broken. Inspect it and, if needed, delete the release and tag, bump VERSION and release again (see docs/RELEASING.md)."
+        run: echo "::error title=Release published but verification FAILED::${{ needs.preflight.outputs.tag }} is live and may be broken. Inspect it and, if needed, withdraw the release (the tag stays) and ship the fix as the next patch version (see docs/RELEASING.md, Recovering)."
 
   # Once the release is published, bring main in line with it (VERSION and CHANGELOG.md) through a pull request
   # release -> main. It runs whether or not verify passed: the version is out either way. A failure here
@@ -316,6 +321,7 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+          persist-credentials: false
 
       - name: Set up PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
@@ -331,7 +337,11 @@ jobs:
       - name: Open or refresh the back-merge pull request
         env:
           GH_TOKEN: ${{ github.token }}
-        run: scripts/release-backmerge.bash
+        # The checkout keeps no token, so git fetches and pushes through gh's credential helper from here on.
+        run: |
+          set -euo pipefail
+          gh auth setup-git
+          scripts/release-backmerge.bash
 
   report:
     name: Release summary
