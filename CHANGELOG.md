@@ -29,6 +29,8 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
   `Unknown modifier` message, and `(*...)` is read as an Oniguruma callout as jq reads it: `(*FAIL)` works, and
   PCRE verbs and options such as `(*ACCEPT)` or `(*LIMIT_MATCH=1)` are rejected (`undefined callout name`,
   `invalid callout name`) instead of changing how the pattern matches.
+- `yq`: an escaped tilde in a regular expression (`test("\\~")`, `sub("\\~"; "-")`) is a literal `~`, as in
+  Go yq, instead of the error `invalid or unsupported Perl syntax`, and a `~` inside `\Q...\E` matches.
 
 ### Security
 

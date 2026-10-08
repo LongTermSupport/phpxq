@@ -38,7 +38,7 @@ final class GoRegex
             }
         }
 
-        $regex = '~' . str_replace('~', '\~', $pattern) . '~' . $modifiers;
+        $regex = '~' . self::escapeDelimiter($pattern) . '~' . $modifiers;
         set_error_handler(static fn (): bool => true);
         try {
             $ok = preg_match($regex, '');
@@ -155,6 +155,43 @@ final class GoRegex
         }
 
         return ['string' => $text, 'offset' => self::runes(substr($subject, 0, $byte)), 'length' => self::runes($text), 'captures' => $captures];
+    }
+
+    /**
+     * Escapes each bare `~` for the `~` delimiter. An escape sequence is copied whole (`\~` is already a
+     * literal tilde), and a tilde inside `\Q...\E` closes the quoted run around its escaped form.
+     */
+    private static function escapeDelimiter(string $pattern): string
+    {
+        $length = \strlen($pattern);
+        $out    = '';
+        $quoted = false;
+        for ($i = 0; $i < $length; ++$i) {
+            $c = $pattern[$i];
+            if ($quoted) {
+                if ('\\' === $c && 'E' === substr($pattern, $i + 1, 1)) {
+                    $quoted = false;
+                    $out .= '\E';
+                    ++$i;
+                } else {
+                    $out .= '~' === $c ? '\E\~\Q' : $c;
+                }
+
+                continue;
+            }
+
+            if ('\\' === $c && $i + 1 < $length) {
+                $quoted = 'Q' === $pattern[$i + 1];
+                $out .= $c . $pattern[$i + 1];
+                ++$i;
+
+                continue;
+            }
+
+            $out .= '~' === $c ? '\~' : $c;
+        }
+
+        return $out;
     }
 
     private static function runes(string $text): int
