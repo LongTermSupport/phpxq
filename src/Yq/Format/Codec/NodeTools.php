@@ -20,8 +20,6 @@ final readonly class NodeTools
 {
     private const int MAX_ALIAS_DEPTH = 64;
 
-    private const int MAX_MERGE_DEPTH = 32;
-
     private const string MERGE_TOO_DEEP = 'merge keys are nested too deeply';
 
     private const string LEGACY_MERGE_NOT_A_MAP = 'can only use merge anchors with maps (!!map) or sequences (!!seq) of maps, but got sequence containing %s';
@@ -243,12 +241,12 @@ final readonly class NodeTools
      *
      * @return list<array{Node, Node}>
      *
-     * @throws FormatException when merge keys reach through more than MAX_MERGE_DEPTH mappings, or a legacy merge
+     * @throws FormatException when merge keys reach through more mappings than a document may nest, or a legacy merge
      *                         alias names something other than a mapping
      */
     private static function mergedPairs(Node $mapping, bool $fixedMerge, array &$expanded, array &$merging, int $depth): array
     {
-        if ($depth > self::MAX_MERGE_DEPTH) {
+        if ($depth > Node::maxDepth()) {
             throw new FormatException(self::MERGE_TOO_DEEP);
         }
 

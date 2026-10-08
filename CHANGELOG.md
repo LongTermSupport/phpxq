@@ -13,15 +13,21 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 
 ## Unreleased
 
+### Changed
+
+- `yq`: without `--yaml-fix-merge-anchor-to-spec`, the output formats still merge only aliases of mappings
+  and leave inline merge sources out, as the reference does, but a merge key whose alias points at a
+  sequence or a scalar (`<<: *list`) is now the reference's error `can only use merge anchors with maps (!!map) or sequences (!!seq) of maps, ...` instead of being silently dropped.
+
 ### Fixed
 
 - `yq --yaml-fix-merge-anchor-to-spec`: the output formats now merge what navigation merges. A `<<` merge
   key whose value is an inline mapping (`<<: {a: 1}`), a sequence holding inline mappings, or an alias of a
   sequence was honoured by `.a` but dropped by `-o json` and the other encoders, and by format operators
   such as `@json`, which now also follow the flag.
-- `yq`: without `--yaml-fix-merge-anchor-to-spec`, the output formats merge only aliases of mappings, as the
-  reference does: inline merge sources are still left out, and a merge key whose alias points at a sequence
-  or a scalar (`<<: *list`) is now the reference's error `can only use merge anchors with maps (!!map) or sequences (!!seq) of maps, ...` instead of being silently dropped.
+- `yq`: a lookup through a chain of more than 32 mappings that each merge the next (`a1: {<<: *a0}`,
+  `a2: {<<: *a1}`, ...) silently lost the keys beyond the 32nd; chains are now followed as deep as a
+  document may nest.
 - `yq`: when the regex engine gives up (the backtracking limit, or a malformed UTF-8 string such as one from
   `@base64d`), `test`, `match`, `capture`, `sub` and `*` wildcards in `==` and key lookups now raise an error,
   as `jq` does, instead of silently answering false, no match or the unchanged input.
@@ -31,16 +37,15 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 - `yq`: a merge key that merges the mapping it sits in (`a: &a {x: 1, <<: *a}`) no longer crashes the
   process with a segmentation fault in the JSON, properties, TOML, Lua, shell, HCL, XML and KYAML encoders
   or in `explode` with `--yaml-fix-merge-anchor-to-spec`; the re-entered mapping counts as already merged.
-  Merge keys that reach through more than 32 mappings are now an error there instead of a crash.
 - `yq`: an alias bomb (a few hundred bytes of nested aliases that expand to billions of nodes) is refused with
   `document contains excessive aliasing`, as go-yaml words it, by every output format that writes aliases out
   as copies, by format operators such as `@json` and by `explode`, instead of running until time or memory
-  ran out. The budget is go-yaml's: more than 100 aliased nodes, more than 1000 nodes in all, and an aliased
-  share above 99% (falling to 10% for documents of 4,000,000 nodes). YAML output keeps the aliases and is
-  unaffected.
+  ran out. A document is refused only when it would write out more than a million nodes and either more than
+  a thousand times its own size or more than a hundred million nodes in all, so templates that merge a shared
+  base into thousands of items are written as before. YAML output keeps the aliases and is unaffected.
 - `yq`: a mapping merged along many paths (`<<: [*a, *a, ...]`, level upon level) is expanded once per lookup,
-  so `.key` lookups and `.[]` over such merge chains take linear rather than exponential time; the encoders
-  count merge sources against the alias budget above.
+  so `.key` lookups, `.[]` and the encoders take linear rather than exponential time over such merge chains;
+  the alias budget above counts a repeated merge source once.
 - `yq --split-exp`: file names come from the data, so a name must now be a plain path inside the current
   directory. A stream wrapper (`php://filter/...`, `file:///...`, `ftp://...`, `data:...`), a NUL byte, or a
   path that climbs out of the directory (`../x`, an absolute path elsewhere) is refused before anything is

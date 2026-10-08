@@ -8,13 +8,14 @@ use LTS\PhpXq\Yaml\AliasExpansion;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\Parser\YamlParser;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Small;
 use PHPUnit\Framework\TestCase;
 
 /**
- * The alias-expansion budget follows go-yaml's "excessive aliasing" check: a document fails when more than 100
- * nodes come out of aliases, more than 1000 nodes come out in all, and the aliased share is above the allowed
- * ratio (0.99 up to 400,000 nodes, falling to 0.10 at 4,000,000).
+ * The alias-expansion budget refuses what only a bomb produces: more than a million nodes written out and either
+ * more than a thousand times the tree or more than a hundred million in all. A merge key's repeated sources are
+ * counted once, as merging takes each key once.
  *
  * @internal
  */
@@ -34,7 +35,13 @@ final class AliasExpansionTest extends TestCase
 
     public function testTheClassicAliasBombIsExcessive(): void
     {
-        self::assertTrue(AliasExpansion::isExcessive($this->bomb(5, 10)));
+        self::assertTrue(AliasExpansion::isExcessive($this->bomb(7, 10)));
+        self::assertTrue(AliasExpansion::isExcessive($this->bomb(9, 10)));
+    }
+
+    public function testASmallBombBelowTheFloorIsAllowed(): void
+    {
+        self::assertFalse(AliasExpansion::isExcessive($this->bomb(5, 10)));
     }
 
     public function testABillionLaughsIsJudgedWithoutExpandingIt(): void
@@ -70,14 +77,82 @@ final class AliasExpansionTest extends TestCase
         self::assertFalse(AliasExpansion::isExcessive($this->parse($yaml)));
     }
 
-    public function testExpansionPastTheRatioIsExcessiveEvenForAWideAnchor(): void
+    public function testAWideAnchorReusedHundredsOfTimesIsAllowed(): void
     {
         $yaml = 'base: &b [' . implode(', ', range(1, 200)) . "]\nuses:\n";
         for ($i = 0; $i < 600; ++$i) {
             $yaml .= "  - *b\n";
         }
 
-        self::assertTrue(AliasExpansion::isExcessive($this->parse($yaml)));
+        self::assertFalse(AliasExpansion::isExcessive($this->parse($yaml)));
+    }
+
+    /**
+     * Thousands of list items each merging a shared base, as configuration templates do: a few hundred times the
+     * size of the tree, far below what a bomb reaches.
+     */
+    #[DataProvider('templates')]
+    public function testTemplatesMergingASharedBaseAreAllowed(int $items, int $baseKeys): void
+    {
+        self::assertFalse(AliasExpansion::isExcessive($this->parse($this->template($items, $baseKeys))));
+    }
+
+    /**
+     * @return iterable<string, array{int, int}>
+     */
+    public static function templates(): iterable
+    {
+        yield '3000 items, 100-key base' => [3000, 100];
+
+        yield '1000 items, 500-key base' => [1000, 500];
+    }
+
+    public function testALongChainOfAnchorsEachMergingTheLastIsAllowed(): void
+    {
+        $yaml = "a0: &a0 {k0: 0}\n";
+        for ($i = 1; $i < 300; ++$i) {
+            $yaml .= \sprintf("a%d: &a%d {<<: *a%d, k%d: %d}\n", $i, $i, $i - 1, $i, $i);
+        }
+
+        self::assertFalse(AliasExpansion::isExcessive($this->parse($yaml)));
+    }
+
+    public function testALongChainOfAnchorsEachHoldingTheLastIsAllowed(): void
+    {
+        $yaml = "a0: &a0 [0]\n";
+        for ($i = 1; $i < 300; ++$i) {
+            $yaml .= \sprintf("a%d: &a%d [*a%d, %d]\n", $i, $i, $i - 1, $i);
+        }
+
+        self::assertFalse(AliasExpansion::isExcessive($this->parse($yaml)));
+    }
+
+    public function testRepeatedMergeSourcesAreCountedOnce(): void
+    {
+        $yaml = "l0: &l0 {x: 1}\n";
+        for ($level = 1; $level < 12; ++$level) {
+            $yaml .= \sprintf("l%d: &l%d {<<: [%s]}\n", $level, $level, implode(', ', array_fill(0, 10, '*l' . ($level - 1))));
+        }
+
+        self::assertFalse(AliasExpansion::isExcessive($this->parse($yaml)));
+    }
+
+    public function testExpansionPastTheAbsoluteCapIsExcessiveWhateverTheTreeSize(): void
+    {
+        $scalar = Node::scalar('x');
+        $base   = Node::sequence(array_fill(0, 50_000, $scalar));
+        $uses   = [];
+        for ($i = 0; $i < 2_100; ++$i) {
+            $uses[] = Node::alias('b', $base);
+        }
+
+        $root = Node::mapping([
+            Node::scalar('base'), $base,
+            Node::scalar('plain'), Node::sequence(array_fill(0, 150_000, $scalar)),
+            Node::scalar('uses'), Node::sequence($uses),
+        ]);
+
+        self::assertTrue(AliasExpansion::isExcessive(Node::document($root)));
     }
 
     public function testACyclicAliasEnds(): void
@@ -118,6 +193,24 @@ final class AliasExpansionTest extends TestCase
         }
 
         return Node::document(Node::mapping($content));
+    }
+
+    /**
+     * A `$baseKeys`-key anchored base and `$items` list items of `{<<: *base, name: nN}`.
+     */
+    private function template(int $items, int $baseKeys): string
+    {
+        $yaml = "base: &base\n";
+        for ($key = 0; $key < $baseKeys; ++$key) {
+            $yaml .= \sprintf("  key%d: value%d\n", $key, $key);
+        }
+
+        $yaml .= "items:\n";
+        for ($item = 0; $item < $items; ++$item) {
+            $yaml .= \sprintf("  - {<<: *base, name: n%d}\n", $item);
+        }
+
+        return $yaml;
     }
 
     private function parse(string $yaml): Node

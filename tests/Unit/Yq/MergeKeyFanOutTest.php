@@ -16,12 +16,13 @@ use PHPUnit\Framework\TestCase;
 /**
  * A chain of mappings that each merge the one before many times over (`l1: {<<: [*l0, *l0, ...]}`, level upon
  * level) has few distinct keys but exponentially many merge paths. Each mapping's merged entries are worked out
- * once per lookup, so navigation stays linear in the document; the encoders count merge sources against the
- * alias-expansion budget.
+ * once per lookup, so navigation stays linear in the document, and the alias-expansion budget counts a repeated
+ * merge source once, so the encoders write it.
  *
  * @internal
  */
 #[CoversClass(Traversal::class)]
+#[CoversClass(AliasExpansion::class)]
 #[CoversClass(NodeTools::class)]
 #[Medium]
 final class MergeKeyFanOutTest extends TestCase
@@ -55,14 +56,15 @@ final class MergeKeyFanOutTest extends TestCase
         yield 'spec-fixed lookup' => ["1\n", '--yaml-fix-merge-anchor-to-spec', '.l6.x'];
     }
 
-    public function testAnEncoderCountsAMergeFanOutAgainstTheAliasBudget(): void
+    /**
+     * Merging takes each key once, so the alias budget counts a repeated merge source once and the fan-out is
+     * written, small as it is, rather than refused.
+     */
+    public function testAnEncoderWritesAMergeFanOutInLinearTime(): void
     {
         $started = hrtime(true);
 
-        [$code, $out, $err] = $this->invoke($this->fanOut(self::LEVELS, self::WIDTH), '-o=json', '.l6');
-
-        self::assertSame([1, ''], [$code, $out]);
-        self::assertStringContainsString(AliasExpansion::ERROR, $err);
+        self::assertSame([0, "{\"x\":1}\n", ''], $this->invoke($this->fanOut(self::LEVELS * 2, self::WIDTH), '-o=json', '-I=0', '.l13'));
         self::assertLessThan(self::TIME_LIMIT_NANOSECONDS, hrtime(true) - $started);
     }
 

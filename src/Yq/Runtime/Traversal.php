@@ -16,8 +16,6 @@ use LTS\PhpXq\Yaml\Schema\CoreSchema;
  */
 final readonly class Traversal
 {
-    private const int MAX_MERGE_DEPTH = 32;
-
     private function __construct()
     {
     }
@@ -286,7 +284,7 @@ final readonly class Traversal
     private static function collect(Node $map, bool $fixedMerge, bool $reverseTargets, array &$expanded, array &$merging, int $depth): array
     {
         $out = [];
-        if ($depth > self::MAX_MERGE_DEPTH) {
+        if ($depth > Node::maxDepth()) {
             return $out;
         }
 

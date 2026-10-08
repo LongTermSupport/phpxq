@@ -18,8 +18,6 @@ final readonly class Anchors
 {
     private const int MAX_DEPTH = 200;
 
-    private const int MAX_MERGE_DEPTH = 32;
-
     private const string MERGE_TOO_DEEP = 'merge keys are nested too deeply';
 
     private function __construct()
@@ -162,11 +160,11 @@ final readonly class Anchors
      *
      * @return list<Node>
      *
-     * @throws EvaluationException when merge keys reach through more than MAX_MERGE_DEPTH mappings
+     * @throws EvaluationException when merge keys reach through more mappings than a document may nest
      */
     private static function fixedPairs(Node $map, array &$merging, int $depth): array
     {
-        if ($depth > self::MAX_MERGE_DEPTH) {
+        if ($depth > Node::maxDepth()) {
             throw new EvaluationException(self::MERGE_TOO_DEEP);
         }
 
