@@ -18,6 +18,10 @@ final readonly class NodeTools
 {
     private const int MAX_ALIAS_DEPTH = 64;
 
+    private const int MAX_MERGE_DEPTH = 32;
+
+    private const string MERGE_TOO_DEEP = 'merge keys are nested too deeply';
+
     private function __construct()
     {
     }
@@ -83,55 +87,9 @@ final readonly class NodeTools
      */
     public static function pairs(Node $mapping): array
     {
-        $count = \count($mapping->content);
-        $plain = true;
-        for ($i = 0; $i < $count; $i += 2) {
-            if (self::isMergeKey($mapping->content[$i])) {
-                $plain = false;
+        $merging = [];
 
-                break;
-            }
-        }
-
-        $pairs = [];
-        if ($plain) {
-            for ($i = 0; $i + 1 < $count; $i += 2) {
-                $pairs[] = [$mapping->content[$i], $mapping->content[$i + 1]];
-            }
-
-            return $pairs;
-        }
-
-        $taken = [];
-        for ($i = 0; $i + 1 < $count; $i += 2) {
-            if (!self::isMergeKey($mapping->content[$i])) {
-                $taken[self::identity($mapping->content[$i])] = true;
-            }
-        }
-
-        for ($i = 0; $i + 1 < $count; $i += 2) {
-            $key   = $mapping->content[$i];
-            $value = $mapping->content[$i + 1];
-            if (!self::isMergeKey($key)) {
-                $pairs[] = [$key, $value];
-
-                continue;
-            }
-
-            foreach (self::mergeSources($value) as $source) {
-                foreach (self::pairs($source) as [$mergedKey, $mergedValue]) {
-                    $identity = self::identity($mergedKey);
-                    if (isset($taken[$identity])) {
-                        continue;
-                    }
-
-                    $taken[$identity] = true;
-                    $pairs[]          = [$mergedKey, $mergedValue];
-                }
-            }
-        }
-
-        return $pairs;
+        return self::mergedPairs($mapping, $merging, 0);
     }
 
     /**
@@ -243,6 +201,79 @@ final readonly class NodeTools
     public static function joinDistinct(string ...$comments): string
     {
         return self::joinComments(...array_values(array_unique($comments)));
+    }
+
+    /**
+     * @param array<int, true> $merging the mappings whose expansion is under way, by object id: a merge source met
+     *                                  again while it is being expanded (`a: &a {<<: *a}`) is a cycle, and its
+     *                                  pairs are already being taken, so it is skipped
+     *
+     * @return list<array{Node, Node}>
+     *
+     * @throws FormatException when merge keys reach through more than MAX_MERGE_DEPTH mappings
+     */
+    private static function mergedPairs(Node $mapping, array &$merging, int $depth): array
+    {
+        if ($depth > self::MAX_MERGE_DEPTH) {
+            throw new FormatException(self::MERGE_TOO_DEEP);
+        }
+
+        $count = \count($mapping->content);
+        $plain = true;
+        for ($i = 0; $i < $count; $i += 2) {
+            if (self::isMergeKey($mapping->content[$i])) {
+                $plain = false;
+
+                break;
+            }
+        }
+
+        $pairs = [];
+        if ($plain) {
+            for ($i = 0; $i + 1 < $count; $i += 2) {
+                $pairs[] = [$mapping->content[$i], $mapping->content[$i + 1]];
+            }
+
+            return $pairs;
+        }
+
+        $taken = [];
+        for ($i = 0; $i + 1 < $count; $i += 2) {
+            if (!self::isMergeKey($mapping->content[$i])) {
+                $taken[self::identity($mapping->content[$i])] = true;
+            }
+        }
+
+        $merging[spl_object_id($mapping)] = true;
+        for ($i = 0; $i + 1 < $count; $i += 2) {
+            $key   = $mapping->content[$i];
+            $value = $mapping->content[$i + 1];
+            if (!self::isMergeKey($key)) {
+                $pairs[] = [$key, $value];
+
+                continue;
+            }
+
+            foreach (self::mergeSources($value) as $source) {
+                if (isset($merging[spl_object_id($source)])) {
+                    continue;
+                }
+
+                foreach (self::mergedPairs($source, $merging, $depth + 1) as [$mergedKey, $mergedValue]) {
+                    $identity = self::identity($mergedKey);
+                    if (isset($taken[$identity])) {
+                        continue;
+                    }
+
+                    $taken[$identity] = true;
+                    $pairs[]          = [$mergedKey, $mergedValue];
+                }
+            }
+        }
+
+        unset($merging[spl_object_id($mapping)]);
+
+        return $pairs;
     }
 
     /**

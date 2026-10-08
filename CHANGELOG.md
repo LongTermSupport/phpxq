@@ -13,6 +13,13 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 
 ## Unreleased
 
+### Security
+
+- `yq`: a merge key that merges the mapping it sits in (`a: &a {x: 1, <<: *a}`) no longer crashes the
+  process with a segmentation fault in the JSON, properties, TOML, Lua, shell, HCL, XML and KYAML encoders
+  or in `explode` with `--yaml-fix-merge-anchor-to-spec`; the re-entered mapping counts as already merged.
+  Merge keys that reach through more than 32 mappings are now an error there instead of a crash.
+
 ## 0.1.0 — 2026-10-08
 
 ### Changed — breaking

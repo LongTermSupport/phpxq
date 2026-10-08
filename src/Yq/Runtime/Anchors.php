@@ -16,6 +16,10 @@ final readonly class Anchors
 {
     private const int MAX_DEPTH = 200;
 
+    private const int MAX_MERGE_DEPTH = 32;
+
+    private const string MERGE_TOO_DEEP = 'merge keys are nested too deeply';
+
     private function __construct()
     {
     }
@@ -106,7 +110,8 @@ final readonly class Anchors
             return;
         }
 
-        $map->content = $fixedMerge ? self::fixedPairs($map) : self::legacyPairs($map);
+        $merging      = [];
+        $map->content = $fixedMerge ? self::fixedPairs($map, $merging, 0) : self::legacyPairs($map);
     }
 
     /**
@@ -143,11 +148,22 @@ final readonly class Anchors
     }
 
     /**
+     * @param array<int, true> $merging the mappings whose expansion is under way, by object id: a merge target met
+     *                                  again while it is being expanded (`a: &a {<<: *a}`) is a cycle whose keys
+     *                                  are already being taken, so it is skipped
+     *
      * @return list<Node>
+     *
+     * @throws EvaluationException when merge keys reach through more than MAX_MERGE_DEPTH mappings
      */
-    private static function fixedPairs(Node $map): array
+    private static function fixedPairs(Node $map, array &$merging, int $depth): array
     {
-        $local = [];
+        if ($depth > self::MAX_MERGE_DEPTH) {
+            throw new EvaluationException(self::MERGE_TOO_DEEP);
+        }
+
+        $merging[spl_object_id($map)] = true;
+        $local                        = [];
         for ($i = 0, $n = \count($map->content); $i < $n; $i += 2) {
             if (!NodeOps::isMergeKey($map->content[$i])) {
                 $local[$map->content[$i]->value] = true;
@@ -166,7 +182,11 @@ final readonly class Anchors
 
             $seen = [];
             foreach (Traversal::mergeTargets($map->content[$i + 1]) as $target) {
-                $targetPairs = self::hasMergeKey($target) ? self::fixedPairs($target) : $target->content;
+                if (isset($merging[spl_object_id($target)])) {
+                    continue;
+                }
+
+                $targetPairs = self::hasMergeKey($target) ? self::fixedPairs($target, $merging, $depth + 1) : $target->content;
                 for ($j = 0, $m = \count($targetPairs); $j < $m; $j += 2) {
                     $name = $targetPairs[$j]->value;
                     if (isset($local[$name]) || isset($seen[$name])) {
@@ -179,6 +199,8 @@ final readonly class Anchors
                 }
             }
         }
+
+        unset($merging[spl_object_id($map)]);
 
         return $flat;
     }
