@@ -34,6 +34,9 @@ final class LinearWorkloadTest extends TestCase
     public static function linearPrograms(): iterable
     {
         yield 'indices in a non-ASCII string' => ['. as $n | "é" * $n | indices("é") | length', 3000, '3000'];
-        yield 'every one-character slice of a non-ASCII string' => ['. as $n | ("aé" * ($n / 2)) as $s | [range($n) as $i | $s[$i:$i + 1]] | length', 1000, '1000'];
+        yield 'add over single-member objects' => ['. as $n | [range($n) | {("k\(.)"): .}] | add | length', 4000, '4000'];
+        yield 'adding a large object to an empty one' => ['. as $n | [range($n) | {key: "k\(.)", value: .}] | from_entries | {} + . | length', 4000, '4000'];
+        yield 'deep merge of a large object into a small one' => ['. as $n | [range($n) | {key: "k\(.)", value: {v: .}}] | from_entries | {k0: {w: 0}} * . | [length, .k0] | tojson', 4000, '"[4000,{\"w\":0,\"v\":0}]"'];
+        yield 'every one-character slice of a non-ASCII string' =>['. as $n | ("aé" * ($n / 2)) as $s | [range($n) as $i | $s[$i:$i + 1]] | length', 1000, '1000'];
     }
 }

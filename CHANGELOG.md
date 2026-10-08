@@ -22,6 +22,9 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 - `jq`: slicing a non-ASCII string (`$s[$i:$j]`) no longer splits the whole string into characters on
   every slice. Taking every one-character slice of an 8,000-character string took about 20 s and now takes
   under 2 s.
+- `jq`: `add` over objects and object `+` and `*` build the result in one pass instead of copying it once
+  per key. `[range(80000) | {(tostring): .}] | add` took 70 s and now takes under 3 s; `{} + $o` on a
+  20,000-key object went from 4 s to 0.2 s, and on 160,000 keys runs in under a second.
 
 ## 0.1.0 — 2026-10-08
 
