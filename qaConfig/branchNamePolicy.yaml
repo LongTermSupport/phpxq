@@ -1,0 +1,4 @@
+# `release` is the long-lived branch the release workflow publishes from (docs/RELEASING.md). It is only ever
+# a base for the release pull request and the target of the release push, never a feature branch.
+extra_exempt_branches:
+  - release
