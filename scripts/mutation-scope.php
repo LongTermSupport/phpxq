@@ -12,6 +12,8 @@ declare(strict_types=1);
  *   from the generic Infection config. The file is gitignored and only ever generated.
  * - all, none: removes any such file, so the full run, or no run (the workflow then disables the lane), uses the
  *   shipped config.
+ * Either way a failed write or removal exits 1. With --verify it changes nothing and exits 1 unless the file is
+ * exactly what --write would leave for the scope (scripts/check-qa-measurements.bash relies on this).
  */
 
 use LTS\PhpXq\Qa\MutationScope;
@@ -25,6 +27,7 @@ require $root . '/vendor/autoload.php';
 $rawArguments = $_SERVER['argv'] ?? [];
 $arguments    = is_array($rawArguments) ? array_values(array_filter(array_slice($rawArguments, 1), is_string(...))) : [];
 $write        = in_array('--write', $arguments, true);
+$verify       = in_array('--verify', $arguments, true);
 
 $diff = stream_get_contents(STDIN);
 if (false === $diff) {
@@ -56,28 +59,55 @@ if (is_string($githubOutput) && '' !== $githubOutput) {
     file_put_contents($githubOutput, 'scope=' . $scope->kind->value . "\n", FILE_APPEND);
 }
 
-if (!$write) {
+if (!$write && !$verify) {
     exit(0);
 }
 
 $override = $root . '/qaConfig/infection.json';
-if (is_file($override)) {
-    unlink($override);
+$expected = null;
+if (ScopeKindEnum::Files === $scope->kind) {
+    $genericDir  = $root . '/vendor/lts/php-qa-ci/configDefaults/generic';
+    $genericJson = file_get_contents($genericDir . '/infection.json');
+    if (false === $genericJson) {
+        fwrite(STDERR, "mutation-scope: could not read the generic Infection config\n");
+
+        exit(1);
+    }
+
+    $config   = new ScopedInfectionConfig()->build(json_decode($genericJson, true, 512, JSON_THROW_ON_ERROR), $genericDir, $scope);
+    $expected = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n";
 }
 
-if (ScopeKindEnum::Files !== $scope->kind) {
+if ($verify) {
+    // The override must be exactly what --write produces for this scope: absent unless the scope is files.
+    $actual = is_file($override) ? file_get_contents($override) : null;
+    if ($actual !== $expected) {
+        fwrite(STDERR, null === $expected
+            ? "mutation-scope: qaConfig/infection.json is present but the scope is {$scope->kind->value}, so the run did not measure all of it\n"
+            : "mutation-scope: qaConfig/infection.json is missing or does not match the scope, so the run did not measure what it had to\n");
+
+        exit(1);
+    }
+
+    echo "verified qaConfig/infection.json against the scope\n";
+
     exit(0);
 }
 
-$genericDir  = $root . '/vendor/lts/php-qa-ci/configDefaults/generic';
-$genericJson = file_get_contents($genericDir . '/infection.json');
-if (false === $genericJson) {
-    fwrite(STDERR, "mutation-scope: could not read the generic Infection config\n");
+if (is_file($override) && !unlink($override)) {
+    fwrite(STDERR, "mutation-scope: could not remove qaConfig/infection.json\n");
 
     exit(1);
 }
 
-$config = new ScopedInfectionConfig()->build(json_decode($genericJson, true, 512, JSON_THROW_ON_ERROR), $genericDir, $scope);
+if (null === $expected) {
+    exit(0);
+}
 
-file_put_contents($override, json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n");
+if (false === file_put_contents($override, $expected)) {
+    fwrite(STDERR, "mutation-scope: could not write qaConfig/infection.json, so Infection would mutate all of src/\n");
+
+    exit(1);
+}
+
 echo 'wrote qaConfig/infection.json (', count($scope->excludes()), " files excluded)\n";

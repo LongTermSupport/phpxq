@@ -10,8 +10,9 @@
 # - var/qa/infection/summary-log.txt exists, is newer than the coverage report (so it is from this run),
 #   and reports no more skipped mutants than the cap below; the mutation score is printed.
 # - With PHPXQ_MUTATION_BASE set (CI runs scoped by scripts/mutation-scope.bash), the scope is recomputed
-#   from that ref: only a change that maps to no source file may have no summary, and only a scoped run may
-#   generate no mutants (its files hold none, e.g. interfaces alone). Without it the run must
+#   from that ref and qaConfig/infection.json must be exactly what that scope writes (absent unless scoped):
+#   only a change that maps to no source file may have no summary, and only a scoped run may generate no
+#   mutants (its files hold none, e.g. interfaces alone). Without it the run must
 #   have been full, so a leftover scoped qaConfig/infection.json fails the check.
 #
 # The floors sit at the value the unit suite earns today and only ever move up (the cap only down); raising
@@ -101,9 +102,16 @@ base="${PHPXQ_MUTATION_BASE:-}"
 scope=all
 if [[ -n "$base" ]]; then
     # Recomputed here rather than trusted from the workflow: only a change that maps to no source may skip.
-    scope_report="$("$root/scripts/mutation-scope.bash" "$base")"
+    # --verify also fails unless qaConfig/infection.json is exactly what --write leaves for that scope, so the
+    # mutants counted below are the scope's: a missing or stale override would have mutated something else.
+    verify_status=0
+    scope_report="$("$root/scripts/mutation-scope.bash" "$base" --verify)" || verify_status=$?
     scope="$(printf '%s\n' "$scope_report" | awk -F= '$1 == "scope" { print $2 }')"
-    echo "mutation scope since $base: $scope"
+    echo "mutation scope since $base: ${scope:-unknown}"
+    if [[ "$verify_status" -ne 0 ]]; then
+        fail "the scoped mutation config qaConfig/infection.json does not match the scope since $base (see above)"
+        scope=all
+    fi
 elif [[ -f "$root/qaConfig/infection.json" ]]; then
     fail "qaConfig/infection.json (a scoped mutation config from scripts/mutation-scope.bash) is present, so a full run measured only part of src/; delete it"
 fi
