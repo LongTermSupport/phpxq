@@ -49,7 +49,7 @@ final readonly class JsonEncoder implements EncoderInterface
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
-        $root = NodeTools::expandableRoot($node);
+        $root = NodeTools::expandableRoot($node, $options->yamlFixMergeAnchorToSpec);
         if ($options->unwrapScalar && NodeKindEnum::Scalar === $root->kind) {
             return $root->value . "\n";
         }

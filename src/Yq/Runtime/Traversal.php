@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Runtime;
 
+use LTS\PhpXq\Yaml\MergeKey;
 use LTS\PhpXq\Yaml\MergeSources;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
@@ -109,7 +110,7 @@ final readonly class Traversal
         $merge   = false;
         for ($i = 0; $i < $count; $i += 2) {
             $key = $content[$i];
-            if ('<<' !== $name && NodeOps::isMergeKey($key)) {
+            if (MergeKey::NAME !== $name && MergeKey::navigates($key)) {
                 $merge = true;
 
                 continue;
@@ -147,14 +148,17 @@ final readonly class Traversal
      * once per path. A target met again while it is being expanded (`a: &a {<<: *a}`) is a cycle whose entries
      * are already being written, and is skipped.
      *
+     * @param bool $explode whether `explode` asks, which reverses the targets and, like the encoders, judges merge
+     *                      keys as output does ({@see MergeKey::merges()}) rather than as navigation does
+     *
      * @return array<int|string, array{Node, Node}>
      */
-    public static function entries(Node $map, bool $fixedMerge, bool $reverseTargets = false): array
+    public static function entries(Node $map, bool $fixedMerge, bool $explode = false): array
     {
         $expanded = [];
         $merging  = [];
 
-        return self::collect($map, $fixedMerge, $reverseTargets, $expanded, $merging, 0);
+        return self::collect($map, $fixedMerge, $explode, $expanded, $merging, 0);
     }
 
     /**
@@ -172,7 +176,7 @@ final readonly class Traversal
             $count   = \count($content);
             $merge   = false;
             for ($i = 0; $i < $count; $i += 2) {
-                if (NodeOps::isMergeKey($content[$i])) {
+                if (MergeKey::navigates($content[$i])) {
                     $merge = true;
 
                     break;
@@ -221,7 +225,7 @@ final readonly class Traversal
                 $key = $content[$i];
                 if ($includeKeys) {
                     $out[] = new Candidate($key, $candidate, $key, $candidate->documentIndex, $candidate->fileIndex, $candidate->filename);
-                } elseif (NodeOps::isMergeKey($key)) {
+                } elseif (MergeKey::navigates($key)) {
                     self::descend(Cands::child($content[$i + 1], $candidate, $key), $includeKeys, $out);
 
                     continue;
@@ -234,6 +238,11 @@ final readonly class Traversal
                 self::descend(Cands::child($item, $candidate, NodeOps::int($index)), $includeKeys, $out);
             }
         }
+    }
+
+    private static function isMergeKey(Node $key, bool $fixedMerge, bool $explode): bool
+    {
+        return $explode ? MergeKey::merges($key, $fixedMerge) : MergeKey::navigates($key);
     }
 
     /**
@@ -281,7 +290,7 @@ final readonly class Traversal
      *
      * @return array<int|string, array{Node, Node}>
      */
-    private static function collect(Node $map, bool $fixedMerge, bool $reverseTargets, array &$expanded, array &$merging, int $depth): array
+    private static function collect(Node $map, bool $fixedMerge, bool $explode, array &$expanded, array &$merging, int $depth): array
     {
         $out = [];
         if ($depth > Node::maxDepth()) {
@@ -292,7 +301,7 @@ final readonly class Traversal
         $content                      = $map->content;
         $count                        = \count($content);
         for ($i = 0; $i < $count; $i += 2) {
-            if (!NodeOps::isMergeKey($content[$i])) {
+            if (!self::isMergeKey($content[$i], $fixedMerge, $explode)) {
                 if (!$fixedMerge) {
                     $out[$content[$i]->value] = [$content[$i], $content[$i + 1]];
                 }
@@ -301,7 +310,7 @@ final readonly class Traversal
             }
 
             $targets = MergeSources::of($content[$i + 1]);
-            if ($fixedMerge || $reverseTargets) {
+            if ($fixedMerge || $explode) {
                 $targets = array_reverse($targets);
             }
 
@@ -311,7 +320,7 @@ final readonly class Traversal
                     continue;
                 }
 
-                $expanded[$id] ??= self::collect($target, $fixedMerge, $reverseTargets, $expanded, $merging, $depth + 1);
+                $expanded[$id] ??= self::collect($target, $fixedMerge, $explode, $expanded, $merging, $depth + 1);
                 foreach ($expanded[$id] as $name => $entry) {
                     $out[$name] = $entry;
                 }
@@ -320,7 +329,7 @@ final readonly class Traversal
 
         if ($fixedMerge) {
             for ($i = 0; $i < $count; $i += 2) {
-                if (!NodeOps::isMergeKey($content[$i])) {
+                if (!self::isMergeKey($content[$i], $fixedMerge, $explode)) {
                     $out[$content[$i]->value] = [$content[$i], $content[$i + 1]];
                 }
             }

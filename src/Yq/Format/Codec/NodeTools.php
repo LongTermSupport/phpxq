@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\AliasExpansion;
+use LTS\PhpXq\Yaml\MergeKey;
 use LTS\PhpXq\Yaml\MergeSources;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
-use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\FormatException;
 
@@ -58,18 +58,13 @@ final readonly class NodeTools
      *
      * @throws FormatException when expanding the aliases would be excessive (an alias bomb)
      */
-    public static function expandableRoot(Node $node): Node
+    public static function expandableRoot(Node $node, bool $fixedMerge): Node
     {
-        if (AliasExpansion::isExcessive($node)) {
+        if (AliasExpansion::isExcessive($node, $fixedMerge)) {
             throw new FormatException(AliasExpansion::ERROR);
         }
 
         return self::unwrap($node);
-    }
-
-    public static function isMergeKey(Node $key): bool
-    {
-        return '<<' === $key->value && NodeKindEnum::Scalar === $key->kind && NodeStyleEnum::Default === $key->style && (CoreSchema::TAG_STR === $key->tag || '!!merge' === $key->tag);
     }
 
     /**
@@ -84,7 +79,7 @@ final readonly class NodeTools
     {
         $count = \count($mapping->content);
         for ($i = 0; $i < $count; $i += 2) {
-            if (self::isMergeKey($mapping->content[$i])) {
+            if (MergeKey::merges($mapping->content[$i], $fixedMerge)) {
                 $flat = [];
                 foreach (self::pairs($mapping, $fixedMerge) as [$key, $value]) {
                     $flat[] = $key;
@@ -253,7 +248,7 @@ final readonly class NodeTools
         $count = \count($mapping->content);
         $plain = true;
         for ($i = 0; $i < $count; $i += 2) {
-            if (self::isMergeKey($mapping->content[$i])) {
+            if (MergeKey::merges($mapping->content[$i], $fixedMerge)) {
                 $plain = false;
 
                 break;
@@ -271,7 +266,7 @@ final readonly class NodeTools
 
         $taken = [];
         for ($i = 0; $i + 1 < $count; $i += 2) {
-            if (!self::isMergeKey($mapping->content[$i])) {
+            if (!MergeKey::merges($mapping->content[$i], $fixedMerge)) {
                 $taken[self::identity($mapping->content[$i])] = true;
             }
         }
@@ -280,7 +275,7 @@ final readonly class NodeTools
         for ($i = 0; $i + 1 < $count; $i += 2) {
             $key   = $mapping->content[$i];
             $value = $mapping->content[$i + 1];
-            if (!self::isMergeKey($key)) {
+            if (!MergeKey::merges($key, $fixedMerge)) {
                 $pairs[] = [$key, $value];
 
                 continue;

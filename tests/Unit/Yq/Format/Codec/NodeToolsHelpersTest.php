@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
-use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yaml\Parser\YamlParser;
 use LTS\PhpXq\Yq\Format\Codec\NodeTools;
 use LTS\PhpXq\Yq\Format\FormatException;
@@ -51,15 +50,6 @@ final class NodeToolsHelpersTest extends TestCase
         $target = Node::scalar('x');
 
         self::assertSame($target, NodeTools::unwrap(Node::alias('a', Node::document($target))));
-    }
-
-    public function testMergeKeyNeedsADefaultStyleStringOrMergeTag(): void
-    {
-        self::assertTrue(NodeTools::isMergeKey(Node::scalar('<<', '!!merge')));
-        self::assertTrue(NodeTools::isMergeKey(Node::scalar('<<', '!!str')));
-        self::assertFalse(NodeTools::isMergeKey(Node::scalar('<<', '!!int')));
-        self::assertFalse(NodeTools::isMergeKey(Node::scalar('<<', '!!str', NodeStyleEnum::SingleQuoted)));
-        self::assertFalse(NodeTools::isMergeKey(Node::sequence()));
     }
 
     public function testMergeKeyInThirdPositionIsExpanded(): void

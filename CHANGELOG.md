@@ -19,6 +19,11 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
   and leave inline merge sources out, as the reference does, but a merge key whose alias points at a
   sequence or a scalar (`<<: *list`) is now the reference's error `can only use merge anchors with maps (!!map) or sequences (!!seq) of maps, ...` instead of being silently dropped.
 
+- `yq`: merge keys are recognised as the reference recognises them for each use. Lookups (`.a`, `.[]`) follow
+  a key tagged `!!merge`, which a plain `<<` is, and no longer a `<<` with another tag (`!!str <<`, `!x <<`).
+  Without `--yaml-fix-merge-anchor-to-spec`, the output formats and `explode` merge through any `<<` key,
+  quoted or tagged, as the reference does; with it, only through a `<<` tagged `!!merge`.
+
 ### Fixed
 
 - `yq --yaml-fix-merge-anchor-to-spec`: the output formats now merge what navigation merges. A `<<` merge
@@ -43,9 +48,11 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 - `yq`: an alias bomb (a few hundred bytes of nested aliases that expand to billions of nodes) is refused with
   `document contains excessive aliasing`, as go-yaml words it, by every output format that writes aliases out
   as copies, by format operators such as `@json` and by `explode`, instead of running until time or memory
-  ran out. A document is refused only when it would write out more than a million nodes and either more than
-  a thousand times its own size or more than a hundred million nodes in all, so templates that merge a shared
-  base into thousands of items are written as before. YAML output keeps the aliases and is unaffected.
+  ran out. A document is refused when it would write out more than four million nodes, whatever its own size
+  (padding a bomb with plain items does not raise the limit), or more than a million nodes at more than a
+  thousand times its own size. Templates that merge a shared base into thousands of items are written as
+  before. A `<<` key counts as a merge exactly when the writer in that merge mode merges through it, so a
+  tagged key (`!x <<`) cannot hide a bomb. YAML output keeps the aliases and is unaffected.
 - `yq`: a mapping merged along many paths (`<<: [*a, *a, ...]`, level upon level) is expanded once per lookup,
   so `.key` lookups, `.[]` and the encoders take linear rather than exponential time over such merge chains;
   the alias budget above counts a repeated merge source once.
@@ -58,8 +65,9 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
   `# c --> <evil/>`, `+directive: "DOCTYPE x><evil/><y"`). Element and attribute names may now not be
   empty or hold any of `< > & " ' = / ! ?`, processing-instruction targets must be XML names, a comment may
   not contain `-->`, a processing instruction may not contain `?>`, and a directive's `<` and `>` must
-  balance outside quotes and comments, as the reference checks; each is a format error. Names the reference
-  writes as they are, such as `200` or `my key`, are still written.
+  balance outside quotes and comments, as the reference checks; each is a format error, worded as the
+  reference words it where it refuses the same thing. Names the reference writes as they are, such as `200`
+  or `my key`, are still written.
 
 ## 0.1.0 — 2026-10-08
 

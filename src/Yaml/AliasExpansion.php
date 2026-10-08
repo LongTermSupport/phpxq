@@ -9,48 +9,48 @@ namespace LTS\PhpXq\Yaml;
  *
  * Aliases stay references in the tree, so a few hundred bytes of nested aliases (`a1: [*a0, *a0, ...]`, level
  * upon level) stand for a document many orders of magnitude larger. Anything that writes aliases out as copies
- * (the non-YAML encoders, `explode`) asks this first. The budget judges the real output amplification: a document
- * is excessive when it would write out more than MIN_TOTAL nodes and either more than AMPLIFICATION times the
- * nodes of its tree or more than MAX_TOTAL in all. Templates that reuse a base thousands of times stay well under
- * it; a bomb passes it after a handful of levels.
+ * (the non-YAML encoders, `explode`) asks this first. A document is excessive when it would write out more than
+ * MAX_TOTAL nodes, a fixed cap sized to what PHP holds (an exploded node costs about 400 bytes, so the cap keeps
+ * `explode` under about 2 GB whatever the input), or more than MIN_TOTAL nodes at more than AMPLIFICATION times its
+ * own tree, which only a bomb reaches. Padding a bomb with plain items therefore buys nothing past the cap, while
+ * templates that merge a shared base into thousands of items (a few hundred thousand nodes) stay well under it.
  *
  * The count never expands anything: each node's expanded size is computed once and reused for every alias of it,
- * with an explicit stack, so the check is linear in the tree and safe on any depth. A merge key counts each of its
- * sources once, however often the value repeats it, as merging takes each key once. A cyclic alias counts as one
- * node at the point it re-enters; the walkers' own cycle guards deal with it.
+ * with an explicit stack, so the check is linear in the tree and safe on any depth. A key the writer will merge
+ * through ({@see MergeKey::merges()}, in the same merge mode) counts each of its sources once, however often the
+ * value repeats it, as merging takes each key once; any other key's value counts in full, as it is written in
+ * full. A cyclic alias counts as one node at the point it re-enters; the walkers' own cycle guards deal with it.
  */
 final readonly class AliasExpansion
 {
     /** The error text, as go-yaml words it. */
     public const string ERROR = 'document contains excessive aliasing';
 
-    /** Up to this many nodes written out nothing is excessive. */
+    /** The most nodes a document may write out, whatever its tree. */
+    private const int MAX_TOTAL = 4_000_000;
+
+    /** Past this many nodes written out, the amplification is judged as well. */
     private const int MIN_TOTAL = 1_000_000;
 
-    /** How many times its own tree a document may write out. */
+    /** How many times its own tree a document may write out once past MIN_TOTAL. */
     private const int AMPLIFICATION = 1000;
-
-    /** The most nodes a document may write out, whatever its tree. */
-    private const int MAX_TOTAL = 100_000_000;
-
-    /** The key that merges mappings in. */
-    private const string MERGE_KEY = '<<';
 
     private function __construct()
     {
     }
 
     /**
-     * Whether writing the node out with every alias replaced by a copy of its target would exceed the budget.
+     * Whether writing the node out with every alias replaced by a copy of its target, merging as the given merge
+     * mode does, would exceed the budget.
      */
-    public static function isExcessive(Node $root): bool
+    public static function isExcessive(Node $root, bool $fixedMerge): bool
     {
         [$tree, $hasAlias] = self::treeSize($root);
         if (!$hasAlias) {
             return false;
         }
 
-        $total = self::expandedSize($root);
+        $total = self::expandedSize($root, $fixedMerge);
         if ($total <= self::MIN_TOTAL) {
             return false;
         }
@@ -89,7 +89,7 @@ final readonly class AliasExpansion
      * The number of nodes the tree writes out with every alias replaced by a copy of its target, the alias node
      * itself included as go-yaml counts it; saturates at PHP_INT_MAX.
      */
-    private static function expandedSize(Node $root): int
+    private static function expandedSize(Node $root, bool $fixedMerge): int
     {
         /** @var array<int, int> $sizes expanded size by object id, once known */
         $sizes = [];
@@ -106,7 +106,7 @@ final readonly class AliasExpansion
                 continue;
             }
 
-            $children = self::children($node);
+            $children = self::children($node, $fixedMerge);
             if (!$scheduled) {
                 if (isset($open[$id])) {
                     continue;
@@ -138,12 +138,12 @@ final readonly class AliasExpansion
     }
 
     /**
-     * What a node writes out: an alias its target, a mapping its keys and values with each merge key's distinct
-     * sources in place of its value, anything else its content.
+     * What a node writes out: an alias its target, a mapping its keys and values with the distinct sources of each
+     * key merged through in place of its value, anything else its content.
      *
      * @return list<Node>
      */
-    private static function children(Node $node): array
+    private static function children(Node $node, bool $fixedMerge): array
     {
         if (NodeKindEnum::Alias === $node->kind) {
             return $node->aliasTarget instanceof Node ? [$node->aliasTarget] : [];
@@ -162,7 +162,7 @@ final readonly class AliasExpansion
                 continue;
             }
 
-            if (NodeKindEnum::Scalar !== $key->kind || self::MERGE_KEY !== $key->value || NodeStyleEnum::Default !== $key->style) {
+            if (!MergeKey::merges($key, $fixedMerge)) {
                 $children[] = $value;
 
                 continue;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Runtime;
 
 use LTS\PhpXq\Yaml\AliasExpansion;
+use LTS\PhpXq\Yaml\MergeKey;
 use LTS\PhpXq\Yaml\MergeSources;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
@@ -60,7 +61,7 @@ final readonly class Anchors
      */
     public static function explode(Node $node, bool $fixedMerge): void
     {
-        if (AliasExpansion::isExcessive($node)) {
+        if (AliasExpansion::isExcessive($node, $fixedMerge)) {
             throw new EvaluationException(AliasExpansion::ERROR);
         }
 
@@ -142,11 +143,11 @@ final readonly class Anchors
      */
     private static function resolveMerges(Node $map, bool $fixedMerge, array $ancestors): void
     {
-        if (!self::hasMergeKey($map)) {
+        if (!self::hasMergeKey($map, $fixedMerge)) {
             return;
         }
 
-        if (self::mergesAnAncestor($map, $ancestors)) {
+        if (self::mergesAnAncestor($map, $fixedMerge, $ancestors)) {
             throw new EvaluationException(self::CYCLE);
         }
 
@@ -162,7 +163,7 @@ final readonly class Anchors
         $flat  = [];
         $local = [];
         for ($i = 0, $n = \count($map->content); $i < $n; $i += 2) {
-            if (!NodeOps::isMergeKey($map->content[$i])) {
+            if (!MergeKey::merges($map->content[$i], false)) {
                 $local[$map->content[$i]->value] = true;
             }
         }
@@ -205,7 +206,7 @@ final readonly class Anchors
         $merging[spl_object_id($map)] = true;
         $local                        = [];
         for ($i = 0, $n = \count($map->content); $i < $n; $i += 2) {
-            if (!NodeOps::isMergeKey($map->content[$i])) {
+            if (!MergeKey::merges($map->content[$i], true)) {
                 $local[$map->content[$i]->value] = true;
             }
         }
@@ -213,7 +214,7 @@ final readonly class Anchors
         $flat = [];
         for ($i = 0, $n = \count($map->content); $i < $n; $i += 2) {
             $key = $map->content[$i];
-            if (!NodeOps::isMergeKey($key)) {
+            if (!MergeKey::merges($key, true)) {
                 $flat[] = $key;
                 $flat[] = $map->content[$i + 1];
 
@@ -226,7 +227,7 @@ final readonly class Anchors
                     continue;
                 }
 
-                $targetPairs = self::hasMergeKey($target) ? self::fixedPairs($target, $merging, $depth + 1) : $target->content;
+                $targetPairs = self::hasMergeKey($target, true) ? self::fixedPairs($target, $merging, $depth + 1) : $target->content;
                 for ($j = 0, $m = \count($targetPairs); $j < $m; $j += 2) {
                     $name = $targetPairs[$j]->value;
                     if (isset($local[$name]) || isset($seen[$name])) {
@@ -251,14 +252,14 @@ final readonly class Anchors
      *
      * @param array<int, true> $ancestors see {@see self::walk()}
      */
-    private static function mergesAnAncestor(Node $map, array $ancestors): bool
+    private static function mergesAnAncestor(Node $map, bool $fixedMerge, array $ancestors): bool
     {
         $seen    = [spl_object_id($map) => true];
         $pending = [$map];
         while ([] !== $pending) {
             $current = array_pop($pending);
             for ($i = 0, $n = \count($current->content); $i < $n; $i += 2) {
-                if (!NodeOps::isMergeKey($current->content[$i])) {
+                if (!MergeKey::merges($current->content[$i], $fixedMerge)) {
                     continue;
                 }
 
@@ -281,10 +282,10 @@ final readonly class Anchors
         return false;
     }
 
-    private static function hasMergeKey(Node $map): bool
+    private static function hasMergeKey(Node $map, bool $fixedMerge): bool
     {
         for ($i = 0, $n = \count($map->content); $i < $n; $i += 2) {
-            if (NodeOps::isMergeKey($map->content[$i])) {
+            if (MergeKey::merges($map->content[$i], $fixedMerge)) {
                 return true;
             }
         }

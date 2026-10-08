@@ -33,6 +33,14 @@ final class AliasBombTest extends TestCase
 
     private const string COMPACT = '-I=0';
 
+    private const string EXPLODE = 'explode(.)';
+
+    private const string FIXED_MERGE = '--yaml-fix-merge-anchor-to-spec';
+
+    private const int TIME_LIMIT_NANOSECONDS = 2_000_000_000;
+
+    private const int MEMORY_LIMIT_BYTES = 256 * 1024 * 1024;
+
     #[DataProvider('expandingFormats')]
     public function testEveryExpandingEncoderRefusesAnAliasBomb(FormatEnum $format): void
     {
@@ -69,7 +77,7 @@ final class AliasBombTest extends TestCase
      */
     public static function expandingExpressions(): iterable
     {
-        yield 'explode' => ['explode(.)'];
+        yield 'explode' => [self::EXPLODE];
         yield 'format operator' => ['@json'];
     }
 
@@ -136,11 +144,80 @@ final class AliasBombTest extends TestCase
     {
         yield 'json' => [self::JSON, self::COMPACT, '.a299'];
 
-        yield 'spec-fixed json' => ['--yaml-fix-merge-anchor-to-spec', self::JSON, self::COMPACT, '.a299'];
+        yield 'spec-fixed json' => [self::FIXED_MERGE, self::JSON, self::COMPACT, '.a299'];
 
-        yield 'explode' => [self::JSON, self::COMPACT, 'explode(.) | .a299'];
+        yield 'explode then json' => [self::JSON, self::COMPACT, 'explode(.) | .a299'];
 
-        yield 'spec-fixed explode' => ['--yaml-fix-merge-anchor-to-spec', self::JSON, self::COMPACT, 'explode(.) | .a299'];
+        yield 'spec-fixed explode' => [self::FIXED_MERGE, self::JSON, self::COMPACT, 'explode(.) | .a299'];
+    }
+
+    /**
+     * Padding a bomb with plain items lowers its amplification but not what it writes out: the fixed cap refuses it
+     * at once, before anything is copied, so neither time nor memory grows with the bomb.
+     */
+    #[DataProvider('paddedBombReaders')]
+    public function testAPaddedBombIsRefusedQuicklyInBoundedMemory(string ...$arguments): void
+    {
+        $yaml = "a: &a [lol, lol, lol, lol, lol, lol, lol, lol, lol]\n";
+        foreach (['a' => 'b', 'b' => 'c', 'c' => 'd', 'd' => 'e', 'e' => 'f', 'f' => 'g'] as $previous => $name) {
+            $yaml .= \sprintf("%s: &%s [%s]\n", $name, $name, implode(',', array_fill(0, 9, '*' . $previous)));
+        }
+
+        $yaml .= "pad:\n" . implode('', array_map(static fn (int $item): string => \sprintf("  - %d\n", $item), range(0, 7999)));
+
+        memory_reset_peak_usage();
+        $before  = memory_get_usage();
+        $started = hrtime(true);
+
+        [$code, $out, $err] = $this->invoke($yaml, ...$arguments);
+
+        self::assertSame([1, ''], [$code, $out]);
+        self::assertStringContainsString(AliasExpansion::ERROR, $err);
+        self::assertLessThan(self::TIME_LIMIT_NANOSECONDS, hrtime(true) - $started);
+        self::assertLessThan(self::MEMORY_LIMIT_BYTES, memory_get_peak_usage() - $before);
+    }
+
+    /**
+     * @return iterable<string, list<string>>
+     */
+    public static function paddedBombReaders(): iterable
+    {
+        yield 'json' => [self::JSON, '.'];
+
+        yield 'exploded' => [self::EXPLODE];
+    }
+
+    /**
+     * A `<<` key with another tag (`!x <<`, `!!binary <<`): the legacy encoders merge through it as the reference
+     * does, so the levels collapse to one key, while under the spec-fixed mode it is an ordinary key whose
+     * sequence of aliases is written out in full, and is refused as the bomb it then is.
+     */
+    #[DataProvider('taggedMergeKeys')]
+    public function testATaggedMergeKeyBombIsMergedOrRefusedAsTheWriterTreatsIt(string $key): void
+    {
+        $yaml = "l0: &l0 {k: lol}\n";
+        for ($level = 1; $level < 10; ++$level) {
+            $yaml .= \sprintf("l%d: &l%d {%s: [%s]}\n", $level, $level, $key, implode(', ', array_fill(0, 9, '*l' . ($level - 1))));
+        }
+
+        $started = hrtime(true);
+
+        self::assertSame([0, "{\"k\":\"lol\"}\n", ''], $this->invoke($yaml, self::JSON, self::COMPACT, '.l9'));
+
+        [$code, $out, $err] = $this->invoke($yaml, self::FIXED_MERGE, self::JSON, self::COMPACT, '.');
+        self::assertSame([1, ''], [$code, $out]);
+        self::assertStringContainsString(AliasExpansion::ERROR, $err);
+        self::assertLessThan(self::TIME_LIMIT_NANOSECONDS, hrtime(true) - $started);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function taggedMergeKeys(): iterable
+    {
+        yield 'custom tag' => ['!x <<'];
+
+        yield 'binary tag' => ['!!binary <<'];
     }
 
     private function bomb(): string

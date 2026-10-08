@@ -30,25 +30,53 @@ final class AliasExpansionTest extends TestCase
             $items[] = Node::scalar((string)$i);
         }
 
-        self::assertFalse(AliasExpansion::isExcessive(Node::document(Node::sequence($items))));
+        self::assertFalse(AliasExpansion::isExcessive(Node::document(Node::sequence($items)), false));
     }
 
     public function testTheClassicAliasBombIsExcessive(): void
     {
-        self::assertTrue(AliasExpansion::isExcessive($this->bomb(7, 10)));
-        self::assertTrue(AliasExpansion::isExcessive($this->bomb(9, 10)));
+        self::assertTrue(AliasExpansion::isExcessive($this->bomb(7, 10), false));
+        self::assertTrue(AliasExpansion::isExcessive($this->bomb(9, 10), false));
+    }
+
+    public function testPaddingABombDoesNotBuyItRoomPastTheFixedCap(): void
+    {
+        $bomb               = $this->bomb(9, 7);
+        $pad                = Node::sequence(array_fill(0, 200_000, Node::scalar('0')));
+        $mapping            = $bomb->content[0];
+        $mapping->content[] = Node::scalar('pad');
+        $mapping->content[] = $pad;
+
+        self::assertTrue(AliasExpansion::isExcessive($bomb, false));
+    }
+
+    /**
+     * A `<<` key with another tag is merged through by the legacy writers, which take each source once, and written
+     * out in full under the spec-fixed mode, so the same document is a bomb in one mode only.
+     */
+    public function testATaggedMergeKeyCountsAsTheWriterInThatModeTreatsIt(): void
+    {
+        $yaml = "l0: &l0 {k: lol}\n";
+        for ($level = 1; $level < 10; ++$level) {
+            $yaml .= \sprintf("l%d: &l%d {!x <<: [%s]}\n", $level, $level, implode(', ', array_fill(0, 9, '*l' . ($level - 1))));
+        }
+
+        $document = $this->parse($yaml);
+
+        self::assertFalse(AliasExpansion::isExcessive($document, false));
+        self::assertTrue(AliasExpansion::isExcessive($document, true));
     }
 
     public function testASmallBombBelowTheFloorIsAllowed(): void
     {
-        self::assertFalse(AliasExpansion::isExcessive($this->bomb(5, 10)));
+        self::assertFalse(AliasExpansion::isExcessive($this->bomb(5, 10), false));
     }
 
     public function testABillionLaughsIsJudgedWithoutExpandingIt(): void
     {
         $started = hrtime(true);
 
-        self::assertTrue(AliasExpansion::isExcessive($this->bomb(30, 10)));
+        self::assertTrue(AliasExpansion::isExcessive($this->bomb(30, 10), false));
         self::assertLessThan(1_000_000_000, hrtime(true) - $started);
     }
 
@@ -59,7 +87,7 @@ final class AliasExpansionTest extends TestCase
             $yaml .= \sprintf("k%d: *b\n", $i);
         }
 
-        self::assertFalse(AliasExpansion::isExcessive($this->parse($yaml)));
+        self::assertFalse(AliasExpansion::isExcessive($this->parse($yaml), false));
     }
 
     public function testHeavyReuseIsAllowedWhileTheAliasedShareStaysUnderTheRatio(): void
@@ -74,7 +102,7 @@ final class AliasExpansionTest extends TestCase
             $yaml .= "  - *b\n";
         }
 
-        self::assertFalse(AliasExpansion::isExcessive($this->parse($yaml)));
+        self::assertFalse(AliasExpansion::isExcessive($this->parse($yaml), false));
     }
 
     public function testAWideAnchorReusedHundredsOfTimesIsAllowed(): void
@@ -84,7 +112,7 @@ final class AliasExpansionTest extends TestCase
             $yaml .= "  - *b\n";
         }
 
-        self::assertFalse(AliasExpansion::isExcessive($this->parse($yaml)));
+        self::assertFalse(AliasExpansion::isExcessive($this->parse($yaml), false));
     }
 
     /**
@@ -94,7 +122,7 @@ final class AliasExpansionTest extends TestCase
     #[DataProvider('templates')]
     public function testTemplatesMergingASharedBaseAreAllowed(int $items, int $baseKeys): void
     {
-        self::assertFalse(AliasExpansion::isExcessive($this->parse($this->template($items, $baseKeys))));
+        self::assertFalse(AliasExpansion::isExcessive($this->parse($this->template($items, $baseKeys)), false));
     }
 
     /**
@@ -114,7 +142,7 @@ final class AliasExpansionTest extends TestCase
             $yaml .= \sprintf("a%d: &a%d {<<: *a%d, k%d: %d}\n", $i, $i, $i - 1, $i, $i);
         }
 
-        self::assertFalse(AliasExpansion::isExcessive($this->parse($yaml)));
+        self::assertFalse(AliasExpansion::isExcessive($this->parse($yaml), false));
     }
 
     public function testALongChainOfAnchorsEachHoldingTheLastIsAllowed(): void
@@ -124,7 +152,7 @@ final class AliasExpansionTest extends TestCase
             $yaml .= \sprintf("a%d: &a%d [*a%d, %d]\n", $i, $i, $i - 1, $i);
         }
 
-        self::assertFalse(AliasExpansion::isExcessive($this->parse($yaml)));
+        self::assertFalse(AliasExpansion::isExcessive($this->parse($yaml), false));
     }
 
     public function testRepeatedMergeSourcesAreCountedOnce(): void
@@ -134,7 +162,7 @@ final class AliasExpansionTest extends TestCase
             $yaml .= \sprintf("l%d: &l%d {<<: [%s]}\n", $level, $level, implode(', ', array_fill(0, 10, '*l' . ($level - 1))));
         }
 
-        self::assertFalse(AliasExpansion::isExcessive($this->parse($yaml)));
+        self::assertFalse(AliasExpansion::isExcessive($this->parse($yaml), false));
     }
 
     public function testExpansionPastTheAbsoluteCapIsExcessiveWhateverTheTreeSize(): void
@@ -152,7 +180,7 @@ final class AliasExpansionTest extends TestCase
             Node::scalar('uses'), Node::sequence($uses),
         ]);
 
-        self::assertTrue(AliasExpansion::isExcessive(Node::document($root)));
+        self::assertTrue(AliasExpansion::isExcessive(Node::document($root), false));
     }
 
     public function testACyclicAliasEnds(): void
@@ -161,7 +189,7 @@ final class AliasExpansionTest extends TestCase
         $sequence->anchor    = 'a';
         $sequence->content[] = Node::alias('a', $sequence);
 
-        self::assertFalse(AliasExpansion::isExcessive(Node::document($sequence)));
+        self::assertFalse(AliasExpansion::isExcessive(Node::document($sequence), false));
     }
 
     public function testTheDeepestAcceptedDocumentIsCounted(): void
@@ -171,7 +199,7 @@ final class AliasExpansionTest extends TestCase
             $node = Node::sequence([$node]);
         }
 
-        self::assertFalse(AliasExpansion::isExcessive($node));
+        self::assertFalse(AliasExpansion::isExcessive($node, false));
     }
 
     /**

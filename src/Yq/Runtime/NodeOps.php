@@ -179,14 +179,6 @@ final readonly class NodeOps
     }
 
     /**
-     * Keeps every key of a mapping addressable by its scalar text.
-     */
-    public static function isMergeKey(Node $key): bool
-    {
-        return NodeKindEnum::Scalar === $key->kind && '<<' === $key->value && NodeStyleEnum::Default === $key->style;
-    }
-
-    /**
      * Overwrites `$target` in place with `$source`, the reference's UpdateFrom: kind, value and content come
      * from the source, the target keeps its anchor, position and (when the source has none) comments, a
      * custom tag survives unless `$clobberTags`, and the style is adopted only by an empty target.

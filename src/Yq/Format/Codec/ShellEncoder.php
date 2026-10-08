@@ -33,7 +33,7 @@ final class ShellEncoder implements EncoderInterface
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
-        $root = NodeTools::expandableRoot($node);
+        $root = NodeTools::expandableRoot($node, $options->yamlFixMergeAnchorToSpec);
         if (NodeKindEnum::Scalar === $root->kind) {
             return $this->value($root) . "\n";
         }

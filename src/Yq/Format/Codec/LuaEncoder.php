@@ -34,7 +34,7 @@ final readonly class LuaEncoder implements EncoderInterface
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
-        $root = NodeTools::expandableRoot($node);
+        $root = NodeTools::expandableRoot($node, $options->yamlFixMergeAnchorToSpec);
         if ($options->luaGlobals && NodeKindEnum::Mapping === $root->kind) {
             $out = '';
             foreach (NodeTools::pairs($root, $options->yamlFixMergeAnchorToSpec) as [$key, $value]) {

@@ -6,7 +6,6 @@ namespace LTS\PhpXq\Tests\Unit\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
-use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yaml\Parser\YamlParser;
 use LTS\PhpXq\Yq\Format\Codec\NodeTools;
 use LTS\PhpXq\Yq\Format\FormatException;
@@ -141,13 +140,6 @@ final class NodeToolsTest extends TestCase
         $values = array_map(static fn (Node $node): string => $node->value, NodeTools::flatContent($root->content[3], false));
 
         self::assertSame(['x', '1', 'y', '2'], $values);
-    }
-
-    public function testMergeKeyDetection(): void
-    {
-        self::assertTrue(NodeTools::isMergeKey(Node::scalar('<<', '!!str')));
-        self::assertFalse(NodeTools::isMergeKey(Node::scalar('<<', '!!str', NodeStyleEnum::DoubleQuoted)));
-        self::assertFalse(NodeTools::isMergeKey(Node::scalar('a')));
     }
 
     public function testKeyTextFollowsAliases(): void
