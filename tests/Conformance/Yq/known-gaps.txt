@@ -10,15 +10,16 @@
 # or passes while matching an entry, makes the report fail. An entry matching no case is reported
 # as a stale-gap warning.
 #
-# As yq is built, the blanket entry below is replaced by specific, justified entries (one per
-# genuinely unsupported feature) and finally removed once the suite is fully green.
+# Each entry names one case: a whole-file glob would also hide a new case added to that file.
 
 # yq-eval
 operators/datetime.md: Now	upstream asserts a frozen clock (2021-05-19T01:02:03Z); now is the real time here
 operators/datetime.md: To Unix	upstream asserts a frozen clock (2021-05-19T01:02:03Z); now is the real time here
 operators/datetime.md: Timezone: from standard RFC3339 format	upstream asserts a frozen clock (2021-05-19T01:02:03Z); now is the real time here
-operators/shuffle.md: *	shuffle output is random and the upstream example pins a Go math/rand seeded sequence
-operators/system-operators.md: *	the system operator spawns an external process, deliberately unsupported by phpxq
+operators/shuffle.md: Shuffle array	shuffle output is random and the upstream example pins a Go math/rand seeded sequence
+operators/shuffle.md: Shuffle array in place	shuffle output is random and the upstream example pins a Go math/rand seeded sequence
+operators/system-operators.md: Run a command with an argument	the system operator spawns an external process, deliberately unsupported by phpxq
+operators/system-operators.md: Run a command without arguments	the system operator spawns an external process, deliberately unsupported by phpxq
 
 # yq-eval-r2
 usage/base64.md: Encode base64: string	upstream fixture is damaged: the expected output swallowed trailing markdown ("```" and the next heading)
