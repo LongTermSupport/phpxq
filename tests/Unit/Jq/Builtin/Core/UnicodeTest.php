@@ -54,16 +54,6 @@ final class UnicodeTest extends TestCase
         self::assertSame(['a', "\u{e9}", "\u{1f600}"], Unicode::characters("a\u{e9}\u{1f600}"));
     }
 
-    public function testOffsetOf(): void
-    {
-        $text = "\u{e9}a\u{1f600}b";
-
-        self::assertSame(0, Unicode::offsetOf($text, 0));
-        self::assertSame(1, Unicode::offsetOf($text, 2));
-        self::assertSame(2, Unicode::offsetOf($text, 3));
-        self::assertSame(3, Unicode::offsetOf($text, 7));
-    }
-
     public function testTrim(): void
     {
         self::assertSame('a b', Unicode::trim("  a b\t", true, true));

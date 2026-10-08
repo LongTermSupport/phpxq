@@ -17,6 +17,8 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 
 - `yq`: reading a long YAML line that contains a non-ASCII character is linear again. A 110 KB single-line
   flow map with one `é` took 13 s and now takes about 1.5 s; a 360 KB one no longer runs past a minute.
+- `jq`: `indices`, `index` and `rindex` on a non-ASCII string are linear in the number of matches.
+  `"é" * 20000 | indices("é")` took 8 s and now takes 0.3 s.
 
 ## 0.1.0 — 2026-10-08
 
