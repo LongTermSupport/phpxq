@@ -55,17 +55,6 @@ final class AccumulatorUpdateTest extends TestCase
         yield 'update with no output leaves null' => ['reduce range(2) as $i ([1]; . + empty)', 'null', ['null']];
     }
 
-    /**
-     * @return iterable<string, array{string, string}>
-     */
-    public static function failingPrograms(): iterable
-    {
-        yield 'append a number to an array' => ['reduce range(1) as $i ([]; . + $i)', 'array ([]) and number (0) cannot be added'];
-        yield 'number key on an object' => ['reduce range(1) as $i ({}; .[$i] = 1)', 'Cannot index object with number (0)'];
-        yield 'string key on an array' => ['reduce range(1) as $i ([]; .["a"] = 1)', 'Cannot index array with string ("a")'];
-        yield 'negative index out of range' => ['reduce range(1) as $i ([]; .[-1] = 1)', 'Out of bounds negative array index'];
-    }
-
     #[DataProvider('failingPrograms')]
     public function testFailingProgramKeepsItsError(string $program, string $message): void
     {
@@ -78,5 +67,16 @@ final class AccumulatorUpdateTest extends TestCase
         }
 
         self::fail('expected a jq error');
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function failingPrograms(): iterable
+    {
+        yield 'append a number to an array' => ['reduce range(1) as $i ([]; . + $i)', 'array ([]) and number (0) cannot be added'];
+        yield 'number key on an object' => ['reduce range(1) as $i ({}; .[$i] = 1)', 'Cannot index object with number (0)'];
+        yield 'string key on an array' => ['reduce range(1) as $i ([]; .["a"] = 1)', 'Cannot index array with string ("a")'];
+        yield 'negative index out of range' => ['reduce range(1) as $i ([]; .[-1] = 1)', 'Out of bounds negative array index'];
     }
 }

@@ -30,6 +30,24 @@ final class LinearWorkloadTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string}> program, base size, its output at the base size
+     */
+    public static function linearPrograms(): iterable
+    {
+        yield 'indices in a non-ASCII string' => ['. as $n | "é" * $n | indices("é") | length', 3000, '3000'];
+        yield 'reduce appending to an array' => ['. as $n | reduce range($n) as $i ([]; . + [$i]) | length', 4000, '4000'];
+        yield 'reduce plus-assigning to an array' => ['. as $n | reduce range($n) as $i ([]; . += [$i]) | length', 4000, '4000'];
+        yield 'reduce setting object keys' => ['. as $n | reduce range($n) as $i ({}; .[$i | tostring] = $i) | length', 12000, '12000'];
+        yield 'reduce merging one-key objects' => ['. as $n | reduce range($n) as $i ({}; . + {"k\($i)": $i}) | length', 4000, '4000'];
+        yield 'foreach appending to an array' => ['. as $n | [foreach range($n) as $i ([]; . + [$i]; length)] | length', 4000, '4000'];
+        yield 'add over single-member objects' => ['. as $n | [range($n) | {("k\(.)"): .}] | add | length', 4000, '4000'];
+        yield 'adding a large object to an empty one' => ['. as $n | [range($n) | {key: "k\(.)", value: .}] | from_entries | {} + . | length', 4000, '4000'];
+        yield 'deep merge of a large object into a small one' => ['. as $n | [range($n) | {key: "k\(.)", value: {v: .}}] | from_entries | {k0: {w: 0}} * . | [length, .k0] | tojson', 4000, '"[4000,{\"w\":0,\"v\":0}]"'];
+        yield 'gsub with long text between matches' => ['. as $n | ("x" * 1000 + "a") * $n | gsub("a"; "b") | length', 500, '500500'];
+        yield 'every one-character slice of a non-ASCII string' => ['. as $n | ("aé" * ($n / 2)) as $s | [range($n) as $i | $s[$i:$i + 1]] | length', 1000, '1000'];
+    }
+
+    /**
      * The object is built outside jq, so that the deletion dominates the run time.
      */
     public function testDeletingEveryMemberOfAnObjectScalesLinearly(): void
@@ -46,23 +64,5 @@ final class LinearWorkloadTest extends TestCase
 
         self::assertSame(['0'], $run($object(3)));
         self::assertLessThan(GrowthProbe::LINEAR_CEILING, GrowthProbe::growth(static fn (int $size): array => $run($object($size)), 5000));
-    }
-
-    /**
-     * @return iterable<string, array{string, int, string}> program, base size, its output at the base size
-     */
-    public static function linearPrograms(): iterable
-    {
-        yield 'indices in a non-ASCII string' => ['. as $n | "é" * $n | indices("é") | length', 3000, '3000'];
-        yield 'reduce appending to an array' => ['. as $n | reduce range($n) as $i ([]; . + [$i]) | length', 4000, '4000'];
-        yield 'reduce plus-assigning to an array' => ['. as $n | reduce range($n) as $i ([]; . += [$i]) | length', 4000, '4000'];
-        yield 'reduce setting object keys' => ['. as $n | reduce range($n) as $i ({}; .[$i | tostring] = $i) | length', 12000, '12000'];
-        yield 'reduce merging one-key objects' => ['. as $n | reduce range($n) as $i ({}; . + {"k\($i)": $i}) | length', 4000, '4000'];
-        yield 'foreach appending to an array' => ['. as $n | [foreach range($n) as $i ([]; . + [$i]; length)] | length', 4000, '4000'];
-        yield 'add over single-member objects' => ['. as $n | [range($n) | {("k\(.)"): .}] | add | length', 4000, '4000'];
-        yield 'adding a large object to an empty one' => ['. as $n | [range($n) | {key: "k\(.)", value: .}] | from_entries | {} + . | length', 4000, '4000'];
-        yield 'deep merge of a large object into a small one' => ['. as $n | [range($n) | {key: "k\(.)", value: {v: .}}] | from_entries | {k0: {w: 0}} * . | [length, .k0] | tojson', 4000, '"[4000,{\"w\":0,\"v\":0}]"'];
-        yield 'gsub with long text between matches' => ['. as $n | ("x" * 1000 + "a") * $n | gsub("a"; "b") | length', 500, '500500'];
-        yield 'every one-character slice of a non-ASCII string' => ['. as $n | ("aé" * ($n / 2)) as $s | [range($n) as $i | $s[$i:$i + 1]] | length', 1000, '1000'];
     }
 }

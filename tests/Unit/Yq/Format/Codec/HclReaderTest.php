@@ -173,7 +173,7 @@ final class HclReaderTest extends TestCase
 
         yield 'numeric-looking block labels stay distinct' => ["x \"1\" { v = 1 }\nx \"01\" { v = 2 }\nx \"1\" { w = 3 }\n", "x:\n  \"1\":\n    w: 3\n  \"01\":\n    v: 2\n"];
 
-        yield 'repeated third attribute' =>["a = 1\nb = 2\nc = 3\nc = 4\n", "a: 1\nb: 2\nc: 4\n"];
+        yield 'repeated third attribute' => ["a = 1\nb = 2\nc = 3\nc = 4\n", "a: 1\nb: 2\nc: 4\n"];
 
         yield 'bare label' => ["a b {\n}\n", "a:\n  b: {}\n"];
 

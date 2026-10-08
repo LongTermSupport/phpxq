@@ -104,7 +104,7 @@ final class GrowthProbe
             throw new RuntimeException('getrusage() is unavailable, so CPU time cannot be measured');
         }
 
-        return (self::field($usage, 'ru_utime.tv_sec') + self::field($usage, 'ru_stime.tv_sec')) * 1_000_000_000
+        return (self::field($usage, 'ru_utime.tv_sec') + self::field($usage, 'ru_stime.tv_sec'))  * 1_000_000_000
             + (self::field($usage, 'ru_utime.tv_usec') + self::field($usage, 'ru_stime.tv_usec')) * 1_000;
     }
 

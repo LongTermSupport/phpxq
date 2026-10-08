@@ -482,9 +482,9 @@ final readonly class NodeCompiler
 
     private function reduce(Reduce $node, ?Scope $scope): OpInterface
     {
-        $source           = $this->compile($node->source, $scope);
-        $init             = $this->compile($node->init, $scope);
-        [$binder, $inner] = $this->pattern($node->pattern, $scope);
+        $source             = $this->compile($node->source, $scope);
+        $init               = $this->compile($node->init, $scope);
+        [$binder, $inner]   = $this->pattern($node->pattern, $scope);
         [$update, $inPlace] = $this->accumulatorUpdate($node->update, $inner);
 
         return new ReduceOp($source, $binder, $init, $update, $inPlace);
@@ -492,9 +492,9 @@ final readonly class NodeCompiler
 
     private function foreach(ForeachLoop $node, ?Scope $scope): OpInterface
     {
-        $source           = $this->compile($node->source, $scope);
-        $init             = $this->compile($node->init, $scope);
-        [$binder, $inner] = $this->pattern($node->pattern, $scope);
+        $source             = $this->compile($node->source, $scope);
+        $init               = $this->compile($node->init, $scope);
+        [$binder, $inner]   = $this->pattern($node->pattern, $scope);
         [$update, $inPlace] = $this->accumulatorUpdate($node->update, $inner);
 
         return new ForeachOp(
