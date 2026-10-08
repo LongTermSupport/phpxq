@@ -34,6 +34,10 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 - `yq`: a mapping merged along many paths (`<<: [*a, *a, ...]`, level upon level) is expanded once per lookup,
   so `.key` lookups and `.[]` over such merge chains take linear rather than exponential time; the encoders
   count merge sources against the alias budget above.
+- `yq --split-exp`: file names come from the data, so a name must now be a plain path inside the current
+  directory. A stream wrapper (`php://filter/...`, `file:///...`, `ftp://...`, `data:...`), a NUL byte, or a
+  path that climbs out of the directory (`../x`, an absolute path elsewhere) is refused before anything is
+  created. `.` and `..` inside the name are resolved, so `sub/../x` now writes `x` instead of failing.
 
 ## 0.1.0 — 2026-10-08
 
