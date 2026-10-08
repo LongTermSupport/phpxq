@@ -21,10 +21,12 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 
 - `jq`: `until` and `while` run any number of iterations, as jq's tail-call optimisation lets them;
   `0 | until(. >= 30000; . + 1)` failed with `Evaluation too deep` after 20,000.
-- `yq`: numbers too large for an integer no longer end the run with an `internal error`. Slice bounds and
-  integer arguments are clamped (`.[0:1e30]` is the whole array), `1e30 | from_unix` gives the latest
-  representable time, an XML character reference beyond Unicode (`&#x99999999999999999999;`) is kept
-  literally, and a Lua `\u{...}` escape beyond Unicode or naming a surrogate is the error `invalid \u escape`.
+- `yq`: numbers too large for an integer no longer end the run with an `internal error`. A slice bound or
+  integer argument that is not an integer is Go yq's error (`.[0:1e30]` and `.[0:1.5]` are
+  `strconv.ParseInt: parsing "1e30": invalid syntax`; they used to be truncated), `1e30 | from_unix` is
+  `cannot convert 1e30 to a unix time`, an XML character reference beyond Unicode
+  (`&#x99999999999999999999;`) is kept literally, and a Lua `\u{...}` escape beyond Unicode or naming a
+  surrogate is the error `invalid \u escape`.
 - `jq`: a `/` in a regex conditional `(?(...)` or a group name no longer ends the pattern early with PHP's
   `Unknown modifier` message, and `(*...)` is read as an Oniguruma callout as jq reads it: `(*FAIL)` works, and
   PCRE verbs and options such as `(*ACCEPT)` or `(*LIMIT_MATCH=1)` are rejected (`undefined callout name`,

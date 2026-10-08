@@ -14,6 +14,8 @@ use LTS\PhpXq\Yaml\Schema\CoreSchema;
  */
 final readonly class Numbers
 {
+    private const string PARSE_INT_ERROR = 'strconv.ParseInt: parsing "%s": %s';
+
     private function __construct()
     {
     }
@@ -116,29 +118,23 @@ final readonly class Numbers
     }
 
     /**
-     * The int a number stands for where an int is required (an index, a count, a unix time): a float is
-     * truncated towards zero, clamped to the int range when it lies outside it, and NaN is 0. PHP refuses
-     * to cast an out-of-range float, so every such conversion goes through here.
+     * The int a number node holds where yq requires one (a slice bound, a function's count argument), or null
+     * when the node is not a number. Go yq parses the text with `strconv.ParseInt`, so any other number is
+     * its error: a fraction, an exponent, infinity or NaN is invalid syntax, an integer past the 64-bit range
+     * is out of range.
+     *
+     * @throws EvaluationException for a number that is not an int
      */
-    public static function toInt(int|float $value): int
+    public static function intOf(Node $node): ?int
     {
-        if (\is_int($value)) {
-            return $value;
+        $number = self::of($node);
+        if (null === $number || \is_int($number)) {
+            return $number;
         }
 
-        if (is_nan($value)) {
-            return 0;
-        }
+        $reason = 1 === preg_match('/^[-+]?[0-9]+$/D', $node->value) ? 'value out of range' : 'invalid syntax';
 
-        if ($value >= (float)\PHP_INT_MAX) {
-            return \PHP_INT_MAX;
-        }
-
-        if ($value <= (float)\PHP_INT_MIN) {
-            return \PHP_INT_MIN;
-        }
-
-        return (int)$value;
+        throw new EvaluationException(\sprintf(self::PARSE_INT_ERROR, $node->value, $reason));
     }
 
     public static function tagOf(int|float $value): string
