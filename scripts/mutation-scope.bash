@@ -10,5 +10,6 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 base="${1:?usage: scripts/mutation-scope.bash <base-ref> [--write]}"
 shift
 
-diff="$(git -C "$root" diff --name-status -M "$base...HEAD")"
-printf '%s\n' "$diff" | php "$root/scripts/mutation-scope.php" "$@"
+# -z: NUL-separated and never C-quoted, so a path with a space, tab or non-ASCII byte reaches the PHP side verbatim.
+# Piped, not captured: command substitution would drop the NULs. pipefail makes a failed diff fail the script.
+git -C "$root" diff -z --name-status -M "$base...HEAD" | php "$root/scripts/mutation-scope.php" "$@"

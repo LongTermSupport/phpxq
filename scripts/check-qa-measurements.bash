@@ -10,7 +10,8 @@
 # - var/qa/infection/summary-log.txt exists, is newer than the coverage report (so it is from this run),
 #   and reports no more skipped mutants than the cap below; the mutation score is printed.
 # - With PHPXQ_MUTATION_BASE set (CI runs scoped by scripts/mutation-scope.bash), the scope is recomputed
-#   from that ref: only a change that maps to no source file may have no summary. Without it the run must
+#   from that ref: only a change that maps to no source file may have no summary, and only a scoped run may
+#   generate no mutants (its files hold none, e.g. interfaces alone). Without it the run must
 #   have been full, so a leftover scoped qaConfig/infection.json fails the check.
 #
 # The floors sit at the value the unit suite earns today and only ever move up (the cap only down); raising
@@ -120,13 +121,18 @@ else
         fail "the Infection summary has no Total or Skipped line"
     else
         echo "mutants: $total generated, $skipped skipped"
-        if [[ "$total" -eq 0 ]]; then
-            fail "Infection generated no mutants"
+        if [[ "$total" -eq 0 && "$scope" == files ]]; then
+            # Infection ran over the scope (the summary is from this run) and found nothing to mutate in it, as for
+            # a change to interfaces alone. That is a pass; a missing summary is not, and fails above.
+            echo "mutants: the scope is not empty but no mutants were generated from it, so there is no score to check"
+        elif [[ "$total" -eq 0 ]]; then
+            fail "Infection generated no mutants from all of src/"
+        else
+            if [[ $((skipped * 100)) -gt $((total * max_skipped_percent)) ]]; then
+                fail "Infection skipped $skipped of $total mutants, more than $max_skipped_percent% (their covering tests are slower than the timeout), and the mutation score leaves them out"
+            fi
+            report_msi
         fi
-        if [[ "$total" -gt 0 && $((skipped * 100)) -gt $((total * max_skipped_percent)) ]]; then
-            fail "Infection skipped $skipped of $total mutants, more than $max_skipped_percent% (their covering tests are slower than the timeout), and the mutation score leaves them out"
-        fi
-        report_msi
     fi
 fi
 

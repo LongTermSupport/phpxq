@@ -122,7 +122,9 @@ mirrors under `src/`, or else the nearest mirrored directory; shared test code (
 and the test, build and floor configuration (`composer.json`, `composer.lock`, `qaConfig/phpunit.xml`,
 `qaConfig/qa.php`) mutate everything. Only a change that maps to no source (docs, workflows, PHPStan rules,
 conformance gaps, which record no coverage) skips mutation, and `scripts/check-qa-measurements.bash`
-recomputes the scope so any other change without an Infection summary fails.
+recomputes the scope so any other change without an Infection summary fails. A scoped run whose files hold no
+mutants (interfaces alone) passes and says so. The diff is read NUL-separated; output it cannot parse mutates
+everything.
 
 | Run                               | Base the change is measured from | Workflow               |
 | --------------------------------- | -------------------------------- | ---------------------- |

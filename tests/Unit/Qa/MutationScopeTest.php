@@ -29,19 +29,31 @@ final class MutationScopeTest extends TestCase
         'src/Yaml/Parser/StreamParser.php',
     ];
 
-    public function testParsesNameStatusOutputIncludingBothSidesOfARename(): void
+    public function testAQuotedPathIsNeverReadAsOutsideTheCodeSoEverythingIsMutated(): void
     {
-        $changes = FileChange::parseNameStatus("M\tsrc/Yaml/Node.php\nR087\ttests/Unit/Old/ATest.php\ttests/Unit/Yaml/NodeTest.php\nD\tsrc/Gone.php\n\n");
+        // git quotes a path with unusual bytes unless asked for -z output; such a path must not fall through to "none".
+        $scope = $this->scope(new FileChange('A', '"src/Jq/\303\234ber.php"'));
 
-        self::assertEquals(
-            [
-                new FileChange('M', 'src/Yaml/Node.php'),
-                new FileChange('D', 'tests/Unit/Old/ATest.php'),
-                new FileChange('R', 'tests/Unit/Yaml/NodeTest.php'),
-                new FileChange('D', 'src/Gone.php'),
-            ],
-            $changes,
-        );
+        self::assertSame(ScopeKindEnum::All, $scope->kind);
+    }
+
+    public function testUnparseableDiffOutputMutatesEverything(): void
+    {
+        self::assertSame(ScopeKindEnum::All, new MutationScope(self::SOURCES)->resolveNameStatusZ("A\t\"src/Jq/\\303\\234ber.php\"\n")->kind);
+    }
+
+    public function testNameStatusZOutputIsResolved(): void
+    {
+        $scope = new MutationScope(['src/Jq/Über.php', 'src/Yaml/Node.php'])->resolveNameStatusZ("A\0src/Jq/Über.php\0A\0tests/Unit/Jq/ÜberTest.php\0");
+
+        self::assertSame(['src/Jq/Über.php'], $scope->files);
+    }
+
+    public function testANonAsciiSourceFileIsMutated(): void
+    {
+        $scope = new MutationScope(['src/Jq/Über.php', 'src/Yaml/Node.php'])->resolve(new FileChange('A', 'src/Jq/Über.php'));
+
+        self::assertSame(['src/Jq/Über.php'], $scope->files);
     }
 
     public function testAChangeOutsideCodeAndTestsNeedsNoMutation(): void

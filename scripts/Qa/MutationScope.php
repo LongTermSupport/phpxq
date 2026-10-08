@@ -29,6 +29,8 @@ final readonly class MutationScope
 
     private const string TEST_SUFFIX = 'Test.php';
 
+    private const string QUOTE = '"';
+
     private const array EVERYTHING = [
         'composer.json',
         'composer.lock',
@@ -60,13 +62,23 @@ final readonly class MutationScope
         $this->sources = $sources;
     }
 
+    /**
+     * Resolves `git diff -z --name-status -M` output; output that cannot be parsed mutates everything.
+     */
+    public function resolveNameStatusZ(string $output): ScopeResult
+    {
+        $changes = FileChange::parseNameStatusZ($output);
+
+        return null === $changes ? $this->everything() : $this->resolve(...$changes);
+    }
+
     public function resolve(FileChange ...$changes): ScopeResult
     {
         $files = [];
         foreach ($changes as $change) {
             $mapped = $this->map($change);
             if (null === $mapped) {
-                return new ScopeResult(ScopeKindEnum::All, $this->sources, $this->sources);
+                return $this->everything();
             }
 
             array_push($files, ...$mapped);
@@ -78,12 +90,23 @@ final readonly class MutationScope
         return new ScopeResult([] === $files ? ScopeKindEnum::None : ScopeKindEnum::Files, $files, $this->sources);
     }
 
+    private function everything(): ScopeResult
+    {
+        return new ScopeResult(ScopeKindEnum::All, $this->sources, $this->sources);
+    }
+
     /**
      * @return ?list<string> the source files the change maps to; null for everything
      */
     private function map(FileChange $change): ?array
     {
         $path = $change->path;
+        // git C-quotes a path with unusual bytes unless asked for -z output; such a path cannot be placed, so it
+        // must count as touching everything rather than nothing.
+        if (str_starts_with($path, self::QUOTE)) {
+            return null;
+        }
+
         if (\in_array($path, self::EVERYTHING, true) || self::startsWithAny($path, ...self::EVERYTHING_UNDER)) {
             return null;
         }
