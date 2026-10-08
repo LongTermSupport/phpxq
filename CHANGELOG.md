@@ -38,6 +38,10 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
   directory. A stream wrapper (`php://filter/...`, `file:///...`, `ftp://...`, `data:...`), a NUL byte, or a
   path that climbs out of the directory (`../x`, an absolute path elsewhere) is refused before anything is
   created. `.` and `..` inside the name are resolved, so `sub/../x` now writes `x` instead of failing.
+- `yq -o xml`: element names, attribute names and processing-instruction targets must be XML names, a
+  comment may not contain `--` and a processing instruction may not contain `?>`. A key such as
+  `"x><evil/><y"` or the comment `# c --> <evil/>` wrote markup into the output; they are now format
+  errors.
 
 ## 0.1.0 — 2026-10-08
 

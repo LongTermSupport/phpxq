@@ -19,7 +19,17 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  */
 final readonly class XmlEncoder implements EncoderInterface
 {
+    /** The deepest element nesting written; deeper usually means an alias cycle. */
     private const int MAX_DEPTH = 1000;
+
+    /** The XML 1.0 (fifth edition) `Name` production: a NameStartChar, then NameChars. */
+    private const string XML_NAME = '/^[:A-Z_a-z\x{C0}-\x{D6}\x{D8}-\x{F6}\x{F8}-\x{2FF}\x{370}-\x{37D}\x{37F}-\x{1FFF}\x{200C}-\x{200D}\x{2070}-\x{218F}\x{2C00}-\x{2FEF}\x{3001}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFFD}\x{10000}-\x{EFFFF}][:A-Z_a-z\x{C0}-\x{D6}\x{D8}-\x{F6}\x{F8}-\x{2FF}\x{370}-\x{37D}\x{37F}-\x{1FFF}\x{200C}-\x{200D}\x{2070}-\x{218F}\x{2C00}-\x{2FEF}\x{3001}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFFD}\x{10000}-\x{EFFFF}\-.0-9\x{B7}\x{300}-\x{36F}\x{203F}-\x{2040}]*$/Du';
+
+    /** What ends a comment early; XML forbids it anywhere inside one. */
+    private const string COMMENT_END = '--';
+
+    /** What ends a processing instruction early. */
+    private const string PROC_INST_END = '?>';
 
     public function format(): FormatEnum
     {
@@ -91,7 +101,7 @@ final readonly class XmlEncoder implements EncoderInterface
 
                 return;
             default:
-                $writer->start($name);
+                $writer->start($this->name($name));
                 $writer->raw($this->comment($value->headComment));
                 $writer->raw($this->escapeText($value->value));
                 $writer->raw($this->comment($value->lineComment));
@@ -115,10 +125,10 @@ final readonly class XmlEncoder implements EncoderInterface
                 throw new FormatException('xml: cannot use ' . $attribute->tag . ' as attribute, only scalars are supported');
             }
 
-            $attributes .= ' ' . substr($keyName, \strlen($options->xmlAttributePrefix)) . '="' . $this->escapeAttribute($attribute->value) . '"';
+            $attributes .= ' ' . $this->name(substr($keyName, \strlen($options->xmlAttributePrefix))) . '="' . $this->escapeAttribute($attribute->value) . '"';
         }
 
-        $writer->start($name, $attributes);
+        $writer->start($this->name($name), $attributes);
         foreach ($pairs as [$key, $value]) {
             $keyName = NodeTools::keyText($key);
             $writer->raw($this->comment($key->headComment, $key->lineComment));
@@ -152,12 +162,30 @@ final readonly class XmlEncoder implements EncoderInterface
         $writer->raw($this->comment($map->footComment));
     }
 
+    /**
+     * @throws FormatException when the target is not an XML name or the text would end the instruction early
+     */
     private function procInst(string $key, Node $value): string
     {
-        $text = NodeTools::unwrap($value);
-        $body = substr($key, \strlen(XmlReader::PROC_INST_PREFIX));
+        $text   = NodeTools::unwrap($value);
+        $target = $this->name(substr($key, \strlen(XmlReader::PROC_INST_PREFIX)));
+        if (str_contains($text->value, self::PROC_INST_END)) {
+            throw new FormatException('xml: a processing instruction cannot contain ' . self::PROC_INST_END);
+        }
 
-        return '<?' . $body . ('' === $text->value ? '' : ' ' . $text->value) . '?>';
+        return '<?' . $target . ('' === $text->value ? '' : ' ' . $text->value) . self::PROC_INST_END;
+    }
+
+    /**
+     * @throws FormatException when the name is not an XML name, which would let a key write markup
+     */
+    private function name(string $name): string
+    {
+        if (1 !== preg_match(self::XML_NAME, $name)) {
+            throw new FormatException(\sprintf('xml: %s is not a valid XML name', json_encode($name, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE)));
+        }
+
+        return $name;
     }
 
     private function directive(Node $value): string
@@ -184,6 +212,9 @@ final readonly class XmlEncoder implements EncoderInterface
         }
 
         $text = implode(' ', $parts);
+        if (str_contains($text, self::COMMENT_END)) {
+            throw new FormatException('xml: a comment cannot contain ' . self::COMMENT_END);
+        }
 
         return '<!--' . (str_starts_with($text, "\n") ? '' : ' ') . $text . (str_ends_with($text, "\n") ? '' : ' ') . '-->';
     }
