@@ -32,6 +32,10 @@ final class DefaultBuiltinRegistry implements BuiltinRegistryInterface
         $this->builtins[$key] = $builtin;
     }
 
+    /**
+     * Append jq source (a sequence of `def`s with no main body) to the prelude. Preludes are concatenated in
+     * registration order and parsed once by the compiler.
+     */
     public function addPrelude(string $source): void
     {
         $this->prelude .= $source . "\n";

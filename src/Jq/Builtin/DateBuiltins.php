@@ -11,7 +11,6 @@ use LTS\PhpXq\Jq\Builtin\Date\TimeZones;
 use LTS\PhpXq\Jq\Builtin\Date\ZoneInfo;
 use LTS\PhpXq\Jq\Builtin\Regex\NativeValue;
 use LTS\PhpXq\Jq\Runtime\Arithmetic;
-use LTS\PhpXq\Jq\Runtime\BuiltinProviderInterface;
 use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
 use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
@@ -30,16 +29,11 @@ use LTS\PhpXq\Json\Values;
  *
  * @internal
  */
-final readonly class DateBuiltins implements BuiltinProviderInterface
+final readonly class DateBuiltins
 {
-    public function registerInto(BuiltinRegistryInterface $registry): void
-    {
-        $this->registerNatives($registry);
-        $registry->addPrelude(BuiltinCatalog::DATE_PRELUDE);
-    }
-
     /**
-     * The native half of {@see self::registerInto()}: what {@see BuiltinCatalog} loads on first use.
+     * The natives that {@see BuiltinCatalog} loads on first use; the jq-defined half is
+     * {@see BuiltinCatalog::DATE_PRELUDE}.
      */
     public function registerNatives(BuiltinRegistryInterface $registry): void
     {
