@@ -16,7 +16,8 @@ return new Configuration()
     // The rule tests extend PHPStan's RuleTestCase and use its node and reflection types. PHPStan is supplied by
     // the PHAR at analysis time and by phpstan/phpstan through the extension installer at test time, never by a
     // package this project requires.
-    ->ignoreUnknownClassesRegex('~^PHPStan\\\\~')
+    ->ignoreUnknownClassesRegex('~^PHPStan\\\~')
     // The defence fixtures are analysed as text by the rule tests, never loaded; some name production classes
     // by the short name a rule matches on, not by a real namespace.
-    ->ignoreErrorsOnPath('tests/Fixtures/Defence', [ErrorType::UNKNOWN_CLASS]);
+    ->ignoreErrorsOnPath('tests/Fixtures/Defence', [ErrorType::UNKNOWN_CLASS])
+;

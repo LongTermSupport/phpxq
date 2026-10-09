@@ -485,10 +485,85 @@ calibrations), proceed on php-qa-ci's stated defaults and say so:
 **Detailed docs** (read in vendor): `vendor/lts/php-qa-ci/CLAUDE/DefenceBeforeFix.md`.
 
 <!-- phpqaci-active-defences:start -->
+
 ## php-qa-ci — Active defences
 
-The list of the defences active in this project could not be generated on the last composer
-install/update. Run `vendor/bin/rules` to list them.
+Generated from this project's active configuration by `rules --write-agent-summary`; do not
+edit. Each line is a standing rule the pipeline enforces; `rule-doc <identifier>` (Composer bin
+dir) prints its page offline.
+
+- `phpqaci.silentCatch` — A catch block must reference the exception it caught (`vendor/lts/php-qa-ci/docs/phpstan-rules/forbid-silent-catch.md`)
+- `phpqaci.enumOverLiteralUnion` — A docblock literal set is an undeclared enum (`vendor/lts/php-qa-ci/docs/phpstan-rules/require-enum-over-literal-union.md`)
+- `phpqaci.nullCoalescingEmptyString` — No `?? ''` (`vendor/lts/php-qa-ci/docs/phpstan-rules/forbid-null-coalescing-empty-string.md`)
+- `phpqaci.nullCoalescingFalse` — No `?? false` (`vendor/lts/php-qa-ci/docs/phpstan-rules/forbid-null-coalescing-false.md`)
+- `phpqaci.readonlyService` — A service class must be `final readonly` (`vendor/lts/php-qa-ci/docs/phpstan-rules/require-readonly-service.md`)
+- `phpqaci.consistentMemberDocs` — A class's constants, and its properties, are documented all or none (`vendor/lts/php-qa-ci/docs/phpstan-rules/require-consistent-member-docs.md`)
+- `phpqaci.variadicOverArrayParameter` — A parameter typed `list<T>` in a docblock should be a native variadic, moved last if it is not already (`vendor/lts/php-qa-ci/docs/phpstan-rules/require-variadic-over-array-parameter.md`)
+- `phpqaci.ambiguousArrayDoc` — A docblock array type must state its keys: `list<T>` or `array<K, V>`, never `T[]` or `array<T>` (`vendor/lts/php-qa-ci/docs/phpstan-rules/forbid-ambiguous-array-doc.md`)
+- `phpqaci.insecureFunction` — No broken hashes, predictable randomness or unparameterised SQL (`vendor/lts/php-qa-ci/docs/phpstan-rules/forbid-insecure-functions.md`)
+- `phpqaci.debugOutputFunction` — No var_dump/print_r/var_export left printing (`vendor/lts/php-qa-ci/docs/phpstan-rules/forbid-debug-output-functions.md`)
+- `phpxq.recursionThroughNativeCallback` — no summary declared
+- `phpxq.unguardedAliasRecursion` — no summary declared
+- `phpxq.loopInvariantConstruction` — no summary declared
+- `phpqaci.dangerousFunctions` — No exec/eval/unserialize and similar (`vendor/lts/php-qa-ci/docs/phpstan-rules/forbid-dangerous-functions.md`)
+- `phpqaci.emptyCatchBlock` — A catch block must do something (`vendor/lts/php-qa-ci/docs/phpstan-rules/forbid-empty-catch-block.md`)
+- `phpqaci.missingStrictTypes` — `declare(strict_types=1)` in every file (`vendor/lts/php-qa-ci/docs/phpstan-rules/require-declare-strict-types.md`)
+- `phpqaci.forbiddenAttribute` — No `#[AllowMockObjectsWithoutExpectations]` (`vendor/lts/php-qa-ci/docs/phpstan-rules/forbid-allow-mock-without-expectations.md`)
+- `phpqaci.composerPluginNamespacedFunction` — A Composer plugin calls only global functions and Composer's API (`vendor/lts/php-qa-ci/docs/phpstan-rules/forbid-namespaced-function-in-composer-plugin.md`)
+- `phpqaci.binDirTool` — Tools run from `vendor-phar/`, not the Composer bin dir (`vendor/lts/php-qa-ci/docs/phpstan-rules/forbid-bin-dir-tool.md`)
+- `phpqaci.newDateTime` — No direct `new DateTime` / `new DateTimeImmutable` (`vendor/lts/php-qa-ci/docs/phpstan-rules/forbid-new-date-time.md`)
+- `phpqaci.emptyLanguageConstruct` — No `empty()`; use an explicit type-safe check (`vendor/lts/php-qa-ci/docs/phpstan-rules/forbid-empty-language-construct.md`)
+- `phpqaci.looseComparison` — No `==` / `!=`; use `===` / `!==` (`vendor/lts/php-qa-ci/docs/phpstan-rules/forbid-loose-comparison.md`)
+- `phpqaci.deprecatedSerializable` — No `Serializable`; use `__serialize()` / `__unserialize()` (`vendor/lts/php-qa-ci/docs/phpstan-rules/forbid-deprecated-serializable.md`)
+- `phpqaci.nestedTernary` — No nested ternary expressions (`vendor/lts/php-qa-ci/docs/phpstan-rules/forbid-nested-ternary.md`)
+- `phpqaci.ruleIdentifierMustBeConstant` — A PHPStan rule's identifier must be a class constant (`vendor/lts/php-qa-ci/docs/phpstan-rules/require-rule-identifier-constant.md`)
+- `phpqaci.unanchoredVendorSubstringCheck` — Decide ownership against the project root, not a `vendor/` substring (`vendor/lts/php-qa-ci/docs/phpstan-rules/forbid-unanchored-vendor-substring-check.md`)
+- `phpqaci.inlinePhpstanIgnore` — No inline `@phpstan-ignore`; use `ignoreErrors` in the config (`vendor/lts/php-qa-ci/docs/phpstan-rules/forbid-inline-phpstan-ignore.md`)
+- `phpqaci.mockFinalClass` — Mock an interface, never a final class (`vendor/lts/php-qa-ci/docs/phpstan-rules/forbid-mocking-final-class.md`)
+- `phpqaci.httpPrefixedEnvVars` — No Symfony env var named `HTTP_*` (`vendor/lts/php-qa-ci/docs/phpstan-rules/forbid-http-prefixed-env-vars.md`)
+- `phpqaci.devNamespaceInProductionSource` — Dev-only code belongs under `autoload-dev` (`vendor/lts/php-qa-ci/docs/phpstan-rules/forbid-dev-namespace-in-production-source.md`)
+- `phpqaci.requireSensitiveParameterAttribute` — `#[\SensitiveParameter]` on plaintext credential parameters (`vendor/lts/php-qa-ci/docs/phpstan-rules/require-sensitive-parameter-attribute.md`)
+- `phpqaci.requireApiOrInternalTag` — `@api` or `@internal` on every public class-like (`vendor/lts/php-qa-ci/docs/tools/requireApiOrInternal.md`)
+- `phpqaci.apiMustNotExposeInternal` — An `@api` type must not expose an `@internal` one (`vendor/lts/php-qa-ci/docs/tools/requireApiOrInternal.md`)
+- `typeCoverage.paramTypeCoverage` — a rule from `tomasvotruba/type-coverage`
+- `typeCoverage.returnTypeCoverage` — a rule from `tomasvotruba/type-coverage`
+- `typeCoverage.propertyTypeCoverage` — a rule from `tomasvotruba/type-coverage`
+- `typeCoverage.constantTypeCoverage` — a rule from `tomasvotruba/type-coverage`
+- 2 rules in this project's own configuration declare no identifier: `QaConfig\PHPStan\Rules\ProductionOnlyRule`, `QaConfig\PHPStan\Rules\ProductionOnlyRule`
+- `phpstan/phpstan-deprecation-rules` — 2 rules from this PHPStan extension; their findings carry PHPStan identifiers, which `rule-doc` routes
+- `phpstan/phpstan-phpunit` — 15 rules from this PHPStan extension; their findings carry PHPStan identifiers, which `rule-doc` routes
+- `phpstan/phpstan-strict-rules` — 45 rules from this PHPStan extension; their findings carry PHPStan identifiers, which `rule-doc` routes
+- `tomasvotruba/type-coverage` — 7 rules from this PHPStan extension; their findings carry PHPStan identifiers, which `rule-doc` routes
+- `phpqaci.rector` — Rector (`vendor/lts/php-qa-ci/docs/tools/rector.md`)
+- `phpqaci.phpCsFixer` — PHP-CS-Fixer (`vendor/lts/php-qa-ci/docs/tools/phpCsFixer.md`)
+- `phpqaci.twigCsFixer` — Twig coding standards (when twig/twig is installed) (`vendor/lts/php-qa-ci/docs/tools/twigCsFixer.md`)
+- `phpqaci.markdownFormat` — markdown in the hooks daemon's format, by the daemon's own formatter (when the daemon is installed) (`vendor/lts/php-qa-ci/docs/tools/markdownFormat.md`)
+- `phpqaci.psr4Validate` — psr4 validation (`vendor/lts/php-qa-ci/docs/tools/psr4Validate.md`)
+- `phpqaci.composerChecks` — composer validation (`vendor/lts/php-qa-ci/docs/tools/composerChecks.md`)
+- `phpqaci.packageType` — assert composer.json declares an explicit package type (library/project/...) (`vendor/lts/php-qa-ci/docs/tools/packageType.md`)
+- `phpqaci.configTemplateIgnoreList` — audit configDefaults/generic templates against psr4-validate-ignore-list.txt (`vendor/lts/php-qa-ci/docs/tools/configTemplateIgnoreListCheck.md`)
+- `phpqaci.infectionConfigSourceDirectoriesMustExist` — assert infection.json's source.directories resolve to real directories (`vendor/lts/php-qa-ci/docs/tools/infectionConfigSourceDirs.md`)
+- `phpqaci.analysedPaths` — every PHP directory is under a checked path or declared unanalysed with a reason (`vendor/lts/php-qa-ci/docs/tools/analysedPaths.md`)
+- `phpqaci.versionPins` — assert phpunit.xml, safe scan-files and GitHub Actions PHP pins match the installed PHPUnit / running PHP (`vendor/lts/php-qa-ci/docs/tools/versionPins.md`)
+- `phpqaci.changelog` — CHANGELOG.md Unreleased is valid and records every change to the watched paths (opt-in: useChangelogCheck=1 or withChangelogCheck(true)) (`vendor/lts/php-qa-ci/docs/tools/changelog.md`; opt-in: `useChangelogCheck`)
+- `phpqaci.phpStrictTypes` — strict types validation (`vendor/lts/php-qa-ci/docs/tools/phpStrictTypes.md`)
+- `phpqaci.phpLint` — phplint (`vendor/lts/php-qa-ci/docs/tools/phpLint.md`)
+- `phpqaci.opcache` — assert the code compiles cleanly through OPcache (known OPcache defects that produce crashing or wrong bytecode) (`vendor/lts/php-qa-ci/docs/tools/opcache.md`)
+- `phpqaci.composerRequireChecker` — composer require checker (`vendor/lts/php-qa-ci/docs/tools/composerRequireChecker.md`)
+- `phpqaci.composerDependencyAnalyser` — unused, shadow and misplaced dependencies (`vendor/lts/php-qa-ci/docs/tools/composerDependencyAnalyser.md`)
+- `phpqaci.markdownLinks` — markdown validation (`vendor/lts/php-qa-ci/docs/tools/markdownLinks.md`)
+- `phpqaci.docsProse` — documentation prose describes its subject, not itself (`vendor/lts/php-qa-ci/docs/tools/docsProse.md`)
+- `phpqaci.yamlLint` — YAML syntax (when symfony/yaml is installed) (`vendor/lts/php-qa-ci/docs/tools/yamlLint.md`)
+- `phpqaci.shellCheck` — ShellCheck over every git-tracked shell script, from the pinned binary php-qa-ci ships (`vendor/lts/php-qa-ci/docs/tools/shellCheck.md`)
+- `phpqaci.branchNamePolicy` — Branch naming policy (PR convention) (`vendor/lts/php-qa-ci/CLAUDE/branch-policy.md`)
+- `phpqaci.phpstanIgnoreJustification` — assert every ignoreErrors entry in qaConfig/phpstan.neon carries a usable justification (`vendor/lts/php-qa-ci/docs/tools/phpstanIgnoreJustification.md`)
+- `phpqaci.deadCode` — dead-code detection through phpstan.phar (opt-in: withDeadCodeDetection(true) in qaConfig/qa.php) (`vendor/lts/php-qa-ci/docs/tools/deadCode.md`)
+- `phpqaci.phpArkitect` — PHPArkitect architecture rules (on by default; useArkitect=0 to disable) (`vendor/lts/php-qa-ci/docs/tools/phpArkitect.md`; opt-in: `useArkitect`)
+- `phpqaci.sensitiveParameterUsage` — assert `#[\SensitiveParameter]` is used somewhere in src/ (`vendor/lts/php-qa-ci/docs/tools/sensitiveParameterUsage.md`)
+- `phpqaci.phpunit` — phpunit (`vendor/lts/php-qa-ci/docs/tools/phpunit.md`)
+- `phpqaci.infection` — infection (`vendor/lts/php-qa-ci/docs/tools/infection.md`; opt-in: `useInfection`)
+- `phpqaci.phpcpd` — copy/paste detection, informational (`vendor/lts/php-qa-ci/docs/tools/phpcpd.md`)
+
 <!-- phpqaci-active-defences:end -->
 
 ## php-qa-ci — Full Pipeline Is the Proof

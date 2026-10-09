@@ -48,7 +48,7 @@ final readonly class ReleasePlanner
             $bump      = $bump instanceof BumpEnum ? $bump->strongest($blockBump) : $blockBump;
         }
 
-        return null === $bump ? null : $current->bump($bump);
+        return $bump instanceof BumpEnum ? $current->bump($bump) : null;
     }
 
     /** The release as a plan (version plus rewritten changelog), or null when nothing is unreleased. */

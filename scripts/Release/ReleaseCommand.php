@@ -30,10 +30,6 @@ final readonly class ReleaseCommand
 
     public const string VERSION_FILE = 'VERSION';
 
-    private const string OPTION_TAGS_FILE = 'tags-file';
-
-    private const string OPTION_DATE = 'date';
-
     public const string USAGE = <<<'TXT'
         Usage: scripts/release.php <command> [arguments]   (run from the project root)
 
@@ -46,6 +42,10 @@ final readonly class ReleaseCommand
         --tags-file names a file with one git tag per line (git tag --list); no file means no tags.
         --date is YYYY-MM-DD and defaults to today (UTC).
         TXT;
+
+    private const string OPTION_TAGS_FILE = 'tags-file';
+
+    private const string OPTION_DATE = 'date';
 
     public function __construct(
         private string $projectRoot,

@@ -106,6 +106,17 @@ final class CheckQaMeasurementsScriptTest extends TestCase
         self::assertStringContainsString('no Infection scope line', $check->getOutput());
     }
 
+    #[DataProvider('provideFullRunsThatAreAFaultOfTheClone')]
+    public function testAFullRunForAnyReasonButTheTwoAcceptedOnesFails(string $line): void
+    {
+        $this->log($line . "\n");
+
+        $check = $this->check();
+
+        self::assertSame(1, $check->getExitCode(), $check->getOutput());
+        self::assertStringContainsString('mutated all of src/', $check->getOutput());
+    }
+
     /**
      * @return iterable<string, array{string}>
      */
@@ -116,17 +127,6 @@ final class CheckQaMeasurementsScriptTest extends TestCase
         yield 'unknown default branch' => [self::FULL_PREFIX . 'the default branch cannot be told (refs/remotes/origin/HEAD is unset and `git ls-remote --symref origin HEAD` gave no answer; `git remote set-head origin --auto` fixes it).'];
         yield 'shallow clone' => [self::FULL_PREFIX . 'HEAD and origin/main share no merge base in this clone, so the history is incomplete (a shallow clone?); `git fetch --unshallow`, or `fetch-depth: 0` on actions/checkout, restores diff mode.'];
         yield 'branch missing' => [self::FULL_PREFIX . 'neither origin/main nor main is in this clone; `git fetch origin main` restores diff mode.'];
-    }
-
-    #[DataProvider('provideFullRunsThatAreAFaultOfTheClone')]
-    public function testAFullRunForAnyReasonButTheTwoAcceptedOnesFails(string $line): void
-    {
-        $this->log($line . "\n");
-
-        $check = $this->check();
-
-        self::assertSame(1, $check->getExitCode(), $check->getOutput());
-        self::assertStringContainsString('mutated all of src/', $check->getOutput());
     }
 
     public function testAFullRunBecauseConfigurationChangedPasses(): void

@@ -21,6 +21,21 @@ return static fn (QaConfigBuilder $qa): QaConfigBuilder => $qa
     // Fixtures of the static defences' own tests (qaConfig/PHPStan/Rules): each is deliberately an instance of a
     // bug class, so the fixers must not rewrite it and PHPStan must not report it.
     ->withIgnoredPaths('tests/Fixtures/Defence')
+    // Deployed from php-qa-ci on every composer install and overwritten by it: not code this project maintains.
+    ->withIgnoredPaths('.claude/skills/defence-before-fix/examples')
+    // PHP this project maintains outside src/ and tests/: the QA configuration and the static defences in it,
+    // and the release, benchmark and differential tooling.
+    ->withCheckedPaths(
+        'qaConfig/ChangelogLaneSwitch.php',
+        'qaConfig/PHPStan',
+        'qaConfig/composer-dependency-analyser.php',
+        'qaConfig/qa.php',
+        'scripts',
+    )
+    // The two Rector configurations are written against classes that exist only inside rector.phar, which
+    // PHPStan cannot load, so it could only report every one of them as unknown.
+    ->withUnanalysedPath('qaConfig/rector-php85.php', 'written against Rector classes that exist only inside rector.phar')
+    ->withUnanalysedPath('qaConfig/rector-safe.php', 'written against Rector classes that exist only inside rector.phar')
     // Measured floors: the score the unit suite earns on its own (the conformance gate records no coverage),
     // rounded down. A complete run of all 27,419 mutants scored 88.18% (covered 88%), so the floors are 88. They
     // only move up; the target is 90, tracked in plan 00011 with the line, method and skipped-mutant floors in
