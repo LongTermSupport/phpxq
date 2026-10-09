@@ -25,9 +25,13 @@ return static fn (QaConfigBuilder $qa): QaConfigBuilder => $qa
     // rounded down. A complete run of all 27,419 mutants scored 88.18% (covered 88%), so the floors are 88. They
     // only move up; the target is 90, tracked in plan 00011 with the line, method and skipped-mutant floors in
     // scripts/check-qa-measurements.bash.
+    // Mutation is scoped by php-qa-ci's automatic diff mode (docs/RELEASING.md, "Mutation testing in CI"): on a
+    // branch only what it changed is mutated, and only a change to configuration (composer.lock, qaConfig/)
+    // makes the run full. A diff run is held to one floor for both scores, uncovered mutants included, and
+    // that floor is the covered-MSI floor, 88, unless set apart: a changed file is held to what all of src/
+    // already earns. CI names the base itself where the branch gives none (the infectionDiffBase environment
+    // variable in the workflows), which a withInfectionDiffBase() call here would override.
     ->withInfectionFloors(88, 88)
-    // CI sets PHPXQ_INFECTION_SKIP=1 when scripts/mutation-scope.bash finds the change maps to no source file.
-    ->withInfection('1' !== getenv('PHPXQ_INFECTION_SKIP'))
     // Declarations carrying a native type, per kind: every one does. A resource is declared `mixed` with a
     // `@param resource` / `@return resource` tag, as PHP has no native resource type.
     ->withTypeCoverageFloors(returnType: 100, paramType: 100, propertyType: 100, constantType: 100)

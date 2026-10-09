@@ -68,7 +68,7 @@ Releases are cut from the changelog. Nobody picks a version number, edits `VERSI
 | Heading                  | Bump while the major is 0 | Bump from 1.0 |
 | ------------------------ | ------------------------- | ------------- |
 | `### Changed — breaking` | minor                     | major         |
-| `### Removed`            | minor                     | minor         |
+| `### Removed`            | minor                     | major         |
 | `### Added`              | minor                     | minor         |
 | `### Changed`            | minor                     | minor         |
 | `### Deprecated`         | minor                     | minor         |
@@ -100,7 +100,7 @@ stands and no bump is applied. Pre-release suffixes (`-rc.1`) are not produced b
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
 | `release-pr.yml` | After QA is green on `main`: opens or refreshes `chore/release`, closes it when `## Unreleased` is empty, stands down while a back-merge is pending                          | A stale or missing pull request; nothing is released  |
 | preflight        | `VERSION`, the newest changelog section and the tags must agree; tag `vX.Y.Z` must not exist locally or on the remote                                                        | Nothing is built or published                         |
-| qa               | the full `CI=true vendor/bin/qa` pipeline (mutation scoped to the change since the previous tag), the measurement check, then `scripts/conformance.bash all`                 | Nothing is published                                  |
+| qa               | the full `CI=true vendor/bin/qa` pipeline (mutation limited to the change since the previous tag), the measurement check, then `scripts/conformance.bash all`                | Nothing is published                                  |
 | phar             | `scripts/build-phar.bash --check-reproducible` (two clean builds must be byte-identical), smoke test                                                                         | Nothing is published                                  |
 | binary           | `scripts/build-binary.bash` per platform, then `scripts/smoke-test.bash --static` with an empty environment                                                                  | Linux failure: nothing is published. macOS: see below |
 | release          | `scripts/release-assets.bash` (required assets, `SHA256SUMS`), re-runs preflight, `gh release create` makes the tag at the merged commit with the changelog section as notes | Nothing is published                                  |
@@ -114,38 +114,27 @@ merge of `main`) is not a release commit: the run skips every stage and says so 
 
 ### Mutation testing in CI
 
-Infection over all of `src/` takes hours, so each run mutates only the source its change could have weakened
-the testing of. `scripts/mutation-scope.bash <base>` decides that (rules and tests: `scripts/Qa/MutationScope.php`,
-`tests/Unit/Qa/`) and, with `--write`, generates a gitignored `qaConfig/infection.json` that excludes everything
-else. Changed or renamed source files are mutated; a changed or deleted test maps to the file or directory it
-mirrors under `src/`, or else the nearest mirrored directory; shared test code (`tests/Support`, the bootstrap)
-and the test, build and floor configuration (`composer.json`, `composer.lock`, `qaConfig/phpunit.xml`,
-`qaConfig/qa.php`) mutate everything. Only a change that maps to no source (docs, workflows, PHPStan rules,
-conformance gaps, which record no coverage) skips mutation, and `scripts/check-qa-measurements.bash`
-recomputes the scope so any other change without an Infection summary fails, as does a `qaConfig/infection.json`
-that is not exactly what the scope writes. A scoped run whose files hold no mutants (interfaces alone) passes and
-says so. The diff is read NUL-separated; output it cannot parse mutates
-everything.
+Infection over all of `src/` takes hours, so php-qa-ci's automatic diff mode holds a branch to what it changed
+(php-qa-ci's `docs/tools/infection.md`, "What is mutated"): the source files added, modified or renamed since the
+merge base, plus the source named after each changed test. A change to `composer.json`, `composer.lock` or
+anything under `qaConfig/` makes the run full, because it can change any mutant's outcome. A diff run counts
+uncovered mutants as escaped and is held to one floor for both scores (88, `qaConfig/qa.php`). No script of ours
+scopes it.
 
-| Run                            | Base the change is measured from | Workflow      |
-| ------------------------------ | -------------------------------- | ------------- |
-| pull request, branch, manual   | the default branch               | `qa.yml`      |
-| push to the default branch     | the commit before the push       | `qa.yml`      |
-| release                        | the previous `v*` tag            | `release.yml` |
-| local `scripts/qa-scoped.bash` | `origin/main` (or the argument)  | none          |
+| Run                          | Mutated                                | Set by                                    |
+| ---------------------------- | -------------------------------------- | ----------------------------------------- |
+| pull request, branch, manual | changed since the merge base with main | automatic (`GITHUB_BASE_REF`, the branch) |
+| push to the default branch   | changed by the push                    | `infectionDiffBase` = the commit before   |
+| release                      | changed since the previous `v*` tag    | `infectionDiffBase` = that tag            |
+| local `vendor/bin/qa`        | changed since the merge base with main | automatic                                 |
 
-Locally, `scripts/qa-scoped.bash [<base-ref>] [-- <qa arguments>]` does what the workflow does in one command:
-scope against the merge base (`origin/main`, or the argument, or `$PHPXQ_MUTATION_BASE`; nothing is fetched and a
-missing ref fails), run `CI=true vendor/bin/qa` (Infection switched off when the scope is none), always delete the
-generated `qaConfig/infection.json` and any `.yml` Infection leaves in the root, then run
-`scripts/check-qa-measurements.bash` against the same base. A plain `CI=true vendor/bin/qa` stays the full run over
-all of `src/` (over an hour); no scheduled full run exists, so a re-baseline of the floors is a manual one-off of it.
-Each mutating job stops at a `timeout-minutes` below GitHub's 6-hour limit.
-
-php-qa-ci's own diff mode (`withInfectionDiffBase()`) is not used: it drops renamed files, ignores changed tests and
-configuration, refuses a dirty tree, writes no Infection summary for `check-qa-measurements.bash` and checks only
-covered MSI. The proposal to close those gaps upstream is in
-`CLAUDE/Plan/00011-raise-mutation-and-coverage-floors/UPSTREAM-diff-mode-default.md`.
+`scripts/check-qa-measurements.bash` reads the first `Infection:` line of the pipeline output (CI keeps it in
+`PHPXQ_QA_LOG`) and fails the gate when Infection ran in full for any reason but a configuration change or the
+default branch: a shallow clone (hence `fetch-depth: 0`), an unknown default branch or a detached HEAD would
+otherwise burn hours measuring nothing the change did. It also fails when the lane did not run, when the summary
+is older than the coverage report, or when more than 20% of mutants were skipped. A re-baseline of the floors is a
+manual `infectionDiffBase=full vendor/bin/qa` (over an hour); no scheduled full run exists. Each mutating job stops
+at a `timeout-minutes` below GitHub's 6-hour limit.
 
 ### The release pull request
 

@@ -116,7 +116,7 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader --no-scripts
 
-      # Mutation testing covers what changed since the previous release tag. With no earlier tag, the first release, everything is mutated.
+      # Mutation testing covers what changed since the previous release tag. With no earlier tag, the first release, php-qa-ci chooses.
       - name: Choose the mutation base (previous release tag)
         id: base
         run: |
@@ -125,25 +125,20 @@ jobs:
           if previous="$(git describe --tags --abbrev=0 --match 'v*' HEAD^ 2>/dev/null)"; then
             base="${previous}"
           fi
-          echo "Mutation base: ${base:-(none, full run)}"
+          echo "Mutation base: ${base:-(none, php-qa-ci chooses)}"
           echo "ref=${base}" >> "${GITHUB_OUTPUT}"
-
-      - name: Scope mutation testing to the release
-        id: scope
-        if: ${{ steps.base.outputs.ref != '' }}
-        env:
-          BASE: ${{ steps.base.outputs.ref }}
-        run: scripts/mutation-scope.bash "${BASE}" --write
 
       - name: Full QA pipeline (coding standards read-only, static analysis, unit and conformance tests)
         env:
           CI: 'true'
-          PHPXQ_INFECTION_SKIP: ${{ steps.scope.outputs.scope == 'none' && '1' || '' }}
-        run: vendor/bin/qa
+          # The previous release tag; with none (the first release) php-qa-ci's automatic diff mode chooses.
+          infectionDiffBase: ${{ steps.base.outputs.ref }}
+        shell: bash   # `bash -e -o pipefail`: the default shell has no pipefail, so tee would hide a failing qa
+        run: vendor/bin/qa 2>&1 | tee "${RUNNER_TEMP}/qa-pipeline.log"
 
       - name: Coverage and mutation lanes ran and meet their floors
         env:
-          PHPXQ_MUTATION_BASE: ${{ steps.base.outputs.ref }}
+          PHPXQ_QA_LOG: ${{ runner.temp }}/qa-pipeline.log
         run: scripts/check-qa-measurements.bash
 
       - name: Upstream conformance, PHP and shell suites (known gaps enforced)

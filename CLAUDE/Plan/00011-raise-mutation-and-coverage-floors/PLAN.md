@@ -35,7 +35,7 @@ The code review (plan 00010, finding Q1) showed that the 90% mutation floor meas
 ### Phase 3: Upstream
 
 - [ ] ⬜ **Task 3.1**: Propose to php-qa-ci that a high skipped-mutant ratio fails the Infection lane
-- [ ] ⬜ **Task 3.2**: Propose to php-qa-ci that diff mode becomes the default on non-default branches, with the gaps listed in [UPSTREAM-diff-mode-default.md](UPSTREAM-diff-mode-default.md)
+- [x] ✅ **Task 3.2**: php-qa-ci's automatic diff mode (the default since 85.6.0) replaced phpxq's own mutation scoping; the floors apply to the diff, and `scripts/check-qa-measurements.bash` fails a CI run that was full for any reason but a configuration change or the default branch
 
 ## Success Criteria
 
