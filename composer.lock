@@ -8,22 +8,74 @@
     "packages": [],
     "packages-dev": [
         {
-            "name": "lts/php-qa-ci",
-            "version": "85.1.0",
+            "name": "entropy/entropy",
+            "version": "0.4.29",
             "source": {
                 "type": "git",
-                "url": "https://github.com/LongTermSupport/php-qa-ci.git",
-                "reference": "3da4c9cff344785f8ac086c39fe43461a4da8fca"
+                "url": "https://github.com/TomasVotruba/entropy.git",
+                "reference": "e2dfbd791ab7acea5aed40deefa00b12ad902ca2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/LongTermSupport/php-qa-ci/zipball/3da4c9cff344785f8ac086c39fe43461a4da8fca",
-                "reference": "3da4c9cff344785f8ac086c39fe43461a4da8fca",
+                "url": "https://api.github.com/repos/TomasVotruba/entropy/zipball/e2dfbd791ab7acea5aed40deefa00b12ad902ca2",
+                "reference": "e2dfbd791ab7acea5aed40deefa00b12ad902ca2",
+                "shasum": ""
+            },
+            "require": {
+                "ext-tokenizer": "*",
+                "php": ">=7.4",
+                "symfony/polyfill-php80": "^1.31"
+            },
+            "require-dev": {
+                "php-parallel-lint/php-parallel-lint": "^1.4",
+                "phpstan/extension-installer": "^1.4",
+                "phpstan/phpstan": "^2.1",
+                "phpunit/phpunit": "^9.6",
+                "rector/jack": "^1.0",
+                "rector/rector": "^2.4",
+                "rector/swiss-knife": "^2.4",
+                "shipmonk/composer-dependency-analyser": "^1.8",
+                "shipmonk/dead-code-detector": "^1.4",
+                "symplify/easy-coding-standard": "^13.1",
+                "symplify/phpstan-rules": "^14.10",
+                "tomasvotruba/type-coverage": "^2.2",
+                "tracy/tracy": "^2.12"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Entropy\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "proprietary"
+            ],
+            "description": "Entropy framework",
+            "support": {
+                "issues": "https://github.com/TomasVotruba/entropy/issues",
+                "source": "https://github.com/TomasVotruba/entropy/tree/0.4.29"
+            },
+            "time": "2026-10-08T07:55:55+00:00"
+        },
+        {
+            "name": "lts/php-qa-ci",
+            "version": "85.6.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/LongTermSupport/php-qa-ci.git",
+                "reference": "55f4e71716233376dcceb63c247870d908f068ab"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/LongTermSupport/php-qa-ci/zipball/55f4e71716233376dcceb63c247870d908f068ab",
+                "reference": "55f4e71716233376dcceb63c247870d908f068ab",
                 "shasum": ""
             },
             "require": {
                 "composer-plugin-api": "^2.0",
                 "ext-filter": "*",
+                "ext-hash": "*",
                 "ext-json": "*",
                 "ext-openssl": "*",
                 "ext-pcntl": "*",
@@ -45,9 +97,11 @@
                 "tomasvotruba/type-coverage": "^2.3"
             },
             "replace": {
-                "phpstan/phpstan": "*"
+                "phpstan/phpstan": "2.3.0"
             },
             "require-dev": {
+                "ext-dom": "*",
+                "ext-libxml": "*",
                 "roave/security-advisories": "dev-master"
             },
             "suggest": {
@@ -57,6 +111,7 @@
                 "phpstan/phpstan-symfony": "Symfony specific checks"
             },
             "bin": [
+                "bin/arkitect-rule",
                 "bin/changelog-release",
                 "bin/composer-require-checker",
                 "bin/config-template-ignorelist-check",
@@ -69,7 +124,9 @@
                 "bin/package-type-check",
                 "bin/php-cs-fixer",
                 "bin/phpstan",
+                "bin/phpstan-docs-install",
                 "bin/phpstan-ignore-justification",
+                "bin/phpstan-replace-sync",
                 "bin/phpstan-rule",
                 "bin/psr4-validate",
                 "bin/qa",
@@ -78,6 +135,7 @@
                 "bin/sensitive-parameter-usage",
                 "bin/shellcheck-install",
                 "bin/single-rule-report",
+                "bin/turbo-install",
                 "bin/version-pins-check"
             ],
             "type": "composer-plugin",
@@ -85,7 +143,8 @@
                 "class": [
                     "LTS\\PHPQA\\ComposerPlugin\\SkillsDeployPlugin",
                     "LTS\\PHPQA\\ComposerPlugin\\PhpStanGuardPlugin",
-                    "LTS\\PHPQA\\ComposerPlugin\\ManagedSourceDeployPlugin"
+                    "LTS\\PHPQA\\ComposerPlugin\\ManagedSourceDeployPlugin",
+                    "LTS\\PHPQA\\ComposerPlugin\\TurboInstallPlugin"
                 ],
                 "phpstan": {
                     "includes": [
@@ -93,28 +152,14 @@
                     ]
                 },
                 "defence-before-fix": {
-                    "method": "1.0.1",
+                    "method": "1.1.0",
                     "project": {
-                        "method": "1.0.1",
+                        "method": "1.1.0",
                         "toolchain": "0.2.0",
-                        "known-gaps": [
-                            "toolchain 4.1: accepted by Owner decision — the same PHPArkitect and PHPStan native-identifier gaps as the artefact, since the project runs the toolchain it ships",
-                            "toolchain 4.3: the same silent PHPArkitect baseline route is open on this repository",
-                            "toolchain 7.1: this repository's own root CLAUDE.md carries the same static block with no lines for its active defences",
-                            "detector 7.2: the same unconfigured reportIgnoresWithoutComments applies to this repository's own PHPStan run"
-                        ]
+                        "known-gaps": []
                     },
                     "toolchain": "0.2.0",
-                    "known-gaps": [
-                        "toolchain 4.1: accepted by Owner decision — the PHPArkitect lane is identified and documented as a lane, but the rules of its bundled tier are not individually identified or resolvable, and it has no single-file run; as wrapped that detector fails detector 5.2 and 6.1 to 6.3. Kept as shipped: parsing arkitect's prose into identifiers would re-implement a format this package does not own, and dropping the tier would remove real structural defences (Plan 00010 Decision 5)",
-                        "toolchain 4.1: accepted by Owner decision — PHPStan's native identifiers are documented online only; bin/rule-doc names the phpstan.org page for one and says the catalogue is not carried offline, so that detector as wrapped fails detector 6.2 and 6.3 (Plan 00010 Decision 6)",
-                        "toolchain 4.3: a phparkitect-baseline.json is read silently by the PHPArkitect lane, and a PHPStan baseline included from qaConfig/phpstan.neon is not checked by the justification lane",
-                        "toolchain 6.2: the justification lane reads qaConfig/phpstan.neon alone and not the files it includes",
-                        "toolchain 6.4: lane defaults are stated in docs/tools, but the toolchain states no default for the calibrations the method leaves to the project",
-                        "toolchain 7.1: the agent block written into a consuming project is a static template and carries no lines for the defences actually active there",
-                        "toolchain 8.1: partially closed — the release guard requires a remediation page to exist for every identifier, but does not judge whether the page states a correct construction rather than restating the summary",
-                        "detector 7.2: PHPStan's reportIgnoresWithoutComments is not configured, so the inline suppression route requires no written reason and only the justification lane stands in"
-                    ]
+                    "known-gaps": []
                 }
             },
             "autoload": {
@@ -131,9 +176,9 @@
             "description": "Simple PHP QA pipeline and scripts. Largely just a collection of dependencies with configuration and scripts to run them together",
             "support": {
                 "issues": "https://github.com/LongTermSupport/php-qa-ci/issues",
-                "source": "https://github.com/LongTermSupport/php-qa-ci/tree/85.1.0"
+                "source": "https://github.com/LongTermSupport/php-qa-ci/tree/85.6.0"
             },
-            "time": "2026-10-03T07:47:55+00:00"
+            "time": "2026-10-09T12:06:00+00:00"
         },
         {
             "name": "myclabs/deep-copy",
@@ -542,22 +587,22 @@
         },
         {
             "name": "phpstan/phpstan-phpunit",
-            "version": "2.0.21",
+            "version": "2.1.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpstan/phpstan-phpunit.git",
-                "reference": "8dbdc3a3e2d7c5dfea655d20ecca5bc9b1b1e441"
+                "reference": "8d16b8478e523a47f8c02e83bce8981b5b5a3b03"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpstan-phpunit/zipball/8dbdc3a3e2d7c5dfea655d20ecca5bc9b1b1e441",
-                "reference": "8dbdc3a3e2d7c5dfea655d20ecca5bc9b1b1e441",
+                "url": "https://api.github.com/repos/phpstan/phpstan-phpunit/zipball/8d16b8478e523a47f8c02e83bce8981b5b5a3b03",
+                "reference": "8d16b8478e523a47f8c02e83bce8981b5b5a3b03",
                 "shasum": ""
             },
             "require": {
                 "phar-io/version": "^3.2",
                 "php": "^7.4 || ^8.0",
-                "phpstan/phpstan": "^2.2.6"
+                "phpstan/phpstan": "^2.3.0"
             },
             "conflict": {
                 "phpunit/phpunit": "<7.0"
@@ -594,27 +639,27 @@
             ],
             "support": {
                 "issues": "https://github.com/phpstan/phpstan-phpunit/issues",
-                "source": "https://github.com/phpstan/phpstan-phpunit/tree/2.0.21"
+                "source": "https://github.com/phpstan/phpstan-phpunit/tree/2.1.1"
             },
-            "time": "2026-10-01T11:59:29+00:00"
+            "time": "2026-10-06T18:12:32+00:00"
         },
         {
             "name": "phpstan/phpstan-strict-rules",
-            "version": "2.0.12",
+            "version": "2.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpstan/phpstan-strict-rules.git",
-                "reference": "2bc5ae19ae965663b62ac907ee6342c3903ec93b"
+                "reference": "24ec51589f896f048d0d36de373d993b5cf71786"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpstan-strict-rules/zipball/2bc5ae19ae965663b62ac907ee6342c3903ec93b",
-                "reference": "2bc5ae19ae965663b62ac907ee6342c3903ec93b",
+                "url": "https://api.github.com/repos/phpstan/phpstan-strict-rules/zipball/24ec51589f896f048d0d36de373d993b5cf71786",
+                "reference": "24ec51589f896f048d0d36de373d993b5cf71786",
                 "shasum": ""
             },
             "require": {
                 "php": "^7.4 || ^8.0",
-                "phpstan/phpstan": "^2.1.52"
+                "phpstan/phpstan": "^2.3"
             },
             "require-dev": {
                 "php-parallel-lint/php-parallel-lint": "^1.2",
@@ -646,9 +691,9 @@
             ],
             "support": {
                 "issues": "https://github.com/phpstan/phpstan-strict-rules/issues",
-                "source": "https://github.com/phpstan/phpstan-strict-rules/tree/2.0.12"
+                "source": "https://github.com/phpstan/phpstan-strict-rules/tree/2.1.0"
             },
-            "time": "2026-07-19T07:24:06+00:00"
+            "time": "2026-10-01T21:30:37+00:00"
         },
         {
             "name": "phpunit/php-code-coverage",
@@ -2843,6 +2888,90 @@
             "time": "2026-09-24T15:19:04+00:00"
         },
         {
+            "name": "symfony/polyfill-php80",
+            "version": "v1.43.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/symfony/polyfill-php80.git",
+                "reference": "9c6a5d6b01ca51d486c813e9a9c0ed55f208bb74"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/symfony/polyfill-php80/zipball/9c6a5d6b01ca51d486c813e9a9c0ed55f208bb74",
+                "reference": "9c6a5d6b01ca51d486c813e9a9c0ed55f208bb74",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.2"
+            },
+            "type": "library",
+            "extra": {
+                "thanks": {
+                    "url": "https://github.com/symfony/polyfill",
+                    "name": "symfony/polyfill"
+                }
+            },
+            "autoload": {
+                "files": [
+                    "bootstrap.php"
+                ],
+                "psr-4": {
+                    "Symfony\\Polyfill\\Php80\\": ""
+                },
+                "classmap": [
+                    "Resources/stubs"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Ion Bazan",
+                    "email": "ion.bazan@gmail.com"
+                },
+                {
+                    "name": "Nicolas Grekas",
+                    "email": "p@tchwork.com"
+                },
+                {
+                    "name": "Symfony Community",
+                    "homepage": "https://symfony.com/contributors"
+                }
+            ],
+            "description": "Symfony polyfill backporting some PHP 8.0+ features to lower PHP versions",
+            "homepage": "https://symfony.com",
+            "keywords": [
+                "compatibility",
+                "polyfill",
+                "portable",
+                "shim"
+            ],
+            "support": {
+                "source": "https://github.com/symfony/polyfill-php80/tree/v1.43.0"
+            },
+            "funding": [
+                {
+                    "url": "https://symfony.com/sponsor",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/fabpot",
+                    "type": "github"
+                },
+                {
+                    "url": "https://github.com/nicolas-grekas",
+                    "type": "github"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2026-09-25T15:50:05+00:00"
+        },
+        {
             "name": "symfony/polyfill-php85",
             "version": "v1.43.0",
             "source": {
@@ -3359,22 +3488,22 @@
         },
         {
             "name": "tomasvotruba/type-coverage",
-            "version": "2.4.1",
+            "version": "2.5.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/TomasVotruba/type-coverage.git",
-                "reference": "2876326f2d1946df983da6feb2903e3797df5918"
+                "reference": "afcfc6f890cb680d10974cbdff210892210c822a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/TomasVotruba/type-coverage/zipball/2876326f2d1946df983da6feb2903e3797df5918",
-                "reference": "2876326f2d1946df983da6feb2903e3797df5918",
+                "url": "https://api.github.com/repos/TomasVotruba/type-coverage/zipball/afcfc6f890cb680d10974cbdff210892210c822a",
+                "reference": "afcfc6f890cb680d10974cbdff210892210c822a",
                 "shasum": ""
             },
             "require": {
-                "php": "^8.4",
-                "phpstan/phpstan": "^2.2",
-                "webmozart/assert": "^1.11 || ^2.1"
+                "entropy/entropy": "^0.4.23",
+                "php": ">=7.4",
+                "phpstan/phpstan": "^2.2"
             },
             "require-dev": {
                 "doctrine/collections": "^2.3",
@@ -3414,7 +3543,7 @@
             ],
             "support": {
                 "issues": "https://github.com/TomasVotruba/type-coverage/issues",
-                "source": "https://github.com/TomasVotruba/type-coverage/tree/2.4.1"
+                "source": "https://github.com/TomasVotruba/type-coverage/tree/2.5.0"
             },
             "funding": [
                 {
@@ -3426,73 +3555,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-03T05:13:37+00:00"
-        },
-        {
-            "name": "webmozart/assert",
-            "version": "2.4.1",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/webmozarts/assert.git",
-                "reference": "2ccb7c2e821038c03a3e6e1700c570c158c55f70"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/webmozarts/assert/zipball/2ccb7c2e821038c03a3e6e1700c570c158c55f70",
-                "reference": "2ccb7c2e821038c03a3e6e1700c570c158c55f70",
-                "shasum": ""
-            },
-            "require": {
-                "ext-ctype": "*",
-                "ext-date": "*",
-                "ext-filter": "*",
-                "php": "^8.2"
-            },
-            "suggest": {
-                "ext-intl": "",
-                "ext-simplexml": "",
-                "ext-spl": ""
-            },
-            "type": "library",
-            "extra": {
-                "psalm": {
-                    "pluginClass": "Webmozart\\Assert\\PsalmPlugin"
-                },
-                "branch-alias": {
-                    "dev-master": "2.0-dev",
-                    "dev-feature/2-0": "2.0-dev"
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "Webmozart\\Assert\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Bernhard Schussek",
-                    "email": "bschussek@gmail.com"
-                },
-                {
-                    "name": "Woody Gilk",
-                    "email": "woody.gilk@gmail.com"
-                }
-            ],
-            "description": "Assertions to validate method input/output with nice error messages.",
-            "keywords": [
-                "assert",
-                "check",
-                "validate"
-            ],
-            "support": {
-                "issues": "https://github.com/webmozarts/assert/issues",
-                "source": "https://github.com/webmozarts/assert/tree/2.4.1"
-            },
-            "time": "2026-06-15T15:31:57+00:00"
+            "time": "2026-10-05T20:07:08+00:00"
         }
     ],
     "aliases": [],

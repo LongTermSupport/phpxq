@@ -470,11 +470,26 @@ Defence Before Fix agent prompt once and follow it — attribute the class, buil
 prove it fires, sweep, fix every instance, enforce, then fix the original with a test:
 <https://defence-before-fix.github.io/defence-before-fix-project-prompt.md>
 (method specification: <https://defence-before-fix.github.io/raw/SPEC.md>). Toolchain
-commands: `vendor/bin/phpstan-rule <identifier> <path>` proves one rule on one path,
+commands: `vendor/bin/phpstan-rule <identifier> <path>` proves one rule on one path
+(`vendor/bin/arkitect-rule <identifier> <path>` for a PHPArkitect rule; a rule of your own
+without an identifier is named by its `because` clause),
 `vendor/bin/rule-doc <identifier>` resolves a printed identifier offline, `vendor/bin/rules`
-lists every defence active in this project.
+lists every defence active in this project. A defect you find is fixed now; one whose code
+is upstream is filed as an issue on that project and linked from the commit, and a
+conclusion that no pattern exists is recorded as a decision with the work, never only in
+your output. Where the method leaves a judgement to the project
+and this project has recorded nothing (the Owner, the sweep scope, where fixtures go, the
+calibrations), proceed on php-qa-ci's stated defaults and say so:
+`vendor/lts/php-qa-ci/docs/defence-before-fix-defaults.md`.
 
 **Detailed docs** (read in vendor): `vendor/lts/php-qa-ci/CLAUDE/DefenceBeforeFix.md`.
+
+<!-- phpqaci-active-defences:start -->
+## php-qa-ci — Active defences
+
+The list of the defences active in this project could not be generated on the last composer
+install/update. Run `vendor/bin/rules` to list them.
+<!-- phpqaci-active-defences:end -->
 
 ## php-qa-ci — Full Pipeline Is the Proof
 
