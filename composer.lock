@@ -60,16 +60,16 @@
         },
         {
             "name": "lts/php-qa-ci",
-            "version": "85.6.0",
+            "version": "85.6.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/LongTermSupport/php-qa-ci.git",
-                "reference": "55f4e71716233376dcceb63c247870d908f068ab"
+                "reference": "800010d385e9061cf0e499c050b8f30a7c94dccf"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/LongTermSupport/php-qa-ci/zipball/55f4e71716233376dcceb63c247870d908f068ab",
-                "reference": "55f4e71716233376dcceb63c247870d908f068ab",
+                "url": "https://api.github.com/repos/LongTermSupport/php-qa-ci/zipball/800010d385e9061cf0e499c050b8f30a7c94dccf",
+                "reference": "800010d385e9061cf0e499c050b8f30a7c94dccf",
                 "shasum": ""
             },
             "require": {
@@ -176,9 +176,9 @@
             "description": "Simple PHP QA pipeline and scripts. Largely just a collection of dependencies with configuration and scripts to run them together",
             "support": {
                 "issues": "https://github.com/LongTermSupport/php-qa-ci/issues",
-                "source": "https://github.com/LongTermSupport/php-qa-ci/tree/85.6.0"
+                "source": "https://github.com/LongTermSupport/php-qa-ci/tree/85.6.1"
             },
-            "time": "2026-10-09T12:06:00+00:00"
+            "time": "2026-10-09T15:45:59+00:00"
         },
         {
             "name": "myclabs/deep-copy",
