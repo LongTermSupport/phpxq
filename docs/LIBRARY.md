@@ -31,9 +31,8 @@ These classes are the supported surface. Their signatures follow Semantic Versio
 
 The exceptions each call raises are listed under [Errors](#errors).
 
-Everything else under `LTS\PhpXq\` (the lexers, parsers, evaluators, emitters, `Cli` classes, `Runtime`
-classes and the rest) is internal. It is not covered by the stability promise and may change or move in any
-release, so do not construct or extend it. The sole exceptions are the exception classes named below.
+Every class carries a `@api` (supported) or `@internal` (may change in any release) tag in its docblock; see
+[Stability](#stability) for the exact `@api` list. Do not construct or extend `@internal` classes.
 
 ## JSON
 
@@ -333,8 +332,34 @@ yaml: line 2: did not find expected ',' or ']'
 
 ## Stability
 
-The classes in the [Public API](#public-api) table are supported: their names, method signatures and documented
-behaviour change only in a release whose version number says so, under Semantic Versioning (while the major is 0,
-a breaking change raises the minor). Everything else is internal and may change in any release, including a
-patch release. If you need something that only an internal class offers, open an issue asking for it to be
-promoted to the public API.
+Every public class, interface, enum and trait in `src/` is tagged in its docblock:
+
+- `@api` is supported: its name, method signatures and documented behaviour change only in a release whose version
+  number says so, under Semantic Versioning (while the major is 0, a breaking change raises the minor).
+- `@internal` may change or move in any release, including a patch release. PHPStan and your IDE flag its use.
+
+The entry points for library use are the classes in the [Public API](#public-api) table, the exceptions in
+[Errors](#errors) and the value types they take and return. The other `@api` classes are the jq engine's
+seams that the command-line front ends are built from (parser, AST, runtime and builtin registries, the CLI
+front controllers); they are stable but you rarely need them. The complete `@api` list, by namespace under
+`LTS\PhpXq\`, is checked against the source by the test suite:
+
+- `Cli`: EntryPoint, ErrorGuard, FrontController, FrontControllerInterface, ToolEnum
+- `Jq`: Jq
+- `Jq\Ast`: ArrayConstruct, ArrayPattern, Assign, AssignOpEnum, Binary, BinaryOpEnum, Bind, BreakOut, Comma, ForeachLoop, Format, FuncDef, FuncDefScope, FunctionCall, Identity, IfThenElse, ImportDirective, ImportKindEnum, Index, Iterate, Label, Literal, Location, ModuleDirective, Negate, NodeInterface, NumberLiteral, ObjectConstruct, ObjectEntry, ObjectPattern, ObjectPatternEntry, PatternInterface, Pipe, Program, Reduce, Slice, StringInterpolation, TryCatch, Variable, VariablePattern
+- `Jq\Builtin`: CoreBuiltins, DateBuiltins, RegexBuiltins, StandardBuiltins
+- `Jq\Cli`: CliRuntimeContext, CompilerFactoryInterface, Console, DefaultCompilerFactory, FileReader, InputItem, InputSegmenter, InputSource, JqApplication, JqExitCode, LineTracker, OutputWriter, ParseDiagnostics, ProgramDump, ProgramLoader, ProgramRunner, StreamError, StreamParser, UsageText, ValueScanner
+- `Jq\Cli\Options`: CliActionEnum, CliOptions, OptionParser, UsageException
+- `Jq\Parser`: Lexer, LexerInterface, Parser, ParserInterface, Token, TokenTypeEnum
+- `Jq\Runtime`: Arithmetic, BreakException, BuiltinInterface, BuiltinProviderInterface, BuiltinRegistryInterface, CompiledProgramInterface, Compiler, CompilerInterface, DefaultBuiltinRegistry, EvaluationStack, FileModuleLoader, FilterInterface, HaltException, InputPositionInterface, InputProviderInterface, JqCompileException, JqException, LoadedModule, ModuleLoaderInterface, PathOps, PathStreamBuiltinInterface, RuntimeContextInterface, StreamBuiltinInterface, ValueBuiltinInterface
+- `Json`: ColorScheme, EncodeOptions, JsonDecoder, JsonDecoderInterface, JsonEncoder, JsonEncoderInterface, JsonObject, JsonSyntaxException, NumberParser, PreciseNumber, Values
+- `Json\Codec`: JqColors
+- `Limits`: AllocationLimit, NestingLimit
+- `Yaml\Exception`: YamlSyntaxException
+- `Yq`: Yq
+- `Yq\Cli`: YqApplicationInterface
+- `Yq\Expression`: ExpressionNodeInterface, ExpressionParserInterface, ExpressionSyntaxException
+- `Yq\Format`: FormatEnum, FormatException
+- `Yq\Runtime`: EvaluationException
+
+If you need something that only an `@internal` class offers, open an issue asking for it to be promoted.

@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit;
 
+use FilesystemIterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use SplFileInfo;
 use Symfony\Component\Process\Process;
 
 /**
@@ -19,21 +23,6 @@ final class LibraryDocsTest extends TestCase
     private const string DOCUMENT = __DIR__ . '/../../docs/LIBRARY.md';
 
     private const string AUTOLOAD_LINE = "require __DIR__ . '/vendor/autoload.php';";
-
-    /**
-     * @return iterable<string, array{string, string}>
-     */
-    public static function snippets(): iterable
-    {
-        $markdown = (string)file_get_contents(self::DOCUMENT);
-        $matched  = preg_match_all('/```php\n(.*?)```\n(?:\n```text\n(.*?)```\n)?/s', $markdown, $matches, \PREG_SET_ORDER);
-
-        self::assertGreaterThan(0, $matched);
-
-        foreach ($matches as $index => $match) {
-            yield 'snippet ' . ($index + 1) => [$match[1], \array_key_exists(2, $match) ? $match[2] : ''];
-        }
-    }
 
     #[DataProvider('snippets')]
     public function testTheSnippetPrintsWhatTheDocumentSays(string $code, string $expected): void
@@ -58,6 +47,21 @@ final class LibraryDocsTest extends TestCase
         self::assertSame($expected, $process->getOutput());
     }
 
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function snippets(): iterable
+    {
+        $markdown = (string)file_get_contents(self::DOCUMENT);
+        $matched  = preg_match_all('/```php\n(.*?)```\n(?:\n```text\n(.*?)```\n)?/s', $markdown, $matches, \PREG_SET_ORDER);
+
+        self::assertGreaterThan(0, $matched);
+
+        foreach ($matches as $index => $match) {
+            yield 'snippet ' . ($index + 1) => [$match[1], \array_key_exists(2, $match) ? $match[2] : ''];
+        }
+    }
+
     public function testTheDocumentNamesEveryClassItCallsPublic(): void
     {
         $markdown = (string)file_get_contents(self::DOCUMENT);
@@ -66,5 +70,56 @@ final class LibraryDocsTest extends TestCase
             self::assertStringContainsString('`' . $class . '`', $markdown);
             self::assertTrue(class_exists($class));
         }
+    }
+
+    public function testTheStabilityListIsExactlyTheClassesTaggedApi(): void
+    {
+        $documented = [];
+        preg_match_all('/^- `([A-Za-z\\\]+)`: (.+)$/m', (string)file_get_contents(self::DOCUMENT), $lines, \PREG_SET_ORDER);
+        foreach ($lines as $line) {
+            foreach (explode(', ', $line[2]) as $name) {
+                $documented[] = $line[1] . '\\' . $name;
+            }
+        }
+
+        $tagged    = [];
+        $sourceDir = (string)realpath(__DIR__ . '/../../src');
+        $files     = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($sourceDir, FilesystemIterator::SKIP_DOTS));
+        foreach ($files as $file) {
+            if (!$file instanceof SplFileInfo || 'php' !== $file->getExtension()) {
+                continue;
+            }
+
+            $source = (string)file_get_contents($file->getPathname());
+            if (1 === preg_match('/^ \* @api$/m', $source)) {
+                $relative = substr($file->getPathname(), \strlen($sourceDir) + 1, -4);
+                $tagged[] = str_replace('/', '\\', $relative);
+            }
+        }
+
+        $documentedSorted = array_map(static fn (string $name): string => str_replace('\\\\', '\\', $name), $documented);
+        sort($documentedSorted);
+        sort($tagged);
+
+        self::assertSame($tagged, $documentedSorted);
+    }
+
+    public function testNoPublicClassIsLeftUnclassified(): void
+    {
+        $sourceDir = (string)realpath(__DIR__ . '/../../src');
+        $files     = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($sourceDir, FilesystemIterator::SKIP_DOTS));
+        $both      = [];
+        foreach ($files as $file) {
+            if (!$file instanceof SplFileInfo || 'php' !== $file->getExtension()) {
+                continue;
+            }
+
+            $source = (string)file_get_contents($file->getPathname());
+            if (1 === preg_match('/^ \* @api$/m', $source) && 1 === preg_match('/^ \* @internal$/m', $source)) {
+                $both[] = $file->getPathname();
+            }
+        }
+
+        self::assertSame([], $both);
     }
 }
