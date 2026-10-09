@@ -95,6 +95,18 @@ composer install --no-dev
 bin/phpxq jq --version
 ```
 
+## Use as a library
+
+The Composer package can be required by another project and called from PHP code, without spawning a process:
+
+```php
+$names = LTS\PhpXq\Jq\Jq::run('.items[] | .name', (new LTS\PhpXq\Json\JsonDecoder())->decodeOne($json));
+$yaml  = LTS\PhpXq\Yq\Yq::evaluate('.items[0].n = 10', $yamlText);
+```
+
+[docs/LIBRARY.md](docs/LIBRARY.md) lists the supported public classes (everything else is internal and may
+change), with executed examples for JSON, jq, YAML and yq, the exceptions raised, and the memory limits.
+
 ## Usage
 
 The executable dispatches on its name, busybox style. Either name the tool as the first argument or
