@@ -23,7 +23,7 @@ final class OutputWriter
      * @param int      $limit  flush once this many bytes are buffered; 0 writes through
      */
     public function __construct(
-        private $stream,
+        private readonly mixed $stream,
         private readonly int $limit = 65536,
     ) {
     }

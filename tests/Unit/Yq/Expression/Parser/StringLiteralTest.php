@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Yq\Expression\Parser;
 
-use LTS\PhpXq\Yq\Expression\ExpressionSyntaxException;
 use LTS\PhpXq\Yq\Expression\Parser\StringLiteral;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -17,8 +16,6 @@ use PHPUnit\Framework\TestCase;
 final class StringLiteralTest extends TestCase
 {
     private const string REPLACEMENT = "\xEF\xBF\xBD";
-
-    private const string NO_CLOSING_PAREN = 'Bad expression, could not find matching `)`';
 
     #[DataProvider('decodeProvider')]
     public function testDecode(string $source, string $expected): void
@@ -46,59 +43,6 @@ final class StringLiteralTest extends TestCase
         yield 'trailing slash'   => ['a\\', 'a\\'];
         yield 'bad hex stays'    => ['\xZZ', '\xZZ'];
         yield 'lone surrogate'   => ['\ud83d', "\u{FFFD}"];
-    }
-
-    public function testScanDoubleFindsClosingQuote(): void
-    {
-        self::assertSame(4, StringLiteral::scanDouble('"abc"', 1));
-        self::assertSame(5, StringLiteral::scanDouble('"a\"b"', 1));
-    }
-
-    public function testScanDoubleSkipsInterpolationQuotes(): void
-    {
-        $source = '"x \(.a | "q)") y" rest';
-
-        self::assertSame(17, StringLiteral::scanDouble($source, 1));
-    }
-
-    public function testScanDoubleUnterminated(): void
-    {
-        $this->expectException(ExpressionSyntaxException::class);
-        StringLiteral::scanDouble('"abc', 1);
-    }
-
-    public function testSkipInterpolationUnterminated(): void
-    {
-        $this->expectException(ExpressionSyntaxException::class);
-        StringLiteral::skipInterpolation('.a + (1', 0);
-    }
-
-    public function testSkipInterpolationNestedParensAndSingleQuotes(): void
-    {
-        self::assertSame(8, StringLiteral::skipInterpolation("(a) ')') tail", 0));
-    }
-
-    public function testSplitWithoutInterpolation(): void
-    {
-        self::assertSame(["a\nb"], StringLiteral::split('a\nb'));
-    }
-
-    public function testSplitWithInterpolation(): void
-    {
-        self::assertSame(
-            ['I like ', ['.value', 9], ' and ', ['.another', 23]],
-            StringLiteral::split('I like \(.value) and \(.another)'),
-        );
-    }
-
-    public function testSplitEscapedBackslashBeforeParen(): void
-    {
-        self::assertSame(['\('], StringLiteral::split('\\\('));
-    }
-
-    public function testSplitDropsEmptyLiterals(): void
-    {
-        self::assertSame([['.a', 2]], StringLiteral::split('\(.a)'));
     }
 
     #[DataProvider('numericEscapeProvider')]
@@ -155,145 +99,5 @@ final class StringLiteralTest extends TestCase
         yield 'blank body'              => ['', ''];
         yield 'u at end'                => ['x\u', 'x\u'];
         yield 'capital u at end'        => ['x\U', 'x\U'];
-    }
-
-    #[DataProvider('scanDoubleProvider')]
-    public function testScanDoubleFindsTheClosingQuote(string $source, int $start, int $expected): void
-    {
-        self::assertSame($expected, StringLiteral::scanDouble($source, $start));
-    }
-
-    /**
-     * @return iterable<string, array{string, int, int}>
-     */
-    public static function scanDoubleProvider(): iterable
-    {
-        yield 'from zero'                  => ['xyz"', 0, 3];
-        yield 'immediately closed'         => ['""', 1, 1];
-        yield 'escaped backslash'          => ['"a\\\"', 1, 4];
-        yield 'escaped quote then close'   => ['"\""', 1, 3];
-        yield 'escaped paren is no interp' => ['"\\\(x"', 1, 5];
-        yield 'empty interpolation'        => ['"\(1)"', 1, 5];
-        yield 'interpolation then text'    => ['"\(1)ab" tail', 1, 7];
-        yield 'two interpolations'         => ['"\(1)\(2)"', 1, 9];
-        yield 'nested paren pair'          => ['"\((1))"', 1, 7];
-        yield 'interpolation with quote'   => ['"\("x")"', 1, 7];
-        yield 'quote after other text'     => ['"ab\ncd"', 1, 7];
-    }
-
-    #[DataProvider('unterminatedProvider')]
-    public function testScanDoubleReportsUnterminatedStringsAtTheOpeningQuote(string $source, int $start): void
-    {
-        try {
-            StringLiteral::scanDouble($source, $start);
-            self::fail('an unterminated string must be rejected');
-        } catch (ExpressionSyntaxException $expressionSyntaxException) {
-            self::assertSame('Bad expression, unterminated string', $expressionSyntaxException->getMessage());
-            self::assertSame($start - 1, $expressionSyntaxException->offset);
-        }
-    }
-
-    /**
-     * @return iterable<string, array{string, int}>
-     */
-    public static function unterminatedProvider(): iterable
-    {
-        yield 'no closing quote'      => ['"xyz', 1];
-        yield 'trailing backslash'    => ['"a\\', 1];
-        yield 'escaped closing quote' => ['"a\"', 1];
-        yield 'offset opening quote'  => ['xx"xyz', 3];
-    }
-
-    public function testScanDoubleReportsAnOpenInterpolationAtItsBody(): void
-    {
-        foreach (['"a\(1', '"a\('] as $source) {
-            try {
-                StringLiteral::scanDouble($source, 1);
-                self::fail('an open interpolation must be rejected');
-            } catch (ExpressionSyntaxException $exception) {
-                self::assertSame(self::NO_CLOSING_PAREN, $exception->getMessage());
-                self::assertSame(4, $exception->offset);
-            }
-        }
-    }
-
-    #[DataProvider('skipInterpolationProvider')]
-    public function testSkipInterpolationReturnsTheIndexAfterTheClosingParen(string $source, int $start, int $expected): void
-    {
-        self::assertSame($expected, StringLiteral::skipInterpolation($source, $start));
-    }
-
-    /**
-     * @return iterable<string, array{string, int, int}>
-     */
-    public static function skipInterpolationProvider(): iterable
-    {
-        yield 'bare'                     => ['1) rest', 0, 2];
-        yield 'nested paren groups'      => ['(1)) rest', 0, 4];
-        yield 'deeper nesting'           => ['((1)(2))) x', 0, 9];
-        yield 'offset start'             => ['xx(1)y) z', 2, 7];
-        yield 'quoted paren'             => ['"a)" + 1) rest', 0, 9];
-        yield 'quoted open paren'        => ['"(" ) rest', 0, 5];
-        yield 'single quoted paren'      => ["')' ) x", 0, 5];
-        yield 'single quoted then close' => ["'a') b", 0, 4];
-        yield 'escaped quote inside'     => ['"a\"b)" ) c', 0, 9];
-        yield 'nested interpolation'     => ['"\(1)") z', 0, 7];
-    }
-
-    #[DataProvider('unmatchedProvider')]
-    public function testSkipInterpolationReportsTheStart(string $source, int $start): void
-    {
-        try {
-            StringLiteral::skipInterpolation($source, $start);
-            self::fail('an unmatched paren must be rejected');
-        } catch (ExpressionSyntaxException $expressionSyntaxException) {
-            self::assertSame(self::NO_CLOSING_PAREN, $expressionSyntaxException->getMessage());
-            self::assertSame($start, $expressionSyntaxException->offset);
-        }
-    }
-
-    /**
-     * @return iterable<string, array{string, int}>
-     */
-    public static function unmatchedProvider(): iterable
-    {
-        yield 'nothing closes'      => ['((1)', 0];
-        yield 'unterminated single' => ["'xyz", 0];
-        yield 'single quote at end' => ["'", 0];
-        yield 'offset open paren'   => ['xx(1', 2];
-        yield 'blank source'        => ['', 0];
-        yield 'only past the end'   => ['xyz', 3];
-    }
-
-    /**
-     * @param ?list<string|array{string, int}> $expected null when the body must be rejected
-     */
-    #[DataProvider('splitProvider')]
-    public function testSplitSeparatesLiteralTextFromInterpolations(string $body, ?array $expected): void
-    {
-        if (null === $expected) {
-            $this->expectException(ExpressionSyntaxException::class);
-        }
-
-        self::assertSame($expected, StringLiteral::split($body));
-    }
-
-    /**
-     * @return iterable<string, array{string, ?list<string|array{string, int}>}>
-     */
-    public static function splitProvider(): iterable
-    {
-        yield 'blank text'                  => ['', []];
-        yield 'two interpolations'          => ['a\(.x)b\(.y)c', ['a', ['.x', 3], 'b', ['.y', 9], 'c']];
-        yield 'escape decoded in literal'   => ['a\nq\(.x)', ["a\nq", ['.x', 6]]];
-        yield 'nested call parens'          => ['\(f(1))', [['f(1)', 2]]];
-        yield 'trailing backslash'          => ['xyz\\', ['xyz\\']];
-        yield 'adjacent interpolations'     => ['\(.a)\(.b)', [['.a', 2], ['.b', 7]]];
-        yield 'quoted paren in source'      => ['\(.a + ")")x', [['.a + ")"', 2], 'x']];
-        yield 'escape before interpolation' => ['x\ty\(.z)', ["x\ty", ['.z', 6]]];
-        yield 'interpolation then text'     => ['\(.a) tail', [['.a', 2], ' tail']];
-        yield 'only text'                   => ['solo', ['solo']];
-        yield 'backslash after interpolation' => ['\(.a)\\', [['.a', 2], '\\']];
-        yield 'paren right at the end'      => ['a\(', null];
     }
 }

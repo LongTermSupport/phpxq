@@ -187,7 +187,7 @@ final readonly class Evaluator implements EvaluatorInterface
         $fixed = $context->services->yamlFixMergeAnchorToSpec;
         $out   = [];
         foreach ($bases as $base) {
-            foreach (Traversal::values($base, $fixed) as $child) {
+            foreach (Traversal::values($base, $fixed, listing: false) as $child) {
                 $out[] = $child;
             }
         }
@@ -259,9 +259,9 @@ final readonly class Evaluator implements EvaluatorInterface
     private function firstInt(ExpressionNodeInterface $expression, EvaluationContext $context): ?int
     {
         foreach ($this->evaluate($expression, $context) as $match) {
-            $number = Numbers::of(Cands::node($match));
+            $number = Numbers::intOf(Cands::node($match));
             if (null !== $number) {
-                return (int)$number;
+                return $number;
             }
         }
 

@@ -38,7 +38,7 @@ final readonly class BuiltinCatalog
         BuiltinGroupEnum::String->value     => ['startswith/1', 'endswith/1', 'ltrimstr/1', 'rtrimstr/1', 'trim/0', 'ltrim/0', 'rtrim/0', 'ascii_downcase/0', 'ascii_upcase/0', 'explode/0', 'implode/0', 'split/1', 'join/1', '_strindices/1', '_array_indices/1'],
         BuiltinGroupEnum::Format->value     => ['format/1'],
         BuiltinGroupEnum::Collection->value => ['sort/0', 'unique/0', 'min/0', 'max/0', '_sort_by_impl/1', '_group_by_impl/1', '_unique_by_impl/1', '_min_by_impl/1', '_max_by_impl/1', 'reverse/0', 'flatten/0', 'flatten/1', 'add/0', 'transpose/0', 'bsearch/1', 'to_entries/0', 'from_entries/0'],
-        BuiltinGroupEnum::Control->value    => ['empty/0', 'error/0', 'error/1', 'select/1', 'map/1', 'first/1', 'limit/2', 'skip/2', 'last/1', 'isempty/1', 'any/2', 'all/2', 'range/1', 'range/2', 'range/3', 'recurse/0', 'recurse/1', 'recurse/2', 'repeat/1'],
+        BuiltinGroupEnum::Control->value    => ['empty/0', 'error/0', 'error/1', 'select/1', 'map/1', 'first/1', 'limit/2', 'skip/2', 'last/1', 'isempty/1', 'any/2', 'all/2', 'range/1', 'range/2', 'range/3', 'recurse/0', 'recurse/1', 'recurse/2', 'repeat/1', 'until/2', 'while/2'],
         BuiltinGroupEnum::Path->value       => ['path/1', 'getpath/1', 'setpath/2', 'delpaths/1', 'paths/0', 'tostream/0', 'fromstream/1'],
         BuiltinGroupEnum::Io->value         => ['input/0', 'inputs/0', 'debug/0', 'debug/1', 'stderr/0', 'input_filename/0', 'input_line_number/0', 'halt/0', 'halt_error/1', 'env/0', 'get_search_list/0', 'builtins/0'],
         BuiltinGroupEnum::Regex->value      => ['_match_impl/3', 'test/2', 'test/1', 'split/2', 'scan/2', 'scan/1', 'sub/2', 'sub/3', 'gsub/2', 'gsub/3'],

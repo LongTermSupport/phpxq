@@ -9,6 +9,7 @@ use LTS\PhpXq\Jq\Runtime\Eval\Text;
 use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Json\PreciseNumber;
 use LTS\PhpXq\Json\Values;
+use LTS\PhpXq\Limits\AllocationLimit;
 
 /**
  * jq's `+ - * / %` and unary minus over the value model, with jq's type rules and error messages
@@ -20,8 +21,6 @@ use LTS\PhpXq\Json\Values;
 final readonly class Arithmetic
 {
     private const int MAX_SAFE = 9007199254740992;
-
-    private const int MAX_STRING = 2147483647;
 
     private const int MAX_MERGE_DEPTH = 10000;
 
@@ -77,12 +76,7 @@ final readonly class Arithmetic
         }
 
         if ($left instanceof JsonObject && $right instanceof JsonObject) {
-            $members = $left;
-            foreach ($right->entries() as $key => $value) {
-                $members = $members->with($key, $value);
-            }
-
-            return $members;
+            return new JsonObject(array_replace($left->toArray(), $right->toArray()));
         }
 
         throw ErrorText::typeError2($left, $right, 'cannot be added');
@@ -106,7 +100,7 @@ final readonly class Arithmetic
         if (\is_array($left) && \is_array($right)) {
             $kept = [];
             foreach ($left as $element) {
-                $removed = array_any($right, static fn ($candidate): bool => Values::equals($element, $candidate));
+                $removed = array_any($right, static fn (mixed $candidate): bool => Values::equals($element, $candidate));
                 if (!$removed) {
                     $kept[] = $element;
                 }
@@ -274,7 +268,7 @@ final readonly class Arithmetic
             return '';
         }
 
-        if (\strlen($text) * $times > self::MAX_STRING) {
+        if (\strlen($text) * $times > AllocationLimit::MAX_STRING_BYTES) {
             throw new JqException('Repeat string result too long');
         }
 
@@ -287,16 +281,14 @@ final readonly class Arithmetic
             throw new JqException('Object merge too deep');
         }
 
-        $merged = $left;
-        foreach ($right->entries() as $key => $value) {
-            $existing = $merged->get($key);
-            if ($value instanceof JsonObject && $existing instanceof JsonObject) {
-                $merged = $merged->with($key, self::mergeDeep($existing, $value, $depth + 1));
-            } else {
-                $merged = $merged->with($key, $value);
-            }
+        $merged = $left->toArray();
+        foreach ($right->toArray() as $key => $value) {
+            $existing     = $merged[$key] ?? null;
+            $merged[$key] = $value instanceof JsonObject && $existing instanceof JsonObject
+                ? self::mergeDeep($existing, $value, $depth + 1)
+                : $value;
         }
 
-        return $merged;
+        return new JsonObject($merged);
     }
 }

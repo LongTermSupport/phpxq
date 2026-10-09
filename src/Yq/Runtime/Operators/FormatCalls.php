@@ -115,7 +115,7 @@ final class FormatCalls implements CallOperatorInterface
         }
 
         try {
-            $text = $context->services->formats->encoder($format)->encode($node, new FormatOptions(indent: $indent, unwrapScalar: FormatEnum::Json !== $format), 0);
+            $text = $context->services->formats->encoder($format)->encode($node, new FormatOptions(indent: $indent, unwrapScalar: FormatEnum::Json !== $format, yamlFixMergeAnchorToSpec: $context->services->yamlFixMergeAnchorToSpec), 0);
         } catch (FormatException $formatException) {
             throw new EvaluationException($formatException->getMessage(), 0, $formatException);
         }

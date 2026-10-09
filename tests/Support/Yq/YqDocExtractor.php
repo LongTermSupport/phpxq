@@ -162,6 +162,10 @@ final class YqDocExtractor
             return 'not a yq invocation';
         }
 
+        if (1 === preg_match('/\bshuffle\b/', $command)) {
+            return 'documented output is random (shuffle)';
+        }
+
         if (str_starts_with($output, 'Error')) {
             return 'documented output is an error message (stderr and exit code), not stdout';
         }

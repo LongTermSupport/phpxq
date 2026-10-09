@@ -10,8 +10,7 @@
 # or passes while matching an entry, makes the report fail. An entry matching no case is reported
 # as a stale-gap warning.
 #
-# As jq is built, the blanket entry below is replaced by specific, justified entries (one per
-# genuinely unsupported feature) and finally removed once the suite is fully green.
+# Each entry names one case: a whole-file glob would also hide a new case added to that file.
 
 # jq-core
 jq.test:2337	Upstream test runner has no input callback, so `input` raises "break"; the CLI reads stdin and raises "No more inputs"

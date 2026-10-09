@@ -47,7 +47,7 @@ final class WorkloadCatalogueTest extends TestCase
             self::assertNotSame('large', $workload->corpus);
         }
 
-        self::assertNotEmpty($selected);
+        self::assertNotSame([], $selected);
     }
 
     public function testSelectionFiltersBySizeToolAndName(): void
@@ -55,7 +55,7 @@ final class WorkloadCatalogueTest extends TestCase
         $catalogue = new WorkloadCatalogue();
 
         $large = $catalogue->select(new WorkloadSelection(sizes: ['large'], tools: ['jq']));
-        self::assertNotEmpty($large);
+        self::assertNotSame([], $large);
         foreach ($large as $workload) {
             self::assertSame('jq', $workload->tool);
             self::assertContains($workload->corpus, ['tiny', 'wide', 'deep', 'large']);

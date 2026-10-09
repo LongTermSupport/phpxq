@@ -27,6 +27,14 @@ abstract class JqApplicationTestCase extends TestCase
     /** @var list<string> */
     private array $tempFiles = [];
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->compiler = $this->identityCompiler();
+        $this->parser   = new JqApplicationFakeParser();
+    }
+
     protected function tearDown(): void
     {
         foreach ($this->tempFiles as $path) {
@@ -46,11 +54,9 @@ abstract class JqApplicationTestCase extends TestCase
      */
     protected function jq(array $args, string $stdin = '', ?Closure $behaviour = null): array
     {
-        $this->compiler = new JqApplicationFakeCompiler($behaviour ?? static function (RuntimeContextInterface $context, mixed $input, Closure $emit): void {
-            $emit($input);
-        });
-        $this->parser  = new JqApplicationFakeParser();
-        $application   = new JqApplication($this->parser, $this->compiler, new JsonDecoder(), new JsonEncoder());
+        $this->compiler = $behaviour instanceof Closure ? new JqApplicationFakeCompiler($behaviour) : $this->identityCompiler();
+        $this->parser   = new JqApplicationFakeParser();
+        $application    = new JqApplication($this->parser, $this->compiler, new JsonDecoder(), new JsonEncoder());
 
         $in  = self::memory($stdin);
         $out = self::memory('');
@@ -64,7 +70,7 @@ abstract class JqApplicationTestCase extends TestCase
     /**
      * @return resource
      */
-    protected static function memory(string $contents)
+    protected static function memory(string $contents): mixed
     {
         $stream = fopen('php://memory', 'w+b');
         if (false === $stream) {
@@ -101,5 +107,12 @@ abstract class JqApplicationTestCase extends TestCase
         $this->tempFiles[] = $path;
 
         return $path;
+    }
+
+    private function identityCompiler(): JqApplicationFakeCompiler
+    {
+        return new JqApplicationFakeCompiler(static function (RuntimeContextInterface $context, mixed $input, Closure $emit): void {
+            $emit($input);
+        });
     }
 }

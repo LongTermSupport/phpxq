@@ -50,11 +50,12 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout main with history and tags
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: main
           fetch-depth: 0
           fetch-tags: true
+          persist-credentials: false
 
       # Only the commit QA verified is acted on. When main has moved on, the run for the newer push does the work.
       - name: Act only on the verified commit
@@ -72,7 +73,7 @@ jobs:
 
       - name: Set up PHP
         if: ${{ steps.head.outputs.current == 'true' }}
-        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: '8.5'
           coverage: none
@@ -88,4 +89,8 @@ jobs:
         if: ${{ steps.head.outputs.current == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
-        run: scripts/release-pr.bash
+        # The checkout keeps no token, so git fetches and pushes through gh's credential helper from here on.
+        run: |
+          set -euo pipefail
+          gh auth setup-git
+          scripts/release-pr.bash

@@ -77,11 +77,13 @@ chmod +x phpxq.phar && ./phpxq.phar jq --version
 Needs PHP 8.5 with `ctype`, `json` and `mbstring`.
 
 ```bash
-composer global require lts/phpxq     # once listed on Packagist
-# or straight from the repository:
+composer global require lts/phpxq
+# or the development version straight from the repository:
 composer global config repositories.phpxq vcs https://github.com/LongTermSupport/phpxq
 composer global require lts/phpxq:dev-main
 ```
+
+The package is on Packagist as [lts/phpxq](https://packagist.org/packages/lts/phpxq).
 
 Composer places `phpxq` in its global `bin` directory.
 
@@ -174,10 +176,9 @@ or an unlisted failure breaks the build):
 
 - [jq known gaps](tests/Conformance/Jq/known-gaps.txt): one case, an artefact of the upstream test
   runner (it has no `input` callback), not of the CLI.
-- [yq known gaps](tests/Conformance/Yq/known-gaps.txt): nine documentation examples. Three depend on a
-  frozen clock, one on Go's seeded `math/rand`, the `system` operator is intentionally unsupported
-  (it spawns processes), and the rest are an upstream header-preprocessing quirk and two damaged upstream
-  fixtures.
+- [yq known gaps](tests/Conformance/Yq/known-gaps.txt): seven documentation examples. Three depend on a
+  frozen clock, two use the `system` operator, which is intentionally
+  unsupported (it spawns processes), and two are damaged upstream fixtures.
 
 Other differences you may notice:
 
@@ -240,7 +241,8 @@ PHP 8.5 environment is defined in `.claude/ccy/Dockerfile`.
 
 ```bash
 composer install                                      # dev dependencies (lts/php-qa-ci, PHPUnit)
-vendor/bin/qa                                         # full QA pipeline
+vendor/bin/qa                                         # full QA pipeline (needs Xdebug for Infection)
+scripts/check-qa-measurements.bash                    # after it: coverage and mutation ran, floors met
 vendor/bin/phpunit -c qaConfig/phpunit.xml --no-coverage   # unit tests
 ```
 
@@ -302,6 +304,12 @@ pull request into the `release` branch. Merging it runs the release workflow: fu
 PHAR and static binaries, smoke tests, the tag `vX.Y.Z` and the GitHub Release. A back-merge pull request then
 brings `VERSION` and the changelog on `main` in line. The flow, the version rules and the one-off GitHub
 settings are in [docs/RELEASING.md](docs/RELEASING.md).
+
+## Sponsor
+
+phpxq's development, including the AI tokens used to build it, is paid for by
+[Edmonds Commerce](https://www.edmondscommerce.co.uk/), a digital agency that builds and maintains
+e-commerce platforms and bespoke web applications. Thank you.
 
 ## Licence
 

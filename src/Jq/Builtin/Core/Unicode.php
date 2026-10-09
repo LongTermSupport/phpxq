@@ -29,10 +29,12 @@ final readonly class Unicode
     }
 
     /**
-     * @return list<int>
+     * @return list<int> invalid UTF-8, which the value model should never hold, decodes as jq would decode it
+     *                   on input: each invalid sequence is one U+FFFD, so the decoder never reads past the end
      */
     public static function codepoints(string $text): array
     {
+        $text  = Utf8::sanitize($text);
         $bytes = \strlen($text);
         $out   = [];
         for ($i = 0; $i < $bytes; ++$i) {
@@ -93,14 +95,6 @@ final readonly class Unicode
         $parts = preg_split('//u', $text, -1, \PREG_SPLIT_NO_EMPTY);
 
         return false === $parts ? [] : $parts;
-    }
-
-    /**
-     * Number of codepoints in the first $bytes bytes of $text ($bytes sits on a character boundary).
-     */
-    public static function offsetOf(string $text, int $bytes): int
-    {
-        return $bytes - self::continuations(substr($text, 0, $bytes));
     }
 
     public static function trim(string $text, bool $left, bool $right): string

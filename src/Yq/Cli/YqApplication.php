@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Yq\Cli;
 
 use LogicException;
+use LTS\PhpXq\Jq\Runtime\EvaluationStack;
 use LTS\PhpXq\Yaml\Emitter\YamlEmitter;
 use LTS\PhpXq\Yaml\Emitter\YamlEmitterInterface;
 use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
@@ -33,6 +34,9 @@ final readonly class YqApplication implements YqApplicationInterface
 
     /** What every error message written to stderr starts with. */
     private const string ERROR_PREFIX = 'Error: ';
+
+    /** The line after a malformed expression's message, naming the 0-based byte offset the parser stopped at. */
+    private const string SYNTAX_OFFSET_NOTE = "  at offset %d of the expression\n";
 
     private ArgumentParser $parser;
 
@@ -88,10 +92,15 @@ final readonly class YqApplication implements YqApplicationInterface
         }
 
         try {
-            return $this->dispatch($parsed, $stdin, $stdout);
+            // the evaluator walks the expression recursively, and a chain such as `.a.a.a...` is as deep as it
+            // is long: under a coverage driver every PHP call also takes native stack, so it runs on the
+            // evaluation fiber's large stack rather than the process stack
+            return EvaluationStack::run(fn (): int => $this->dispatch($parsed, $stdin, $stdout));
         } catch (UsageException $e) {
             fwrite($stderr, self::ERROR_PREFIX . $e->getMessage() . "\n" . HelpText::usage($parsed->command) . "\n");
-        } catch (CliException|EvaluationException|ExpressionSyntaxException|FormatException|YamlSyntaxException|LogicException $e) {
+        } catch (ExpressionSyntaxException $e) {
+            fwrite($stderr, self::ERROR_PREFIX . $e->getMessage() . "\n" . \sprintf(self::SYNTAX_OFFSET_NOTE, $e->offset));
+        } catch (CliException|EvaluationException|FormatException|YamlSyntaxException|LogicException $e) {
             if ($e instanceof CliException && CliException::BROKEN_PIPE === $e->getCode()) {
                 return CliException::BROKEN_PIPE_EXIT;
             }

@@ -14,6 +14,8 @@ use LTS\PhpXq\Yaml\Schema\CoreSchema;
  */
 final readonly class Numbers
 {
+    private const string PARSE_INT_ERROR = 'strconv.ParseInt: parsing "%s": %s';
+
     private function __construct()
     {
     }
@@ -113,6 +115,26 @@ final readonly class Numbers
         }
 
         return $text;
+    }
+
+    /**
+     * The int a number node holds where yq requires one (a slice bound, a function's count argument), or null
+     * when the node is not a number. Go yq parses the text with `strconv.ParseInt`, so any other number is
+     * its error: a fraction, an exponent, infinity or NaN is invalid syntax, an integer past the 64-bit range
+     * is out of range.
+     *
+     * @throws EvaluationException for a number that is not an int
+     */
+    public static function intOf(Node $node): ?int
+    {
+        $number = self::of($node);
+        if (null === $number || \is_int($number)) {
+            return $number;
+        }
+
+        $reason = 1 === preg_match('/^[-+]?[0-9]+$/D', $node->value) ? 'value out of range' : 'invalid syntax';
+
+        throw new EvaluationException(\sprintf(self::PARSE_INT_ERROR, $node->value, $reason));
     }
 
     public static function tagOf(int|float $value): string

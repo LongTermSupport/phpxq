@@ -100,7 +100,7 @@ final readonly class YqConformanceSuite implements ConformanceSuiteInterface
                     }
 
                     if ($expected !== $result->stdout) {
-                        return \sprintf('stdout mismatch: expected %s, got %s', json_encode($expected), json_encode($result->stdout));
+                        return \sprintf('stdout mismatch: expected %s, got %s', json_encode($expected, \JSON_INVALID_UTF8_SUBSTITUTE | \JSON_THROW_ON_ERROR), json_encode($result->stdout, \JSON_INVALID_UTF8_SUBSTITUTE | \JSON_THROW_ON_ERROR));
                     }
 
                     return null;

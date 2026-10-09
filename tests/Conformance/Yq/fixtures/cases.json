@@ -3448,26 +3448,6 @@
         "expected": "a:\n  things: rabbit\n  bob: rabbit\n  horse: dog\n"
     },
     {
-        "name": "operators/shuffle.md: Shuffle array",
-        "source": "operators/shuffle.md",
-        "heading": "Shuffle array",
-        "command": null,
-        "flags": [],
-        "expression": "shuffle",
-        "input": "- 1\n- 2\n- 3\n- 4\n- 5\n",
-        "expected": "- 5\n- 2\n- 4\n- 1\n- 3\n"
-    },
-    {
-        "name": "operators/shuffle.md: Shuffle array in place",
-        "source": "operators/shuffle.md",
-        "heading": "Shuffle array in place",
-        "command": null,
-        "flags": [],
-        "expression": ".cool |= shuffle",
-        "input": "cool:\n  - 1\n  - 2\n  - 3\n  - 4\n  - 5\n",
-        "expected": "cool:\n  - 5\n  - 2\n  - 4\n  - 1\n  - 3\n"
-    },
-    {
         "name": "operators/slice-array.md: Slicing arrays",
         "source": "operators/slice-array.md",
         "heading": "Slicing arrays",

@@ -120,6 +120,12 @@ final class Scanner
     /** @var array<int, true> */
     private array $crlf = [];
 
+    private int $colLineStart = -1;
+
+    private int $colIndex = 0;
+
+    private int $colContinuations = 0;
+
     /**
      * @throws YamlSyntaxException
      */
@@ -462,6 +468,12 @@ final class Scanner
         return $this->colAt($this->p, $this->ls);
     }
 
+    /**
+     * The character column of a byte index: the bytes since the line start less the UTF-8 continuation bytes
+     * among them. The last lookup is remembered ($colLineStart, $colIndex, and $colContinuations between the
+     * two), and a lookup on the same line only counts the bytes between its index and that one, so walking a
+     * long line costs time linear in its length rather than quadratic.
+     */
     private function colAt(int $index, int $lineStart): int
     {
         $bytes = $index - $lineStart;
@@ -469,7 +481,26 @@ final class Scanner
             return $bytes;
         }
 
-        return $bytes - (int)preg_match_all('/[\x80-\xBF]/', substr($this->s, $lineStart, $bytes));
+        if ($lineStart !== $this->colLineStart) {
+            $this->colLineStart     = $lineStart;
+            $this->colIndex         = $lineStart;
+            $this->colContinuations = 0;
+        }
+
+        if ($index >= $this->colIndex) {
+            $this->colContinuations += $this->continuationBytes($this->colIndex, $index);
+        } else {
+            $this->colContinuations -= $this->continuationBytes($index, $this->colIndex);
+        }
+
+        $this->colIndex = $index;
+
+        return $bytes - $this->colContinuations;
+    }
+
+    private function continuationBytes(int $from, int $to): int
+    {
+        return $to > $from ? (int)preg_match_all('/[\x80-\xBF]/', substr($this->s, $from, $to - $from)) : 0;
     }
 
     /**

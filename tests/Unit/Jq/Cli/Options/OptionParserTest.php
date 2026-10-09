@@ -273,6 +273,15 @@ final class OptionParserTest extends TestCase
         self::assertSame("{\"this\":1}\n[2]\n", $options->named['bar']);
     }
 
+    public function testInvalidUtf8InExternalStringsIsReplacedAsJqDoes(): void
+    {
+        $file    = $this->tempFile("\xFF\xFEab");
+        $options = $this->parse('-n', '--arg', "n\xFF", "a\xFF", '--rawfile', 'raw', $file, '.', '--args', "p\xC3");
+
+        self::assertSame(["n\u{FFFD}" => "a\u{FFFD}", 'raw' => "\u{FFFD}\u{FFFD}ab"], $options->named);
+        self::assertSame(["p\u{FFFD}"], $options->positional);
+    }
+
     public function testUnreadableFileForSlurpfile(): void
     {
         $this->assertRefused('jq: Bad JSON in --slurpfile a /nonexistent/x.json: Could not open /nonexistent/x.json: No such file or directory', '--slurpfile', 'a', '/nonexistent/x.json', '.');

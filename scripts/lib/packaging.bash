@@ -46,12 +46,13 @@ download_verified() {
     fi
 }
 
-# release_version: the single source of truth, the VERSION file, validated as MAJOR.MINOR.PATCH[-pre].
+# release_version: the single source of truth, the VERSION file, validated as plain MAJOR.MINOR.PATCH (the
+# release flow produces no pre-release versions; scripts/Release/SemVer.php refuses them too).
 release_version() {
     local version
     [[ -f "$root/VERSION" ]] || die "VERSION file is missing"
     version="$(tr -d '[:space:]' <"$root/VERSION")"
-    [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]] || die "VERSION '$version' is not a semantic version"
+    [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "VERSION '$version' is not a plain MAJOR.MINOR.PATCH version"
     printf '%s\n' "$version"
 }
 
