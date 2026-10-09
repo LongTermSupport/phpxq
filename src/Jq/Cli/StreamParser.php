@@ -162,7 +162,6 @@ final readonly class StreamParser
                                 $path,
                                 !$seq,
                             );
-                            $end = $length;
                             if (!$seq) {
                                 return;
                             }

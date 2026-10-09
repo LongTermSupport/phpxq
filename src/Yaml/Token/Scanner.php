@@ -1137,7 +1137,6 @@ final class Scanner
             $this->error('found unexpected non-alphabetical character', $startLine);
         }
 
-        $value  = '';
         $suffix = '';
         if ('YAML' === $name) {
             $type = ScanToken::VERSION_DIRECTIVE;
@@ -1486,7 +1485,6 @@ final class Scanner
         $white        = '';
         $leadingBreak = '';
         $trailing     = '';
-        $brk          = 0;
 
         while (true) {
             if ($p === $ls && ('---' === substr($s, $p, 3) || '...' === substr($s, $p, 3)) && $this->blankzAt($p + 3)) {
@@ -1509,7 +1507,6 @@ final class Scanner
                 if ($single && "'" === $c && "'" === $s[$p + 1]) {
                     $out .= "'";
                     $p += 2;
-                    $brk = 0;
 
                     continue;
                 }
@@ -1524,14 +1521,12 @@ final class Scanner
                         ++$line;
                         $ls      = $p;
                         $leading = true;
-                        ++$brk;
 
                         break;
                     }
 
                     $this->sync($p, $line, $ls);
-                    $p   = $this->scanEscape($p, $out, $startLine);
-                    $brk = 0;
+                    $p = $this->scanEscape($p, $out, $startLine);
 
                     continue;
                 }
@@ -1539,7 +1534,6 @@ final class Scanner
                 $len = strcspn($s, $stop, $p);
                 $out .= substr($s, $p, $len);
                 $p += $len;
-                $brk = 0;
             }
 
             if ($s[$p] === $quote) {
@@ -1551,7 +1545,6 @@ final class Scanner
                 if (' ' === $c || "\t" === $c) {
                     if (!$leading) {
                         $white .= $c;
-                        $brk = 0;
                     }
 
                     ++$p;
@@ -1566,7 +1559,6 @@ final class Scanner
 
                     ++$p;
                     ++$line;
-                    ++$brk;
                     $ls = $p;
                 } else {
                     break;
