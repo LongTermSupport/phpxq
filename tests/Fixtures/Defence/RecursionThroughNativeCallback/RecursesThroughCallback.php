@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LTS\PhpXq\Tests\Fixtures\Defence\NativeCallback;
+namespace LTS\PhpXq\Tests\Fixtures\Defence\RecursionThroughNativeCallback;
 
 /**
  * Every recursive method here hands the recursive call to a native function as a callback.

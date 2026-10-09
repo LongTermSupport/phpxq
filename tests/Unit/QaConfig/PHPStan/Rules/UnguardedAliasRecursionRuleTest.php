@@ -19,7 +19,7 @@ use QaConfig\PHPStan\Rules\UnguardedAliasRecursionRule;
 #[Large]
 final class UnguardedAliasRecursionRuleTest extends RuleTestCase
 {
-    private const string FIXTURES = __DIR__ . '/../../../../Fixtures/Defence/AliasRecursion';
+    private const string FIXTURES = __DIR__ . '/../../../../Fixtures/Defence/UnguardedAliasRecursion';
 
     private const string ODD_CLASS = 'OddSyntaxUnbounded';
 

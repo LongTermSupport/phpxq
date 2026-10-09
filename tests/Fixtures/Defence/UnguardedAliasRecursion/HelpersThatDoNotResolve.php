@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LTS\PhpXq\Tests\Fixtures\Defence\AliasRecursion;
+namespace LTS\PhpXq\Tests\Fixtures\Defence\UnguardedAliasRecursion;
 
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
