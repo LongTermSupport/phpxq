@@ -62,6 +62,7 @@ enum ToolEnum: string
             self::Yq => new YqApplication()->run($stdin, $stdout, $stderr, ...$args),
         };
     }
+
     case Jq = 'jq';
     case Yq = 'yq';
 }

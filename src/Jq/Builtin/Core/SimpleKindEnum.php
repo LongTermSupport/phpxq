@@ -21,6 +21,7 @@ enum SimpleKindEnum
             default                            => self::Other,
         };
     }
+
     case Text;
 
     case Sequence;

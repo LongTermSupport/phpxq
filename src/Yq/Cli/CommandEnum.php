@@ -26,6 +26,7 @@ enum CommandEnum: string
     {
         return self::Complete === $this || self::CompleteNoDescriptions === $this;
     }
+
     case Eval = 'eval';
 
     case EvalShort = 'e';

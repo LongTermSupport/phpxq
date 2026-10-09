@@ -37,6 +37,7 @@ enum StyleNameEnum: string
             self::Tagged  => NodeStyleEnum::Default,
         };
     }
+
     case Tagged = 'tagged';
 
     case Double = 'double';
