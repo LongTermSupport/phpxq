@@ -26,7 +26,7 @@ use RuntimeException;
  * The stream parser is only needed for `--stream` and is built on demand so that other runs do not load its
  * classes.
  *
- * @api
+ * @internal
  */
 final class InputSource implements InputProviderInterface, InputPositionInterface
 {

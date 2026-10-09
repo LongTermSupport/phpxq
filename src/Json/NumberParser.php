@@ -18,7 +18,7 @@ use LTS\PhpXq\Json\Codec\NumberFormatter;
  * `100000000000000000000`, `1E+1000` or any integer beyond 2^53, becomes a {@see PreciseNumber} carrying that
  * canonical text.
  *
- * @api
+ * @internal
  */
 final readonly class NumberParser
 {

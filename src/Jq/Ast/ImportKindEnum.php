@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Jq\Ast;
 
 /**
- * @api
+ * @internal
  */
 enum ImportKindEnum: string
 {

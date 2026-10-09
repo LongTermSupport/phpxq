@@ -17,7 +17,7 @@ use RuntimeException;
  * Options act in the order they appear, as in jq: `-h` or `-V` end parsing on the spot (so `-hV` shows
  * the help and `-Vh` the version), and a refusal is raised when its option is reached.
  *
- * @api
+ * @internal
  */
 final readonly class OptionParser
 {

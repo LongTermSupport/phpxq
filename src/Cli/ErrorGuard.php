@@ -11,7 +11,7 @@ use ErrorException;
  * exceptions that the front controller reports in the tool's style, and a fatal error (such as running
  * out of memory) is reported as one line on standard error instead of PHP's banner.
  *
- * @api
+ * @internal
  */
 final readonly class ErrorGuard
 {

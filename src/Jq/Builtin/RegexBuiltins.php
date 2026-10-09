@@ -27,7 +27,7 @@ use LTS\PhpXq\Json\Values;
  * Natives: `_match_impl/3` (jq's own helper, which `match` and `capture` are defined on), `test/1,2`,
  * `split/2`, `scan/1,2`, `sub/2,3`, `gsub/2,3`. The rest is jq source in the prelude.
  *
- * @api
+ * @internal
  */
 final readonly class RegexBuiltins implements BuiltinProviderInterface
 {

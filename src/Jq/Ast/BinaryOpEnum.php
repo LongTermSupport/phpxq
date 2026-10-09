@@ -8,7 +8,7 @@ namespace LTS\PhpXq\Jq\Ast;
  * Binary operators with their source spelling as value. `and` and `or` short-circuit; `//` is the alternative
  * operator.
  *
- * @api
+ * @internal
  */
 enum BinaryOpEnum: string
 {

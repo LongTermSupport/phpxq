@@ -8,7 +8,7 @@ namespace LTS\PhpXq\Jq\Runtime;
  * A group of builtins that knows how to register itself. One provider per owner keeps parallel work in
  * separate files: core, regex and date each implement this.
  *
- * @api
+ * @internal
  */
 interface BuiltinProviderInterface
 {

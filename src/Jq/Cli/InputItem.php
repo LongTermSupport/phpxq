@@ -10,7 +10,7 @@ namespace LTS\PhpXq\Jq\Cli;
  * The line is either known ($line) or worked out on demand from a {@see LineTracker} and the item's
  * ordinal in its text.
  *
- * @api
+ * @internal
  */
 final readonly class InputItem
 {

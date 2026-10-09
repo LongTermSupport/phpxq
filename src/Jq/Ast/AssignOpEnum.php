@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Ast;
 /**
  * Assignment operators with their source spelling as value.
  *
- * @api
+ * @internal
  */
 enum AssignOpEnum: string
 {

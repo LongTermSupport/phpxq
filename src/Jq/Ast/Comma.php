@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Ast;
 /**
  * `left, right`: all outputs of left, then all outputs of right, on the same input.
  *
- * @api
+ * @internal
  */
 final readonly class Comma implements NodeInterface
 {

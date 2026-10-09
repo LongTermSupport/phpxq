@@ -9,7 +9,7 @@ namespace LTS\PhpXq\Jq\Ast;
  * Namespaced calls keep the `::` in the name (`a::f`). The parser desugars `..` to recurse/0.
  * $line (1-based) is used for the compile-error message "f/0 is not defined at <top-level>, line N".
  *
- * @api
+ * @internal
  */
 final readonly class FunctionCall implements NodeInterface
 {

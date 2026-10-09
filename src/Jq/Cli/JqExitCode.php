@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Cli;
 /**
  * Process exit codes of the jq command line, as documented in the jq manual.
  *
- * @api
+ * @internal
  */
 final readonly class JqExitCode
 {

@@ -66,7 +66,7 @@ use LTS\PhpXq\Limits\NestingLimit;
  * tree is capped at {@see NestingLimit::MAX_TREE_DEPTH}, because PHP frees a tree recursively on the native
  * stack.
  *
- * @api
+ * @internal
  */
 final class Parser implements ParserInterface
 {

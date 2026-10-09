@@ -21,7 +21,7 @@ use LTS\PhpXq\Limits\AllocationLimit;
  * INDEXED_AS names what a key's type is called in the error for deleting at that key of an array: a string key
  * would have addressed an object, a number key an array.
  *
- * @api
+ * @internal
  */
 final readonly class PathOps
 {

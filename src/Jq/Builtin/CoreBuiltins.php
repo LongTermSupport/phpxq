@@ -22,7 +22,7 @@ use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
  * streaming, input/output, env, and the jq-defined prelude. The natives live in the classes of
  * {@see Core}, the jq source in {@see Prelude}.
  *
- * @api
+ * @internal
  */
 final readonly class CoreBuiltins implements BuiltinProviderInterface
 {

@@ -29,7 +29,7 @@ use RuntimeException;
  * formatting and exit codes (0 ok, 1 or 4 with `-e`, 2 usage or unreadable input, 3 compile error,
  * 5 runtime error or invalid input, or the status requested by `halt_error`).
  *
- * @api
+ * @internal
  */
 final readonly class JqApplication
 {

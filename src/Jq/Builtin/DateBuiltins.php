@@ -28,7 +28,7 @@ use LTS\PhpXq\Json\Values;
  * The local zone comes from the TZ environment variable (see {@see TimeZones}); `strftime` always formats
  * as UTC, `strflocaltime` in the local zone.
  *
- * @api
+ * @internal
  */
 final readonly class DateBuiltins implements BuiltinProviderInterface
 {

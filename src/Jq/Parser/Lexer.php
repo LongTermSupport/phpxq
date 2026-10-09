@@ -13,7 +13,7 @@ use LTS\PhpXq\Jq\Runtime\JqCompileException;
  * tracks string interpolation: the `)` that closes a `\(` becomes InterpEnd and scanning resumes inside
  * the enclosing string literal.
  *
- * @api
+ * @internal
  */
 final class Lexer implements LexerInterface
 {

@@ -10,7 +10,7 @@ namespace LTS\PhpXq\Jq\Cli;
  * slice to the decoder. Containers are matched by bracket depth with strings skipped; a scalar runs to
  * the next whitespace or structural character. The slice is not validated: the decoder does that.
  *
- * @api
+ * @internal
  */
 final class ValueScanner
 {

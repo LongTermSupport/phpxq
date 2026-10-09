@@ -17,7 +17,7 @@ use LTS\PhpXq\Json\JsonObject;
  * decoder, so number and string semantics are those of the normal input path. The generator key is
  * the offset in the text just after the item, which the caller turns into a line number.
  *
- * @api
+ * @internal
  */
 final readonly class StreamParser
 {

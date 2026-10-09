@@ -10,7 +10,7 @@ namespace LTS\PhpXq\Yq\Cli;
  * Exit codes follow the reference: 0 success, 1 any runtime or usage error (message on stderr as
  * `Error: ...`). EXIT_NOT_IMPLEMENTED (70) is only used by the skeleton.
  *
- * @api
+ * @internal
  */
 interface YqApplicationInterface
 {

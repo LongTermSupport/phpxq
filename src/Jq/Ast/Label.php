@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Ast;
 /**
  * `label $name | body`; a {@see BreakOut} naming the same label inside $body ends the body's output.
  *
- * @api
+ * @internal
  */
 final readonly class Label implements NodeInterface
 {

@@ -10,7 +10,7 @@ namespace LTS\PhpXq\Jq\Ast;
  * With several $patterns every variable of every alternative is bound (null when absent from the
  * matching alternative), and an error in the body moves on to the next alternative, as jq does.
  *
- * @api
+ * @internal
  */
 final readonly class Bind implements NodeInterface
 {

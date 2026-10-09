@@ -8,7 +8,7 @@ namespace LTS\PhpXq\Jq\Ast;
  * `{k: v, ...}`. Every key and value expression may be a generator; the result is the cartesian
  * product, with the first entry varying slowest, as jq does.
  *
- * @api
+ * @internal
  */
 final readonly class ObjectConstruct implements NodeInterface
 {

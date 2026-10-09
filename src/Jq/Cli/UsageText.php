@@ -8,7 +8,7 @@ namespace LTS\PhpXq\Jq\Cli;
  * The fixed texts of the jq command line, verbatim from jq 1.8. TARGET_VERSION is the jq release whose
  * behaviour phpxq's jq reproduces.
  *
- * @api
+ * @internal
  */
 final readonly class UsageText
 {

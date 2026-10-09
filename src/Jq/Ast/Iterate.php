@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Ast;
 /**
  * `target[]`. Path expression capable.
  *
- * @api
+ * @internal
  */
 final readonly class Iterate implements NodeInterface
 {

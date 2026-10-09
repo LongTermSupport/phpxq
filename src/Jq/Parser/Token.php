@@ -10,7 +10,7 @@ namespace LTS\PhpXq\Jq\Parser;
  * $text is documented per {@see TokenTypeEnum}; for punctuation, operators and keywords it is the source
  * spelling, for Eof it is ''.
  *
- * @api
+ * @internal
  */
 final readonly class Token
 {

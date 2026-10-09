@@ -11,7 +11,7 @@ namespace LTS\PhpXq\Jq\Ast;
  * Index(Identity, key) as value; `{(e): v}` uses the parenthesised node as key; `{@base64 "x"}` likewise.
  * An unquoted keyword key such as `{if: 1}` is a string Literal.
  *
- * @api
+ * @internal
  */
 final readonly class ObjectEntry
 {

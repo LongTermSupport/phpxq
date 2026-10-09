@@ -16,7 +16,7 @@ use WeakMap;
  * Comparing objects needs their keys sorted; the sorted keys of each object are kept while the object
  * lives, so sorting or grouping n objects sorts each one's keys once rather than on every comparison.
  *
- * @api
+ * @internal
  */
 final class Values
 {

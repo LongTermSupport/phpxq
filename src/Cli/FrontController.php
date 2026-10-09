@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Cli;
 use Throwable;
 
 /**
- * @api
+ * @internal
  */
 final class FrontController implements FrontControllerInterface
 {

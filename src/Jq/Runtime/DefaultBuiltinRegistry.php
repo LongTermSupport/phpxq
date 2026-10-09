@@ -10,7 +10,7 @@ use InvalidArgumentException;
 /**
  * Array backed {@see BuiltinRegistryInterface}. Registering the same name/arity twice is a programming error.
  *
- * @api
+ * @internal
  */
 final class DefaultBuiltinRegistry implements BuiltinRegistryInterface
 {
