@@ -36,7 +36,7 @@ while (($# > 0)); do
     shift
 done
 
-[[ -n "$artefact" ]] || die "usage: smoke-test.bash [--static] [--expect-version X.Y.Z] <artefact>"
+[[ -n "$artefact" ]] || die "usage: ${0##*/} [--static] [--expect-version X.Y.Z] <artefact>"
 [[ -f "$artefact" ]] || die "artefact not found: $artefact"
 artefact="$(cd "$(dirname "$artefact")" && pwd)/$(basename "$artefact")"
 [[ -x "$artefact" ]] || die "artefact is not executable: $artefact"

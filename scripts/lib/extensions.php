@@ -12,7 +12,7 @@ declare(strict_types=1);
  * enough to get it compiled in.
  */
 if ($argc !== 3) {
-    fwrite(STDERR, "usage: extensions.php <extensions.txt> <composer.json>\n");
+    fwrite(STDERR, "Usage: extensions.php <extensions.txt> <composer.json>\n");
 
     exit(2);
 }

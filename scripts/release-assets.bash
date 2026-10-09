@@ -17,7 +17,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib/packaging.bash"
 required=(phpxq.phar phpxq-linux-x86_64 phpxq-linux-aarch64)
 optional=(phpxq-macos-x86_64 phpxq-macos-aarch64)
 
-[[ $# -eq 1 ]] || die "usage: release-assets.bash <asset-dir>"
+[[ $# -eq 1 ]] || die "usage: ${0##*/} <asset-dir>"
 dir="$1"
 [[ -d "$dir" ]] || die "asset directory not found: $dir"
 
