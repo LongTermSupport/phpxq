@@ -40,8 +40,8 @@ the same ([usage](#usage), [differences](#differences-from-upstream-and-known-ga
 ## Goals
 
 - **Equivalence, not invention.** No new functionality, no new query language.
-- **Fast.** A PHP CLI that starts quickly (about 50 ms for a small filter from the PHAR) and processes
-  input as efficiently as PHP allows.
+- **Fast.** A PHP CLI that starts quickly (about 70 ms for a small filter from the PHAR, about 30 ms from
+  the static binary) and processes input as efficiently as PHP allows.
 - **Verified against upstream.** The upstream jq and yq test suites run in CI, with every known gap
   listed and justified.
 - **No production dependencies.** `composer.json` declares the PHP version and required extensions
@@ -133,8 +133,8 @@ yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' a.yaml b.yaml
 yq -o=csv '.[] | [.name, .age]' people.yaml
 ```
 
-Formats: YAML, JSON, XML, CSV, TSV, properties, TOML, HCL, INI, Lua, base64 and URI (as in yq 4.54.1;
-`yq --help` lists the flags).
+Formats: YAML, JSON, XML, CSV, TSV, properties, TOML, HCL, INI, Lua, base64 and URI, plus shell and KYAML
+as output formats (as in yq 4.54.1; `yq --help` lists the flags).
 
 ### Common tasks
 
@@ -170,7 +170,8 @@ yq (https://github.com/mikefarah/yq/) version v4.54.1
 
 ## Differences from upstream and known gaps
 
-phpxq passes every upstream test it can: jq 878 of 879 cases and yq 565 of 574, and all of the
+phpxq passes every upstream test it can: jq 878 of 879 cases and yq 565 of 572 (two further yq examples,
+whose expected output is a Go-seeded `shuffle`, are skipped because ours is random), and all of the
 upstream shell suites. The remainder are deliberate, justified, and enforced (a gap that starts passing
 or an unlisted failure breaks the build):
 
@@ -267,8 +268,8 @@ Vendored fixtures keep their own licences: see
 
 ### Benchmarks
 
-`scripts/bench/bench.bash` measures startup time and throughput (small, medium and large JSON and YAML,
-representative filters) for phpxq and, when installed, the real `jq` and mikefarah `yq`.
+`scripts/bench/bench.bash` measures startup time and throughput (small and medium JSON and YAML by
+default, large with `--sizes`; representative filters) for phpxq and, when installed, the real `jq` and mikefarah `yq`.
 
 ```bash
 scripts/bench/bench.bash run                     # JSON + Markdown report under untracked/bench/
@@ -278,7 +279,7 @@ scripts/bench/bench.bash run --compare benchmarks/baselines/NAME.json
 
 Inputs are generated deterministically and never committed. Results record the PHP, OPcache/JIT, CPU and
 kernel configuration; only compare results taken on the same machine. Methodology:
-`CLAUDE/Plan/00005-benchmarking-suite/BENCHMARKS.md`.
+`CLAUDE/Plan/Completed/00005-benchmarking-suite/BENCHMARKS.md`.
 
 ### Defence Before Fix
 
