@@ -48,6 +48,7 @@ rules:
     - QaConfig\PHPStan\Rules\RecursionThroughNativeCallbackRule
     - QaConfig\PHPStan\Rules\UnguardedAliasRecursionRule
     - QaConfig\PHPStan\Rules\LoopInvariantConstructionRule
+    - QaConfig\PHPStan\Rules\StaticOnlyClassConstructorRule
 
 services:
     # Bundled with php-qa-ci but opt-in: a string literal written three or more times in one class. Production
