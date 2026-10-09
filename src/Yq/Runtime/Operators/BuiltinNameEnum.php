@@ -20,7 +20,6 @@ enum BuiltinNameEnum: string
     {
         return array_values(array_map(static fn (self $case): string => $case->value, $cases));
     }
-
     case Length = 'length';
 
     case Keys = 'keys';
