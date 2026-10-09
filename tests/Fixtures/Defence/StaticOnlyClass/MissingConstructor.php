@@ -26,7 +26,7 @@ final class ConstantsOnly
 /**
  * A static property, a constant and a static method, with a non-final class.
  */
-class MixedStaticMembers
+final class MixedStaticMembers
 {
     public const int LIMIT = 3;
 

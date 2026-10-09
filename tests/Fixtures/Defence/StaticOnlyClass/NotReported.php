@@ -9,13 +9,13 @@ namespace LTS\PhpXq\Tests\Fixtures\Defence\StaticOnlyClass;
  */
 final class GuardedStaticOnly
 {
+    private function __construct()
+    {
+    }
+
     public static function twice(int $value): int
     {
         return $value * 2;
-    }
-
-    private function __construct()
-    {
     }
 }
 
@@ -103,7 +103,7 @@ final class UsesTrait
 /**
  * A parent can supply the constructor.
  */
-class ParentWithConstructor
+final class ParentWithConstructor
 {
     public function __construct()
     {
@@ -125,12 +125,11 @@ interface HasConstant
 
 enum StaticOnlyEnum
 {
-    case One;
-
     public static function first(): self
     {
         return self::One;
     }
+    case One;
 }
 
 final class OwnsAnonymousClass
