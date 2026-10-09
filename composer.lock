@@ -60,16 +60,16 @@
         },
         {
             "name": "lts/php-qa-ci",
-            "version": "85.6.1",
+            "version": "85.7.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/LongTermSupport/php-qa-ci.git",
-                "reference": "800010d385e9061cf0e499c050b8f30a7c94dccf"
+                "reference": "ebaae60758e27673a0fd4e089a30f34ce06f8dca"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/LongTermSupport/php-qa-ci/zipball/800010d385e9061cf0e499c050b8f30a7c94dccf",
-                "reference": "800010d385e9061cf0e499c050b8f30a7c94dccf",
+                "url": "https://api.github.com/repos/LongTermSupport/php-qa-ci/zipball/ebaae60758e27673a0fd4e089a30f34ce06f8dca",
+                "reference": "ebaae60758e27673a0fd4e089a30f34ce06f8dca",
                 "shasum": ""
             },
             "require": {
@@ -97,7 +97,7 @@
                 "tomasvotruba/type-coverage": "^2.3"
             },
             "replace": {
-                "phpstan/phpstan": "2.3.0"
+                "phpstan/phpstan": "2.3.1"
             },
             "require-dev": {
                 "ext-dom": "*",
@@ -176,9 +176,9 @@
             "description": "Simple PHP QA pipeline and scripts. Largely just a collection of dependencies with configuration and scripts to run them together",
             "support": {
                 "issues": "https://github.com/LongTermSupport/php-qa-ci/issues",
-                "source": "https://github.com/LongTermSupport/php-qa-ci/tree/85.6.1"
+                "source": "https://github.com/LongTermSupport/php-qa-ci/tree/85.7.0"
             },
-            "time": "2026-10-09T15:45:59+00:00"
+            "time": "2026-10-09T19:46:22+00:00"
         },
         {
             "name": "myclabs/deep-copy",
@@ -3488,16 +3488,16 @@
         },
         {
             "name": "tomasvotruba/type-coverage",
-            "version": "2.5.0",
+            "version": "2.5.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/TomasVotruba/type-coverage.git",
-                "reference": "afcfc6f890cb680d10974cbdff210892210c822a"
+                "reference": "2d8e722c1776a17f506f6a66cd325e50fbaa12ee"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/TomasVotruba/type-coverage/zipball/afcfc6f890cb680d10974cbdff210892210c822a",
-                "reference": "afcfc6f890cb680d10974cbdff210892210c822a",
+                "url": "https://api.github.com/repos/TomasVotruba/type-coverage/zipball/2d8e722c1776a17f506f6a66cd325e50fbaa12ee",
+                "reference": "2d8e722c1776a17f506f6a66cd325e50fbaa12ee",
                 "shasum": ""
             },
             "require": {
@@ -3512,10 +3512,10 @@
                 "rector/jack": "^1.1",
                 "rector/rector": "^2.5",
                 "shipmonk/composer-dependency-analyser": "^1.8",
+                "shipmonk/dead-code-detector": "^1.4",
                 "symfony/dom-crawler": "^8.1",
                 "symfony/form": "^8.1",
                 "symplify/easy-coding-standard": "^13.2",
-                "tomasvotruba/unused-public": "^2.2",
                 "tracy/tracy": "^2.12"
             },
             "type": "phpstan-extension",
@@ -3543,7 +3543,7 @@
             ],
             "support": {
                 "issues": "https://github.com/TomasVotruba/type-coverage/issues",
-                "source": "https://github.com/TomasVotruba/type-coverage/tree/2.5.0"
+                "source": "https://github.com/TomasVotruba/type-coverage/tree/2.5.1"
             },
             "funding": [
                 {
@@ -3555,7 +3555,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-05T20:07:08+00:00"
+            "time": "2026-10-09T19:09:05+00:00"
         }
     ],
     "aliases": [],
