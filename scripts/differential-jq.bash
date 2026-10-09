@@ -9,6 +9,7 @@
 # The reference jq may be older than the targeted 1.8; accepted differences are listed in
 # scripts/differential/known-differences.txt: a line is an exact filter, `flags:<flags>` (every case
 # with exactly those flags) or `file:<basename>` (every case reading that first file).
+# No -e: a differing case is a result to collect, not a reason to stop; failing steps check their own status.
 set -uo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

@@ -10,7 +10,7 @@ declare(strict_types=1);
  * Pins the PHAR timestamp to the given Unix epoch so repeated builds are byte-identical.
  */
 if ($argc !== 5) {
-    fwrite(STDERR, "usage: box-config.php <box.json> <output.phar> <epoch> <target>\n");
+    fwrite(STDERR, "Usage: box-config.php <box.json> <output.phar> <epoch> <target>\n");
 
     exit(2);
 }

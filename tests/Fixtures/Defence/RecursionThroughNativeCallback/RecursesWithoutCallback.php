@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LTS\PhpXq\Tests\Fixtures\Defence\NativeCallback;
+namespace LTS\PhpXq\Tests\Fixtures\Defence\RecursionThroughNativeCallback;
 
 /**
  * Recursion that never crosses a native frame, and callbacks that never recurse.

@@ -13,6 +13,10 @@ final class ChangelogFixture
 
     private const string PREVIOUS = "## 0.1.0 — 2026-01-02\n\n### Added\n\n- First entry.\n";
 
+    private function __construct()
+    {
+    }
+
     /** @param array<string, list<string>> $sections heading => entries, in file order */
     public static function withUnreleased(array $sections, string $released = self::PREVIOUS): string
     {

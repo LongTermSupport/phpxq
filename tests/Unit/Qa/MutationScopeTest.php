@@ -172,7 +172,7 @@ final class MutationScopeTest extends TestCase
 
         yield 'conformance (records no coverage)' => ['tests/Conformance/Yq/known-gaps.txt'];
 
-        yield 'defence fixture' => ['tests/Fixtures/Defence/AliasRecursion/Fixture.php'];
+        yield 'defence fixture' => ['tests/Fixtures/Defence/UnguardedAliasRecursion/Fixture.php'];
     }
 
     public function testExcludesListEverySourceFileOutsideTheScopeRelativeToSrc(): void

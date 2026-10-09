@@ -22,6 +22,10 @@ final readonly class Xdebug
     /** Looked up by name: pcntl is optional (the static binary may lack it), so nothing may require it. */
     private const string REPLACE_PROCESS_FUNCTION = 'pcntl_exec';
 
+    private function __construct()
+    {
+    }
+
     /**
      * Replaces this process with the same script run with Xdebug switched off, because Xdebug slows every call
      * and uses a lot more native stack. Returns when no restart is wanted or possible.

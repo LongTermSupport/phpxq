@@ -19,7 +19,7 @@ use QaConfig\PHPStan\Rules\RecursionThroughNativeCallbackRule;
 #[Large]
 final class RecursionThroughNativeCallbackRuleTest extends RuleTestCase
 {
-    private const string FIXTURES = __DIR__ . '/../../../../Fixtures/Defence/NativeCallback';
+    private const string FIXTURES = __DIR__ . '/../../../../Fixtures/Defence/RecursionThroughNativeCallback';
 
     private const string CALLBACK_CLASS = 'RecursesThroughCallback';
 

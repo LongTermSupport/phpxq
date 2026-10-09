@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LTS\PhpXq\Tests\Fixtures\Defence\NativeCallback;
+namespace LTS\PhpXq\Tests\Fixtures\Defence\RecursionThroughNativeCallback;
 
 /**
  * Recursion through a native callback written with named arguments, a static closure, and inside an enum.
