@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Yq;
 
 use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
+use LTS\PhpXq\Yq\Cli\CliException;
 use LTS\PhpXq\Yq\Expression\ExpressionSyntaxException;
 use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
@@ -66,9 +67,14 @@ final class YqTest extends TestCase
 
     public function testMalformedInputInAnotherFormatIsAFormatException(): void
     {
-        $this->expectException(FormatException::class);
-
-        Yq::evaluate('.', '{"a": ', input: FormatEnum::Json);
+        try {
+            Yq::evaluate('.', '{"a": ', input: FormatEnum::Json);
+            self::fail('expected a FormatException');
+        } catch (FormatException $formatException) {
+            self::assertMatchesRegularExpression('/^json: /', $formatException->getMessage());
+            self::assertNotInstanceOf(CliException::class, $formatException->getPrevious());
+            self::assertNull($formatException->getPrevious());
+        }
     }
 
     public function testASyntaxErrorInTheExpressionIsReported(): void
@@ -133,9 +139,12 @@ final class YqTest extends TestCase
 
     public function testAResultThatDoesNotFitTheOutputFormatIsAFormatException(): void
     {
-        $this->expectException(FormatException::class);
-        $this->expectExceptionMessageMatches('/csv: only arrays can be written as csv/');
-
-        Yq::evaluate('.', "a: {b: 1}\n", output: FormatEnum::Csv);
+        try {
+            Yq::evaluate('.', "a: {b: 1}\n", output: FormatEnum::Csv);
+            self::fail('expected a FormatException');
+        } catch (FormatException $formatException) {
+            self::assertMatchesRegularExpression('/^csv: only arrays can be written as csv/', $formatException->getMessage());
+            self::assertNull($formatException->getPrevious());
+        }
     }
 }

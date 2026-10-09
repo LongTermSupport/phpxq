@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq;
 
+use LogicException;
 use LTS\PhpXq\Jq\Runtime\EvaluationStack;
 use LTS\PhpXq\Yaml\Emitter\EmitOptions;
 use LTS\PhpXq\Yaml\Emitter\YamlEmitter;
@@ -26,6 +27,7 @@ use LTS\PhpXq\Yq\Runtime\EvaluationException;
 use LTS\PhpXq\Yq\Runtime\Evaluator;
 use LTS\PhpXq\Yq\Runtime\RuntimeServices;
 use LTS\PhpXq\Yq\Runtime\SecurityOptions;
+use RuntimeException;
 
 /**
  * Runs a yq expression over a document held in a string and returns what the command line would print.
@@ -79,7 +81,7 @@ final readonly class Yq
 
         $sink = fopen('php://memory', 'w+b');
         if (false === $sink) {
-            throw new FormatException('cannot open a memory stream');
+            throw new RuntimeException('cannot open a memory stream');
         }
 
         $printer   = new ResultPrinter($sink, $output, new EmitOptions($indent, false, $unwrap), $options, new YamlEmitter(), $formats, $registry, false);
@@ -99,12 +101,23 @@ final readonly class Yq
         } catch (CliException $cliException) {
             $cause = $cliException->getPrevious();
 
-            throw $cause instanceof YamlSyntaxException || $cause instanceof FormatException ? $cause : new FormatException($cliException->getMessage(), 0, $cliException);
+            // every CliException the reader or printer raises here wraps a YAML or format error; one that does
+            // not is a defect in this class, not bad input
+            if ($cause instanceof YamlSyntaxException || $cause instanceof FormatException) {
+                throw $cause;
+            }
+
+            throw new LogicException('unexpected command-line error: ' . $cliException->getMessage(), 0, $cliException);
         }
 
         $printer->finish('');
         rewind($sink);
 
-        return (string)stream_get_contents($sink);
+        $text = stream_get_contents($sink);
+        if (false === $text) {
+            throw new RuntimeException('cannot read back the output stream');
+        }
+
+        return $text;
     }
 }

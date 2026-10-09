@@ -274,9 +274,9 @@ Every failure is an exception; nothing is written to standard error and the proc
 | `Yq::evaluate` | `LTS\PhpXq\Yq\Expression\ExpressionSyntaxException` | The expression does not parse                                        |
 | `Yq::evaluate` | `LTS\PhpXq\Yq\Runtime\EvaluationException`          | The expression failed on the document                                |
 
-All of them extend `RuntimeException`. These are the only exceptions the calls raise on bad input: `Yq::evaluate`
-turns any internal command-line error into a `FormatException`, with the original as `getPrevious()`. A refused
-`env` or file operator is an `EvaluationException`, and a refused `import` is a `JqCompileException`.
+All of them extend `RuntimeException`. A refused `env` or file operator is an `EvaluationException`, and a refused
+`import` is a `JqCompileException`. These are the only exceptions bad input raises; a `LogicException` or other
+`RuntimeException` from either call is a defect in phpxq or the host, so report it.
 
 ```php
 <?php
