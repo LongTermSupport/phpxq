@@ -45,10 +45,56 @@ final class JqTest extends TestCase
         self::assertSame([42], Jq::run('$answer', null, ['answer' => 42]));
     }
 
-    public function testTheEnvironmentIsAvailableAsEnv(): void
+    public function testTheEnvironmentIsHiddenByDefault(): void
     {
-        self::assertSame([true], Jq::run('$ENV | type == "object"', null));
-        self::assertSame([true], Jq::run('env | type == "object"', null));
+        putenv('PHPXQ_JQ_TEST=hello');
+
+        try {
+            self::assertSame([0, 0, null, null], Jq::run('($ENV | length), (env | length), $ENV.PHPXQ_JQ_TEST, env.PHPXQ_JQ_TEST', null));
+        } finally {
+            putenv('PHPXQ_JQ_TEST');
+        }
+    }
+
+    public function testTheEnvironmentIsAvailableWhenAllowed(): void
+    {
+        putenv('PHPXQ_JQ_TEST=hello');
+
+        try {
+            self::assertSame(['hello', 'hello'], Jq::run('$ENV.PHPXQ_JQ_TEST, env.PHPXQ_JQ_TEST', null, allowEnv: true));
+        } finally {
+            putenv('PHPXQ_JQ_TEST');
+        }
+    }
+
+    public function testImportsAreRefusedByDefaultEvenWithASearchPath(): void
+    {
+        $this->expectException(JqCompileException::class);
+        $this->expectExceptionMessageMatches('/modules are disabled/');
+
+        Jq::run('import "composer" as $c {search: "' . \dirname(__DIR__, 3) . '"}; $c', null);
+    }
+
+    public function testIncludesAreRefusedByDefault(): void
+    {
+        $this->expectException(JqCompileException::class);
+        $this->expectExceptionMessageMatches('/modules are disabled/');
+
+        Jq::run('include "anything"; .', null);
+    }
+
+    public function testModulesCanBeAllowed(): void
+    {
+        $directory = sys_get_temp_dir() . '/phpxq-jq-' . bin2hex(random_bytes(4));
+        mkdir($directory);
+        file_put_contents($directory . '/m.jq', 'def twice: . * 2;');
+
+        try {
+            self::assertSame([6], Jq::run('include "m" {search: "' . $directory . '"}; 3 | twice', null, allowModules: true));
+        } finally {
+            unlink($directory . '/m.jq');
+            rmdir($directory);
+        }
     }
 
     public function testHaltEndsTheRunKeepingTheOutputSoFar(): void

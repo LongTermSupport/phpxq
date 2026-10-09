@@ -115,8 +115,43 @@ b,c
 {"count":3,"above":["b","c"]}
 ```
 
-`halt` ends a run quietly and keeps the outputs so far; `halt_error` raises a `JqException` holding its message. `input` fails and `inputs` is empty, `debug` and
-`stderr` output is discarded, `$ENV` is the process environment, and `import`/`include` find no modules.
+`halt` ends a run quietly and keeps the outputs so far; `halt_error` raises a `JqException` holding its message.
+`input` fails and `inputs` is empty, and `debug` and `stderr` output is discarded.
+
+Two things reach outside your program and are **off by default**, so a program that comes from outside your code
+cannot read the host:
+
+- `$ENV` and `env` are empty objects unless you pass `allowEnv: true`.
+- `import` and `include` are compile errors (`JqCompileException`) unless you pass `allowModules: true`, which
+  then searches where the program's `search` metadata says, else `~/.jq` and `$ORIGIN/../lib`.
+
+```php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/vendor/autoload.php';
+
+use LTS\PhpXq\Jq\Jq;
+use LTS\PhpXq\Jq\Runtime\JqCompileException;
+
+putenv('GREETING=hello');
+
+echo json_encode(Jq::run('env.GREETING', null)), "\n";
+echo json_encode(Jq::run('env.GREETING', null, allowEnv: true)), "\n";
+
+try {
+    Jq::run('import "composer" as $c {search: "."}; $c', null);
+} catch (JqCompileException $error) {
+    echo $error->getMessage(), "\n";
+}
+```
+
+```text
+[null]
+["hello"]
+modules are disabled: import and include are not available in this mode
+```
 
 ## YAML and yq
 
@@ -172,6 +207,32 @@ A multi-document stream is evaluated one document at a time, as `yq eval` does. 
 (`env()`, `load()` and friends) are refused unless you pass `allowEnv: true` or `allowFiles: true`; the
 `system` operator is never available. Leave them off when the expression comes from outside your program.
 
+```php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/vendor/autoload.php';
+
+use LTS\PhpXq\Yq\Runtime\EvaluationException;
+use LTS\PhpXq\Yq\Yq;
+
+putenv('GREETING=hello');
+
+try {
+    Yq::evaluate('env("GREETING")', 'a: 1');
+} catch (EvaluationException $error) {
+    echo $error->getMessage(), "\n";
+}
+
+echo Yq::evaluate('env("GREETING")', 'a: 1', allowEnv: true);
+```
+
+```text
+Environment variable operations have been disabled
+hello
+```
+
 ### YAML to PHP values, and jq over YAML
 
 There is no YAML-to-array function. Convert to JSON with `Yq::evaluate()` and decode that, which also lets a jq
@@ -213,7 +274,9 @@ Every failure is an exception; nothing is written to standard error and the proc
 | `Yq::evaluate` | `LTS\PhpXq\Yq\Expression\ExpressionSyntaxException` | The expression does not parse                                        |
 | `Yq::evaluate` | `LTS\PhpXq\Yq\Runtime\EvaluationException`          | The expression failed on the document                                |
 
-All of them extend `RuntimeException`.
+All of them extend `RuntimeException`. These are the only exceptions the calls raise on bad input: `Yq::evaluate`
+turns any internal command-line error into a `FormatException`, with the original as `getPrevious()`. A refused
+`env` or file operator is an `EvaluationException`, and a refused `import` is a `JqCompileException`.
 
 ```php
 <?php

@@ -85,11 +85,39 @@ final class YqTest extends TestCase
         Yq::evaluate('.items | .a = (1 | error)', self::DOC);
     }
 
-    public function testFileAndEnvOperatorsAreOffByDefault(): void
+    public function testFileOperatorsAreRefusedByDefault(): void
     {
         $this->expectException(EvaluationException::class);
+        $this->expectExceptionMessageMatches('/^File operations have been disabled$/');
 
-        Yq::evaluate('load("/etc/hostname")', 'a: 1');
+        Yq::evaluate('load("' . __FILE__ . '")', 'a: 1');
+    }
+
+    public function testFileOperatorsWorkWhenAllowed(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'yqfile');
+        self::assertNotFalse($path);
+        file_put_contents($path, "k: v\n");
+
+        try {
+            self::assertSame("v\n", Yq::evaluate('load("' . $path . '") | .k', 'a: 1', allowFiles: true));
+        } finally {
+            unlink($path);
+        }
+    }
+
+    public function testEnvOperatorsAreRefusedByDefault(): void
+    {
+        putenv('PHPXQ_YQ_TEST=hello');
+
+        try {
+            Yq::evaluate('env("PHPXQ_YQ_TEST")', 'a: 1');
+            self::fail('expected an EvaluationException');
+        } catch (EvaluationException $evaluationException) {
+            self::assertSame('Environment variable operations have been disabled', $evaluationException->getMessage());
+        } finally {
+            putenv('PHPXQ_YQ_TEST');
+        }
     }
 
     public function testEnvOperatorsCanBeEnabled(): void
@@ -101,5 +129,13 @@ final class YqTest extends TestCase
         } finally {
             putenv('PHPXQ_YQ_TEST');
         }
+    }
+
+    public function testAResultThatDoesNotFitTheOutputFormatIsAFormatException(): void
+    {
+        $this->expectException(FormatException::class);
+        $this->expectExceptionMessageMatches('/csv: only arrays can be written as csv/');
+
+        Yq::evaluate('.', "a: {b: 1}\n", output: FormatEnum::Csv);
     }
 }

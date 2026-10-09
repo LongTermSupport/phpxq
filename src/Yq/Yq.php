@@ -47,8 +47,7 @@ final readonly class Yq
      *
      * @return string the output text; empty when the expression matched nothing
      *
-     * @throws CliException              a result could not be written (for example an unsupported value for the output format)
-     * @throws EvaluationException       the expression failed on this document
+     * @throws EvaluationException       the expression failed on this document, or used a refused operator
      * @throws ExpressionSyntaxException the expression does not parse
      * @throws FormatException           the input is malformed in its format, or a result cannot be written in the output format
      * @throws YamlSyntaxException       the YAML input is malformed
@@ -80,7 +79,7 @@ final readonly class Yq
 
         $sink = fopen('php://memory', 'w+b');
         if (false === $sink) {
-            throw new CliException('cannot open a memory stream');
+            throw new FormatException('cannot open a memory stream');
         }
 
         $printer   = new ResultPrinter($sink, $output, new EmitOptions($indent, false, $unwrap), $options, new YamlEmitter(), $formats, $registry, false);
@@ -100,7 +99,7 @@ final readonly class Yq
         } catch (CliException $cliException) {
             $cause = $cliException->getPrevious();
 
-            throw $cause instanceof YamlSyntaxException || $cause instanceof FormatException ? $cause : $cliException;
+            throw $cause instanceof YamlSyntaxException || $cause instanceof FormatException ? $cause : new FormatException($cliException->getMessage(), 0, $cliException);
         }
 
         $printer->finish('');

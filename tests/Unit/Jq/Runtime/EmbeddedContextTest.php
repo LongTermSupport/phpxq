@@ -29,9 +29,23 @@ final class EmbeddedContextTest extends TestCase
 
         self::assertSame(1, $globals['x']);
         self::assertInstanceOf(JsonObject::class, $globals['ENV']);
+        self::assertCount(0, $globals['ENV']);
         self::assertInstanceOf(JsonObject::class, $globals['ARGS']);
         self::assertInstanceOf(JsonObject::class, $globals['__prog_args']);
         self::assertSame(['x' => 1], $globals['__prog_args']->toArray());
+    }
+
+    public function testTheProcessEnvironmentIsExposedOnlyWhenAllowed(): void
+    {
+        putenv('PHPXQ_CTX_TEST=1');
+
+        try {
+            $globals = new EmbeddedContext([], true)->globals();
+            self::assertInstanceOf(JsonObject::class, $globals['ENV']);
+            self::assertSame('1', $globals['ENV']->get('PHPXQ_CTX_TEST'));
+        } finally {
+            putenv('PHPXQ_CTX_TEST');
+        }
     }
 
     public function testDiagnosticsAreDiscardedAndTheClockMoves(): void

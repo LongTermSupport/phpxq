@@ -14,6 +14,7 @@ use LTS\PhpXq\Jq\Runtime\FileModuleLoader;
 use LTS\PhpXq\Jq\Runtime\HaltException;
 use LTS\PhpXq\Jq\Runtime\JqCompileException;
 use LTS\PhpXq\Jq\Runtime\JqException;
+use LTS\PhpXq\Jq\Runtime\RefusingModuleLoader;
 use LTS\PhpXq\Json\Codec\Utf8;
 use LTS\PhpXq\Json\JsonDecoder;
 
@@ -36,25 +37,32 @@ final readonly class Jq
      * {@see JqException} carrying the text it would have written to standard error. `input` fails and
      * `inputs` is empty. `debug` and `stderr` output is discarded.
      *
-     * @param array<string, mixed> $variables the `$name` variables the program can read, by name
+     * `$ENV` and `env` are empty, and `import` / `include` are compile errors, unless you opt in: both read
+     * from the host, so leave them off when the program comes from outside your code.
+     *
+     * @param array<string, mixed> $variables    the `$name` variables the program can read, by name
+     * @param bool                 $allowEnv     expose the process environment as `$ENV` and `env`
+     * @param bool                 $allowModules allow `import` / `include` (searched where the program's `search`
+     *                                           metadata says, else `~/.jq` and `$ORIGIN/../lib`)
      *
      * @return list<mixed>
      *
      * @throws JqCompileException the program does not parse or compile
      * @throws JqException        the program raised an error that nothing caught; `value` holds it
      */
-    public static function run(string $program, mixed $input, array $variables = []): array
+    public static function run(string $program, mixed $input, array $variables = [], bool $allowEnv = false, bool $allowModules = false): array
     {
         // one fiber for the whole run: parsing and compiling recurse as deeply as the program nests
-        return EvaluationStack::run(static function () use ($program, $input, $variables): array {
+        return EvaluationStack::run(static function () use ($program, $input, $variables, $allowEnv, $allowModules): array {
             $parser   = new Parser(new Lexer());
-            $compiler = new Compiler(StandardBuiltins::create(), $parser, new FileModuleLoader([], $parser, new JsonDecoder()));
+            $modules  = $allowModules ? new FileModuleLoader([], $parser, new JsonDecoder()) : new RefusingModuleLoader();
+            $compiler = new Compiler(StandardBuiltins::create(), $parser, $modules);
             $compiled = $compiler->compile($parser->parse(Utf8::sanitize($program)), ['ENV', '__prog_args', 'ARGS', ...array_map(strval(...), array_keys($variables))]);
 
             $outputs = [];
 
             try {
-                $compiled->run(new EmbeddedContext($variables), $input, static function (mixed $output) use (&$outputs): void {
+                $compiled->run(new EmbeddedContext($variables, $allowEnv), $input, static function (mixed $output) use (&$outputs): void {
                     $outputs[] = $output;
                 });
             } catch (HaltException $halt) {

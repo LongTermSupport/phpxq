@@ -8,7 +8,7 @@ use LTS\PhpXq\Json\JsonObject;
 
 /**
  * The {@see RuntimeContextInterface} of a program run from PHP code rather than the command line: no
- * input files, no library paths, `debug` and `stderr` output discarded, `$ENV` the process environment.
+ * input files, no library paths, `debug` and `stderr` output discarded, `$ENV` empty unless the process environment is allowed.
  *
  * @internal
  */
@@ -16,9 +16,12 @@ final readonly class EmbeddedContext implements RuntimeContextInterface
 {
     /**
      * @param array<string, mixed> $variables the `$name` variables the program can read
+     * @param bool                 $allowEnv  whether `$ENV` and `env` show the process environment; empty when not
      */
-    public function __construct(private array $variables = [])
-    {
+    public function __construct(
+        private array $variables = [],
+        private bool $allowEnv = false,
+    ) {
     }
 
     public function inputs(): InputProviderInterface
@@ -32,7 +35,7 @@ final readonly class EmbeddedContext implements RuntimeContextInterface
 
         return [
             ...$this->variables,
-            'ENV'         => JsonObject::fromPairs(getenv()),
+            'ENV'         => JsonObject::fromPairs($this->allowEnv ? getenv() : []),
             '__prog_args' => $named,
             'ARGS'        => JsonObject::fromPairs(['positional' => [], 'named' => $named]),
         ];
