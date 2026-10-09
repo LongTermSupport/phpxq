@@ -22,4 +22,8 @@ final readonly class CoreBuiltins
         'mktime/0', 'gmtime/0', 'localtime/0', 'strftime/1', 'strflocaltime/1', 'strptime/1', 'now/0',
         'todate/0', 'fromdate/0', 'date/0', 'dateadd/2', 'datesub/2', 'fromdateiso8601/0', 'todateiso8601/0',
     ];
+
+    private function __construct()
+    {
+    }
 }
