@@ -127,15 +127,25 @@ that is not exactly what the scope writes. A scoped run whose files hold no muta
 says so. The diff is read NUL-separated; output it cannot parse mutates
 everything.
 
-| Run                               | Base the change is measured from | Workflow               |
-| --------------------------------- | -------------------------------- | ---------------------- |
-| pull request, branch, manual      | the default branch               | `qa.yml`               |
-| push to the default branch        | the commit before the push       | `qa.yml`               |
-| release                           | the previous `v*` tag            | `release.yml`          |
-| nightly at 02:17 UTC, or manually | none: all of `src/`              | `mutation-nightly.yml` |
+| Run                            | Base the change is measured from | Workflow      |
+| ------------------------------ | -------------------------------- | ------------- |
+| pull request, branch, manual   | the default branch               | `qa.yml`      |
+| push to the default branch     | the commit before the push       | `qa.yml`      |
+| release                        | the previous `v*` tag            | `release.yml` |
+| local `scripts/qa-scoped.bash` | `origin/main` (or the argument)  | none          |
 
-The nightly run enforces the same floors, prints the measured MSI for ratcheting (plan 00011) and keeps the
-Infection logs as an artefact. Each mutating job stops at a `timeout-minutes` below GitHub's 6-hour limit.
+Locally, `scripts/qa-scoped.bash [<base-ref>] [-- <qa arguments>]` does what the workflow does in one command:
+scope against the merge base (`origin/main`, or the argument, or `$PHPXQ_MUTATION_BASE`; nothing is fetched and a
+missing ref fails), run `CI=true vendor/bin/qa` (Infection switched off when the scope is none), always delete the
+generated `qaConfig/infection.json` and any `.yml` Infection leaves in the root, then run
+`scripts/check-qa-measurements.bash` against the same base. A plain `CI=true vendor/bin/qa` stays the full run over
+all of `src/` (over an hour); no scheduled full run exists, so a re-baseline of the floors is a manual one-off of it.
+Each mutating job stops at a `timeout-minutes` below GitHub's 6-hour limit.
+
+php-qa-ci's own diff mode (`withInfectionDiffBase()`) is not used: it drops renamed files, ignores changed tests and
+configuration, refuses a dirty tree, writes no Infection summary for `check-qa-measurements.bash` and checks only
+covered MSI. The proposal to close those gaps upstream is in
+`CLAUDE/Plan/00011-raise-mutation-and-coverage-floors/UPSTREAM-diff-mode-default.md`.
 
 ### The release pull request
 

@@ -9,7 +9,7 @@
 #              free, else it refuses. A commit whose `## Unreleased` still has entries (the push that
 #              creates the branch) is not a release commit: every later stage is skipped.
 #   qa         the full QA gate plus the unit and conformance suites; mutation covers what changed since the
-#              previous release tag (the nightly mutation workflow covers everything)
+#              previous release tag
 #   phar       reproducible PHAR (built twice, must be byte-identical), smoke-tested
 #   binary     static binaries per platform, smoke-tested with an empty environment
 #   release    SHA256SUMS, git tag vX.Y.Z at the merged commit, GitHub Release with the changelog notes
@@ -116,8 +116,7 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader --no-scripts
 
-      # Mutation testing covers what changed since the previous release tag (the nightly workflow runs the full
-      # pass). With no earlier tag, the first release, everything is mutated.
+      # Mutation testing covers what changed since the previous release tag. With no earlier tag, the first release, everything is mutated.
       - name: Choose the mutation base (previous release tag)
         id: base
         run: |
