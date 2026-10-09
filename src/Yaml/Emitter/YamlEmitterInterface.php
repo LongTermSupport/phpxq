@@ -15,8 +15,6 @@ use LTS\PhpXq\Yaml\Node;
  *    unwrapped top-level scalar, which is its value plus one newline;
  *  - a Document with `explicitStart` prints `---`, with `explicitEnd` prints `...`, with `directives`
  *    prints them first;
- *  - emitStream() joins documents the way yq does: a `---` line between consecutive documents unless
- *    `noDocSeparator`;
  *  - the emitter never mutates its input.
  *
  * @internal
@@ -24,9 +22,4 @@ use LTS\PhpXq\Yaml\Node;
 interface YamlEmitterInterface
 {
     public function emit(Node $node, EmitOptions $options = new EmitOptions()): string;
-
-    /**
-     * @param iterable<Node> $nodes
-     */
-    public function emitStream(iterable $nodes, EmitOptions $options = new EmitOptions()): string;
 }

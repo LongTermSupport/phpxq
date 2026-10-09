@@ -18,8 +18,4 @@ interface OperatorRegistryInterface
     public function call(string $name): ?CallOperatorInterface;
 
     public function binary(BinaryOperatorEnum $operator): ?BinaryOperatorInterface;
-
-    public function registerCall(CallOperatorInterface $operator): void;
-
-    public function registerBinary(BinaryOperatorInterface $operator): void;
 }

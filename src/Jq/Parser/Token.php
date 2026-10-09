@@ -21,9 +21,4 @@ final readonly class Token
         public int $column,
     ) {
     }
-
-    public function is(TokenTypeEnum $type): bool
-    {
-        return $this->type === $type;
-    }
 }

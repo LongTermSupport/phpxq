@@ -55,6 +55,12 @@ final readonly class YqApplication implements YqApplicationInterface
         $this->evaluate = new EvaluateCommand($yamlParser, $emitter, $expressions, $evaluator, $formats);
     }
 
+    /**
+     * @param resource $stdin
+     * @param resource $stdout
+     * @param resource $stderr
+     * @param string   ...$args arguments after `yq`
+     */
     public function run(mixed $stdin, mixed $stdout, mixed $stderr, string ...$args): int
     {
         // The cycle collector re-scans the huge, cycle-free node tree every few thousand allocations; a run

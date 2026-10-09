@@ -26,8 +26,6 @@ final class ValueScanner
     /** the text at $start cannot begin a value (a stray `]`, `}`, `,` or `:`) */
     public const int INVALID = 3;
 
-    public int $start = 0;
-
     public int $end = 0;
 
     /**
@@ -41,8 +39,7 @@ final class ValueScanner
             return self::NONE;
         }
 
-        $this->start = $offset;
-        $first       = $text[$offset];
+        $first = $text[$offset];
 
         if ('"' === $first) {
             $end = $this->stringEnd($text, $offset + 1, $length);

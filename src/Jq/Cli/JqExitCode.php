@@ -26,14 +26,8 @@ final readonly class JqExitCode
     /** -e given and there was no output at all */
     public const int NO_OUTPUT = 4;
 
-    /** an uncaught runtime error, or invalid JSON on the input */
-    public const int RUNTIME_ERROR = 5;
-
     /** the reader of standard output went away: what a shell reports for a process ended by SIGPIPE (128 + 13) */
     public const int BROKEN_PIPE = 141;
-
-    /** returned while the CLI is still a skeleton (matches FrontControllerInterface::EXIT_NOT_IMPLEMENTED) */
-    public const int NOT_IMPLEMENTED = 70;
 
     private function __construct()
     {
