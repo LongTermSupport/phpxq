@@ -26,6 +26,10 @@ final class FlagCatalog
     /** @var array<string, FlagSpec>|null */
     private static ?array $byShort = null;
 
+    private function __construct()
+    {
+    }
+
     /**
      * @return list<FlagSpec>
      */

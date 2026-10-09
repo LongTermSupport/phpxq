@@ -42,6 +42,10 @@ final readonly class HelpText
         See each sub-command's help for details on how to use the generated script.
         TEXT;
 
+    private function __construct()
+    {
+    }
+
     /**
      * The text of `yq --help`, `yq -h` and `yq help`.
      */

@@ -18,7 +18,7 @@ foreach (\is_array($rawArguments) ? $rawArguments : [] as $argument) {
 }
 
 if (5 !== \count($arguments)) {
-    fwrite(STDERR, "usage: box-config.php <box.json> <output.phar> <epoch> <target>\n");
+    fwrite(STDERR, "Usage: box-config.php <box.json> <output.phar> <epoch> <target>\n");
 
     exit(2);
 }

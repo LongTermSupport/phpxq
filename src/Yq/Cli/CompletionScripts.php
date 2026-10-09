@@ -134,6 +134,10 @@ final readonly class CompletionScripts
 
         SCRIPT;
 
+    private function __construct()
+    {
+    }
+
     public static function forShell(string $shell): string
     {
         return match (ShellEnum::tryFrom($shell)) {

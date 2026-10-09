@@ -38,7 +38,7 @@ $file        = $arguments[2] ?? null;
 $repetitions = (int)($arguments[3] ?? 5);
 $rows        = (int)($arguments[4] ?? 25);
 if (null === $file || '' === $file || !is_file($file)) {
-    fwrite(STDERR, "usage: php scripts/bench/profile.php <jq filter> <input file> [repetitions] [rows]\n");
+    fwrite(STDERR, "Usage: php scripts/bench/profile.php <jq filter> <input file> [repetitions] [rows]\n");
 
     exit(2);
 }

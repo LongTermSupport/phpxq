@@ -20,7 +20,7 @@ foreach (\is_array($rawArguments) ? $rawArguments : [] as $argument) {
 }
 
 if (3 !== \count($arguments)) {
-    fwrite(STDERR, "usage: extensions.php <extensions.txt> <composer.json>\n");
+    fwrite(STDERR, "Usage: extensions.php <extensions.txt> <composer.json>\n");
 
     exit(2);
 }

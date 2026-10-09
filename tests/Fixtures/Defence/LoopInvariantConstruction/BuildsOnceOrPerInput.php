@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LTS\PhpXq\Tests\Fixtures\Defence\LoopConstruction;
+namespace LTS\PhpXq\Tests\Fixtures\Defence\LoopInvariantConstruction;
 
 use ArrayObject;
 use LTS\PhpXq\Jq\Builtin\DefaultBuiltinRegistry;
