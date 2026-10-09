@@ -11,6 +11,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
 
 /**
  * TOML input: one Document holding the table tree (see {@see TomlParser} for the node shapes).
+ *
+ * @internal
  */
 final readonly class TomlDecoder implements DecoderInterface
 {

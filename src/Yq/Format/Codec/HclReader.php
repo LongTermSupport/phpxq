@@ -22,6 +22,8 @@ use WeakMap;
  * - Markers invisible to YAML output let the HCL encoder rebuild the source shape: `explicitEnd` on a
  *   mapping means "its keys are block labels", `explicitStart` on a mapping means "object expression".
  * - Comments above an item become its key's head comment, a trailing comment its value's line comment.
+ *
+ * @internal
  */
 final class HclReader
 {

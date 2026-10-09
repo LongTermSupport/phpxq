@@ -49,6 +49,8 @@ use LTS\PhpXq\Yq\Runtime\Operators\UnionOperator;
  *  - DateCalls:       now, from_unix, to_unix, tz, format_datetime, with_dtf
  *  - EnvFileCalls:    env, strenv, envsubst, load, load_str, system
  * Binary operators: pipe, union, assignment family, alternative, and/or, comparison, arithmetic and merge.
+ *
+ * @internal
  */
 final class OperatorRegistry implements OperatorRegistryInterface
 {

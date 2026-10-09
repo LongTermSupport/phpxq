@@ -17,6 +17,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * keys where safe, double-quoted strings, and comments kept (line comments after the comma, head and foot
  * comments on their own lines). Aliases and merge keys are expanded. A leading comment of the document is
  * written above the first brace.
+ *
+ * @internal
  */
 final readonly class KyamlEncoder implements EncoderInterface
 {

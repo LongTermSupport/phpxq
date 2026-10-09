@@ -23,6 +23,8 @@ use LTS\PhpXq\Yq\Runtime\NodeOps;
  * Encoders and decoders: the `@format` operators (`@json`, `@yaml`, `@csv`, `@base64`, `@uri`, `@sh`, ...
  * and the decoding `@...d` forms) and `to_X` / `from_X` for the data formats. The data formats go through the
  * format registry; the string encodings are done here.
+ *
+ * @internal
  */
 final class FormatCalls implements CallOperatorInterface
 {

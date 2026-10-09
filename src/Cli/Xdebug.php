@@ -7,6 +7,8 @@ namespace LTS\PhpXq\Cli;
 /**
  * Whether Xdebug is switched on for this process. A loaded extension whose mode is "off" costs next to nothing,
  * so only a loaded extension with a real mode (coverage, develop, debug, ...) counts.
+ *
+ * @internal
  */
 final readonly class Xdebug
 {

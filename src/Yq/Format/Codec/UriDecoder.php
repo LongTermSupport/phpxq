@@ -12,6 +12,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
 
 /**
  * URI-escaped input: the unescaped text becomes one string scalar (a trailing newline is dropped).
+ *
+ * @internal
  */
 final readonly class UriDecoder implements DecoderInterface
 {

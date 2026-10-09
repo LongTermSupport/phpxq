@@ -34,6 +34,8 @@ use LTS\PhpXq\Yq\Format\Codec\YamlEncoder;
 /**
  * Finds the codec for a format, building each one on first use and keeping it. Every format has an
  * encoder; shell has no decoder, and kyaml is read as YAML.
+ *
+ * @internal
  */
 final class FormatRegistry implements FormatRegistryInterface
 {

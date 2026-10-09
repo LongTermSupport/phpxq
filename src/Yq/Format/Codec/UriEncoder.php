@@ -13,6 +13,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
 
 /**
  * URI output: the scalar's text escaped like Go's url.QueryEscape.
+ *
+ * @internal
  */
 final readonly class UriEncoder implements EncoderInterface
 {

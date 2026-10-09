@@ -17,6 +17,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * (`name = value`), other mappings become blocks (a mapping whose `explicitEnd` flag is set holds block
  * labels as its keys), a sequence of mappings becomes repeated blocks. Strings are double-quoted unless the
  * reader flagged them as raw expressions. Two spaces per level, no blank lines.
+ *
+ * @internal
  */
 final readonly class HclEncoder implements EncoderInterface
 {

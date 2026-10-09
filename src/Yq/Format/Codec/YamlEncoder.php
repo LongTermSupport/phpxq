@@ -19,6 +19,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * Pass the position of the result's output document, not of the result: the reference prints `---` only
  * where the document changes, so every result taken from the first document is index 0 (`.[]` prints
  * `a` and `b` with no separator) and results from the next document are index 1.
+ *
+ * @internal
  */
 final readonly class YamlEncoder implements EncoderInterface
 {

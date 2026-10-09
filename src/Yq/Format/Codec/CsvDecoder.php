@@ -19,6 +19,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * CSV and TSV input: the first record names the columns and every later record becomes a mapping in one
  * top-level sequence. With auto-parse on (the default) each field is read as a YAML snippet, so `1`,
  * `true` and `cool: true` become an int, a bool and a map; with it off the field is a plain scalar.
+ *
+ * @internal
  */
 final readonly class CsvDecoder implements DecoderInterface
 {

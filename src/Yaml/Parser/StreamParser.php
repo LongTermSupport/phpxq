@@ -20,6 +20,8 @@ use LTS\PhpXq\Yaml\Token\ScanToken;
  * created next takes whatever the buffers hold.
  *
  * One instance parses one stream; use {@see YamlParser} as the entry point.
+ *
+ * @internal
  */
 final class StreamParser
 {

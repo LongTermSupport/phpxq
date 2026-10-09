@@ -26,6 +26,8 @@ use LTS\PhpXq\Yq\Runtime\EvaluatorInterface;
  * `yq completion <shell>`, `yq help [command]` and `yq --version`.
  *
  * Every failure prints `Error: <message>` on standard error and returns 1, as the reference does.
+ *
+ * @internal
  */
 final readonly class YqApplication implements YqApplicationInterface
 {

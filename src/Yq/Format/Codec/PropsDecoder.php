@@ -17,6 +17,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * Java properties input. Keys are split on `.`; an all-digit segment indexes an array (missing positions
  * are filled with nulls), anything else is a map key. Every value is a string. Comment lines above a
  * property become its head comment.
+ *
+ * @internal
  */
 final readonly class PropsDecoder implements DecoderInterface
 {

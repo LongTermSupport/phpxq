@@ -13,6 +13,8 @@ use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 
 /**
  * Evaluation of an operator's arguments against one match.
+ *
+ * @internal
  */
 final readonly class Args
 {

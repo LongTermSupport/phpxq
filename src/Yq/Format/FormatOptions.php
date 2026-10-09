@@ -9,6 +9,8 @@ namespace LTS\PhpXq\Yq\Format;
  * and each codec reads only what it needs. Defaults match the reference's defaults.
  * `yamlFixMergeAnchorToSpec` is `--yaml-fix-merge-anchor-to-spec`, which also decides which `<<` values the
  * encoders merge (see {@see Codec\NodeTools::pairs()}).
+ *
+ * @internal
  */
 final readonly class FormatOptions
 {

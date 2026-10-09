@@ -18,6 +18,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * folded to their base letter, other printable ASCII becomes `_`, everything else is dropped. Values are
  * single-quoted when they hold anything but safe characters, null is empty, and empty maps and arrays
  * produce nothing.
+ *
+ * @internal
  */
 final class ShellEncoder implements EncoderInterface
 {

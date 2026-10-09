@@ -14,6 +14,8 @@ use LTS\PhpXq\Yaml\Schema\CoreSchema;
  * Navigation into mappings and sequences: key and index lookup with `*` globs, `<<` merge keys (both
  * the legacy and the spec-fixed resolution order), splat, recursive descent and the null placeholders
  * (see {@see Detached}) for paths that do not exist.
+ *
+ * @internal
  */
 final readonly class Traversal
 {

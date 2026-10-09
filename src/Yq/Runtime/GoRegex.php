@@ -7,6 +7,8 @@ namespace LTS\PhpXq\Yq\Runtime;
 /**
  * Go (RE2) regular expressions on top of PCRE: pattern translation, match records with rune offsets and
  * Go's replacement syntax (`${1}`, `$1`, `$name`, `$$`).
+ *
+ * @internal
  */
 final class GoRegex
 {

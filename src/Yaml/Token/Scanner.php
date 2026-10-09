@@ -25,6 +25,8 @@ use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
  * blanks not followed by a hash); PLAIN_START lists the bytes that can only start a plain scalar, so no
  * indicator test is needed; `crlf` holds the line break offsets of the normalised text that were CRLF in the
  * source.
+ *
+ * @internal
  */
 final class Scanner
 {

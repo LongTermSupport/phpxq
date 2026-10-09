@@ -11,6 +11,8 @@ use LTS\PhpXq\Yaml\Schema\CoreSchema;
 
 /**
  * Equality, ordering and wildcard matching of nodes, as the comparison, sort and unique operators need.
+ *
+ * @internal
  */
 final class Compare
 {

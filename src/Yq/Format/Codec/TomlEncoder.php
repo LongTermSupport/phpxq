@@ -18,6 +18,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * tables), flow mappings become inline tables, arrays of block mappings become `[[array]]` sections and
  * every other array is written inline. Scalars come before sub-tables inside a section, a blank line
  * precedes each `[table]`, and comments are written above entries and after values.
+ *
+ * @internal
  */
 final readonly class TomlEncoder implements EncoderInterface
 {

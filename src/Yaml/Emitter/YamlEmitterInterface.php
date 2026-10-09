@@ -19,7 +19,7 @@ use LTS\PhpXq\Yaml\Node;
  *    `noDocSeparator`;
  *  - the emitter never mutates its input.
  *
- * @api
+ * @internal
  */
 interface YamlEmitterInterface
 {

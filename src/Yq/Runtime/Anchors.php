@@ -14,6 +14,8 @@ use LTS\PhpXq\Yaml\NodeStyleEnum;
 /**
  * Anchor and alias resolution: `explode` (replace aliases by copies, drop anchors, expand `<<` merge
  * keys) and anchor lookup for the `alias` setter.
+ *
+ * @internal
  */
 final readonly class Anchors
 {

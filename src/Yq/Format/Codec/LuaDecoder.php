@@ -11,6 +11,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
 
 /**
  * Lua input: a `return { ... }` table or a list of global assignments, read as data (see {@see LuaReader}).
+ *
+ * @internal
  */
 final readonly class LuaDecoder implements DecoderInterface
 {

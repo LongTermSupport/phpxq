@@ -8,6 +8,8 @@ namespace LTS\PhpXq\Yq\Expression;
  * One lexical token with its 0-based byte offset in the expression text. A raw string (one whose body holds
  * `\(`) has empty text and carries its parts instead: decoded literal text, and the tokens of each
  * interpolation, which end with an EndOfInput token and carry offsets in the same expression text.
+ *
+ * @internal
  */
 final readonly class ExpressionToken
 {

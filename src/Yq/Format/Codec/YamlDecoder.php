@@ -14,6 +14,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
 
 /**
  * YAML input (also KYaml, which is a YAML subset): delegates to the YAML parser and reports its syntax errors as format errors.
+ *
+ * @internal
  */
 final readonly class YamlDecoder implements DecoderInterface
 {

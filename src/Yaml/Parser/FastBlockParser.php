@@ -25,6 +25,8 @@ use LTS\PhpXq\Yaml\Schema\CoreSchema;
  *  - a line holds only spaces (never tabs) and ASCII (columns are then byte offsets), with LF line ends;
  *  - a value line may not be followed by a more indented line (a plain scalar would continue there);
  *  - a line starting at column 0 with `---` or `...` is a document marker, so it is declined.
+ *
+ * @internal
  */
 final readonly class FastBlockParser
 {

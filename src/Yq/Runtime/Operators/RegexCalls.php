@@ -19,6 +19,8 @@ use LTS\PhpXq\Yq\Runtime\NodeOps;
 
 /**
  * Regular-expression operators: `test`, `match`, `capture` and `sub`, with Go (RE2) syntax.
+ *
+ * @internal
  */
 final readonly class RegexCalls implements CallOperatorInterface
 {

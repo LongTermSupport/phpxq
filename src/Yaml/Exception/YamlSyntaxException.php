@@ -8,6 +8,8 @@ use RuntimeException;
 
 /**
  * Raised by the tokenizer and parser for malformed YAML. The line is 1-based and part of the message.
+ *
+ * @api
  */
 final class YamlSyntaxException extends RuntimeException
 {

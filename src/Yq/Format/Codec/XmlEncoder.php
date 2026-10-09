@@ -16,6 +16,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * `+content` is the element text, `+p_target` and `+directive` write processing instructions and
  * directives, and comments are written as XML comments around the entry they belong to. Indentation is
  * `-I` spaces (none at 0).
+ *
+ * @internal
  */
 final readonly class XmlEncoder implements EncoderInterface
 {

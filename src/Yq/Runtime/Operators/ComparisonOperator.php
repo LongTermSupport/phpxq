@@ -18,6 +18,8 @@ use LTS\PhpXq\Yq\Runtime\NodeOps;
 
 /**
  * `==`, `!=`, `<`, `<=`, `>`, `>=`. A side with no match counts as null, so two missing keys are equal.
+ *
+ * @internal
  */
 final readonly class ComparisonOperator implements BinaryOperatorInterface
 {

@@ -16,6 +16,8 @@ use LTS\PhpXq\Yq\Runtime\NodeOps;
 
 /**
  * `and` and `or` over the truthiness of the operands (a missing operand is false).
+ *
+ * @internal
  */
 final readonly class BooleanOperator implements BinaryOperatorInterface
 {

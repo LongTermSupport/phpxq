@@ -6,6 +6,8 @@ namespace LTS\PhpXq\Yq\Cli;
 
 /**
  * The help and usage texts, laid out the way cobra lays them out.
+ *
+ * @internal
  */
 final readonly class HelpText
 {

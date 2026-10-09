@@ -25,6 +25,8 @@ use LTS\PhpXq\Yq\Runtime\Numbers;
 /**
  * String operators: `upcase`, `downcase`, `trim`, `ltrimstr`, `rtrimstr`, `startswith`, `endswith`,
  * `join`, `split`, `to_string`, `to_number`, `to_bool`.
+ *
+ * @internal
  */
 final readonly class StringCalls implements CallOperatorInterface
 {

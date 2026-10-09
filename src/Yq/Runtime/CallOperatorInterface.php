@@ -10,7 +10,7 @@ use LTS\PhpXq\Yq\Expression\Ast\Call;
  * A named operator or function (`select`, `length`, `style`, `to_entries`...). One implementation may
  * answer to several names (aliases); it is registered once per name returned by names().
  *
- * @api
+ * @internal
  */
 interface CallOperatorInterface
 {

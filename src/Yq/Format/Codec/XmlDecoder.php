@@ -16,6 +16,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * attributes become `+@name` children (first); text next to children or attributes becomes `+content`;
  * processing instructions become `+p_target` and directives `+directive`; every value is a string.
  * Comments become head, line and foot comments.
+ *
+ * @internal
  */
 final readonly class XmlDecoder implements DecoderInterface
 {

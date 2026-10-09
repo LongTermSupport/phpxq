@@ -16,6 +16,8 @@ use LTS\PhpXq\Yq\Runtime\RuntimeServices;
  * Opens the output file for each result of `--split-exp`: the file name is the first value of the name
  * expression evaluated against the result (with `$index` bound to the result counter), given the output
  * format's extension when it has none, with its directories created.
+ *
+ * @internal
  */
 final class SplitFileWriter
 {

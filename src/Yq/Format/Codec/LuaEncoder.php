@@ -17,6 +17,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * with `--lua-unquoted`), array items as `value,`, and with `--lua-globals` the top-level entries as
  * global assignments. Comments become Lua `--` comments. Infinity and NaN are written as `(1/0)`,
  * `(-1/0)` and `(0/0)`.
+ *
+ * @internal
  */
 final readonly class LuaEncoder implements EncoderInterface
 {

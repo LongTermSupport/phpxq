@@ -6,6 +6,8 @@ namespace LTS\PhpXq\Yq\Runtime;
 
 /**
  * The reference's `--security-*` switches.
+ *
+ * @internal
  */
 final readonly class SecurityOptions
 {

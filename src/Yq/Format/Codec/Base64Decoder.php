@@ -13,6 +13,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
 /**
  * base64 and base64url input: the decoded bytes become one string scalar. Whitespace around and inside
  * the text is ignored.
+ *
+ * @internal
  */
 final readonly class Base64Decoder implements DecoderInterface
 {

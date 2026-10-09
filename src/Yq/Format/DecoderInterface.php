@@ -15,7 +15,7 @@ use LTS\PhpXq\Yaml\Node;
  * values). Scalars are tagged as the reference tags them (numbers !!int/!!float, booleans !!bool,
  * null !!null, everything else !!str).
  *
- * @api
+ * @internal
  */
 interface DecoderInterface
 {

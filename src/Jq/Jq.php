@@ -21,7 +21,7 @@ use LTS\PhpXq\Json\JsonDecoder;
 /**
  * Runs a jq program over a PHP value and returns every output. The supported way to use jq from PHP code.
  *
- * Values are the ones {@see \LTS\PhpXq\Json\JsonDecoder} produces: null, bool, int, float, string, list
+ * Values are the ones {@see JsonDecoder} produces: null, bool, int, float, string, list
  * arrays and {@see \LTS\PhpXq\Json\JsonObject} for objects.
  *
  * @api
@@ -65,9 +65,9 @@ final readonly class Jq
                 $compiled->run(new EmbeddedContext($variables, $allowEnv), $input, static function (mixed $output) use (&$outputs): void {
                     $outputs[] = $output;
                 });
-            } catch (HaltException $halt) {
-                if (0 !== $halt->exitCode || null !== $halt->stderrText) {
-                    throw new JqException($halt->stderrText ?? \sprintf('halted with status %d', $halt->exitCode), $halt);
+            } catch (HaltException $haltException) {
+                if (0 !== $haltException->exitCode || null !== $haltException->stderrText) {
+                    throw new JqException($haltException->stderrText ?? \sprintf('halted with status %d', $haltException->exitCode), $haltException);
                 }
 
                 return $outputs;

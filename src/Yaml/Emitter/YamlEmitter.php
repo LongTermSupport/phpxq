@@ -13,6 +13,8 @@ use LTS\PhpXq\Yaml\NodeKindEnum;
  * Document framing follows yq's printer rather than go-yaml's: a `---` line separates consecutive
  * documents, a document head comment is printed before an explicit `---` marker, and `--no-doc`
  * (`noDocSeparator`) drops every marker and directive.
+ *
+ * @internal
  */
 final readonly class YamlEmitter implements YamlEmitterInterface
 {

@@ -11,6 +11,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
 
 /**
  * HCL input: one Document holding the attributes and nested blocks (see {@see HclReader}).
+ *
+ * @internal
  */
 final readonly class HclDecoder implements DecoderInterface
 {

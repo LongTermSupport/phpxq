@@ -23,6 +23,8 @@ use LTS\PhpXq\Yq\Runtime\Traversal;
 /**
  * Collection-shaping operators: `length`, `keys`, `to_entries`, `from_entries`, `with_entries`, `map`,
  * `map_values`, `flatten`, `add`, `pivot`, `array_to_map`, `range`.
+ *
+ * @internal
  */
 final readonly class CollectionCalls implements CallOperatorInterface
 {

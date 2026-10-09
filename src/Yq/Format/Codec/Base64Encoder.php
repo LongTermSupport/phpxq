@@ -15,6 +15,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
 /**
  * base64 and base64url output. Only string scalars can be encoded, as in the reference; pipe other values
  * through another encoder first.
+ *
+ * @internal
  */
 final readonly class Base64Encoder implements EncoderInterface
 {

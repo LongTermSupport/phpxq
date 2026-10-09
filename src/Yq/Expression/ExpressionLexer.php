@@ -24,6 +24,8 @@ use LTS\PhpXq\Yq\Expression\Parser\StringLiteral;
  *   text is empty and its parts hold the decoded literal text and the tokens of each interpolation. An interpolation is tokenized in the same pass, up to the `)` that balances its `\(`, so
  *   every byte of a nested interpolation is scanned once however deep it nests (up to
  *   {@see NestingLimit::MAX_DEPTH} levels). Single-quoted strings are verbatim.
+ *
+ * @internal
  */
 final readonly class ExpressionLexer implements ExpressionLexerInterface
 {

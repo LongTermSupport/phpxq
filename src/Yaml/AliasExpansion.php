@@ -20,6 +20,8 @@ namespace LTS\PhpXq\Yaml;
  * through ({@see MergeKey::merges()}, in the same merge mode) counts each of its sources once, however often the
  * value repeats it, as merging takes each key once; any other key's value counts in full, as it is written in
  * full. A cyclic alias counts as one node at the point it re-enters; the walkers' own cycle guards deal with it.
+ *
+ * @internal
  */
 final readonly class AliasExpansion
 {

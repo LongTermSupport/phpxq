@@ -26,6 +26,8 @@ use LTS\PhpXq\Yq\Runtime\Numbers;
 /**
  * Date and time operators: `now`, `from_unix`, `to_unix`, `tz`, `format_datetime` and `with_dtf`, which
  * sets the layout the date operators in its second argument read and write.
+ *
+ * @internal
  */
 final readonly class DateCalls implements CallOperatorInterface
 {

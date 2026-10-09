@@ -6,6 +6,8 @@ namespace LTS\PhpXq\Jq\Builtin;
 
 /**
  * The groups the native builtins are registered in, in {@see BuiltinCatalog::GROUPS} order.
+ *
+ * @internal
  */
 enum BuiltinGroupEnum: string
 {
