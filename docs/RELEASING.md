@@ -91,8 +91,8 @@ The logic is `scripts/Release/` (unit tested in `tests/Unit/Release/`), run thro
 | `scripts/release.bash verify`       | exit 0 releasable, 3 not a release commit, 1 refused                           |
 | `scripts/release.bash reconcile`    | merges a released changelog with the entries `main` gained since               |
 
-Before the first release `VERSION` (`0.1.0`) has no tag, so the release is `0.1.0` itself and no bump is
-applied. Pre-release suffixes (`-rc.1`) are not produced by this flow.
+When `VERSION` has no tag yet (only before the very first release, `0.1.0`), that version is released as it
+stands and no bump is applied. Pre-release suffixes (`-rc.1`) are not produced by this flow.
 
 ## What each stage does
 
@@ -169,10 +169,10 @@ fails the run shows a warning and the release ships without it. To make a platfo
 `optional` to `false` in the `binary` matrix and add it to `required` in `scripts/release-assets.bash`.
 The asset names are stable and unversioned so `releases/latest/download/<asset>` always works.
 
-## Cutting 0.1.0
+## Cutting the first release (0.1.0, done)
 
-`VERSION` reads `0.1.0` and `## Unreleased` holds the first release's entries, so the very first release
-goes through the same flow.
+`0.1.0` went through the same flow as every later release. These are the one-off steps that set it up, kept
+for a fresh fork or a repository that loses its `release` branch; an ordinary release needs none of them.
 
 1. Do the one-off GitHub configuration below.
 
@@ -188,7 +188,7 @@ goes through the same flow.
    ```
 
 4. Run the `Release PR` workflow (Actions tab, "Run workflow" on `main`), or push anything to `main`. It opens
-   the pull request `Release 0.1.0`. Review and merge it with a merge commit.
+   the release pull request (`Release 0.1.0` the first time). Review and merge it with a merge commit.
 
 5. Watch the `Release` run, then check the Releases page: `v0.1.0` with `phpxq.phar`,
    `phpxq-linux-x86_64`, `phpxq-linux-aarch64` (plus macOS when they built), `install.sh`, `SHA256SUMS` and the
@@ -210,7 +210,7 @@ Do these once, in the repository settings. None of it can be applied or tested f
 
 **The `release` branch**
 
-3. Create it once (see "Cutting 0.1.0"), then protect it: Settings, Branches (or Rules, Rulesets), `release`:
+3. Create it once (see "Cutting the first release"), then protect it: Settings, Branches (or Rules, Rulesets), `release`:
    - Require a pull request before merging (at least one approval if you have collaborators).
    - Require status checks to pass: `QA gate (read-only qa)`. Require branches to be up to date.
    - Restrict who can push, so only the merged pull request lands there. Block force pushes and deletion.
