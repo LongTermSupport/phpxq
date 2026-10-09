@@ -108,6 +108,8 @@ fi
 # check_scope: reads the `Infection:` lines php-qa-ci printed and fails on a run that was full for a reason
 # that is a fault of the clone rather than of the change. Sets nothing_to_mutate=1 when the diff held no source.
 nothing_to_mutate=0
+# 1 only when the log shows a diff run that stayed one: a full run, or a scope not known, measures all of src/.
+scope_is_diff=0
 check_scope() {
     local log="${PHPXQ_QA_LOG:-}" scope_line full_runs
     if [[ -z "$log" ]]; then
@@ -123,9 +125,12 @@ check_scope() {
         return
     fi
     echo "mutation scope: $scope_line"
-    if full_runs="$(grep -E 'Infection: full run' "$log")" \
-        && printf '%s\n' "$full_runs" | grep -q -v -E 'does not apply: on the default branch|touches configuration every mutant depends on'; then
-        fail "Infection mutated all of src/ for a reason other than a configuration change or the default branch (a shallow clone, no default branch, a detached HEAD, or a forced full run): $full_runs"
+    scope_is_diff=1
+    if full_runs="$(grep -E 'Infection: full run' "$log")"; then
+        scope_is_diff=0
+        if printf '%s\n' "$full_runs" | grep -q -v -E 'does not apply: on the default branch|touches configuration every mutant depends on'; then
+            fail "Infection mutated all of src/ for a reason other than a configuration change or the default branch (a shallow clone, no default branch, a detached HEAD, or a forced full run): $full_runs"
+        fi
     fi
     if grep -q -E 'there are no new mutants to check\. SKIPPING' "$log"; then
         nothing_to_mutate=1
@@ -146,10 +151,12 @@ else
         fail "the Infection summary has no Total or Skipped line"
     else
         echo "mutants: $total generated, $skipped skipped"
-        if [[ "$total" -eq 0 ]]; then
+        if [[ "$total" -eq 0 && "$scope_is_diff" -eq 1 ]]; then
             # Infection ran over the diff (the summary is from this run) and found nothing to mutate in it, as for
             # a change to interfaces alone. That is a pass; a missing summary is not, and fails above.
             echo "mutants: none were generated from what the change touches, so there is no score to check"
+        elif [[ "$total" -eq 0 ]]; then
+            fail "Infection generated no mutants from all of src/ (or the scope of the run is not known)"
         else
             if [[ $((skipped * 100)) -gt $((total * max_skipped_percent)) ]]; then
                 fail "Infection skipped $skipped of $total mutants, more than $max_skipped_percent% (their covering tests are slower than the timeout), and the mutation score leaves them out"
