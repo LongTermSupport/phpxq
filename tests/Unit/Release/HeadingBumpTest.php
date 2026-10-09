@@ -30,7 +30,8 @@ final class HeadingBumpTest extends TestCase
         yield 'breaking in 0.x is a minor' => [ChangelogHeadingEnum::ChangedBreaking, '0.4.2', BumpEnum::Minor];
         yield 'breaking from 1.0 is a major' => [ChangelogHeadingEnum::ChangedBreaking, '1.0.0', BumpEnum::Major];
         yield 'breaking in 2.x is a major' => [ChangelogHeadingEnum::ChangedBreaking, '2.7.1', BumpEnum::Major];
-        yield 'removed is a minor' => [ChangelogHeadingEnum::Removed, '1.2.3', BumpEnum::Minor];
+        yield 'removed in 0.x is a minor' => [ChangelogHeadingEnum::Removed, '0.4.2', BumpEnum::Minor];
+        yield 'removed from 1.0 is a major' => [ChangelogHeadingEnum::Removed, '1.2.3', BumpEnum::Major];
         yield 'added is a minor' => [ChangelogHeadingEnum::Added, '1.2.3', BumpEnum::Minor];
         yield 'changed is a minor' => [ChangelogHeadingEnum::Changed, '1.2.3', BumpEnum::Minor];
         yield 'deprecated is a minor' => [ChangelogHeadingEnum::Deprecated, '1.2.3', BumpEnum::Minor];

@@ -39,7 +39,8 @@ final class ReleasePlannerTest extends TestCase
         yield 'feature is a minor' => ['0.1.4', ['Added' => ['A thing.']], '0.2.0'];
         yield 'feature beats fix' => ['1.1.1', ['Fixed' => ['A bug.'], 'Added' => ['A thing.']], '1.2.0'];
         yield 'deprecation is a minor' => ['1.0.0', ['Deprecated' => ['A flag.']], '1.1.0'];
-        yield 'removal is a minor' => ['1.0.0', ['Removed' => ['A flag.']], '1.1.0'];
+        yield 'removal in 0.x is a minor' => ['0.2.0', ['Removed' => ['A flag.']], '0.3.0'];
+        yield 'removal from 1.0 is a major' => ['1.0.0', ['Removed' => ['A flag.']], '2.0.0'];
         yield 'breaking in 0.x is a minor' => ['0.3.1', ['Changed — breaking' => ['A contract.'], 'Fixed' => ['A bug.']], '0.4.0'];
         yield 'breaking from 1.0 is a major' => ['1.3.1', ['Changed — breaking' => ['A contract.'], 'Added' => ['A thing.']], '2.0.0'];
     }
