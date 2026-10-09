@@ -27,6 +27,10 @@ final readonly class YqProcess
     /** Value of XDEBUG_MODE that switches Xdebug off for the child. */
     public const string XDEBUG_OFF = 'off';
 
+    private function __construct()
+    {
+    }
+
     /**
      * @param list<string> $arguments yq arguments, without the program name
      */
