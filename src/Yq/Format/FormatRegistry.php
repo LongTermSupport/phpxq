@@ -66,7 +66,7 @@ final class FormatRegistry implements FormatRegistryInterface
             FormatEnum::Uri                      => new UriDecoder(),
             FormatEnum::Lua                      => new LuaDecoder(),
             FormatEnum::Hcl                      => new HclDecoder(),
-            FormatEnum::Kyaml                    => new YamlDecoder($this->yamlParser, FormatEnum::Kyaml),
+            FormatEnum::Kyaml                    => new YamlDecoder($this->yamlParser),
             FormatEnum::Shell                    => throw new FormatException('cannot read ' . $format->value . ' input; it is an output only format'),
         };
     }

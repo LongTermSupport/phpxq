@@ -8,7 +8,6 @@ use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -28,11 +27,6 @@ final readonly class LuaEncoder implements EncoderInterface
         'and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for', 'function', 'goto', 'if', 'in', 'local',
         'nil', 'not', 'or', 'repeat', 'return', 'then', 'true', 'until', 'while',
     ];
-
-    public function format(): FormatEnum
-    {
-        return FormatEnum::Lua;
-    }
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {

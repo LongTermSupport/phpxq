@@ -9,7 +9,6 @@ use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\DecoderInterface;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -23,11 +22,6 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
 final readonly class PropsDecoder implements DecoderInterface
 {
     private const string BLANKS = " \t\f";
-
-    public function format(): FormatEnum
-    {
-        return FormatEnum::Props;
-    }
 
     /**
      * @return iterable<Node>

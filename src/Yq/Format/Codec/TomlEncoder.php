@@ -9,7 +9,6 @@ use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -24,11 +23,6 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
 final readonly class TomlEncoder implements EncoderInterface
 {
     private const int MAX_DEPTH = 500;
-
-    public function format(): FormatEnum
-    {
-        return FormatEnum::Toml;
-    }
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {

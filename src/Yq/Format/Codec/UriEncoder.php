@@ -7,7 +7,6 @@ namespace LTS\PhpXq\Yq\Format\Codec;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -18,11 +17,6 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  */
 final readonly class UriEncoder implements EncoderInterface
 {
-    public function format(): FormatEnum
-    {
-        return FormatEnum::Uri;
-    }
-
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
         $scalar = NodeTools::unwrap($node);

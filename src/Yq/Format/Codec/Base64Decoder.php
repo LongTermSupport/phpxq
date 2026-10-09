@@ -22,11 +22,6 @@ final readonly class Base64Decoder implements DecoderInterface
     {
     }
 
-    public function format(): FormatEnum
-    {
-        return $this->format;
-    }
-
     /**
      * @return iterable<Node>
      */

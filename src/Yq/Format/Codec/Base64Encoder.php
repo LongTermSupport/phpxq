@@ -24,11 +24,6 @@ final readonly class Base64Encoder implements EncoderInterface
     {
     }
 
-    public function format(): FormatEnum
-    {
-        return $this->format;
-    }
-
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
         $scalar = NodeTools::unwrap($node);

@@ -30,11 +30,6 @@ final readonly class CsvDecoder implements DecoderInterface
     {
     }
 
-    public function format(): FormatEnum
-    {
-        return $this->format;
-    }
-
     /**
      * @return iterable<Node>
      */

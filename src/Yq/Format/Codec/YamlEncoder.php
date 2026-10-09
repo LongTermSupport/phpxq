@@ -9,7 +9,6 @@ use LTS\PhpXq\Yaml\Emitter\YamlEmitter;
 use LTS\PhpXq\Yaml\Emitter\YamlEmitterInterface;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
 /**
@@ -26,11 +25,6 @@ final readonly class YamlEncoder implements EncoderInterface
 {
     public function __construct(private YamlEmitterInterface $emitter = new YamlEmitter())
     {
-    }
-
-    public function format(): FormatEnum
-    {
-        return FormatEnum::Yaml;
     }
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string

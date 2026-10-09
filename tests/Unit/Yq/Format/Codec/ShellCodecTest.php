@@ -6,7 +6,6 @@ namespace LTS\PhpXq\Tests\Unit\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Parser\YamlParser;
 use LTS\PhpXq\Yq\Format\Codec\ShellEncoder;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -54,10 +53,5 @@ final class ShellCodecTest extends TestCase
         yield 'aliases and merges' => ["base: &b {x: 1}\nm:\n  <<: *b\n  y: 2\n", "base_x=1\nm_x=1\nm_y=2\n"];
 
         yield 'bare scalar' => ["hello world\n", "'hello world'\n"];
-    }
-
-    public function testFormat(): void
-    {
-        self::assertSame(FormatEnum::Shell, new ShellEncoder()->format());
     }
 }

@@ -6,7 +6,6 @@ namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yq\Format\DecoderInterface;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
 /**
@@ -16,11 +15,6 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  */
 final readonly class LuaDecoder implements DecoderInterface
 {
-    public function format(): FormatEnum
-    {
-        return FormatEnum::Lua;
-    }
-
     /**
      * @return iterable<Node>
      */
