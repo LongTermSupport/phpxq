@@ -12,6 +12,8 @@ use LTS\PhpXq\Yq\Runtime\EvaluatorInterface;
 
 /**
  * `lhs | rhs`: the right side runs against the left side's matches.
+ *
+ * @internal
  */
 final readonly class PipeOperator implements BinaryOperatorInterface
 {

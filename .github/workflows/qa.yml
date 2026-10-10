@@ -15,7 +15,7 @@
 #    standards, linting, the changelog lane, static analysis, tests with coverage, mutation testing), the
 #    measurement floors (scripts/check-qa-measurements.bash) and the upstream shell conformance suites.
 #    php-qa-ci turns on read-only mode on GitHub Actions, so Rector and CS Fixer run as --dry-run and fail
-#    on any change. Mutation testing is scoped to the change (docs/RELEASING.md, "Mutation testing in CI").
+#    on any change. Mutation testing is scoped to the change by php-qa-ci (docs/RELEASING.md, "Mutation testing in CI").
 #
 # 3. redispatch: a push made with GITHUB_TOKEN starts no workflow run, so the commit autofix pushed would never
 #    get its own gate check and branch protection would wait for it for ever. This job starts this workflow on
@@ -145,7 +145,8 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) && github.head_ref || github.ref }}
-          # Full history: the changelog lane and the mutation scope measure from the default branch.
+          # Full history: the changelog lane and php-qa-ci's mutation diff measure from the default branch (without
+          # history Infection runs in full, and scripts/check-qa-measurements.bash fails the gate).
           fetch-depth: 0
           persist-credentials: false
 
@@ -162,35 +163,6 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader --no-scripts
 
-      # The ref mutation is scoped against: the default branch for a branch or pull request, the commit before
-      # the push for a push to the default branch. Empty (a manual run on the default branch, or a first push)
-      # means the full run.
-      - name: Choose the mutation base
-        id: base
-        env:
-          REF_NAME: ${{ github.ref_name }}
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-          EVENT: ${{ github.event_name }}
-          BEFORE: ${{ github.event.before }}
-        run: |
-          set -euo pipefail
-          base=""
-          if [ "${REF_NAME}" != "${DEFAULT_BRANCH}" ]; then
-            base="origin/${DEFAULT_BRANCH}"
-          elif [ "${EVENT}" = "push" ] && [ -n "${BEFORE}" ] && [ "${BEFORE}" != "0000000000000000000000000000000000000000" ] \
-            && git cat-file -e "${BEFORE}^{commit}"; then
-            base="${BEFORE}"
-          fi
-          echo "Mutation base: ${base:-(none, full run)}"
-          echo "ref=${base}" >> "${GITHUB_OUTPUT}"
-
-      - name: Scope mutation testing to the change
-        id: scope
-        if: ${{ steps.base.outputs.ref != '' }}
-        env:
-          BASE: ${{ steps.base.outputs.ref }}
-        run: scripts/mutation-scope.bash "${BASE}" --write
-
       # The whole pipeline in one run: coding standards (read-only), linting, the changelog lane (it switches
       # itself off on main, qaConfig/ChangelogLaneSwitch.php), static analysis, the unit and gap-aware
       # conformance tests with coverage, and Infection. Only an unfiltered run lets Infection reuse the
@@ -198,12 +170,18 @@ jobs:
       - name: Full QA pipeline
         env:
           CI: 'true'
-          PHPXQ_INFECTION_SKIP: ${{ steps.scope.outputs.scope == 'none' && '1' || '' }}
-        run: vendor/bin/qa
+          # Mutation testing is php-qa-ci's automatic diff mode: a branch or pull request is held to what it
+          # changed since its merge base. A push to the default branch would be a full run (hours), so it is
+          # held to what the push brought: the commit before it. Empty, as for a manual run or a first push,
+          # leaves the automatic choice.
+          infectionDiffBase: ${{ (github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000') && github.event.before || '' }}
+        # Kept so the measurement check can read which scope Infection ran (its first `Infection:` line).
+        shell: bash   # `bash -e -o pipefail`: the default shell has no pipefail, so tee would hide a failing qa
+        run: vendor/bin/qa 2>&1 | tee "${RUNNER_TEMP}/qa-pipeline.log"
 
       - name: Coverage and mutation lanes ran and meet their floors
         env:
-          PHPXQ_MUTATION_BASE: ${{ steps.base.outputs.ref }}
+          PHPXQ_QA_LOG: ${{ runner.temp }}/qa-pipeline.log
         run: scripts/check-qa-measurements.bash
 
       - name: Upstream shell conformance (jq shtest, yq acceptance)

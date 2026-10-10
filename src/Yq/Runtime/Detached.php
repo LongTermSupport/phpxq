@@ -16,6 +16,8 @@ use WeakMap;
  * linked to their parent candidate but not yet part of the tree: reading them gives null, and the first
  * mutation attaches the whole chain, creating mappings (or sequences, for an integer key) on the way, as
  * the reference auto-creates paths.
+ *
+ * @internal
  */
 final class Detached
 {

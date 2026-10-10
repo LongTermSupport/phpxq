@@ -11,7 +11,7 @@ use RuntimeException;
  * as is. When $showShortUsage is set the short usage block follows it (a missing program); otherwise the
  * "Use jq --help ..." pointer does (every other refusal).
  *
- * @api
+ * @internal
  */
 final class UsageException extends RuntimeException
 {

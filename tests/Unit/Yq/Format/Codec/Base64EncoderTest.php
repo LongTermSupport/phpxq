@@ -68,10 +68,4 @@ final class Base64EncoderTest extends TestCase
         self::assertSame("-_8=\n", new Base64Encoder(FormatEnum::Base64Url)->encode($node, new FormatOptions(), 0));
         self::assertSame("+/8=\n", new Base64Encoder(FormatEnum::Base64)->encode($node, new FormatOptions(), 0));
     }
-
-    public function testFormatIsTheConfiguredOne(): void
-    {
-        self::assertSame(FormatEnum::Base64, new Base64Encoder()->format());
-        self::assertSame(FormatEnum::Base64Url, new Base64Encoder(FormatEnum::Base64Url)->format());
-    }
 }

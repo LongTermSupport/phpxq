@@ -7,6 +7,8 @@ namespace LTS\PhpXq\Yq\Cli;
 /**
  * One input to read: a file name (`-` for standard input), and optionally its content when the caller
  * already holds it (the YAML part of a front matter file).
+ *
+ * @internal
  */
 final readonly class FileInput
 {

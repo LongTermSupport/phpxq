@@ -13,6 +13,10 @@ into a `## X.Y.Z — date` section. The rules are in [docs/RELEASING.md](docs/RE
 
 ## Unreleased
 
+### Added
+
+- **`phpxq` can be used as a library.** `LTS\PhpXq\Jq\Jq::run()` runs a jq program over a PHP value and `LTS\PhpXq\Yq\Yq::evaluate()` runs a yq expression over a document string; with `JsonDecoder` and `JsonEncoder` they are the supported public API, documented in `docs/LIBRARY.md`. The package type is now `library`.
+
 ### Changed
 
 - `yq`: a malformed expression keeps the reference's `Error: Bad expression, ...` line and then adds a second line on

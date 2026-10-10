@@ -13,7 +13,7 @@ namespace LTS\PhpXq\Cli;
  * jq and yq releases the tools are compatible with. `jq --version` / `yq --version` reach the tool
  * unchanged and print exactly what upstream prints.
  *
- * @api
+ * @internal
  */
 final readonly class EntryPoint
 {

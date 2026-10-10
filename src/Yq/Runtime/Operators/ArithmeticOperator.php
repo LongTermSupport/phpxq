@@ -28,6 +28,8 @@ use LTS\PhpXq\Yq\Runtime\Numbers;
  * `+ - * / %`: addition and concatenation, subtraction and set difference, multiplication, merge and
  * string repetition, division and string splitting, modulo; with dates plus or minus a duration. The
  * same arithmetic backs the compound assignments (`+=`, `-=`, ...).
+ *
+ * @internal
  */
 final readonly class ArithmeticOperator implements BinaryOperatorInterface
 {

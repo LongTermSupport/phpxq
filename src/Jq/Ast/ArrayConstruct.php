@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Ast;
 /**
  * `[body]` collects every output of $body; `[]` has a null body.
  *
- * @api
+ * @internal
  */
 final readonly class ArrayConstruct implements NodeInterface
 {

@@ -15,16 +15,13 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * CSV and TSV output. An array of arrays is one record per inner array, an array of scalars is a single
  * record, and an array of maps is a header (the keys of the first map, printed only when `$resultIndex` is
  * zero) followed by one record per map. Fields are quoted the way Go's csv writer quotes them.
+ *
+ * @internal
  */
 final readonly class CsvEncoder implements EncoderInterface
 {
     public function __construct(private FormatEnum $format = FormatEnum::Csv)
     {
-    }
-
-    public function format(): FormatEnum
-    {
-        return $this->format;
     }
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string

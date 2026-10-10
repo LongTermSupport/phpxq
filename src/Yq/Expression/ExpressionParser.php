@@ -9,6 +9,8 @@ use LTS\PhpXq\Yq\Expression\Parser\PrattParser;
 /**
  * Lexes and parses a yq expression. The grammar, operator precedence and juxtaposition rule live in
  * Parser\PrattParser; this class only wires the lexer to it.
+ *
+ * @internal
  */
 final readonly class ExpressionParser implements ExpressionParserInterface
 {

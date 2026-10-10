@@ -39,9 +39,12 @@ final class Downstream
      */
     public function guardPaths(Closure $emit): Closure
     {
+        /**
+         * @param ?list<mixed> $path
+         */
         return function (?array $path, mixed $value) use ($emit): void {
             $this->active = true;
-            $emit(null === $path ? null : array_values($path), $value);
+            $emit($path, $value);
             $this->active = false;
         };
     }

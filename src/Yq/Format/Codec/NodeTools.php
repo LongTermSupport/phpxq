@@ -15,6 +15,8 @@ use LTS\PhpXq\Yq\Format\FormatException;
 /**
  * Small helpers shared by the format codecs: reading through documents, aliases and merge keys, scalar
  * number normalisation and comment text conversion.
+ *
+ * @internal
  */
 final readonly class NodeTools
 {

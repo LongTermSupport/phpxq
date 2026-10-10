@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Ast;
 /**
  * `reduce source as pattern (init; update)`.
  *
- * @api
+ * @internal
  */
 final readonly class Reduce implements NodeInterface
 {

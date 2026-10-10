@@ -28,9 +28,6 @@
 # php-qa-ci run output
 /var/
 
-# Scoped Infection config, generated in CI by scripts/mutation-scope.bash --write
-/qaConfig/infection.json
-
 __pycache__/
 
 # Claude Code runtime

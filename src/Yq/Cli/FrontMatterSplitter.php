@@ -9,6 +9,8 @@ namespace LTS\PhpXq\Yq\Cli;
  *
  * The YAML part starts at the first line (a leading `---` line belongs to it) and ends before the next
  * line starting with `---`; that line and everything after it is the content.
+ *
+ * @internal
  */
 final readonly class FrontMatterSplitter
 {

@@ -13,7 +13,7 @@ use Closure;
  * $args are bound {@see FilterInterface}s, one per declared parameter, un-evaluated (closure semantics); a
  * builtin wanting values runs them itself. Stop early with {@see BreakException} using a private label.
  *
- * @api
+ * @internal
  */
 interface StreamBuiltinInterface extends BuiltinInterface
 {

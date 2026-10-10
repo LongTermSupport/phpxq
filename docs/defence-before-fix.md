@@ -60,7 +60,7 @@ nothing behind a branch or a loop) and reports calls to them inside loops and na
 plus direct `new` with unchanging arguments. Limits: engines are recognised by class-name ending, helpers
 are followed inside one class only, and a data-provider test that builds an engine per case is not seen.
 
-**Deep copy versus sharing.** `Node::deepCopy()` is called about seventy times in `src/Yq/Runtime`, nearly
+**Deep copy versus sharing.** `Node::deepCopy()` is called about fifty times in `src/Yq/Runtime`, nearly
 all rightly; whether a copy orphans a match depends on what a later step holds, which a rule cannot see.
 Flagging every call would be noise and an allow-list of reviewed calls would only record that someone
 looked. The defence is the property-style test net named in the table, which asserts the semantics (every
@@ -91,14 +91,10 @@ document. Arithmetic now takes its children from the node an update replaces (`E
 - The two `phpxq` recursion rules see one class at a time, and the loop rule recognises engines by class-name
   ending. `phpqaci.readonlyService` and the string rules decide by shape, so a stateful class that is not
   named like a service is simply not seen.
-- `phpcpd` is advisory in the pipeline (it exits 0); clones are removed by hand when it lists them. Seven
-  remain (121 duplicated lines), kept on purpose: value-mode and path-mode twins in `ForeachOp`/`ReduceOp`,
-  the `base32` encode and decode pair, two `match` tables in `FormatRegistry`, and data-provider rows in three
-  tests. Extracting them would need abstractions harder to read than the repetition.
-- Under Xdebug in coverage mode, which `vendor/bin/qa` forces, every PHP call uses the native stack and the
-  `deep recursion` case of `CompilerTest` (a jq function recursing 10,000 levels) overflows the default 8 MB
-  stack. The unmodified main branch does the same, so the full gate here runs under `ulimit -s 1048576`.
-  A recursion-depth guard in the jq evaluator would remove the dependency; it is not in this change.
+- `phpcpd` is advisory in the pipeline (it exits 0); clones are removed by hand when it lists them. A few
+  remain on purpose (run `vendor/bin/qa -t phpcpd` for the current list): the value-mode and path-mode twins
+  in `ForeachOp`, two `match` tables in `FormatRegistry`, and data-provider rows in tests. Extracting them
+  would need abstractions harder to read than the repetition.
 - Rector's `ForeachToArrayAll`/`ForeachToArrayAny` rules rewrite a `foreach` loop into a native
   callback, which is the hazard `phpxq.recursionThroughNativeCallback` reports. The two recursive loops that
   matter (`Compare::deepEquals`, `SelectionCalls::containsNode`) are written as `for` loops, which Rector

@@ -11,99 +11,119 @@ declare(strict_types=1);
  * (one case per line: flags TAB filter TAB doc-file). Only behaviours stable between jq 1.6 and 1.8
  * are exercised.
  */
-
 $seed   = (int)($argv[1] ?? 1);
 $outDir = $argv[2] ?? 'untracked/scratch/diff';
-mt_srand($seed);
 
 const WORDS = ['alpha', 'Beta', 'gamma', 'delta', 'Épsilon', 'zeta eta', 'a,b', 'q"uote', "tab\there", 'x=y&z', 'foo.bar', '', 'ünï', '日本語', 'Hello World', 'abc123', '  pad  '];
 
-function pick(array $a): mixed
+/*
+ * The corpus must be the same for the same seed, so the generator is a seeded Mersenne Twister (the engine
+ * behind mt_srand() and mt_rand()), not a secure one: nothing here is secret.
+ */
+$rng = new Random\Randomizer(new Random\Engine\Mt19937($seed));
+
+/**
+ * @param array<int, string> $a
+ */
+function pick(Random\Randomizer $rng, array $a): string
 {
-    return $a[mt_rand(0, \count($a) - 1)];
+    return $a[$rng->getInt(0, \count($a) - 1)];
 }
 
-function rndScalar(): mixed
+function rndScalar(Random\Randomizer $rng): mixed
 {
-    return match (mt_rand(0, 6)) {
+    return match ($rng->getInt(0, 6)) {
         0       => null,
-        1       => (bool)mt_rand(0, 1),
-        2       => mt_rand(-50, 1000),
-        3       => mt_rand(-1000, 1000) / 8,
-        4, 5    => pick(WORDS),
-        default => mt_rand(0, 3),
+        1       => (bool)$rng->getInt(0, 1),
+        2       => $rng->getInt(-50, 1000),
+        3       => $rng->getInt(-1000, 1000) / 8,
+        4, 5    => pick($rng, WORDS),
+        default => $rng->getInt(0, 3),
     };
 }
 
-function rndValue(int $depth): mixed
+function rndValue(Random\Randomizer $rng, int $depth): mixed
 {
-    if ($depth <= 0 || 0 === mt_rand(0, 2)) {
-        return rndScalar();
+    if ($depth <= 0 || 0 === $rng->getInt(0, 2)) {
+        return rndScalar($rng);
     }
-    if (mt_rand(0, 1)) {
-        $n = mt_rand(0, 4);
+
+    if (1 === $rng->getInt(0, 1)) {
+        $n = $rng->getInt(0, 4);
         $a = [];
         for ($i = 0; $i < $n; ++$i) {
-            $a[] = rndValue($depth - 1);
+            $a[] = rndValue($rng, $depth - 1);
         }
 
         return $a;
     }
-    $n = mt_rand(0, 4);
+
+    $n = $rng->getInt(0, 4);
     $o = [];
     for ($i = 0; $i < $n; ++$i) {
-        $o[pick(['a', 'b', 'c', 'name', 'id', 'k' . mt_rand(0, 9), 'Z', 'x y'])] = rndValue($depth - 1);
+        $o[pick($rng, ['a', 'b', 'c', 'name', 'id', 'k' . $rng->getInt(0, 9), 'Z', 'x y'])] = rndValue($rng, $depth - 1);
     }
 
     return [] === $o ? new stdClass() : $o;
 }
 
-function rndDoc(): mixed
+function rndDoc(Random\Randomizer $rng): mixed
 {
     $users = [];
-    $n     = mt_rand(0, 6);
+    $n     = $rng->getInt(0, 6);
     for ($i = 0; $i < $n; ++$i) {
         $tags = [];
-        for ($j = mt_rand(0, 3); $j > 0; --$j) {
-            $tags[] = pick(['red', 'green', 'blue', 'x', 'y']);
+        for ($j = $rng->getInt(0, 3); $j > 0; --$j) {
+            $tags[] = pick($rng, ['red', 'green', 'blue', 'x', 'y']);
         }
+
         $users[] = [
             'id'     => $i + 1,
-            'name'   => pick(WORDS),
-            'age'    => mt_rand(0, 90),
+            'name'   => pick($rng, WORDS),
+            'age'    => $rng->getInt(0, 90),
             'tags'   => $tags,
-            'active' => (bool)mt_rand(0, 1),
-            'meta'   => mt_rand(0, 2) ? ['score' => mt_rand(0, 100) / 4, 'city' => pick(['Paris', 'rome', 'Oslo'])] : null,
+            'active' => (bool)$rng->getInt(0, 1),
+            'meta'   => 0 !== $rng->getInt(0, 2) ? ['score' => $rng->getInt(0, 100) / 4, 'city' => pick($rng, ['Paris', 'rome', 'Oslo'])] : null,
         ];
     }
+
     $arr = [];
-    for ($i = mt_rand(0, 8); $i > 0; --$i) {
-        $arr[] = mt_rand(-20, 20);
+    for ($i = $rng->getInt(0, 8); $i > 0; --$i) {
+        $arr[] = $rng->getInt(-20, 20);
     }
+
     $obj = [];
-    for ($i = mt_rand(0, 5); $i > 0; --$i) {
-        $obj['k' . mt_rand(0, 9)] = rndValue(2);
+    for ($i = $rng->getInt(0, 5); $i > 0; --$i) {
+        $obj['k' . $rng->getInt(0, 9)] = rndValue($rng, 2);
     }
 
     return [
         'users' => $users,
-        'name'  => pick(WORDS),
-        'n'     => mt_rand(-100, 100),
-        's'     => pick(WORDS),
+        'name'  => pick($rng, WORDS),
+        'n'     => $rng->getInt(-100, 100),
+        's'     => pick($rng, WORDS),
         'arr'   => $arr,
         'obj'   => [] === $obj ? new stdClass() : $obj,
-        'any'   => rndValue(3),
-        'text'  => pick(['The quick brown fox', 'a1b22c333', 'foo-bar_baz', 'one two  three', 'CamelCaseString', '2024-03-15T10:20:30Z']),
+        'any'   => rndValue($rng, 3),
+        'text'  => pick($rng, ['The quick brown fox', 'a1b22c333', 'foo-bar_baz', 'one two  three', 'CamelCaseString', '2024-03-15T10:20:30Z']),
     ];
 }
 
 @mkdir($outDir . '/docs', 0o777, true);
-$docs = [];
-for ($i = 0; $i < 6; ++$i) {
-    $file = \sprintf('%s/docs/%02d.json', $outDir, $i);
-    file_put_contents($file, json_encode(rndDoc(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION) . "\n");
-    $docs[] = $file;
+
+function writeDoc(Random\Randomizer $rng, string $outDir, int $index): string
+{
+    $file = \sprintf('%s/docs/%02d.json', $outDir, $index);
+    file_put_contents($file, json_encode(rndDoc($rng), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION) . "\n");
+
+    return $file;
 }
+
+$docs = [writeDoc($rng, $outDir, 0)];
+for ($i = 1; $i < 6; ++$i) {
+    $docs[] = writeDoc($rng, $outDir, $i);
+}
+
 file_put_contents($outDir . '/docs/multi.json', "1 2 3\n\"a\" [1,2] {\"a\":1} null true\n");
 file_put_contents($outDir . '/docs/lines.txt', "alpha beta\ngamma\n\n  delta  \n");
 file_put_contents($outDir . '/docs/csvish.txt', "a,b,c\n1,2,3\n");
@@ -119,14 +139,14 @@ file_put_contents($outDir . '/docs/order.json', "{\"z\":1,\"B\":2,\"a\":{\"y\":1
 /** Raw input texts (valid and malformed) for parser differential cases. */
 $parseTexts = [
     '0', '-0', '1.', '.5', '+1', '01', '1e', '1e+', '1E5', '1e-5', '0x10', '1_0', 'nan', 'NaN', '-NaN', 'Infinity', '-Infinity', 'infinity', 'null', 'nul', 'NULL', 'True', 'true false',
-    'truefalse', '[1 2]', '[1,]', '[,1]', '[1,,2]', '{"a":1,}', '{,}', "{'a':1}", '{a:1}', '{"a" 1}', '{"a":}', '{"a":1 "b":2}', '[', ']', '{', '}', '"abc', '"a\\x"', '"a\\u12"',
-    '"a\\u12G4"', "\"a\tb\"", "\"a\nb\"", '"\\ud800"', '"\\udc00"', '"\\ud800\\ud800"', '"\\ud83d\\ude00"', '"\\u0000"', '/* c */ 1', "# c\n1", '1 # c', "\xef\xbb\xbf1", "\xef\xbb\xbf",
+    'truefalse', '[1 2]', '[1,]', '[,1]', '[1,,2]', '{"a":1,}', '{,}', "{'a':1}", '{a:1}', '{"a" 1}', '{"a":}', '{"a":1 "b":2}', '[', ']', '{', '}', '"abc', '"a\x"', '"a\u12"',
+    '"a\u12G4"', "\"a\tb\"", "\"a\nb\"", '"\ud800"', '"\udc00"', '"\ud800\ud800"', '"\ud83d\ude00"', '"\u0000"', '/* c */ 1', "# c\n1", '1 # c', "\xef\xbb\xbf1", "\xef\xbb\xbf",
     "\xff", "\"\xc3\x28\"", "\"\xe2\x82\"", "\"\xf0\x9f\x98\"", "\"\xed\xa0\x80\"", "\"\xc0\x80\"", "[1]\x00", "\x001", ' ', "\n\n", "1\xc2\xa0", "\xc2\xa01", '[]', '{}', '[[]]', '[{}]',
-    '{"a":{}}', '"\\/"', '"\\a"', '1.0', '1.50', '100e-2', '1e1000', '-1e1000', '1e-1000', '0e10', '-0.0', '123456789012345678901234567890', '0.1234567890123456789012345',
+    '{"a":{}}', '"\/"', '"\a"', '1.0', '1.50', '100e-2', '1e1000', '-1e1000', '1e-1000', '0e10', '-0.0', '123456789012345678901234567890', '0.1234567890123456789012345',
     '9007199254740993', '1.7976931348623157e308', '1.7976931348623159e308', '5e-324', '2.5e-324', '[1e2,1E2,1e+2]', '{"a":1,"a":2}', '{"":1}', '{"a":1}{"b":2}', '[1][2]', '1 2',
-    '"a""b"', '1"a"', 'true1', 'null[]', '[]null', '{}[]', 'nan1', '"\\u00e9"', '"é"', '{"\\u00e9":1}', '[1,2', '{"a":[1,{"b":', "[1,\n2,\n3\n", '"\\', '"\\u', '[tru]', '[nul]', '[fals]',
-    '{"a":tru}', '123abc', '1.2.3', '--1', '-', '-a', '[-]', '{"a"}', '{"a":1,"b"}', '{1:2}', '[1}', '{"a":1]', ']]', '}{', '[[[[[[[[[[1]]]]]]]]]]', '"\\u00e9\\u00e8"', "\"\\ud83d\\ude00\" \"\\ud83d\\ude00\"",
-    '  [ 1 , 2 ]  ', "\t{\t\"a\"\t:\t1\t}\t", "\r\n[1]\r\n", "[1]\r\n[2]\r\n", "\x0b1", "\x0c1", '1e308', '1e309', '-1e309', '[1e309]', '[0.0000000000000000000000000001]', '[12345678901234567890123]', '"\\ud83d"', '"\\ude00"',
+    '"a""b"', '1"a"', 'true1', 'null[]', '[]null', '{}[]', 'nan1', '"\u00e9"', '"é"', '{"\u00e9":1}', '[1,2', '{"a":[1,{"b":', "[1,\n2,\n3\n", '"\\', '"\u', '[tru]', '[nul]', '[fals]',
+    '{"a":tru}', '123abc', '1.2.3', '--1', '-', '-a', '[-]', '{"a"}', '{"a":1,"b"}', '{1:2}', '[1}', '{"a":1]', ']]', '}{', '[[[[[[[[[[1]]]]]]]]]]', '"\u00e9\u00e8"', '"\ud83d\ude00" "\ud83d\ude00"',
+    '  [ 1 , 2 ]  ', "\t{\t\"a\"\t:\t1\t}\t", "\r\n[1]\r\n", "[1]\r\n[2]\r\n", "\x0b1", "\x0c1", '1e308', '1e309', '-1e309', '[1e309]', '[0.0000000000000000000000000001]', '[12345678901234567890123]', '"\ud83d"', '"\ude00"',
 ];
 foreach ($parseTexts as $i => $text) {
     file_put_contents(\sprintf('%s/docs/p%03d.json', $outDir, $i), $text);
@@ -156,7 +176,7 @@ $schema = [
     '.name | @base64', '.name | @base64 | @base64d', '.name | @uri', '.name | @html', '.name | @sh', '.name | @json', '.name | @text', '.name | tojson',
     '.name | tojson | fromjson', '.name | ltrimstr("a")', '.name | rtrimstr("a")', '.name | startswith("a")', '.name | endswith("a")',
     '.name | split("")', '.name | split(" ")', '.name | split(",")', '.name | ascii_downcase | test("a")', '.name | test("A"; "i")',
-    '.name | [match("[aeiou]"; "g").string]', '.name | sub("a"; "X")', '.name | gsub("a"; "X")', '.name | gsub("\\s+"; "_")', '.name | gsub("(?<c>[a-z])"; "\(.c)\(.c)")',
+    '.name | [match("[aeiou]"; "g").string]', '.name | sub("a"; "X")', '.name | gsub("a"; "X")', '.name | gsub("\s+"; "_")', '.name | gsub("(?<c>[a-z])"; "\(.c)\(.c)")',
     '.name | [scan("[a-z]")]', '.name | capture("(?<first>.)(?<rest>.*)")', '.name | ltrimstr(1)', '.name | tostring', '.name | tojson | length',
     '.name | .[1:3]', '.name | .[:-1]', '.name | .[2:]', '.name | contains("a")', '.name | inside("alpha beta")', '.name | indices("a")',
     '.name | @csv "\(.)"', '.name | [., .] | @csv', '.name | [., .] | @tsv', '.name | [., 1, null, true] | @sh',
@@ -192,11 +212,11 @@ $schema = [
     '.any | try error("x") catch .', '.any | try error catch .', '.any | try (.a.b.c) catch "caught"', '.any | .a.b.c?', '.any | ..?', '.any | [limit(5; ..)] | length', '.any | @json', '.any | @text',
     '.any | [.. | numbers] | add', '.any | splits("a")?', '.any | tojson | test("a")', '.any | isvalid(.a)?', '.any | getpath(["a","b"])', '.any | [paths] | map(map(tostring) | join("."))',
     '.any | del(.. | select(. == null))', '.any | del(.[]?)', '.any | to_entries?', '.any | with_entries(.)?', '.any | flatten?', '.any | tostring | length', '.any | ltrimstr("a")', '.any | splits(1)?',
-    '.text | test("fox")', '.text | [match("\\d+"; "g") | .string | tonumber]', '.text | [scan("\\w+")]', '.text | [scan("[A-Z]")] | length', '.text | sub("(?<x>[a-z]+)"; "<\(.x)>")', '.text | gsub("[aeiou]"; "")',
-    '.text | gsub("(?<d>\\d)"; "[\(.d)]")', '.text | split("-")', '.text | split("[-_]"; null)', '.text | split(" +"; "g")', '.text | ascii_downcase', '.text | capture("(?<y>\\d{4})-(?<m>\\d{2})-(?<d>\\d{2})")?',
-    '.text | fromdateiso8601?', '.text | test("^the"; "i")', '.text | [match("(\\w)(\\w)"; "g")] | length', '.text | [match("(a)|(b)"; "g") | .captures | length]', '.text | sub("^\\s+"; "")', '.text | gsub("^\\s+|\\s+$"; "")',
+    '.text | test("fox")', '.text | [match("\d+"; "g") | .string | tonumber]', '.text | [scan("\w+")]', '.text | [scan("[A-Z]")] | length', '.text | sub("(?<x>[a-z]+)"; "<\(.x)>")', '.text | gsub("[aeiou]"; "")',
+    '.text | gsub("(?<d>\d)"; "[\(.d)]")', '.text | split("-")', '.text | split("[-_]"; null)', '.text | split(" +"; "g")', '.text | ascii_downcase', '.text | capture("(?<y>\d{4})-(?<m>\d{2})-(?<d>\d{2})")?',
+    '.text | fromdateiso8601?', '.text | test("^the"; "i")', '.text | [match("(\w)(\w)"; "g")] | length', '.text | [match("(a)|(b)"; "g") | .captures | length]', '.text | sub("^\s+"; "")', '.text | gsub("^\s+|\s+$"; "")',
     '.text | gsub(""; "-")', '.text | [match(""; "g")] | length', '.text | [match("o"; "g") | .offset]', '.text | ascii_downcase | gsub("[^a-z]"; "")', '.text | @uri', '.text | @base64', '.text | length', '.text | .[3:7]',
-    '.text | test("\\bfox\\b")', '.text | [splits(" +")]', '.text | gsub("(?<a>.)(?<b>.)"; "\(.b)\(.a)")', '.text | sub("(?<x>o)"; "0"; "g")', '.text | ascii', '.text | tojson | fromjson | length', '.text | gsub("\\d"; "#")',
+    '.text | test("\bfox\b")', '.text | [splits(" +")]', '.text | gsub("(?<a>.)(?<b>.)"; "\(.b)\(.a)")', '.text | sub("(?<x>o)"; "0"; "g")', '.text | ascii', '.text | tojson | fromjson | length', '.text | gsub("\d"; "#")',
     '{a: .name, b: .n}', '{(.name): .n}', '{name, n}', '{"x": .arr}', '[.name, .n]', '[.arr[] | {v: .}]', '. as $d | $d.n', '. as {name: $n, n: $m} | [$n, $m]', '.. | numbers', '[..] | length', 'keys', 'keys_unsorted', 'to_entries | map(.key)',
     'with_entries(select(.key | test("^[a-n]")))', 'del(.users)', 'del(.users, .any)', 'delpaths([["users"], ["any"]])', 'to_entries | map(select(.value | type == "string")) | from_entries', 'map_values(type)', 'map(type)',
     'paths | length', '[paths] | length', '[paths(type == "string")] | length', '[leaf_paths] | length', 'tostream | select(length == 2) | .[0] | length', '[tostream] | length', 'input_filename', '$__loc__', '[.[] | type]', 'tojson | fromjson == .', 'tojson | length', 'tostring | length',
@@ -221,7 +241,7 @@ $schema = [
 
 $cases = [];
 foreach ($schema as $filter) {
-    foreach (array_rand($docs, 2) as $k) {
+    foreach ($rng->pickArrayKeys($docs, 2) as $k) {
         $cases[] = ['-c', $filter, $docs[$k]];
     }
 }
@@ -233,11 +253,11 @@ $modes = [
     ['-c', '.', 'docs/nums.json'], ['-c', '.[] | . + 0', 'docs/nums.json'], ['-c', 'map(. * 1)', 'docs/nums.json'], ['-c', 'map(tostring)', 'docs/nums.json'], ['-c', 'map(tojson)', 'docs/nums.json'], ['-c', 'map(floor)', 'docs/nums.json'], ['-c', 'map(. / 3)', 'docs/nums.json'],
     ['-c', 'map(type)', 'docs/nums.json'], ['-c', 'sort', 'docs/nums.json'], ['-c', 'add', 'docs/nums.json'], ['-c', 'unique', 'docs/nums.json'], ['-c', 'map(. == 1)', 'docs/nums.json'], ['-c', 'map(. * 1000000)', 'docs/nums.json'], ['-c', 'map(-.)', 'docs/nums.json'], ['-c', 'map(sqrt)', 'docs/nums.json'],
     ['-c', '.', 'docs/unicode.json'], ['-ac', '.', 'docs/unicode.json'], ['-r', '.[]', 'docs/unicode.json'], ['-c', 'map(length)', 'docs/unicode.json'], ['-c', 'map(utf8bytelength)', 'docs/unicode.json'], ['-c', 'map(explode)', 'docs/unicode.json'], ['-c', 'map(@json)', 'docs/unicode.json'],
-    ['-c', 'map(ascii_downcase)', 'docs/unicode.json'], ['-c', 'map(@uri)', 'docs/unicode.json'], ['-c', 'map(@base64)', 'docs/unicode.json'], ['-c', 'map(tojson | fromjson)', 'docs/unicode.json'], ['-c', 'map(test("\\\\u0000")?)', 'docs/unicode.json'],
+    ['-c', 'map(ascii_downcase)', 'docs/unicode.json'], ['-c', 'map(@uri)', 'docs/unicode.json'], ['-c', 'map(@base64)', 'docs/unicode.json'], ['-c', 'map(tojson | fromjson)', 'docs/unicode.json'], ['-c', 'map(test("\\\u0000")?)', 'docs/unicode.json'],
     ['-c', '.', 'docs/multi.json'], ['-c -n', '[inputs]', 'docs/multi.json'], ['-c -n', 'input', 'docs/multi.json'], ['-c -n', '[input, input]', 'docs/multi.json'], ['-c -n', 'reduce inputs as $x (0; . + 1)', 'docs/multi.json'], ['-c -s', '.', 'docs/multi.json'], ['-c', '[., input]', 'docs/multi.json'],
     ['-c', 'input_line_number', 'docs/multi.json'], ['-c -n', '[limit(2; inputs)]', 'docs/multi.json'], ['-c -n', 'first(inputs)', 'docs/multi.json'], ['-c -n', 'input | input', 'docs/multi.json'], ['-c', 'type', 'docs/multi.json'], ['-c -s', 'length', 'docs/multi.json'],
     ['-R', '.', 'docs/lines.txt'], ['-R -c', '[., length]', 'docs/lines.txt'], ['-Rs', '.', 'docs/lines.txt'], ['-Rn', '[inputs]', 'docs/lines.txt'], ['-Rn -c', '[inputs | select(length > 0)]', 'docs/lines.txt'], ['-Rc', 'split(" ")', 'docs/lines.txt'], ['-R -r', '. + "!"', 'docs/lines.txt'],
-    ['-Rsc', 'split("\n")', 'docs/lines.txt'], ['-Rn -c', 'input', 'docs/lines.txt'], ['-R -c', 'ltrimstr(" ")', 'docs/lines.txt'], ['-R -c', 'ascii_upcase', 'docs/lines.txt'], ['-R -c', '[match("\\\\w+"; "g").string]', 'docs/lines.txt'], ['-R -c', 'test("a")', 'docs/lines.txt'],
+    ['-Rsc', 'split("\n")', 'docs/lines.txt'], ['-Rn -c', 'input', 'docs/lines.txt'], ['-R -c', 'ltrimstr(" ")', 'docs/lines.txt'], ['-R -c', 'ascii_upcase', 'docs/lines.txt'], ['-R -c', '[match("\\\w+"; "g").string]', 'docs/lines.txt'], ['-R -c', 'test("a")', 'docs/lines.txt'],
     ['-R -c', 'split(",") | map(tonumber? // .)', 'docs/csvish.txt'], ['-R -c', '. / ","', 'docs/csvish.txt'], ['-R -r', 'split(",") | @tsv', 'docs/csvish.txt'], ['-R -r', 'split(",") | @csv', 'docs/csvish.txt'], ['-Rn -r', '[inputs | split(",")] | .[] | @csv', 'docs/csvish.txt'],
     ['-c', '.', 'docs/bad.json'], ['-c', '.', 'docs/bad2.json'], ['-c', '.', 'docs/bad3.json'], ['-c', '.', 'docs/empty.json'], ['-c -s', '.', 'docs/empty.json'], ['-c -n', '[inputs]', 'docs/empty.json'], ['-c -n', 'input', 'docs/empty.json'], ['-e', '.', 'docs/empty.json'],
     ['-c', '.', 'docs/missing.json'], ['-c', '.', 'docs/00.json docs/missing.json'], ['-c', 'input_filename', 'docs/00.json docs/01.json'], ['-c', '.n', 'docs/00.json docs/01.json docs/02.json'], ['-c -s', 'map(.n)', 'docs/00.json docs/01.json docs/02.json'],
@@ -246,20 +266,20 @@ $modes = [
     ['', '"a" + 1', 'docs/00.json'], ['', '[] | implode', 'docs/00.json'], ['', 'null | keys', 'docs/00.json'], ['', '{} | has(1)', 'docs/00.json'], ['', '[] | has("a")', 'docs/00.json'], ['', '"abc" | .[0]', 'docs/00.json'], ['', '{} | .[0]', 'docs/00.json'], ['', '[] | .["a"]', 'docs/00.json'], ['', '1 | .[]', 'docs/00.json'],
     ['', '"x" | tonumber', 'docs/00.json'], ['', '[1] | join(",") | tonumber', 'docs/00.json'], ['', '{} | tonumber', 'docs/00.json'], ['', '[[1]] | join(",")', 'docs/00.json'], ['', '1 | ltrimstr("a")', 'docs/00.json'], ['', '"a" | test(1)', 'docs/00.json'], ['', '"a" | test("(")', 'docs/00.json'],
     ['', '. | fromjson', 'docs/00.json'], ['', '"{" | fromjson', 'docs/00.json'], ['', '"[1,2" | fromjson', 'docs/00.json'], ['', '{} - 1', 'docs/00.json'], ['', '[] - 1', 'docs/00.json'], ['', '{} * 2', 'docs/00.json'], ['', '"abc" * 0', 'docs/00.json'], ['', 'null | explode', 'docs/00.json'],
-    ['', '[1,2,3] | .[1.5]', 'docs/00.json'], ['', '[1,2,3] | .[-5]', 'docs/00.json'], ['', 'null | .[1:2]', 'docs/00.json'], ['', '[1] | .[null:1]', 'docs/00.json'], ['', 'limit(-1; 1,2)', 'docs/00.json'], ['', 'try error catch .', 'docs/00.json'], ['', 'try error("\\(1)") catch .', 'docs/00.json'],
+    ['', '[1,2,3] | .[1.5]', 'docs/00.json'], ['', '[1,2,3] | .[-5]', 'docs/00.json'], ['', 'null | .[1:2]', 'docs/00.json'], ['', '[1] | .[null:1]', 'docs/00.json'], ['', 'limit(-1; 1,2)', 'docs/00.json'], ['', 'try error catch .', 'docs/00.json'], ['', 'try error("\(1)") catch .', 'docs/00.json'],
     ['', 'error', 'docs/00.json'], ['', '.users[] | error', 'docs/00.json'], ['', '.[] | error', 'docs/multi.json'], ['', '$x', 'docs/00.json'], ['', 'foo', 'docs/00.json'], ['', '.[', 'docs/00.json'], ['', '{', 'docs/00.json'], ['', '1 +', 'docs/00.json'], ['', '}', 'docs/00.json'], ['', 'if 1 then 2', 'docs/00.json'],
-    ['', 'foo(1)', 'docs/00.json'], ['', '"abc', 'docs/00.json'], ['', '.a.[0]', 'docs/00.json'], ['', '. as [$a] | $b', 'docs/00.json'], ['', 'reduce . as $x', 'docs/00.json'], ['', '@foo', 'docs/00.json'], ['', '"\\(1" ', 'docs/00.json'], ['', '1 as $x | 2 as $x | $x', 'docs/00.json'],
+    ['', 'foo(1)', 'docs/00.json'], ['', '"abc', 'docs/00.json'], ['', '.a.[0]', 'docs/00.json'], ['', '. as [$a] | $b', 'docs/00.json'], ['', 'reduce . as $x', 'docs/00.json'], ['', '@foo', 'docs/00.json'], ['', '"\(1" ', 'docs/00.json'], ['', '1 as $x | 2 as $x | $x', 'docs/00.json'],
     ['--arg a 1 -c', '[$a, $ARGS.named]', 'docs/00.json'], ['--argjson a {"x":[1,2]} -c', '[$a, $a.x[0]]', 'docs/00.json'], ['--argjson a {bad -c', '$a', 'docs/00.json'], ['--arg a -c', '$a', 'docs/00.json'], ['-n --arg a 1 --arg b 2 -c', '$ARGS', ''],
-    ['-n -c --args', '$ARGS.positional', '--  a b c'], ['-n -c --jsonargs', '$ARGS.positional', '--  1 {"a":2} null'], ['-n -c', '$ENV | type', ''], ['-n -c', 'env | type', ''], ['-n -c', '$__prog_args?', ''], ['-n', '"a" , 1 , null', ''], ['-n -r', '"a\\tb", "c"', ''], ['-n -j', '"a", 1, "b"', ''],
-    ['-n -a', '"é日本語\\ud83d\\ude00"', ''], ['-n', '"é日本語"', ''], ['-n -c', '[1,[2,[3,{"a":[]}]]]', ''], ['-n', '[1,[2,[3,{"a":[]}]]]', ''], ['-n', '{"a":{"b":{}}, "c":[]}', ''], ['-n -S', '{"b":1,"a":2}', ''], ['-n --tab', '[1,{"a":2}]', ''], ['-n --indent 1', '[1,{"a":2}]', ''],
+    ['-n -c --args', '$ARGS.positional', '--  a b c'], ['-n -c --jsonargs', '$ARGS.positional', '--  1 {"a":2} null'], ['-n -c', '$ENV | type', ''], ['-n -c', 'env | type', ''], ['-n -c', '$__prog_args?', ''], ['-n', '"a" , 1 , null', ''], ['-n -r', '"a\tb", "c"', ''], ['-n -j', '"a", 1, "b"', ''],
+    ['-n -a', '"é日本語\ud83d\ude00"', ''], ['-n', '"é日本語"', ''], ['-n -c', '[1,[2,[3,{"a":[]}]]]', ''], ['-n', '[1,[2,[3,{"a":[]}]]]', ''], ['-n', '{"a":{"b":{}}, "c":[]}', ''], ['-n -S', '{"b":1,"a":2}', ''], ['-n --tab', '[1,{"a":2}]', ''], ['-n --indent 1', '[1,{"a":2}]', ''],
     ['-n -c', '[limit(3; range(10))]', ''], ['-n -c', '[range(5)] | map(. * .)', ''], ['-n -c', '"abc" | [match("(?<x>b)").captures[0].name]', ''], ['-n -c', '[1,2] | tojson', ''], ['-n -c', '1e1000', ''], ['-n -c', '-1e1000', ''], ['-n -c', '[nan] | tojson', ''], ['-n -c', 'nan | isnan', ''],
     ['-n -c', '[nan, 1] | sort', ''], ['-n -c', 'infinite', ''], ['-n -c', '-infinite', ''], ['-n -c', '[infinite, -infinite, nan] | map(tostring)', ''], ['-n -c', '[.1, 1.0, 1.10, 100000000000000000000, 1e5, 1e-5, 0.0001, 1.5e300, 5e-324]', ''],
     ['-n -c', '[1, 1.0, 1.5] | map(tojson)', ''], ['-n -c', '3 | . / 2', ''], ['-n -c', '[3, 3.0, 3.5] | map(floor)', ''], ['-n -c', '9007199254740993', ''], ['-n -c', '9007199254740993 | . + 0', ''], ['-n -c', '[9007199254740993] | tojson', ''], ['-n -c', '0.1 + 0.2', ''], ['-n -c', '1 / 3', ''],
     ['-n -c', '[pow(2; 10), pow(2; 0.5), log2(8), exp10(2)?, exp2(3)]', ''], ['-n -c', '[floor, sqrt, ceil] | length', ''], ['-n -c', '5 % 3, -5 % 3, 5 % -3, 5.9 % 3.1', ''], ['-n -c', '[1,2] | .[0] / .[1]', ''], ['-n -c', '1 % 0', ''],
-    ['-n -c', '"a,b, c" | split(", ")', ''], ['-n -c', '"abc" | ascii_downcase, ascii_upcase', ''], ['-n -c', '[1,2,3] | tojson | fromjson', ''], ['-n -c', '"\\u00e9" | @uri', ''], ['-n -c', '"a b+c" | @uri', ''], ['-n -c', '"<&>\'\\"" | @html', ''], ['-n -r', '["a", "b c", "d\\te", "f\\"g", 1, null, true] | @csv', ''],
-    ['-n -r', '["a", "b c", "d\\te", "f\\\\g", 1, null, true] | @tsv', ''], ['-n -r', '["a", "b\'c", 1] | @sh', ''], ['-n -r', '"a\'b" | @sh', ''], ['-n -r', '"hello" | @base64', ''], ['-n -r', '"aGVsbG8=" | @base64d', ''], ['-n -r', '"aGVsbG8" | @base64d', ''], ['-n -r', '"é" | @base64', ''], ['-n -c', '[1,[2]] | @csv?', ''],
+    ['-n -c', '"a,b, c" | split(", ")', ''], ['-n -c', '"abc" | ascii_downcase, ascii_upcase', ''], ['-n -c', '[1,2,3] | tojson | fromjson', ''], ['-n -c', '"\u00e9" | @uri', ''], ['-n -c', '"a b+c" | @uri', ''], ['-n -c', '"<&>\'\"" | @html', ''], ['-n -r', '["a", "b c", "d\te", "f\"g", 1, null, true] | @csv', ''],
+    ['-n -r', '["a", "b c", "d\te", "f\\\g", 1, null, true] | @tsv', ''], ['-n -r', '["a", "b\'c", 1] | @sh', ''], ['-n -r', '"a\'b" | @sh', ''], ['-n -r', '"hello" | @base64', ''], ['-n -r', '"aGVsbG8=" | @base64d', ''], ['-n -r', '"aGVsbG8" | @base64d', ''], ['-n -r', '"é" | @base64', ''], ['-n -c', '[1,[2]] | @csv?', ''],
     ['-n -c', '"2015-03-05T23:51:47Z" | fromdate', ''], ['-n -c', '1425599507 | todate', ''], ['-n -c', '1425599507 | gmtime', ''], ['-n -c', '1425599507 | gmtime | mktime', ''], ['-n -c', '1425599507 | strftime("%Y-%m-%dT%H:%M:%SZ")', ''], ['-n -c', '"2015-03-05T23:51:47Z" | strptime("%Y-%m-%dT%H:%M:%SZ")', ''],
-    ['-n -c', '[splits("a, b";", ")]', ''], ['-n -c', '"abc" | sub("(?<x>b)"; "[\\(.x)]")', ''], ['-n -c', '"aXbxc" | [splits("x"; "i")]', ''], ['-n -c', '"abc" | test("B"; "ix")', ''], ['-n -c', '"a.b" | split(".")', ''], ['-n -c', '"abab" | [match("ab"; "g").offset]', ''], ['-n -c', '"aAbB" | gsub("[a-z]"; "")', ''],
+    ['-n -c', '[splits("a, b";", ")]', ''], ['-n -c', '"abc" | sub("(?<x>b)"; "[\(.x)]")', ''], ['-n -c', '"aXbxc" | [splits("x"; "i")]', ''], ['-n -c', '"abc" | test("B"; "ix")', ''], ['-n -c', '"a.b" | split(".")', ''], ['-n -c', '"abab" | [match("ab"; "g").offset]', ''], ['-n -c', '"aAbB" | gsub("[a-z]"; "")', ''],
     ['-n -c', '"test" | ltrimstr("te") | rtrimstr("t")', ''], ['-n -c', '"x" | ascii_downcase | explode | map(. + 1) | implode', ''], ['-n -c', '[.[]?]', ''], ['-n -c', '[1,2,3] | IN([1,2,3])', ''], ['-n -c', '{} | .a += 1', ''], ['-n -c', '{} | .a //= 3', ''], ['-n -c', '{"a":1} | .a -= 1 | .a *= 5 | .a /= 2', ''],
     ['-n -c', '[1,2,3] | .[1:] = ["x","y","z"]', ''], ['-n -c', '[1,2,3] | to_entries', ''], ['-n -c', '[[1,2],[3,4]] | transpose', ''], ['-n -c', '[[1,2],[3,4]] | flatten(0)', ''], ['-n -c', '[1,[2,[3]]] | flatten(1)', ''], ['-n -c', '[1,[2,[3]]] | flatten(-1)', ''],
     ['-n -c', '{"a":[1,2]} | tostream', ''], ['-n -c', '[1,[2]] | getpath([1,0])', ''], ['-n -c', '[1,[2]] | paths', ''], ['-n -c', '{"a":1} | to_entries', ''], ['-n -c', '[{"name":"a","value":1},{"k":"b","v":2}] | from_entries', ''], ['-n -c', '{"a":1,"b":2} | with_entries(.value += 1)', ''],
@@ -268,7 +288,7 @@ $modes = [
     ['-n -c', '[splits("a";"b";"c")]', ''], ['-n -c', 'getpath(["a","b"])', ''], ['-n -c', '{"a":{"b":1}} | [paths(type == "number")]', ''], ['-n -c', '{"a":[1,{"b":2}]} | [leaf_paths]', ''], ['-n -c', '[1,2,3] | del(.[0,2])', ''], ['-n -c', '{"a":1,"b":2} | del(.a, .b)', ''],
     ['-n -c', '{"a":1} | has("a"), has("b")', ''], ['-n -c', '[1,2] | has(0), has(5)', ''], ['-n -c', '{"a":1} | in({"a":2})?', ''], ['-n -c', '"a" | in({"a":2})', ''], ['-n -c', '[1,2,3] | contains([2])', ''], ['-n -c', '"foobar" | contains("bar")', ''], ['-n -c', '{"a":{"b":1}} | contains({"a":{}})', ''],
     ['-n -c', 'splits', ''], ['-n -c', '[range(3)] | map(select(. > 0)) | first', ''], ['-n -c', '[range(3)] | first, last, nth(1)', ''], ['-n -c', 'nth(2; range(10))', ''], ['-n -c', '[limit(3; repeat("x"))]', ''], ['-n -c', '[range(10)] | .[2:4]', ''], ['-n -c', '[range(10)] | .[-3:]', ''],
-    ['-n -c', 'ltrimstr("a")', ''], ['-n -c', '"a" | ascii_downcase | @json', ''], ['-n -c', '@json "x\\(1+1)y"', ''], ['-n -c', '"\\(1;2)"', ''], ['-n -c', '[.[] | select(.a)]', ''], ['-n -c', 'reduce range(5) as $i ([]; . + [$i * 2])', ''], ['-n -c', '[foreach range(5) as $i (0; . + $i; select(. % 2 == 0))]', ''],
+    ['-n -c', 'ltrimstr("a")', ''], ['-n -c', '"a" | ascii_downcase | @json', ''], ['-n -c', '@json "x\(1+1)y"', ''], ['-n -c', '"\(1;2)"', ''], ['-n -c', '[.[] | select(.a)]', ''], ['-n -c', 'reduce range(5) as $i ([]; . + [$i * 2])', ''], ['-n -c', '[foreach range(5) as $i (0; . + $i; select(. % 2 == 0))]', ''],
     ['-n -c', '[range(5)] | map(select(. != 2)) | length', ''], ['-n -c', 'try (1, error("x"), 3) catch .', ''], ['-n -c', '[.[]?] | length', ''], ['-n -c', '[true, false] | map(tostring)', ''], ['-n -c', '{"a":null} | .a // "x"', ''], ['-n -c', 'def f(g): [g, g]; f(1, 2)', ''], ['-n -c', 'def f: def g: 3; g * 2; f', ''],
     ['-n -c', '[1,2,3] as [$a] | $a', ''], ['-n -c', '{"a":1,"b":[2]} as {a: $x, b: [$y]} | [$x, $y]', ''], ['-n -c', '[[1,2],[3,4]] | .[] as [$a, $b] | $a + $b', ''], ['-n -c', '. as [$a] ?// $a | $a', ''], ['-n -c', 'input_filename', ''], ['-n -c', '$__loc__', ''],
     ['-n -c', '"x" | ltrimstr("x"), rtrimstr("x")', ''], ['-n -c', 'ascii_downcase?', ''], ['-n -c', '[1,2] | map(tostring) | join("-")', ''], ['-n -c', '[1,null,"a",true] | join(",")', ''], ['-n -c', '[] | join(",")', ''], ['-n -c', '"abc" | split("b"; null)', ''], ['-n -c', 'tojson', ''],
@@ -280,40 +300,48 @@ $modes = [
     ['-n -c', '{"a":[{"b":1},{"b":2}]} | [.. | .b? | numbers]', ''], ['-n -c', '{"a":[{"b":1},{"b":2}]} | .a[].b', ''], ['-n -c', '{"a":[{"b":1},{"b":2}]} | [.a[] | .b] | add', ''], ['-n -c', '{"a":[{"b":1},{"b":2}]} | .a |= map(.b)', ''],
     ['-n -c', 'ltrimstr', ''], ['-n -c', '1 as $x | [$x, $x + 1]', ''], ['-n -c', '[.] | length', ''], ['-n -c', 'null | length', ''], ['-n -c', '-5 | length', ''], ['-n -c', 'true | length', ''], ['-n -c', '"é" | length', ''], ['-n -c', '[null] | length', ''], ['-n -c', '{"a":null} | length', ''],
     ['-n -c', '[splits("a")]?', ''], ['-n -c', '"1,2" | split(",") | map(tonumber)', ''], ['-n -c', '" 1 " | tonumber?', ''], ['-n -c', '"0x10" | tonumber?', ''], ['-n -c', '"1e2" | tonumber', ''], ['-n -c', '"-0" | tonumber', ''], ['-n -c', '"nan" | tonumber?', ''], ['-n -c', '[1,2] | map(tostring | tonumber)', ''],
-    ['-n -c', '[true, null] | map(tojson)', ''], ['-n -c', '"\\u0000" | length', ''], ['-n -c', '"\\u0000" | @json', ''], ['-n -c', '"\\ud800" | length', ''], ['-n -c', '"\\ud83d\\ude00" | length', ''], ['-n -c', '"\\ud83d\\ude00" | utf8bytelength', ''], ['-n -c', '"\\ud83d\\ude00" | explode', ''], ['-n -c', '[128512] | implode', ''],
+    ['-n -c', '[true, null] | map(tojson)', ''], ['-n -c', '"\u0000" | length', ''], ['-n -c', '"\u0000" | @json', ''], ['-n -c', '"\ud800" | length', ''], ['-n -c', '"\ud83d\ude00" | length', ''], ['-n -c', '"\ud83d\ude00" | utf8bytelength', ''], ['-n -c', '"\ud83d\ude00" | explode', ''], ['-n -c', '[128512] | implode', ''],
     ['-n -c', '[55357, 56832] | implode', ''], ['-n -c', '"a" | ascii_downcase | ascii_upcase | @text', ''], ['-n -c', '"é" | ascii_upcase', ''], ['-n -c', '"Σ" | ascii_downcase', ''], ['-n -c', '[limit(1; error("x"))]?', ''], ['-n -c', 'try ("a" | error) catch (. + "b")', ''],
     ['-n -c', '[.[]?] | tojson', ''], ['-n -c', '[1,2,3] | .[1:] | length', ''], ['-n -c', '"abc" | .[1:]', ''], ['-n -c', '"aéb" | .[1:2]', ''], ['-n -c', '"abc" | .[-1:]', ''], ['-n -c', 'ltrimstr(null)', ''], ['-n -c', '[1,2,3] | .[null]?', ''], ['-n -c', '{"a":1} | .["a"]', ''],
-    ['-n -c', '"abc" | test("a.c"; "x")', ''], ['-n -c', '"a\\nb" | test("a.b"; "s")', ''], ['-n -c', '"a\\nb" | [match("^b"; "g")] | length', ''], ['-n -c', '"aaa" | [match("a*?"; "g")] | length', ''], ['-n -c', '"abc" | [match("(?<n>x)?b"; "g")] | .[0].captures', ''],
-    ['-n -c', '"foo bar" | capture("(?<a>\\w+) (?<b>\\w+)")', ''], ['-n -c', '"foo bar" | [scan("(\\w)(\\w)")]', ''], ['-n -c', '"foo bar" | [scan("o+")]', ''], ['-n -c', '"foo" | sub("o"; "0"; "g")', ''], ['-n -c', '"foo" | sub("(?<x>o)"; "\\(.x)\\(.x)")', ''], ['-n -c', '"abc" | sub("$"; "!")', ''], ['-n -c', '"abc" | gsub("^"; "!")', ''],
+    ['-n -c', '"abc" | test("a.c"; "x")', ''], ['-n -c', '"a\nb" | test("a.b"; "s")', ''], ['-n -c', '"a\nb" | [match("^b"; "g")] | length', ''], ['-n -c', '"aaa" | [match("a*?"; "g")] | length', ''], ['-n -c', '"abc" | [match("(?<n>x)?b"; "g")] | .[0].captures', ''],
+    ['-n -c', '"foo bar" | capture("(?<a>\w+) (?<b>\w+)")', ''], ['-n -c', '"foo bar" | [scan("(\w)(\w)")]', ''], ['-n -c', '"foo bar" | [scan("o+")]', ''], ['-n -c', '"foo" | sub("o"; "0"; "g")', ''], ['-n -c', '"foo" | sub("(?<x>o)"; "\(.x)\(.x)")', ''], ['-n -c', '"abc" | sub("$"; "!")', ''], ['-n -c', '"abc" | gsub("^"; "!")', ''],
     ['-n -c', '"abc" | [match("."; "g")] | map(.length)', ''], ['-n -c', '"aXbX" | ascii_downcase | split("x")', ''], ['-n -c', '"abc" | split("")', ''], ['-n -c', '"" | split("")', ''], ['-n -c', '"" | split(",")', ''], ['-n -c', '"a" | split("a")', ''], ['-n -c', '"abc" | startswith("")', ''],
     ['-n -c', '"abc" | startswith(1)', ''], ['-n -c', '"abc" | endswith("bc")', ''], ['-n -c', '"a" * 3', ''], ['-n -c', '"a" * 0.5', ''], ['-n -c', '"a" * -1', ''], ['-n -c', '"abc" / "b"', ''], ['-n -c', '[1,2,3] - [2]', ''], ['-n -c', '{"a":{"b":1}} * {"a":{"c":2}}', ''], ['-n -c', '{"a":1} + {"a":2}', ''], ['-n -c', 'null + 1, 1 + null, null + null', ''],
     ['-n -c', '[1] + null', ''], ['-n -c', '"a" + null', ''], ['-n -c', '1 - null', ''], ['-n -c', '[] | first?', ''], ['-n -c', '[] | first(.[])?', ''], ['-n -c', '[range(3)] | last(.[])', ''], ['-n -c', '[limit(0; 1)]', ''], ['-n -c', 'isempty(empty), isempty(1)', ''], ['-n -c', '[range(10)] | .[2:5] | .[1]', ''],
-    ['-n -c', 'splits("a")', ''], ['-n -c', 'getpath(["a"]) = 1', ''], ['-n -c', 'paths', ''], ['-n -c', '[paths]', ''], ['-n -c', 'input', ''], ['-n -c', 'inputs', ''], ['-n -c', 'debug', ''], ['-n -c', '1 | debug', ''], ['-n -c', '1 | debug("m")', ''], ['-n -c', '"x" | stderr', ''], ['-n -c', '[1] | halt_error', ''], ['-n -c', '"bye\\n" | halt_error', ''], ['-n -c', '"bye" | halt_error(3)', ''], ['-n -c', '{"a":1} | halt_error', ''], ['-n -c', 'halt', ''],
-    ['-n -c', 'input_line_number', ''], ['-n -c', '$ENV.PATH | type', ''], ['-n -c', 'ltrimstr("a") | halt', ''], ['-n -c', 'limit(1; 1, error("no"))', ''], ['-n -c', 'first(1, error("no"))', ''], ['-n -c', '[.[]?] | halt_error', ''], ['-n -c', 'error("a\\nb")', ''], ['-n -c', 'error([1])', ''], ['-n -c', 'error(true)', ''], ['-n -c', '{} | error', ''],
+    ['-n -c', 'splits("a")', ''], ['-n -c', 'getpath(["a"]) = 1', ''], ['-n -c', 'paths', ''], ['-n -c', '[paths]', ''], ['-n -c', 'input', ''], ['-n -c', 'inputs', ''], ['-n -c', 'debug', ''], ['-n -c', '1 | debug', ''], ['-n -c', '1 | debug("m")', ''], ['-n -c', '"x" | stderr', ''], ['-n -c', '[1] | halt_error', ''], ['-n -c', '"bye\n" | halt_error', ''], ['-n -c', '"bye" | halt_error(3)', ''], ['-n -c', '{"a":1} | halt_error', ''], ['-n -c', 'halt', ''],
+    ['-n -c', 'input_line_number', ''], ['-n -c', '$ENV.PATH | type', ''], ['-n -c', 'ltrimstr("a") | halt', ''], ['-n -c', 'limit(1; 1, error("no"))', ''], ['-n -c', 'first(1, error("no"))', ''], ['-n -c', '[.[]?] | halt_error', ''], ['-n -c', 'error("a\nb")', ''], ['-n -c', 'error([1])', ''], ['-n -c', 'error(true)', ''], ['-n -c', '{} | error', ''],
     ['--seq -c', '.', 'docs/multi.json'], ['--seq -n -c', '[1,2]', ''], ['--stream -c', '.', 'docs/00.json'], ['--stream -c', '.', 'docs/multi.json'], ['--stream -c -n', '[inputs]', 'docs/multi.json'], ['--stream -c -s', '.', 'docs/multi.json'], ['--stream -c', '.', 'docs/order.json'], ['--stream -c', '.', 'docs/unicode.json'], ['--stream -c', '.', 'docs/bad.json'],
     ['-c --stream -n', 'fromstream(inputs)', 'docs/order.json'], ['-c --stream -n', 'fromstream(1|truncate_stream(inputs))', 'docs/order.json'], ['-c', 'tostream', 'docs/order.json'], ['-c', '[tostream] | fromstream(.[])', 'docs/order.json'], ['-c', '[.[]?]', 'docs/multi.json'],
     ['-C', '.', 'docs/order.json'], ['-C -c', '.', 'docs/order.json'], ['-M', '.', 'docs/order.json'], ['-C', '.', 'docs/unicode.json'], ['-C', '.', 'docs/nums.json'], ['--color-output', '[]', 'docs/order.json'], ['-C -c', '[{}, [], "a", 1, null, true, false]', 'docs/order.json'],
-    ['-n -r', '"a\\u0000b"', ''], ['-n -j', '"a\\u0000b"', ''], ['-n --raw-output0', '"a", "b"', ''], ['-n -a -c', '"\\u007f\\u0080\\u00ff\\u0100\\ud83d\\ude00"', ''], ['-n -c', '"\\u001f\\u007f" | @json', ''], ['-n -r', '@json "\\("\\u001f")"', ''],
-    ['--raw-input --slurp', '.', 'docs/lines.txt'], ['-nR', 'input', 'docs/lines.txt'], ['-nR', '[inputs] | length', 'docs/lines.txt'], ['-sR -c', 'split("\\n") | length', 'docs/lines.txt'], ['-c --slurp', 'map(type)', 'docs/multi.json'], ['--slurp -R -c', 'length', 'docs/csvish.txt'], ['-s -n -c', '[inputs]', 'docs/multi.json'], ['-s -n -c', 'input', 'docs/multi.json'],
+    ['-n -r', '"a\u0000b"', ''], ['-n -j', '"a\u0000b"', ''], ['-n --raw-output0', '"a", "b"', ''], ['-n -a -c', '"\u007f\u0080\u00ff\u0100\ud83d\ude00"', ''], ['-n -c', '"\u001f\u007f" | @json', ''], ['-n -r', '@json "\("\u001f")"', ''],
+    ['--raw-input --slurp', '.', 'docs/lines.txt'], ['-nR', 'input', 'docs/lines.txt'], ['-nR', '[inputs] | length', 'docs/lines.txt'], ['-sR -c', 'split("\n") | length', 'docs/lines.txt'], ['-c --slurp', 'map(type)', 'docs/multi.json'], ['--slurp -R -c', 'length', 'docs/csvish.txt'], ['-s -n -c', '[inputs]', 'docs/multi.json'], ['-s -n -c', 'input', 'docs/multi.json'],
     ['-f docs/prog.jq -c', '', 'docs/00.json'], ['--from-file docs/prog.jq -c', '', 'docs/00.json'], ['-c', '--', 'docs/00.json'], ['-h', '', ''], ['--help', '', ''], ['--version', '', ''], ['-V', '', ''], ['--bogus', '.', 'docs/00.json'], ['-z', '.', 'docs/00.json'], ['', '', ''], ['-n', '', ''], ['--indent', '.', 'docs/00.json'], ['--indent abc', '.', 'docs/00.json'], ['--indent -1', '.', 'docs/00.json'], ['--indent 8', '.', 'docs/00.json'],
     ['-nr', '"x"', ''], ['-nc', '1', ''], ['-ncr', '[1]', ''], ['-cn', '1', ''], ['-sc', 'length', 'docs/multi.json'], ['-ce', 'false', 'docs/00.json'], ['--exit-status -c', '.n', 'docs/00.json'], ['--compact-output --raw-output', '.name', 'docs/00.json'], ['--null-input', '1', ''], ['--sort-keys -c', '.', 'docs/order.json'], ['--ascii-output -c', '.', 'docs/unicode.json'], ['--join-output', '.name', 'docs/00.json'], ['--tab -c', '.', 'docs/order.json'],
-    ['--arg x', '.', 'docs/00.json'], ['--argjson x', '.', 'docs/00.json'], ['--rawfile x docs/lines.txt -c', '$x', 'docs/00.json'], ['--slurpfile x docs/multi.json -c', '$x', 'docs/00.json'], ['--rawfile x docs/missing -c', '$x', 'docs/00.json'], ['--slurpfile x docs/bad.json -c', '$x', 'docs/00.json'], ['-n -c --arg x 1 --arg x 2', '$x', ''], ['-n -c --arg x 1', '$ARGS.named', ''], ['-n -c --argjson x null', '$x', ''], ['-n -c --argjson x 1.0', '$x', ''], ['-n -c --argjson x 1e2', '$x', ''], ['-n -c --argjson x "\\"s\\"" ', '$x', ''], ['-n -c --argjson x "[1,2]"', '$x', ''], ['-n -c --argjson x "1 2"', '$x', ''], ['-n -c --argjson x ""', '$x', ''],
+    ['--arg x', '.', 'docs/00.json'], ['--argjson x', '.', 'docs/00.json'], ['--rawfile x docs/lines.txt -c', '$x', 'docs/00.json'], ['--slurpfile x docs/multi.json -c', '$x', 'docs/00.json'], ['--rawfile x docs/missing -c', '$x', 'docs/00.json'], ['--slurpfile x docs/bad.json -c', '$x', 'docs/00.json'], ['-n -c --arg x 1 --arg x 2', '$x', ''], ['-n -c --arg x 1', '$ARGS.named', ''], ['-n -c --argjson x null', '$x', ''], ['-n -c --argjson x 1.0', '$x', ''], ['-n -c --argjson x 1e2', '$x', ''], ['-n -c --argjson x "\"s\"" ', '$x', ''], ['-n -c --argjson x "[1,2]"', '$x', ''], ['-n -c --argjson x "1 2"', '$x', ''], ['-n -c --argjson x ""', '$x', ''],
 ];
 
 foreach ($parseTexts as $i => $text) {
-    $file = \sprintf('docs/p%03d.json', $i);
+    $file    = \sprintf('docs/p%03d.json', $i);
     $modes[] = ['-c', '.', $file];
     $modes[] = ['-c', '[..|numbers|.+0]', $file];
     $modes[] = ['-c -s', '.', $file];
 }
 
 $tsv = fopen($outDir . '/cases.tsv', 'wb');
+if (false === $tsv) {
+    fwrite(STDERR, 'cannot write ' . $outDir . "/cases.tsv\n");
+
+    exit(1);
+}
+
 foreach ($cases as [$flags, $filter, $file]) {
     fwrite($tsv, $flags . "\x1f" . $filter . "\x1f" . $file . "\n");
 }
+
 foreach ($modes as [$flags, $filter, $file]) {
     fwrite($tsv, str_replace('docs/', $outDir . '/docs/', $flags) . "\x1f" . $filter . "\x1f" . str_replace('docs/', $outDir . '/docs/', $file) . "\n");
 }
+
 fclose($tsv);
 file_put_contents($outDir . '/docs/prog.jq', "# comment\n.users | length\n");
 echo \count($cases) + \count($modes), " cases\n";

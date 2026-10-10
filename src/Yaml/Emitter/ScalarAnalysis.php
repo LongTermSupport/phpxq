@@ -51,7 +51,6 @@ final readonly class ScalarAnalysis
         $precededByBlank = true;
         $previousSpace   = false;
         $previousBreak   = false;
-        $width           = 1;
 
         for ($i = 0; $i < $length; $i += $width) {
             $byte            = \ord($value[$i]);

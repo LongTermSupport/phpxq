@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Cli\Options;
 /**
  * What the command line asks jq to do.
  *
- * @api
+ * @internal
  */
 enum CliActionEnum
 {

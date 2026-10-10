@@ -13,6 +13,8 @@ use LTS\PhpXq\Yaml\Schema\CoreSchema;
  * Small constructors and predicates over {@see Node} shared by the operators: typed scalar factories,
  * alias dereferencing, truthiness, effective tags (custom tags resolve by value) and the in-place
  * update the assignment operators use.
+ *
+ * @internal
  */
 final readonly class NodeOps
 {

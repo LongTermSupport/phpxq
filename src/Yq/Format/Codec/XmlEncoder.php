@@ -7,7 +7,6 @@ namespace LTS\PhpXq\Yq\Format\Codec;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -16,6 +15,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * `+content` is the element text, `+p_target` and `+directive` write processing instructions and
  * directives, and comments are written as XML comments around the entry they belong to. Indentation is
  * `-I` spaces (none at 0).
+ *
+ * @internal
  */
 final readonly class XmlEncoder implements EncoderInterface
 {
@@ -54,11 +55,6 @@ final readonly class XmlEncoder implements EncoderInterface
 
     /** The reference's refusal of an empty element or attribute name. */
     private const string NO_NAME = 'xml: start tag with no name';
-
-    public function format(): FormatEnum
-    {
-        return FormatEnum::Xml;
-    }
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {

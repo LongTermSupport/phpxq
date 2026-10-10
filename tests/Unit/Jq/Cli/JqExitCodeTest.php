@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Jq\Cli;
 
-use LTS\PhpXq\Cli\FrontControllerInterface;
 use LTS\PhpXq\Jq\Cli\JqExitCode;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -23,13 +22,5 @@ final class JqExitCodeTest extends TestCase
         self::assertSame(2, $constants['USAGE']);
         self::assertSame(3, $constants['COMPILE_ERROR']);
         self::assertSame(4, $constants['NO_OUTPUT']);
-        self::assertSame(5, $constants['RUNTIME_ERROR']);
-    }
-
-    public function testNotImplementedAgreesWithTheFrontController(): void
-    {
-        $constants = new ReflectionClass(JqExitCode::class)->getConstants();
-
-        self::assertSame(FrontControllerInterface::EXIT_NOT_IMPLEMENTED, $constants['NOT_IMPLEMENTED']);
     }
 }

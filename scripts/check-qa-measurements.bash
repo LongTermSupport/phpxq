@@ -9,15 +9,18 @@
 # - var/qa/phpunit_logs/coverage.clover exists, and its statement and method coverage meet the floors below;
 # - var/qa/infection/summary-log.txt exists, is newer than the coverage report (so it is from this run),
 #   and reports no more skipped mutants than the cap below; the mutation score is printed.
-# - With PHPXQ_MUTATION_BASE set (CI runs scoped by scripts/mutation-scope.bash), the scope is recomputed
-#   from that ref and qaConfig/infection.json must be exactly what that scope writes (absent unless scoped):
-#   only a change that maps to no source file may have no summary, and only a scoped run may generate no
-#   mutants (its files hold none, e.g. interfaces alone). Without it the run must
-#   have been full, so a leftover scoped qaConfig/infection.json fails the check.
+# - php-qa-ci mutates only what a branch changed (automatic diff mode) and says which scope ran on the first
+#   `Infection:` line of its output, which CI keeps in the file named by PHPXQ_QA_LOG. A run that was FULL is
+#   accepted only for the two reasons upstream gives that are not a fault of the clone: the change touches
+#   configuration every mutant depends on, or the branch is the default one. Any other full run (a shallow
+#   clone with no merge base, no known default branch, a detached HEAD) fails: it would take hours and
+#   measure what the branch did not change. A diff run that has nothing to mutate has no summary and passes;
+#   one whose files hold no mutable code (interfaces alone) has a summary of zero mutants and passes.
 #
 # The floors sit at the value the unit suite earns today and only ever move up (the cap only down); raising
-# them is plan 00011.
-# Usage: scripts/check-qa-measurements.bash   (after vendor/bin/qa or vendor/bin/qa -t infection)
+# them is plan 00011. Infection holds a diff run to its own floor (qaConfig/qa.php).
+# Usage: PHPXQ_QA_LOG=<file holding the output of vendor/bin/qa> scripts/check-qa-measurements.bash
+#   Without PHPXQ_QA_LOG the scope is not checked (a local run), only the summary.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -102,26 +105,41 @@ else
     check_floor methods "$covered_methods" "$methods" "$method_floor"
 fi
 
-base="${PHPXQ_MUTATION_BASE:-}"
-scope=all
-if [[ -n "$base" ]]; then
-    # Recomputed here rather than trusted from the workflow: only a change that maps to no source may skip.
-    # --verify also fails unless qaConfig/infection.json is exactly what --write leaves for that scope, so the
-    # mutants counted below are the scope's: a missing or stale override would have mutated something else.
-    verify_status=0
-    scope_report="$("$root/scripts/mutation-scope.bash" "$base" --verify)" || verify_status=$?
-    scope="$(printf '%s\n' "$scope_report" | awk -F= '$1 == "scope" { print $2 }')"
-    echo "mutation scope since $base: ${scope:-unknown}"
-    if [[ "$verify_status" -ne 0 ]]; then
-        fail "the scoped mutation config qaConfig/infection.json does not match the scope since $base (see above)"
-        scope=all
+# check_scope: reads the `Infection:` lines php-qa-ci printed and fails on a run that was full for a reason
+# that is a fault of the clone rather than of the change. Sets nothing_to_mutate=1 when the diff held no source.
+nothing_to_mutate=0
+# 1 only when the log shows a diff run that stayed one: a full run, or a scope not known, measures all of src/.
+scope_is_diff=0
+check_scope() {
+    local log="${PHPXQ_QA_LOG:-}" scope_line full_runs
+    if [[ -z "$log" ]]; then
+        echo "mutation scope: not checked (PHPXQ_QA_LOG is unset)"
+        return
     fi
-elif [[ -f "$root/qaConfig/infection.json" ]]; then
-    fail "qaConfig/infection.json (a scoped mutation config from scripts/mutation-scope.bash) is present, so a full run measured only part of src/; delete it"
-fi
+    if [[ ! -f "$log" ]]; then
+        fail "PHPXQ_QA_LOG names $log, which does not exist: the output of vendor/bin/qa was not kept"
+        return
+    fi
+    if ! scope_line="$(grep -m1 -E 'Infection: (auto diff mode|diff mode|full run)' "$log")"; then
+        fail "$log has no Infection scope line: the Infection lane did not run (php-qa-ci skips it without Xdebug)"
+        return
+    fi
+    echo "mutation scope: $scope_line"
+    scope_is_diff=1
+    if full_runs="$(grep -E 'Infection: full run' "$log")"; then
+        scope_is_diff=0
+        if printf '%s\n' "$full_runs" | grep -q -v -E 'does not apply: on the default branch|touches configuration every mutant depends on'; then
+            fail "Infection mutated all of src/ for a reason other than a configuration change or the default branch (a shallow clone, no default branch, a detached HEAD, or a forced full run): $full_runs"
+        fi
+    fi
+    if grep -q -E 'there are no new mutants to check\. SKIPPING' "$log"; then
+        nothing_to_mutate=1
+    fi
+}
+check_scope
 
-if [[ "$scope" == none ]]; then
-    echo "mutants: none to check, the change maps to no source file"
+if [[ "$nothing_to_mutate" -eq 1 ]]; then
+    echo "mutants: none to check, the change holds no source file or test named after one"
 elif [[ ! -f "$summary" ]]; then
     fail "no Infection summary at $summary_rel: mutation testing did not run (php-qa-ci skips it without Xdebug) or did not finish"
 elif [[ -f "$clover" && "$summary" -ot "$clover" ]]; then
@@ -133,12 +151,12 @@ else
         fail "the Infection summary has no Total or Skipped line"
     else
         echo "mutants: $total generated, $skipped skipped"
-        if [[ "$total" -eq 0 && "$scope" == files ]]; then
-            # Infection ran over the scope (the summary is from this run) and found nothing to mutate in it, as for
+        if [[ "$total" -eq 0 && "$scope_is_diff" -eq 1 ]]; then
+            # Infection ran over the diff (the summary is from this run) and found nothing to mutate in it, as for
             # a change to interfaces alone. That is a pass; a missing summary is not, and fails above.
-            echo "mutants: the scope is not empty but no mutants were generated from it, so there is no score to check"
+            echo "mutants: none were generated from what the change touches, so there is no score to check"
         elif [[ "$total" -eq 0 ]]; then
-            fail "Infection generated no mutants from all of src/"
+            fail "Infection generated no mutants from all of src/ (or the scope of the run is not known)"
         else
             if [[ $((skipped * 100)) -gt $((total * max_skipped_percent)) ]]; then
                 fail "Infection skipped $skipped of $total mutants, more than $max_skipped_percent% (their covering tests are slower than the timeout), and the mutation score leaves them out"

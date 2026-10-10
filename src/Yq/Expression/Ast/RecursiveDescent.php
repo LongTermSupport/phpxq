@@ -8,6 +8,8 @@ use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 
 /**
  * `base..` (values only) and `base...` (keys as well, `includeKeys` true).
+ *
+ * @internal
  */
 final readonly class RecursiveDescent implements ExpressionNodeInterface
 {

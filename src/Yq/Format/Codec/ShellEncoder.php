@@ -8,7 +8,6 @@ use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -18,6 +17,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * folded to their base letter, other printable ASCII becomes `_`, everything else is dropped. Values are
  * single-quoted when they hold anything but safe characters, null is empty, and empty maps and arrays
  * produce nothing.
+ *
+ * @internal
  */
 final class ShellEncoder implements EncoderInterface
 {
@@ -25,11 +26,6 @@ final class ShellEncoder implements EncoderInterface
 
     /** @var array<string, string>|null */
     private static ?array $folding = null;
-
-    public function format(): FormatEnum
-    {
-        return FormatEnum::Shell;
-    }
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {

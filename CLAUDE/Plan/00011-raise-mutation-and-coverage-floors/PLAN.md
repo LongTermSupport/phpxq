@@ -24,8 +24,8 @@ The code review (plan 00010, finding Q1) showed that the 90% mutation floor meas
 
 ### Phase 1: Baseline
 
-- [ ] ⬜ **Task 1.1**: Record the honest per-directory MSI and the escaped mutants list from the first complete nightly run
-- [ ] ⬜ **Task 1.2**: Re-baseline the provisional 89/89 floor in `qaConfig/qa.php` from that first complete nightly MSI
+- [ ] ⬜ **Task 1.1**: Record the honest per-directory MSI and the escaped mutants list from the last complete full measurement (a manual one-off unfiltered `vendor/bin/qa` run, not a scheduled one)
+- [ ] ⬜ **Task 1.2**: Re-baseline the provisional 89/89 floor in `qaConfig/qa.php` from that complete measurement's MSI
 
 ### Phase 2: Climb
 
@@ -35,6 +35,7 @@ The code review (plan 00010, finding Q1) showed that the 90% mutation floor meas
 ### Phase 3: Upstream
 
 - [ ] ⬜ **Task 3.1**: Propose to php-qa-ci that a high skipped-mutant ratio fails the Infection lane
+- [x] ✅ **Task 3.2**: php-qa-ci's automatic diff mode (the default since 85.6.0) replaced phpxq's own mutation scoping; the floors apply to the diff, and `scripts/check-qa-measurements.bash` fails a CI run that was full for any reason but a configuration change or the default branch
 
 ## Success Criteria
 

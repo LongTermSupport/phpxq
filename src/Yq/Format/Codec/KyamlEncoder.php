@@ -8,7 +8,6 @@ use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -17,15 +16,12 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * keys where safe, double-quoted strings, and comments kept (line comments after the comma, head and foot
  * comments on their own lines). Aliases and merge keys are expanded. A leading comment of the document is
  * written above the first brace.
+ *
+ * @internal
  */
 final readonly class KyamlEncoder implements EncoderInterface
 {
     private const int MAX_DEPTH = 1000;
-
-    public function format(): FormatEnum
-    {
-        return FormatEnum::Kyaml;
-    }
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {

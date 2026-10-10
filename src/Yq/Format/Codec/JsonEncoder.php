@@ -8,7 +8,6 @@ use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -16,6 +15,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * Writes JSON the way the reference does: `-I n` spaces of indentation (compact at 0), aliases and merge
  * keys resolved, comments dropped, number text kept, no HTML escaping. A top-level string stays quoted.
  * Colour output uses the reference's palette: keys cyan, strings green, numbers and booleans magenta.
+ *
+ * @internal
  */
 final readonly class JsonEncoder implements EncoderInterface
 {
@@ -41,11 +42,6 @@ final readonly class JsonEncoder implements EncoderInterface
     private const string NEEDS_ESCAPE = "\"\\\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\xe2\x80";
 
     private const string JSON_NUMBER = '/^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?$/D';
-
-    public function format(): FormatEnum
-    {
-        return FormatEnum::Json;
-    }
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {

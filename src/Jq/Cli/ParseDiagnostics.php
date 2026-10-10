@@ -13,7 +13,7 @@ use LTS\PhpXq\Json\JsonSyntaxException;
  * failure point on is decoded again with everything before it blanked out (newlines kept), which makes
  * the decoder report the position jq would.
  *
- * @api
+ * @internal
  */
 final readonly class ParseDiagnostics
 {

@@ -24,6 +24,8 @@ use LTS\PhpXq\Yq\Runtime\NodeOps;
 /**
  * Environment, file and process operators: `env`, `strenv`, `envsubst`, `load`, `load_str`, `system`. They
  * honour the `--security-*` switches.
+ *
+ * @internal
  */
 final readonly class EnvFileCalls implements CallOperatorInterface
 {

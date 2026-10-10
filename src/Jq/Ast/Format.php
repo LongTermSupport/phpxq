@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Ast;
 /**
  * A bare `@name` applied to the input, for example `@base64` or `@csv`. $name has no `@`.
  *
- * @api
+ * @internal
  */
 final readonly class Format implements NodeInterface
 {

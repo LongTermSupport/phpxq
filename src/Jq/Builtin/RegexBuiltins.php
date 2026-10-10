@@ -13,7 +13,6 @@ use LTS\PhpXq\Jq\Builtin\Regex\NativeValue;
 use LTS\PhpXq\Jq\Builtin\Regex\OnigRegex;
 use LTS\PhpXq\Jq\Builtin\Regex\RegexEngine;
 use LTS\PhpXq\Jq\Runtime\Arithmetic;
-use LTS\PhpXq\Jq\Runtime\BuiltinProviderInterface;
 use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
 use LTS\PhpXq\Jq\Runtime\Eval\ErrorText;
 use LTS\PhpXq\Jq\Runtime\FilterInterface;
@@ -27,18 +26,13 @@ use LTS\PhpXq\Json\Values;
  * Natives: `_match_impl/3` (jq's own helper, which `match` and `capture` are defined on), `test/1,2`,
  * `split/2`, `scan/1,2`, `sub/2,3`, `gsub/2,3`. The rest is jq source in the prelude.
  *
- * @api
+ * @internal
  */
-final readonly class RegexBuiltins implements BuiltinProviderInterface
+final readonly class RegexBuiltins
 {
-    public function registerInto(BuiltinRegistryInterface $registry): void
-    {
-        $this->registerNatives($registry);
-        $registry->addPrelude(BuiltinCatalog::REGEX_PRELUDE);
-    }
-
     /**
-     * The native half of {@see self::registerInto()}: what {@see BuiltinCatalog} loads on first use.
+     * The natives that {@see BuiltinCatalog} loads on first use; the jq-defined half is
+     * {@see BuiltinCatalog::REGEX_PRELUDE}.
      */
     public function registerNatives(BuiltinRegistryInterface $registry): void
     {

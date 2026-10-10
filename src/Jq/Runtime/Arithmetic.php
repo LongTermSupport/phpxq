@@ -16,7 +16,7 @@ use LTS\PhpXq\Limits\AllocationLimit;
  * ("number (1) and string (\"a\") cannot be added"). Shared by the evaluator and by builtins such as
  * `add`. Numbers are computed as IEEE doubles and come back as int when integral and within 2^53.
  *
- * @api
+ * @internal
  */
 final readonly class Arithmetic
 {

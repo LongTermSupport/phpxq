@@ -12,6 +12,8 @@ namespace LTS\PhpXq\Yaml;
  * order, or an alias of either; each sequence item may itself be an alias; anything else merges nothing.
  * {@see self::aliased()} is the reference's legacy encoder form, which takes aliases only. Alias chains are
  * followed up to MAX_ALIAS_CHAIN links, so a cyclic chain ends.
+ *
+ * @internal
  */
 final readonly class MergeSources
 {

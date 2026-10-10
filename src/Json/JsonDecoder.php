@@ -361,7 +361,6 @@ final readonly class JsonDecoder implements JsonDecoderInterface
                         $rs = strpos($text, self::RS, $i);
                         if (false === $rs) {
                             $abandoned = '' !== trim(substr($text, $i), " \t\r\n");
-                            $i         = $n;
 
                             break;
                         }
@@ -453,7 +452,6 @@ final readonly class JsonDecoder implements JsonDecoderInterface
                         if (0 === $sp && $hasNext) {
                             $emit    = $next;
                             $hasNext = false;
-                            $next    = null;
 
                             yield $emit;
                         }
@@ -621,7 +619,6 @@ final readonly class JsonDecoder implements JsonDecoderInterface
 
                     $next    = $value;
                     $hasNext = true;
-                    $pending = null;
                 }
 
                 if (0 !== $sp) {

@@ -8,7 +8,7 @@ namespace LTS\PhpXq\Jq\Ast;
  * `$name` (name without the `$`). `$ENV`, `$__prog_args` and named arguments are ordinary variables
  * bound by the runtime context; `$__loc__` is {@see Location}.
  *
- * @api
+ * @internal
  */
 final readonly class Variable implements NodeInterface
 {

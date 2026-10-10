@@ -8,6 +8,8 @@ namespace LTS\PhpXq\Yq\Format;
  * The data formats the reference yq reads and writes, valued with the name used by `-p`/`-o`.
  * ALIASES maps the reference's short `-p`/`-o` aliases to their format.
  * Not every format is both readable and writable; see {@see self::canDecode()} and {@see self::canEncode()}.
+ *
+ * @api
  */
 enum FormatEnum: string
 {

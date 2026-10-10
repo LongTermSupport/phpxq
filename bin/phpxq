@@ -3,6 +3,9 @@
 
 declare(strict_types=1);
 
+// Inside the package's root namespace so that this script may use the @internal classes it launches.
+namespace LTS\PhpXq\Bin;
+
 use LTS\PhpXq\Cli\EntryPoint;
 use LTS\PhpXq\Cli\ErrorGuard;
 use LTS\PhpXq\Cli\FrontController;

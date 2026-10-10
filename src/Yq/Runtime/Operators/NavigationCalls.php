@@ -22,6 +22,8 @@ use LTS\PhpXq\Yq\Runtime\PathOps;
  * Operators about where a match lives: `parent`, `parents`, `root`, `key`, `is_key`, `path`, `getpath`,
  * `line`, `column`, `document_index` (`di`), `file_index` (`fi`), `filename`, `split_doc`, and the operator
  * that parses and runs an expression held in a string.
+ *
+ * @internal
  */
 final readonly class NavigationCalls implements CallOperatorInterface
 {

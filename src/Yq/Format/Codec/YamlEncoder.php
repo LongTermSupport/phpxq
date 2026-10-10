@@ -9,7 +9,6 @@ use LTS\PhpXq\Yaml\Emitter\YamlEmitter;
 use LTS\PhpXq\Yaml\Emitter\YamlEmitterInterface;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
 /**
@@ -19,16 +18,13 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * Pass the position of the result's output document, not of the result: the reference prints `---` only
  * where the document changes, so every result taken from the first document is index 0 (`.[]` prints
  * `a` and `b` with no separator) and results from the next document are index 1.
+ *
+ * @internal
  */
 final readonly class YamlEncoder implements EncoderInterface
 {
     public function __construct(private YamlEmitterInterface $emitter = new YamlEmitter())
     {
-    }
-
-    public function format(): FormatEnum
-    {
-        return FormatEnum::Yaml;
     }
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string

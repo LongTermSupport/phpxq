@@ -34,6 +34,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * {@see Candidate}s (node plus parent and key), so assignment mutates the document in place and
  * `path`, `key` and `parent` know where a match came from. A name that is not a registered operator and
  * takes no arguments is a field name, as the reference lets `a.b` stand for `.a.b`.
+ *
+ * @internal
  */
 final readonly class Evaluator implements EvaluatorInterface
 {

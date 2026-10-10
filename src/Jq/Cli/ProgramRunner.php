@@ -22,7 +22,7 @@ use LTS\PhpXq\Json\JsonEncoderInterface;
  * NULL_KIND when the last output was false or null, 0 otherwise, or a positive exit status after an
  * error or `halt`.
  *
- * @api
+ * @internal
  */
 final class ProgramRunner
 {

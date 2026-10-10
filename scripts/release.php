@@ -5,7 +5,7 @@ declare(strict_types=1);
 
 use LTS\PhpXq\Release\ReleaseCommand;
 
-require \dirname(__DIR__) . '/vendor/autoload.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 $root = getcwd();
 if (false === $root) {

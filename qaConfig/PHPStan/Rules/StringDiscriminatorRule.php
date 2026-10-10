@@ -96,7 +96,7 @@ final readonly class StringDiscriminatorRule implements Rule
                     continue;
                 }
 
-                $errors[] = RuleErrorBuilder::message($this->message($subject, $method, $literals))
+                $errors[] = RuleErrorBuilder::message($this->message($subject, $method, ...$literals))
                     ->identifier(self::IDENTIFIER)
                     ->line($found['line'])
                     ->build()
@@ -107,10 +107,7 @@ final readonly class StringDiscriminatorRule implements Rule
         return $errors;
     }
 
-    /**
-     * @param list<string> $literals
-     */
-    private function message(string $subject, ClassMethod $method, array $literals): string
+    private function message(string $subject, ClassMethod $method, string ...$literals): string
     {
         $shown = array_map(static fn (string $literal): string => "'" . $literal . "'", \array_slice($literals, 0, self::MAX_SHOWN));
         $more  = \count($literals) > self::MAX_SHOWN ? ', ...' : '';

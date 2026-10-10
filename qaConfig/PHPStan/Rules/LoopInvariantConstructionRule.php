@@ -32,10 +32,10 @@ use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
 use PhpParser\Node\Scalar;
 use PhpParser\Node\Scalar\InterpolatedString;
-use PhpParser\Node\Stmt\ClassMethod;
-use PhpParser\Node\Stmt\Do_;
 use PhpParser\Node\Stmt\Break_;
+use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Continue_;
+use PhpParser\Node\Stmt\Do_;
 use PhpParser\Node\Stmt\For_;
 use PhpParser\Node\Stmt\Foreach_;
 use PhpParser\Node\Stmt\Return_;
@@ -87,7 +87,7 @@ final readonly class LoopInvariantConstructionRule implements Rule
         $class    = $node->getOriginalNode();
         $short    = $class->name instanceof Identifier ? strtolower($class->name->toString()) : '';
         $methods  = ClassCallGraph::of($class)->methods();
-        $builders = $this->builders($methods, $short);
+        $builders = $this->builders($short, ...$methods);
 
         $errors   = [];
         $reported = [];
@@ -119,11 +119,9 @@ final readonly class LoopInvariantConstructionRule implements Rule
     /**
      * The own methods that construct an engine on every call, with the name of the engine class.
      *
-     * @param list<ClassMethod> $methods
-     *
      * @return array<string, string>
      */
-    private function builders(array $methods, string $short): array
+    private function builders(string $short, ClassMethod ...$methods): array
     {
         $builders = [];
         do {
@@ -135,7 +133,7 @@ final readonly class LoopInvariantConstructionRule implements Rule
                 }
 
                 $kept = $this->keptNodes($method);
-                foreach (UnconditionalNodes::within($method->stmts ?? []) as $inside) {
+                foreach (UnconditionalNodes::within(array_values($method->stmts ?? [])) as $inside) {
                     if (isset($kept[spl_object_id($inside)])) {
                         continue;
                     }

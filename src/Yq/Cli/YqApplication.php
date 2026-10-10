@@ -26,6 +26,8 @@ use LTS\PhpXq\Yq\Runtime\EvaluatorInterface;
  * `yq completion <shell>`, `yq help [command]` and `yq --version`.
  *
  * Every failure prints `Error: <message>` on standard error and returns 1, as the reference does.
+ *
+ * @internal
  */
 final readonly class YqApplication implements YqApplicationInterface
 {
@@ -53,6 +55,12 @@ final readonly class YqApplication implements YqApplicationInterface
         $this->evaluate = new EvaluateCommand($yamlParser, $emitter, $expressions, $evaluator, $formats);
     }
 
+    /**
+     * @param resource $stdin
+     * @param resource $stdout
+     * @param resource $stderr
+     * @param string   ...$args arguments after `yq`
+     */
     public function run(mixed $stdin, mixed $stdout, mixed $stderr, string ...$args): int
     {
         // The cycle collector re-scans the huge, cycle-free node tree every few thousand allocations; a run

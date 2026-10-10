@@ -34,6 +34,8 @@ use LTS\PhpXq\Yq\Format\Codec\YamlEncoder;
 /**
  * Finds the codec for a format, building each one on first use and keeping it. Every format has an
  * encoder; shell has no decoder, and kyaml is read as YAML.
+ *
+ * @internal
  */
 final class FormatRegistry implements FormatRegistryInterface
 {
@@ -64,7 +66,7 @@ final class FormatRegistry implements FormatRegistryInterface
             FormatEnum::Uri                      => new UriDecoder(),
             FormatEnum::Lua                      => new LuaDecoder(),
             FormatEnum::Hcl                      => new HclDecoder(),
-            FormatEnum::Kyaml                    => new YamlDecoder($this->yamlParser, FormatEnum::Kyaml),
+            FormatEnum::Kyaml                    => new YamlDecoder($this->yamlParser),
             FormatEnum::Shell                    => throw new FormatException('cannot read ' . $format->value . ' input; it is an output only format'),
         };
     }

@@ -11,7 +11,7 @@ namespace LTS\PhpXq\Jq\Ast;
  * prefix: `def f(g; $x): ...` has params ['g', '$x']. A `$x` parameter is sugar for a closure parameter x
  * plus `x as $x |` around the body; the compiler performs that expansion.
  *
- * @api
+ * @internal
  */
 final readonly class FuncDef
 {

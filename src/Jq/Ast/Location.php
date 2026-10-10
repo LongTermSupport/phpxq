@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Ast;
 /**
  * `$__loc__`: evaluates to {"file": $file, "line": $line}.
  *
- * @api
+ * @internal
  */
 final readonly class Location implements NodeInterface
 {

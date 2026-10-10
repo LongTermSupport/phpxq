@@ -8,7 +8,6 @@ use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -17,17 +16,14 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * (`name = value`), other mappings become blocks (a mapping whose `explicitEnd` flag is set holds block
  * labels as its keys), a sequence of mappings becomes repeated blocks. Strings are double-quoted unless the
  * reader flagged them as raw expressions. Two spaces per level, no blank lines.
+ *
+ * @internal
  */
 final readonly class HclEncoder implements EncoderInterface
 {
     private const int MAX_DEPTH = 500;
 
     private const string ASSIGN = ' = ';
-
-    public function format(): FormatEnum
-    {
-        return FormatEnum::Hcl;
-    }
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {

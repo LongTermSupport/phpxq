@@ -2,16 +2,14 @@
 
 declare(strict_types=1);
 
-namespace LTS\PhpXq\Jq\Builtin\Core;
+namespace LTS\PhpXq\Tests\Support\Jq;
 
 use LTS\PhpXq\Jq\Runtime\BuiltinInterface;
 use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
 
 /**
- * A registry decorator that remembers the `name/arity` of every native registered through it, which is how
- * `builtins` knows the natives without the registry interface having to list them.
- *
- * @internal
+ * A registry that forwards to another one and remembers the `name/arity` of every native registered
+ * through it, so a test can compare what a group registers with what the catalog says it does.
  */
 final class RecordingRegistry implements BuiltinRegistryInterface
 {
@@ -26,11 +24,6 @@ final class RecordingRegistry implements BuiltinRegistryInterface
     {
         $this->inner->register($builtin);
         $this->signatures[] = $builtin->name() . '/' . $builtin->arity();
-    }
-
-    public function addPrelude(string $source): void
-    {
-        $this->inner->addPrelude($source);
     }
 
     public function lookup(string $name, int $arity): ?BuiltinInterface

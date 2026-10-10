@@ -14,7 +14,7 @@ use LTS\PhpXq\Json\JsonSyntaxException;
  * `$ORIGIN/../lib` when none were given. A module `foo` is `foo.jq` or `foo/foo.jq` inside a directory; a
  * data file is `foo.json` or `foo/foo.json`.
  *
- * @api
+ * @internal
  */
 final readonly class FileModuleLoader implements ModuleLoaderInterface
 {

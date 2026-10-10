@@ -15,7 +15,7 @@ namespace LTS\PhpXq\Limits;
  * catch: padding or repetition within them can still exhaust the memory_limit or the host, and other
  * operations are not checked at all.
  *
- * @api
+ * @internal
  */
 final readonly class AllocationLimit
 {

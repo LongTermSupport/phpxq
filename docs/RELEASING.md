@@ -68,7 +68,7 @@ Releases are cut from the changelog. Nobody picks a version number, edits `VERSI
 | Heading                  | Bump while the major is 0 | Bump from 1.0 |
 | ------------------------ | ------------------------- | ------------- |
 | `### Changed — breaking` | minor                     | major         |
-| `### Removed`            | minor                     | minor         |
+| `### Removed`            | minor                     | major         |
 | `### Added`              | minor                     | minor         |
 | `### Changed`            | minor                     | minor         |
 | `### Deprecated`         | minor                     | minor         |
@@ -91,8 +91,8 @@ The logic is `scripts/Release/` (unit tested in `tests/Unit/Release/`), run thro
 | `scripts/release.bash verify`       | exit 0 releasable, 3 not a release commit, 1 refused                           |
 | `scripts/release.bash reconcile`    | merges a released changelog with the entries `main` gained since               |
 
-Before the first release `VERSION` (`0.1.0`) has no tag, so the release is `0.1.0` itself and no bump is
-applied. Pre-release suffixes (`-rc.1`) are not produced by this flow.
+When `VERSION` has no tag yet (only before the very first release, `0.1.0`), that version is released as it
+stands and no bump is applied. Pre-release suffixes (`-rc.1`) are not produced by this flow.
 
 ## What each stage does
 
@@ -100,7 +100,7 @@ applied. Pre-release suffixes (`-rc.1`) are not produced by this flow.
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
 | `release-pr.yml` | After QA is green on `main`: opens or refreshes `chore/release`, closes it when `## Unreleased` is empty, stands down while a back-merge is pending                          | A stale or missing pull request; nothing is released  |
 | preflight        | `VERSION`, the newest changelog section and the tags must agree; tag `vX.Y.Z` must not exist locally or on the remote                                                        | Nothing is built or published                         |
-| qa               | the full `CI=true vendor/bin/qa` pipeline (mutation scoped to the change since the previous tag), the measurement check, then `scripts/conformance.bash all`                 | Nothing is published                                  |
+| qa               | the full `CI=true vendor/bin/qa` pipeline (mutation limited to the change since the previous tag), the measurement check, then `scripts/conformance.bash all`                | Nothing is published                                  |
 | phar             | `scripts/build-phar.bash --check-reproducible` (two clean builds must be byte-identical), smoke test                                                                         | Nothing is published                                  |
 | binary           | `scripts/build-binary.bash` per platform, then `scripts/smoke-test.bash --static` with an empty environment                                                                  | Linux failure: nothing is published. macOS: see below |
 | release          | `scripts/release-assets.bash` (required assets, `SHA256SUMS`), re-runs preflight, `gh release create` makes the tag at the merged commit with the changelog section as notes | Nothing is published                                  |
@@ -114,28 +114,27 @@ merge of `main`) is not a release commit: the run skips every stage and says so 
 
 ### Mutation testing in CI
 
-Infection over all of `src/` takes hours, so each run mutates only the source its change could have weakened
-the testing of. `scripts/mutation-scope.bash <base>` decides that (rules and tests: `scripts/Qa/MutationScope.php`,
-`tests/Unit/Qa/`) and, with `--write`, generates a gitignored `qaConfig/infection.json` that excludes everything
-else. Changed or renamed source files are mutated; a changed or deleted test maps to the file or directory it
-mirrors under `src/`, or else the nearest mirrored directory; shared test code (`tests/Support`, the bootstrap)
-and the test, build and floor configuration (`composer.json`, `composer.lock`, `qaConfig/phpunit.xml`,
-`qaConfig/qa.php`) mutate everything. Only a change that maps to no source (docs, workflows, PHPStan rules,
-conformance gaps, which record no coverage) skips mutation, and `scripts/check-qa-measurements.bash`
-recomputes the scope so any other change without an Infection summary fails, as does a `qaConfig/infection.json`
-that is not exactly what the scope writes. A scoped run whose files hold no mutants (interfaces alone) passes and
-says so. The diff is read NUL-separated; output it cannot parse mutates
-everything.
+Infection over all of `src/` takes hours, so php-qa-ci's automatic diff mode holds a branch to what it changed
+(php-qa-ci's `docs/tools/infection.md`, "What is mutated"): the source files added, modified or renamed since the
+merge base, plus the source named after each changed test. A change to `composer.json`, `composer.lock` or
+anything under `qaConfig/` makes the run full, because it can change any mutant's outcome. A diff run counts
+uncovered mutants as escaped and is held to one floor for both scores (88, `qaConfig/qa.php`). No script of ours
+scopes it.
 
-| Run                               | Base the change is measured from | Workflow               |
-| --------------------------------- | -------------------------------- | ---------------------- |
-| pull request, branch, manual      | the default branch               | `qa.yml`               |
-| push to the default branch        | the commit before the push       | `qa.yml`               |
-| release                           | the previous `v*` tag            | `release.yml`          |
-| nightly at 02:17 UTC, or manually | none: all of `src/`              | `mutation-nightly.yml` |
+| Run                          | Mutated                                | Set by                                    |
+| ---------------------------- | -------------------------------------- | ----------------------------------------- |
+| pull request, branch, manual | changed since the merge base with main | automatic (`GITHUB_BASE_REF`, the branch) |
+| push to the default branch   | changed by the push                    | `infectionDiffBase` = the commit before   |
+| release                      | changed since the previous `v*` tag    | `infectionDiffBase` = that tag            |
+| local `vendor/bin/qa`        | changed since the merge base with main | automatic                                 |
 
-The nightly run enforces the same floors, prints the measured MSI for ratcheting (plan 00011) and keeps the
-Infection logs as an artefact. Each mutating job stops at a `timeout-minutes` below GitHub's 6-hour limit.
+`scripts/check-qa-measurements.bash` reads the first `Infection:` line of the pipeline output (CI keeps it in
+`PHPXQ_QA_LOG`) and fails the gate when Infection ran in full for any reason but a configuration change or the
+default branch: a shallow clone (hence `fetch-depth: 0`), an unknown default branch or a detached HEAD would
+otherwise burn hours measuring nothing the change did. It also fails when the lane did not run, when the summary
+is older than the coverage report, or when more than 20% of mutants were skipped. A re-baseline of the floors is a
+manual `infectionDiffBase=full vendor/bin/qa` (over an hour); no scheduled full run exists. Each mutating job stops
+at a `timeout-minutes` below GitHub's 6-hour limit.
 
 ### The release pull request
 
@@ -169,10 +168,10 @@ fails the run shows a warning and the release ships without it. To make a platfo
 `optional` to `false` in the `binary` matrix and add it to `required` in `scripts/release-assets.bash`.
 The asset names are stable and unversioned so `releases/latest/download/<asset>` always works.
 
-## Cutting 0.1.0
+## Cutting the first release (0.1.0, done)
 
-`VERSION` reads `0.1.0` and `## Unreleased` holds the first release's entries, so the very first release
-goes through the same flow.
+`0.1.0` went through the same flow as every later release. These are the one-off steps that set it up, kept
+for a fresh fork or a repository that loses its `release` branch; an ordinary release needs none of them.
 
 1. Do the one-off GitHub configuration below.
 
@@ -188,7 +187,7 @@ goes through the same flow.
    ```
 
 4. Run the `Release PR` workflow (Actions tab, "Run workflow" on `main`), or push anything to `main`. It opens
-   the pull request `Release 0.1.0`. Review and merge it with a merge commit.
+   the release pull request (`Release 0.1.0` the first time). Review and merge it with a merge commit.
 
 5. Watch the `Release` run, then check the Releases page: `v0.1.0` with `phpxq.phar`,
    `phpxq-linux-x86_64`, `phpxq-linux-aarch64` (plus macOS when they built), `install.sh`, `SHA256SUMS` and the
@@ -210,7 +209,7 @@ Do these once, in the repository settings. None of it can be applied or tested f
 
 **The `release` branch**
 
-3. Create it once (see "Cutting 0.1.0"), then protect it: Settings, Branches (or Rules, Rulesets), `release`:
+3. Create it once (see "Cutting the first release"), then protect it: Settings, Branches (or Rules, Rulesets), `release`:
    - Require a pull request before merging (at least one approval if you have collaborators).
    - Require status checks to pass: `QA gate (read-only qa)`. Require branches to be up to date.
    - Restrict who can push, so only the merged pull request lands there. Block force pushes and deletion.

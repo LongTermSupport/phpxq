@@ -21,7 +21,7 @@ use LTS\PhpXq\Yaml\Node;
  *    is an empty null scalar with the comments attached;
  *  - documents are yielded lazily so a large stream is not held in memory twice.
  *
- * @api
+ * @internal
  */
 interface YamlParserInterface
 {

@@ -8,7 +8,7 @@ namespace LTS\PhpXq\Jq\Runtime;
  * Finds and reads modules for `import` / `include` (jq's search rules: the directive's "search"
  * metadata, relative to the importing file, then the -L path, `~/.jq`, `$ORIGIN/../lib/jq`, ...).
  *
- * @api
+ * @internal
  */
 interface ModuleLoaderInterface
 {

@@ -43,7 +43,7 @@ final readonly class StaticOnlyClassConstructorRule implements Rule
     public function processNode(Node $node, Scope $scope): array
     {
         $class = $node->getOriginalNode();
-        if (!$class instanceof Class_ || null === $class->name || $node->getClassReflection()->isAnonymous() || $class->isAbstract() || $class->extends instanceof Node\Name) {
+        if (!$class instanceof Class_ || !$class->name instanceof Node\Identifier || $node->getClassReflection()->isAnonymous() || $class->isAbstract() || $class->extends instanceof Node\Name) {
             return [];
         }
 

@@ -9,6 +9,8 @@ namespace LTS\PhpXq\Yq\Cli;
  *
  * `valueName` is the placeholder shown in the help text (`string`, `int`, `char`) and `defaultText` the
  * rendering of the default shown as `(default ...)`, empty when the help shows none.
+ *
+ * @internal
  */
 final readonly class FlagSpec
 {

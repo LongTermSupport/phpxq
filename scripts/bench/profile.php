@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+namespace LTS\PhpXq\Scripts;
+
 use LTS\PhpXq\Jq\Cli\JqApplication;
 use LTS\PhpXq\Tests\Support\Bench\SamplingProfiler;
 use LTS\PhpXq\Yq\Cli\YqApplication;
@@ -23,12 +25,19 @@ if (!\function_exists('pcntl_fork') || !\function_exists('posix_kill')) {
     exit(2);
 }
 
-/** @var list<string> $argv */
-$filter      = $argv[1] ?? '.';
-$file        = $argv[2] ?? '';
-$repetitions = (int)($argv[3] ?? 5);
-$rows        = (int)($argv[4] ?? 25);
-if ('' === $file || !is_file($file)) {
+$rawArguments = $_SERVER['argv'];
+$arguments    = [];
+foreach (\is_array($rawArguments) ? $rawArguments : [] as $argument) {
+    if (\is_string($argument)) {
+        $arguments[] = $argument;
+    }
+}
+
+$filter      = $arguments[1] ?? '.';
+$file        = $arguments[2] ?? null;
+$repetitions = (int)($arguments[3] ?? 5);
+$rows        = (int)($arguments[4] ?? 25);
+if (null === $file || '' === $file || !is_file($file)) {
     fwrite(STDERR, "Usage: php scripts/bench/profile.php <jq filter> <input file> [repetitions] [rows]\n");
 
     exit(2);
@@ -37,11 +46,10 @@ if ('' === $file || !is_file($file)) {
 $profiler = new SamplingProfiler();
 pcntl_async_signals(true);
 pcntl_signal(\SIGUSR1, static function () use ($profiler): void {
-    /** @var list<array{class?: string, type?: string, function: string, file?: string}> $frames */
     $frames = debug_backtrace(\DEBUG_BACKTRACE_IGNORE_ARGS, 60);
     // the first frame is this handler, called from where the process was interrupted
     array_shift($frames);
-    $profiler->record($frames);
+    $profiler->record(...$frames);
 });
 
 $parent  = (int)getmypid();
@@ -58,7 +66,7 @@ for ($run = 0; $run < $repetitions; ++$run) {
     $stdout = fopen('php://memory', 'w+');
     $stderr = fopen('php://memory', 'w+');
     $stdin  = fopen('php://memory', 'r');
-    if (in_array(false, [$stdout, $stderr, $stdin], true)) {
+    if (\in_array(false, [$stdout, $stderr, $stdin], true)) {
         fwrite(STDERR, "cannot open memory streams\n");
 
         exit(2);

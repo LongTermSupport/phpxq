@@ -12,6 +12,8 @@ use LTS\PhpXq\Yaml\Schema\CoreSchema;
  * numbers, integers accept the 0x, 0o and 0b prefixes and a leading 0 for octal, values that fit an
  * unsigned 64-bit integer are ints, a lone "-0" is a float, dates and date-times are !!timestamp, and
  * a float that overflows a double stays a string.
+ *
+ * @internal
  */
 final readonly class ScalarResolver
 {

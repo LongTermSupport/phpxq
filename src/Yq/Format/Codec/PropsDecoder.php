@@ -9,7 +9,6 @@ use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\DecoderInterface;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -17,15 +16,12 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * Java properties input. Keys are split on `.`; an all-digit segment indexes an array (missing positions
  * are filled with nulls), anything else is a map key. Every value is a string. Comment lines above a
  * property become its head comment.
+ *
+ * @internal
  */
 final readonly class PropsDecoder implements DecoderInterface
 {
     private const string BLANKS = " \t\f";
-
-    public function format(): FormatEnum
-    {
-        return FormatEnum::Props;
-    }
 
     /**
      * @return iterable<Node>

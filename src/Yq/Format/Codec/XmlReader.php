@@ -16,6 +16,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * become children keyed with their prefix. Unknown entities are left as written unless strict mode is on.
  * `errorLine` is the line of an error found inside decoded text (0 when the reader's position says it all);
  * `textStart` is the source offset of the text being decoded.
+ *
+ * @internal
  */
 final class XmlReader
 {

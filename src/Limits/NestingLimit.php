@@ -11,7 +11,7 @@ namespace LTS\PhpXq\Limits;
  * built in a loop but is as deep as it is long, and PHP frees a tree recursively on the native stack, which
  * overflowed near 700,000 levels on an 8 MiB stack. 100,000 keeps a wide margin for smaller stacks.
  *
- * @api
+ * @internal
  */
 final readonly class NestingLimit
 {

@@ -12,7 +12,7 @@ namespace LTS\PhpXq\Yq\Expression;
  * `.a | style = "x"` style juxtaposition becomes Binary(Pipe, ...) bound tighter than assignment, and
  * parentheses leave no node.
  *
- * @api
+ * @internal
  */
 interface ExpressionParserInterface
 {

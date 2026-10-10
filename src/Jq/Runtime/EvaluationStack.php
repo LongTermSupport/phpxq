@@ -19,7 +19,7 @@ use Fiber;
  * A fiber costs about 80 microseconds to create, so a caller with many evaluations runs them all inside one
  * call of {@see self::run()}; a nested call reuses the running fiber.
  *
- * @api
+ * @internal
  */
 final readonly class EvaluationStack
 {

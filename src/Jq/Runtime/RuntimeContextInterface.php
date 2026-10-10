@@ -8,7 +8,7 @@ namespace LTS\PhpXq\Jq\Runtime;
  * Everything a running program may reach outside its input value. The CLI builds one per invocation;
  * tests use a plain implementation. Natives receive it as their first argument.
  *
- * @api
+ * @internal
  */
 interface RuntimeContextInterface
 {

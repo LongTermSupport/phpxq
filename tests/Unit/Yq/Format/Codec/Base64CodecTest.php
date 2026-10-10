@@ -70,14 +70,6 @@ final class Base64CodecTest extends TestCase
         self::assertSame('this has & special () characters *', $docs[0]->root()->value);
     }
 
-    public function testFormats(): void
-    {
-        self::assertSame(FormatEnum::Uri, new UriDecoder()->format());
-        self::assertSame(FormatEnum::Uri, new UriEncoder()->format());
-        self::assertSame(FormatEnum::Base64Url, new Base64Decoder(FormatEnum::Base64Url)->format());
-        self::assertSame(FormatEnum::Base64, new Base64Encoder()->format());
-    }
-
     public function testUriEncoderRejectsCollections(): void
     {
         $this->expectException(FormatException::class);

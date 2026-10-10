@@ -9,7 +9,7 @@ use LTS\PhpXq\Jq\Ast\Program;
 /**
  * A parsed library and the absolute path it was read from (the importer path for its own imports).
  *
- * @api
+ * @internal
  */
 final readonly class LoadedModule
 {

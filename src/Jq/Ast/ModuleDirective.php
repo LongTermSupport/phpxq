@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Ast;
 /**
  * `module {...};` at the head of a library; $metadata is the constant object in the value model.
  *
- * @api
+ * @internal
  */
 final readonly class ModuleDirective
 {

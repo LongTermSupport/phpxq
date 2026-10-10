@@ -12,6 +12,8 @@ use LTS\PhpXq\Yq\Format\FormatException;
  * Reads the data subset of Lua that configuration files use: an optional `return`, table constructors,
  * strings, numbers, booleans, `nil`, `(1/0)` style infinities and `name = value` global assignments.
  * Comments are skipped. A table with only positional fields is a sequence, any other table a mapping.
+ *
+ * @internal
  */
 final class LuaReader
 {

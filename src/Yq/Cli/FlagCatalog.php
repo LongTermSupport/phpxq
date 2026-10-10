@@ -6,6 +6,8 @@ namespace LTS\PhpXq\Yq\Cli;
 
 /**
  * Every flag the reference `yq` command line accepts, in the order its help lists them (sorted by name).
+ *
+ * @internal
  */
 final class FlagCatalog
 {

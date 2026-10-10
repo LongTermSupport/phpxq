@@ -12,6 +12,8 @@ namespace LTS\PhpXq\Yaml;
  * scalar `<<`, whatever its tag or quoting, in the legacy mode, and only a `<<` tagged `!!merge` under
  * `--yaml-fix-merge-anchor-to-spec`. Every consumer asks here, so the alias budget counts a merge exactly when
  * the writer it guards performs one.
+ *
+ * @internal
  */
 final readonly class MergeKey
 {

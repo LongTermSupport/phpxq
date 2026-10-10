@@ -12,7 +12,7 @@ use LTS\PhpXq\Yq\Cli\YqApplication;
  * The tools phpxq provides. The backing value is the command name: the first argument under the
  * umbrella `phpxq` program, and the program name under busybox-style invocation.
  *
- * @api
+ * @internal
  */
 enum ToolEnum: string
 {

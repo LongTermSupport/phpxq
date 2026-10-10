@@ -12,7 +12,7 @@ namespace LTS\PhpXq\Jq\Ast;
  * spliced in; multiple outputs yield the cartesian product, as jq does. A string without interpolation
  * is a {@see Literal}, and a bare `@format` is a {@see Format}.
  *
- * @api
+ * @internal
  */
 final readonly class StringInterpolation implements NodeInterface
 {
