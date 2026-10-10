@@ -195,12 +195,6 @@ final class CsvDecoderTest extends TestCase
         yield 'quoted last field at the end of the input' => ["a,b\n1,\"x\"", '[{"a":1,"b":"x"}]'];
     }
 
-    public function testFormatDefaultsToCsv(): void
-    {
-        self::assertSame(FormatEnum::Csv, new CsvDecoder()->format());
-        self::assertSame(FormatEnum::Tsv, new CsvDecoder(FormatEnum::Tsv)->format());
-    }
-
     public function testTabSeparatedInputUsesTheTabSeparator(): void
     {
         $document = $this->decodeWith(new CsvDecoder(FormatEnum::Tsv), "a\tb\n1\t2\n", new FormatOptions());

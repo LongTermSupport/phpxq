@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Yq\Format;
 
+use LTS\PhpXq\Yq\Format\Codec\LuaDecoder;
 use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatRegistry;
@@ -20,7 +21,6 @@ final class FormatRegistryTest extends TestCase
     {
         $registry = new FormatRegistry();
 
-        self::assertSame($format, $registry->encoder($format)->format());
         self::assertSame($registry->encoder($format), $registry->encoder($format));
     }
 
@@ -33,7 +33,7 @@ final class FormatRegistryTest extends TestCase
             $this->expectException(FormatException::class);
         }
 
-        self::assertSame($format, $registry->decoder($format)->format());
+        self::assertSame($registry->decoder($format), $registry->decoder($format));
     }
 
     /**
@@ -49,6 +49,6 @@ final class FormatRegistryTest extends TestCase
     public function testLuaIsReadable(): void
     {
         self::assertTrue(FormatEnum::Lua->canDecode());
-        self::assertSame(FormatEnum::Lua, new FormatRegistry()->decoder(FormatEnum::Lua)->format());
+        self::assertInstanceOf(LuaDecoder::class, new FormatRegistry()->decoder(FormatEnum::Lua));
     }
 }

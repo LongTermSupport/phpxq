@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Jq\Builtin;
 
 use Closure;
-use LTS\PhpXq\Jq\Builtin\RegexBuiltins;
 use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
 use LTS\PhpXq\Jq\Runtime\DefaultBuiltinRegistry;
 use LTS\PhpXq\Jq\Runtime\FilterInterface;
@@ -15,6 +14,7 @@ use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Jq\Runtime\StreamBuiltinInterface;
 use LTS\PhpXq\Jq\Runtime\ValueBuiltinInterface;
 use LTS\PhpXq\Json\JsonObject;
+use LTS\PhpXq\Tests\Support\Jq\EagerBuiltins;
 use LTS\PhpXq\Tests\Unit\Jq\Builtin\Regex\FakeFilter;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -331,7 +331,7 @@ final class RegexBuiltinsTest extends TestCase
     private static function registry(): BuiltinRegistryInterface
     {
         $registry = new DefaultBuiltinRegistry();
-        new RegexBuiltins()->registerInto($registry);
+        EagerBuiltins::regex($registry);
 
         return $registry;
     }

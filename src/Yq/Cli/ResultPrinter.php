@@ -20,6 +20,8 @@ use LTS\PhpXq\Yq\Runtime\Candidate;
  * and the bookkeeping `--exit-status` needs.
  *
  * YAML is written by the YAML emitter directly; every other format by its encoder.
+ *
+ * @internal
  */
 final class ResultPrinter
 {

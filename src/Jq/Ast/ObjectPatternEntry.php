@@ -14,7 +14,7 @@ namespace LTS\PhpXq\Jq\Ast;
  * The key node is evaluated against the pattern's input value, may generate several keys, and must
  * yield strings.
  *
- * @api
+ * @internal
  */
 final readonly class ObjectPatternEntry
 {

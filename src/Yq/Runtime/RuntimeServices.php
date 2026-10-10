@@ -14,6 +14,8 @@ use LTS\PhpXq\Yq\Format\FormatRegistryInterface;
  *
  * `yamlFixMergeAnchorToSpec` is the reference's `--yaml-fix-merge-anchor-to-spec`: it selects how `<<`
  * merge keys resolve when traversing and exploding.
+ *
+ * @internal
  */
 final readonly class RuntimeServices
 {

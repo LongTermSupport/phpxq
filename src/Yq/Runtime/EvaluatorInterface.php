@@ -11,7 +11,7 @@ use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
  * Iterate, RecursiveDescent, Literal, VariableRef, Collect, ObjectConstruct, Conditional, Bind, Reduce,
  * Interpolation) are handled by the evaluator itself; Call and Binary dispatch to the operator registry.
  *
- * @api
+ * @internal
  */
 interface EvaluatorInterface
 {

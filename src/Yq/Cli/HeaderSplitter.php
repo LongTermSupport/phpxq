@@ -19,6 +19,8 @@ namespace LTS\PhpXq\Yq\Cli;
  *
  * Only a bare `---` (optionally followed by blanks) counts as a separator here; `--- text` and
  * `--- # comment` start the content and are left to the parser.
+ *
+ * @internal
  */
 final readonly class HeaderSplitter
 {

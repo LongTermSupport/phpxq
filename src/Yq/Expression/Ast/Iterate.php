@@ -8,6 +8,8 @@ use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 
 /**
  * `base[]` and `base.[]`: every value of a mapping or every item of a sequence.
+ *
+ * @internal
  */
 final readonly class Iterate implements ExpressionNodeInterface
 {

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Runtime;
 
+use LTS\PhpXq\Yaml\MergeKey;
+use LTS\PhpXq\Yaml\MergeSources;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
@@ -12,11 +14,11 @@ use LTS\PhpXq\Yaml\Schema\CoreSchema;
  * Navigation into mappings and sequences: key and index lookup with `*` globs, `<<` merge keys (both
  * the legacy and the spec-fixed resolution order), splat, recursive descent and the null placeholders
  * (see {@see Detached}) for paths that do not exist.
+ *
+ * @internal
  */
 final readonly class Traversal
 {
-    private const int MAX_MERGE_DEPTH = 32;
-
     private function __construct()
     {
     }
@@ -100,6 +102,9 @@ final readonly class Traversal
     /**
      * Key lookup in a mapping, following merge keys. Returns [keyNode, valueNode] pairs.
      *
+     * As in the reference, a merge key whose own text is the wanted name is found as an ordinary entry (`."<<"`,
+     * `.foo` on `!!merge foo`), so it can be read and deleted, while every other merge key is followed.
+     *
      * @return list<array{Node, Node}>
      */
     public static function lookup(Node $map, string $name, bool $glob, bool $fixedMerge): array
@@ -107,22 +112,27 @@ final readonly class Traversal
         $content = $map->content;
         $count   = \count($content);
         $matches = [];
+        $named   = [];
         $merge   = false;
         for ($i = 0; $i < $count; $i += 2) {
             $key = $content[$i];
-            if ('<<' !== $name && NodeOps::isMergeKey($key)) {
-                $merge = true;
+            if (!MergeKey::navigates($key)) {
+                if ($glob ? Compare::glob($key->value, $name) : $key->value === $name) {
+                    $matches[] = [$key, $content[$i + 1]];
+                }
 
                 continue;
             }
 
-            if ($glob ? Compare::glob($key->value, $name) : $key->value === $name) {
-                $matches[] = [$key, $content[$i + 1]];
+            if ($key->value === $name) {
+                $named[] = [$key, $content[$i + 1]];
+            } else {
+                $merge = true;
             }
         }
 
         if (!$merge) {
-            return $matches;
+            return [...$matches, ...$named];
         }
 
         $matches = [];
@@ -132,7 +142,7 @@ final readonly class Traversal
             }
         }
 
-        return $matches;
+        return [...$matches, ...$named];
     }
 
     /**
@@ -143,47 +153,36 @@ final readonly class Traversal
      * (`explode`). The spec-fixed resolution writes the merged entries first (later list items first) and
      * then lets the mapping's own keys win.
      *
+     * Each merge target's own entries are worked out once and replayed wherever it is merged again, so a
+     * target merged along many paths (`<<: [*a, *a, ...]` level upon level) costs its size once rather than
+     * once per path. A target met again while it is being expanded (`a: &a {<<: *a}`) is a cycle whose entries
+     * are already being written, and is skipped.
+     *
+     * @param bool $explode whether `explode` asks, which reverses the targets and, like the encoders, judges merge
+     *                      keys as output does ({@see MergeKey::merges()}) rather than as navigation does
+     * @param bool $listing whether a listing asks (see {@see self::values()}), which merges only through a `<<`
+     *                      tagged `!!merge` and lists a `!!merge` tag on another name under that name
+     *
      * @return array<int|string, array{Node, Node}>
      */
-    public static function entries(Node $map, bool $fixedMerge, bool $reverseTargets = false): array
+    public static function entries(Node $map, bool $fixedMerge, bool $explode = false, bool $listing = false): array
     {
-        $out = [];
-        self::collect($map, $fixedMerge, $reverseTargets, $out, 0);
+        $expanded = [];
+        $merging  = [];
 
-        return $out;
-    }
-
-    /**
-     * The mappings a `<<` value merges in: an alias or a mapping, or a sequence of them.
-     *
-     * @return list<Node>
-     */
-    public static function mergeTargets(Node $value): array
-    {
-        $value = NodeOps::deref($value);
-        if (NodeKindEnum::Mapping === $value->kind) {
-            return [$value];
-        }
-
-        $targets = [];
-        if (NodeKindEnum::Sequence === $value->kind) {
-            foreach ($value->content as $item) {
-                $item = NodeOps::deref($item);
-                if (NodeKindEnum::Mapping === $item->kind) {
-                    $targets[] = $item;
-                }
-            }
-        }
-
-        return $targets;
+        return self::collect($map, $fixedMerge, $explode, $listing, $expanded, $merging, 0);
     }
 
     /**
      * Every value of a mapping or item of a sequence.
      *
+     * `.[]` follows every merge key navigation follows (the `!!merge` tag, whatever the name), as the reference
+     * does. The other listings (`to_entries`, `with_entries`, `map`, sorting, ...) pass `$listing`: they merge only
+     * through a `<<` tagged `!!merge` and list a `!!merge` tag on another name as an ordinary entry, as before.
+     *
      * @return list<Candidate>
      */
-    public static function values(Candidate $base, bool $fixedMerge): array
+    public static function values(Candidate $base, bool $fixedMerge, bool $listing = true): array
     {
         $base = Cands::rooted($base);
         $node = NodeOps::deref($base->node);
@@ -193,7 +192,7 @@ final readonly class Traversal
             $count   = \count($content);
             $merge   = false;
             for ($i = 0; $i < $count; $i += 2) {
-                if (NodeOps::isMergeKey($content[$i])) {
+                if (self::isMergeKey($content[$i], $fixedMerge, false, $listing)) {
                     $merge = true;
 
                     break;
@@ -208,7 +207,7 @@ final readonly class Traversal
                 return $out;
             }
 
-            foreach (self::entries($node, $fixedMerge) as [$key, $value]) {
+            foreach (self::entries($node, $fixedMerge, false, $listing) as [$key, $value]) {
                 $out[] = Cands::child($value, $base, $key);
             }
 
@@ -242,7 +241,7 @@ final readonly class Traversal
                 $key = $content[$i];
                 if ($includeKeys) {
                     $out[] = new Candidate($key, $candidate, $key, $candidate->documentIndex, $candidate->fileIndex, $candidate->filename);
-                } elseif (NodeOps::isMergeKey($key)) {
+                } elseif (MergeKey::navigates($key)) {
                     self::descend(Cands::child($content[$i + 1], $candidate, $key), $includeKeys, $out);
 
                     continue;
@@ -255,6 +254,15 @@ final readonly class Traversal
                 self::descend(Cands::child($item, $candidate, NodeOps::int($index)), $includeKeys, $out);
             }
         }
+    }
+
+    private static function isMergeKey(Node $key, bool $fixedMerge, bool $explode, bool $listing): bool
+    {
+        if ($explode) {
+            return MergeKey::merges($key, $fixedMerge);
+        }
+
+        return $listing ? MergeKey::merges($key, true) : MergeKey::navigates($key);
     }
 
     /**
@@ -291,49 +299,66 @@ final readonly class Traversal
     }
 
     /**
-     * @param array<int|string, array{Node, Node}> $out
+     * The entries one mapping yields, its merge targets expanded. Writing them into the caller's entries one by
+     * one gives what writing them there directly would have: a key keeps its first position and takes its last
+     * value.
+     *
+     * @param array<int, array<int|string, array{Node, Node}>> $expanded the entries of the targets already
+     *                                                                   expanded in this lookup, by object id
+     * @param array<int, true>                                 $merging  the mappings whose expansion is under
+     *                                                                   way, by object id
+     *
+     * @return array<int|string, array{Node, Node}>
      */
-    private static function collect(Node $map, bool $fixedMerge, bool $reverseTargets, array &$out, int $depth): void
+    private static function collect(Node $map, bool $fixedMerge, bool $explode, bool $listing, array &$expanded, array &$merging, int $depth): array
     {
-        if ($depth > self::MAX_MERGE_DEPTH) {
-            return;
+        $out = [];
+        if ($depth > Node::maxDepth()) {
+            return $out;
         }
 
-        $content = $map->content;
-        $count   = \count($content);
-        if ($fixedMerge) {
-            for ($i = 0; $i < $count; $i += 2) {
-                if (NodeOps::isMergeKey($content[$i])) {
-                    foreach (array_reverse(self::mergeTargets($content[$i + 1])) as $target) {
-                        self::collect($target, $fixedMerge, $reverseTargets, $out, $depth + 1);
-                    }
-                }
-            }
-
-            for ($i = 0; $i < $count; $i += 2) {
-                if (!NodeOps::isMergeKey($content[$i])) {
+        $merging[spl_object_id($map)] = true;
+        $content                      = $map->content;
+        $count                        = \count($content);
+        for ($n = 0; $n < $count; $n += 2) {
+            // The spec-fixed resolution takes a mapping's merge keys from the last back, so an earlier one wins.
+            $i = $fixedMerge ? $count - 2 - $n : $n;
+            if (!self::isMergeKey($content[$i], $fixedMerge, $explode, $listing)) {
+                if (!$fixedMerge) {
                     $out[$content[$i]->value] = [$content[$i], $content[$i + 1]];
-                }
-            }
-
-            return;
-        }
-
-        for ($i = 0; $i < $count; $i += 2) {
-            if (NodeOps::isMergeKey($content[$i])) {
-                $targets = self::mergeTargets($content[$i + 1]);
-                if ($reverseTargets) {
-                    $targets = array_reverse($targets);
-                }
-
-                foreach ($targets as $target) {
-                    self::collect($target, $fixedMerge, $reverseTargets, $out, $depth + 1);
                 }
 
                 continue;
             }
 
-            $out[$content[$i]->value] = [$content[$i], $content[$i + 1]];
+            $targets = MergeSources::of($content[$i + 1]);
+            if ($fixedMerge || $explode) {
+                $targets = array_reverse($targets);
+            }
+
+            foreach ($targets as $target) {
+                $id = spl_object_id($target);
+                if (isset($merging[$id])) {
+                    continue;
+                }
+
+                $expanded[$id] ??= self::collect($target, $fixedMerge, $explode, $listing, $expanded, $merging, $depth + 1);
+                foreach ($expanded[$id] as $name => $entry) {
+                    $out[$name] = $entry;
+                }
+            }
         }
+
+        if ($fixedMerge) {
+            for ($i = 0; $i < $count; $i += 2) {
+                if (!self::isMergeKey($content[$i], $fixedMerge, $explode, $listing)) {
+                    $out[$content[$i]->value] = [$content[$i], $content[$i + 1]];
+                }
+            }
+        }
+
+        unset($merging[spl_object_id($map)]);
+
+        return $out;
     }
 }

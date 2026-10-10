@@ -8,6 +8,8 @@ namespace LTS\PhpXq\Yq\Expression\Ast;
  * The infix operators of the expression language, valued with their surface token. Listed loosest-binding
  * first, which is the precedence order the parser applies (see architecture.md for associativity). The merge
  * modifiers of `*` (`+` `?` `d` `n` `c`) ride in {@see Binary::$modifiers}.
+ *
+ * @internal
  */
 enum BinaryOperatorEnum: string
 {

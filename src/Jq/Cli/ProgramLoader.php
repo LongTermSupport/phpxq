@@ -12,7 +12,7 @@ use LTS\PhpXq\Jq\Runtime\JqCompileException;
  * Turns program text into the AST the compiler gets: parses it, rejects a program that only defines
  * functions, and puts the definitions of the user's `~/.jq` file (when it is a file) in front of it.
  *
- * @api
+ * @internal
  */
 final readonly class ProgramLoader
 {

@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Ast;
 /**
  * Unary minus: `-expr`.
  *
- * @api
+ * @internal
  */
 final readonly class Negate implements NodeInterface
 {

@@ -20,7 +20,7 @@ final class SamplingProfiler
     private int $samples = 0;
 
     /**
-     * @param array{class?: string, type?: string, function: string, file?: string} ...$frames innermost first
+     * @param array{class?: string, type?: string, function: string, file?: string, ...} ...$frames innermost first
      */
     public function record(array ...$frames): void
     {
@@ -81,7 +81,7 @@ final class SamplingProfiler
     }
 
     /**
-     * @param array{class?: string, type?: string, function: string, file?: string} $frame
+     * @param array{class?: string, type?: string, function: string, file?: string, ...} $frame
      */
     private function name(array $frame): string
     {

@@ -28,6 +28,8 @@ use LTS\PhpXq\Yq\Runtime\NodeOps;
  * the document and each match is updated in place; the result is the unchanged input. `X style = "..."`
  * (and `tag`, `anchor`, `alias`, `comments`, `head_comment`, `line_comment`, `foot_comment`) set a property
  * of the matched nodes instead of their value.
+ *
+ * @internal
  */
 final readonly class AssignOperator implements BinaryOperatorInterface
 {

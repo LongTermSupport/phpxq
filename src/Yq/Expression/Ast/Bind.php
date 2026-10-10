@@ -13,6 +13,8 @@ use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
  *
  * `reference` is true for the `ref` spelling: the variable aliases the matched nodes (so `$x = "new"`
  * updates the document) instead of holding copies, as `as` does.
+ *
+ * @internal
  */
 final readonly class Bind implements ExpressionNodeInterface
 {

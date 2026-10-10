@@ -9,6 +9,8 @@ use LTS\PhpXq\Yq\Format\FormatEnum;
 /**
  * Chooses a format from a file name's extension, as the reference does for `-p auto` / `-o auto`.
  * Unknown extensions (and standard input) are YAML.
+ *
+ * @internal
  */
 final readonly class FormatDetector
 {

@@ -8,7 +8,6 @@ use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -17,6 +16,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * (`name = value`), other mappings become blocks (a mapping whose `explicitEnd` flag is set holds block
  * labels as its keys), a sequence of mappings becomes repeated blocks. Strings are double-quoted unless the
  * reader flagged them as raw expressions. Two spaces per level, no blank lines.
+ *
+ * @internal
  */
 final readonly class HclEncoder implements EncoderInterface
 {
@@ -24,14 +25,9 @@ final readonly class HclEncoder implements EncoderInterface
 
     private const string ASSIGN = ' = ';
 
-    public function format(): FormatEnum
-    {
-        return FormatEnum::Hcl;
-    }
-
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
-        $root = NodeTools::unwrap($node);
+        $root = NodeTools::expandableRoot($node, $options->yamlFixMergeAnchorToSpec);
         if (NodeKindEnum::Scalar === $root->kind) {
             return $root->value . "\n";
         }
@@ -41,49 +37,49 @@ final readonly class HclEncoder implements EncoderInterface
         }
 
         $out = '';
-        $this->body($out, $root, 0, 0);
+        $this->body($out, $root, $options->yamlFixMergeAnchorToSpec, 0, 0);
         $footer = $this->comment($node->footComment, '');
 
         return $out . $footer;
     }
 
-    private function body(string &$out, Node $map, int $level, int $depth): void
+    private function body(string &$out, Node $map, bool $fixedMerge, int $level, int $depth): void
     {
         if ($depth > self::MAX_DEPTH) {
             throw new FormatException('hcl: exceeded max depth (alias cycle?)');
         }
 
         $indent = str_repeat('  ', $level);
-        foreach (NodeTools::pairs($map) as [$key, $value]) {
+        foreach (NodeTools::pairs($map, $fixedMerge) as [$key, $value]) {
             $name     = $this->name(NodeTools::keyText($key));
             $resolved = NodeTools::unwrap($value);
             $out     .= $this->comment($key->headComment, $indent);
 
             if (NodeKindEnum::Mapping === $resolved->kind && !$resolved->explicitStart) {
-                $this->block($out, $name, $resolved, $level, $depth);
+                $this->block($out, $name, $resolved, $fixedMerge, $level, $depth);
             } elseif ($this->isBlockList($resolved)) {
                 foreach ($resolved->content as $item) {
-                    $this->block($out, $name, NodeTools::unwrap($item), $level, $depth);
+                    $this->block($out, $name, NodeTools::unwrap($item), $fixedMerge, $level, $depth);
                 }
             } else {
-                $out .= $indent . $name . self::ASSIGN . $this->value($resolved, $level, false, $depth + 1) . $this->trailing($key->lineComment, $value->lineComment, $resolved->lineComment) . "\n";
+                $out .= $indent . $name . self::ASSIGN . $this->value($resolved, $fixedMerge, $level, false, $depth + 1) . $this->trailing($key->lineComment, $value->lineComment, $resolved->lineComment) . "\n";
             }
 
             $out .= $this->comment($key->footComment, $indent);
         }
     }
 
-    private function block(string &$out, string $type, Node $map, int $level, int $depth, string ...$labels): void
+    private function block(string &$out, string $type, Node $map, bool $fixedMerge, int $level, int $depth, string ...$labels): void
     {
         $indent = str_repeat('  ', $level);
         if ($map->explicitEnd) {
-            foreach (NodeTools::pairs($map) as [$labelKey, $labelValue]) {
+            foreach (NodeTools::pairs($map, $fixedMerge) as [$labelKey, $labelValue]) {
                 $inner = NodeTools::unwrap($labelValue);
                 if (NodeKindEnum::Mapping !== $inner->kind) {
                     throw new FormatException('hcl: a block label must hold a map');
                 }
 
-                $this->block($out, $type, $inner, $level, $depth + 1, ...[...$labels, NodeTools::keyText($labelKey)]);
+                $this->block($out, $type, $inner, $fixedMerge, $level, $depth + 1, ...[...$labels, NodeTools::keyText($labelKey)]);
             }
 
             return;
@@ -95,7 +91,7 @@ final readonly class HclEncoder implements EncoderInterface
         }
 
         $out .= $indent . $header . " {\n";
-        $this->body($out, $map, $level + 1, $depth + 1);
+        $this->body($out, $map, $fixedMerge, $level + 1, $depth + 1);
         $out .= $indent . "}\n";
     }
 
@@ -115,7 +111,7 @@ final readonly class HclEncoder implements EncoderInterface
         return true;
     }
 
-    private function value(Node $node, int $level, bool $inline, int $depth): string
+    private function value(Node $node, bool $fixedMerge, int $level, bool $inline, int $depth): string
     {
         if ($depth > self::MAX_DEPTH) {
             throw new FormatException('hcl: exceeded max depth (alias cycle?)');
@@ -129,13 +125,13 @@ final readonly class HclEncoder implements EncoderInterface
         if (NodeKindEnum::Sequence === $node->kind) {
             $items = [];
             foreach ($node->content as $item) {
-                $items[] = $this->value($item, $level, true, $depth + 1);
+                $items[] = $this->value($item, $fixedMerge, $level, true, $depth + 1);
             }
 
             return '[' . implode(', ', $items) . ']';
         }
 
-        $pairs = NodeTools::pairs($node);
+        $pairs = NodeTools::pairs($node, $fixedMerge);
         if ([] === $pairs) {
             return '{}';
         }
@@ -143,7 +139,7 @@ final readonly class HclEncoder implements EncoderInterface
         if ($inline) {
             $entries = [];
             foreach ($pairs as [$key, $value]) {
-                $entries[] = $this->name(NodeTools::keyText($key)) . self::ASSIGN . $this->value($value, $level, true, $depth + 1);
+                $entries[] = $this->name(NodeTools::keyText($key)) . self::ASSIGN . $this->value($value, $fixedMerge, $level, true, $depth + 1);
             }
 
             return '{ ' . implode(', ', $entries) . ' }';
@@ -152,7 +148,7 @@ final readonly class HclEncoder implements EncoderInterface
         $inner = str_repeat('  ', $level + 1);
         $out   = "{\n";
         foreach ($pairs as [$key, $value]) {
-            $out .= $inner . $this->name(NodeTools::keyText($key)) . self::ASSIGN . $this->value($value, $level + 1, false, $depth + 1) . "\n";
+            $out .= $inner . $this->name(NodeTools::keyText($key)) . self::ASSIGN . $this->value($value, $fixedMerge, $level + 1, false, $depth + 1) . "\n";
         }
 
         return $out . str_repeat('  ', $level) . '}';

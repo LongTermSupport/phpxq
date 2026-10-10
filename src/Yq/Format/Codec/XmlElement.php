@@ -8,6 +8,8 @@ namespace LTS\PhpXq\Yq\Format\Codec;
  * One element while the XML reader builds the tree: its text pieces, its children grouped by name in
  * first-seen order (attributes, processing instructions and directives are children too) and the comments
  * that surrounded it. `prefixes` maps namespace prefixes to URIs and is inherited from the parent.
+ *
+ * @internal
  */
 final class XmlElement
 {

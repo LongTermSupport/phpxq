@@ -190,7 +190,7 @@ final class TypeFunctionsTest extends TestCase
     public function testToNumberRejects(string $text): void
     {
         self::assertSame(
-            \sprintf('string (%s) cannot be parsed as a number', json_encode($text, \JSON_UNESCAPED_UNICODE)),
+            \sprintf('string (%s) cannot be parsed as a number', json_encode($text, \JSON_UNESCAPED_UNICODE | \JSON_THROW_ON_ERROR)),
             Harness::error('tonumber', $text),
         );
     }

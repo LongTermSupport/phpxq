@@ -14,7 +14,7 @@ use LTS\PhpXq\Json\JsonDecoderInterface;
 /**
  * The production wiring: standard builtins, file module loader. FROZEN: edited only by the orchestrator.
  *
- * @api
+ * @internal
  */
 final readonly class DefaultCompilerFactory implements CompilerFactoryInterface
 {

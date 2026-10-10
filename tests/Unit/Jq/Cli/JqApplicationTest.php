@@ -859,6 +859,7 @@ final class JqApplicationTest extends JqApplicationTestCase
 
     /**
      * @param array<string, string|false> $variables false unsets
+     * @param Closure(): void             $action
      */
     private function withEnv(array $variables, Closure $action): void
     {

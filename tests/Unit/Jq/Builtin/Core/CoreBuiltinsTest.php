@@ -6,11 +6,11 @@ namespace LTS\PhpXq\Tests\Unit\Jq\Builtin\Core;
 
 use InvalidArgumentException;
 use LTS\PhpXq\Jq\Builtin\Core\Prelude;
-use LTS\PhpXq\Jq\Builtin\CoreBuiltins;
 use LTS\PhpXq\Jq\Runtime\DefaultBuiltinRegistry;
 use LTS\PhpXq\Jq\Runtime\PathStreamBuiltinInterface;
 use LTS\PhpXq\Jq\Runtime\StreamBuiltinInterface;
 use LTS\PhpXq\Jq\Runtime\ValueBuiltinInterface;
+use LTS\PhpXq\Tests\Support\Jq\EagerBuiltins;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -21,7 +21,7 @@ final class CoreBuiltinsTest extends TestCase
     public function testRegistersTheNativesAndThePrelude(): void
     {
         $registry = new DefaultBuiltinRegistry();
-        new CoreBuiltins()->registerInto($registry);
+        EagerBuiltins::core($registry);
 
         self::assertInstanceOf(ValueBuiltinInterface::class, $registry->lookup('length', 0));
         self::assertInstanceOf(ValueBuiltinInterface::class, $registry->lookup('format', 1));
@@ -35,17 +35,17 @@ final class CoreBuiltinsTest extends TestCase
     public function testRegisteringTwiceIsAnError(): void
     {
         $registry = new DefaultBuiltinRegistry();
-        new CoreBuiltins()->registerInto($registry);
+        EagerBuiltins::core($registry);
 
         $this->expectException(InvalidArgumentException::class);
 
-        new CoreBuiltins()->registerInto($registry);
+        EagerBuiltins::core($registry);
     }
 
     public function testNoNativeShadowsAPreludeDefinition(): void
     {
         $registry = new DefaultBuiltinRegistry();
-        new CoreBuiltins()->registerInto($registry);
+        EagerBuiltins::core($registry);
 
         foreach (Prelude::signatures() as $signature) {
             [$name, $arity] = explode('/', $signature);

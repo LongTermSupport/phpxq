@@ -12,6 +12,8 @@ use LTS\PhpXq\Yq\Runtime\EvaluatorInterface;
 
 /**
  * `lhs, rhs`: both sides against the same matches, results concatenated.
+ *
+ * @internal
  */
 final readonly class UnionOperator implements BinaryOperatorInterface
 {

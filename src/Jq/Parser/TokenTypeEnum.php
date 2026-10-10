@@ -13,7 +13,7 @@ namespace LTS\PhpXq\Jq\Parser;
  * interpolation becomes InterpEnd, not RParen. A format prefix such as `@base64 "..."` is a Format
  * token followed by the string tokens.
  *
- * @api
+ * @internal
  */
 enum TokenTypeEnum: string
 {

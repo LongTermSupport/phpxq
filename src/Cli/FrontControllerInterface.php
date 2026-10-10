@@ -11,7 +11,7 @@ namespace LTS\PhpXq\Cli;
  * command line, exactly as jq or yq would receive it. Streams are injected so a front controller can be
  * driven in-process by the conformance suites as well as by `bin/phpxq`.
  *
- * @api
+ * @internal
  */
 interface FrontControllerInterface
 {
@@ -20,8 +20,6 @@ interface FrontControllerInterface
     public const int EXIT_USAGE           = 2;
 
     public const int EXIT_INTERNAL        = 5;
-
-    public const int EXIT_NOT_IMPLEMENTED = 70;
 
     /**
      * @param resource $stdin

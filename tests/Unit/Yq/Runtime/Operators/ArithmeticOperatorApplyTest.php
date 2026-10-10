@@ -175,13 +175,19 @@ final class ArithmeticOperatorApplyTest extends TestCase
         self::assertInstanceOf(Node::class, $none);
         self::assertSame('', $none->value);
 
-        $negative = ArithmeticOperator::apply(BinaryOperatorEnum::Multiply, Node::scalar('ab', '', NodeStyleEnum::DoubleQuoted), Node::scalar('-3'));
-        self::assertInstanceOf(Node::class, $negative);
-        self::assertSame('', $negative->value);
-
         $once = ArithmeticOperator::apply(BinaryOperatorEnum::Multiply, Node::scalar('ab', '', NodeStyleEnum::DoubleQuoted), Node::scalar('1'));
         self::assertInstanceOf(Node::class, $once);
         self::assertSame('ab', $once->value);
+    }
+
+    public function testANegativeRepeatCountIsRejectedAsGoYqRejectsIt(): void
+    {
+        try {
+            ArithmeticOperator::apply(BinaryOperatorEnum::Multiply, Node::scalar('ab', '', NodeStyleEnum::DoubleQuoted), Node::scalar('-3'));
+            self::fail('a negative repeat count must be rejected');
+        } catch (EvaluationException $evaluationException) {
+            self::assertSame('cannot repeat string by a negative number (-3)', $evaluationException->getMessage());
+        }
     }
 
     public function testConcatenationConvertsTheTagOfNonStrings(): void

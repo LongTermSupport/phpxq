@@ -8,7 +8,7 @@ namespace LTS\PhpXq\Jq\Cli;
  * Buffered writes to a stream that survive a closed pipe: a failed write marks the writer failed and
  * drops everything after it instead of raising a PHP notice for every output.
  *
- * @api
+ * @internal
  */
 final class OutputWriter
 {
@@ -23,7 +23,7 @@ final class OutputWriter
      * @param int      $limit  flush once this many bytes are buffered; 0 writes through
      */
     public function __construct(
-        private $stream,
+        private readonly mixed $stream,
         private readonly int $limit = 65536,
     ) {
     }

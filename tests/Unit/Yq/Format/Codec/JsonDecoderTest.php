@@ -7,7 +7,6 @@ namespace LTS\PhpXq\Tests\Unit\Yq\Format\Codec;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yq\Format\Codec\JsonDecoder;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -18,11 +17,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class JsonDecoderTest extends TestCase
 {
-    public function testFormat(): void
-    {
-        self::assertSame(FormatEnum::Json, new JsonDecoder()->format());
-    }
-
     public function testObjectKeepsOrderAndTagsScalars(): void
     {
         $docs = $this->decode('{"b": 1, "a": [true, null, 1.50, "x"], "c": {"d": -2e3}}');

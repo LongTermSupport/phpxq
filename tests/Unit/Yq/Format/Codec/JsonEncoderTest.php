@@ -8,7 +8,6 @@ use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Parser\YamlParser;
 use LTS\PhpXq\Yq\Format\Codec\JsonEncoder;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -19,11 +18,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class JsonEncoderTest extends TestCase
 {
-    public function testFormat(): void
-    {
-        self::assertSame(FormatEnum::Json, new JsonEncoder()->format());
-    }
-
     public function testPrettyPrintsWithTwoSpaces(): void
     {
         $out = $this->encode("cat: meow\nlist: [1, 2]\nempty: {}\nnone: []\nnested:\n  a: b\n");

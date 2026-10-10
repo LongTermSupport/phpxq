@@ -43,7 +43,7 @@ final class UnconditionalNodes extends NodeVisitorAbstract
     }
 
     /**
-     * @param array<Node> $nodes
+     * @param array<int, Node> $nodes
      *
      * @return list<Node>
      */
@@ -70,7 +70,7 @@ final class UnconditionalNodes extends NodeVisitorAbstract
     }
 
     /**
-     * @param array<Node> $nodes
+     * @param array<int, Node> $nodes
      */
     private function collect(array $nodes): void
     {

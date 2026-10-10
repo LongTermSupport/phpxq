@@ -11,7 +11,6 @@ use LTS\PhpXq\Yaml\Parser\YamlParser;
 use LTS\PhpXq\Yq\Format\Codec\HclDecoder;
 use LTS\PhpXq\Yq\Format\Codec\HclEncoder;
 use LTS\PhpXq\Yq\Format\Codec\HclScanner;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -145,8 +144,6 @@ final class HclCodecTest extends TestCase
     public function testEmptyInputHasNoDocuments(): void
     {
         self::assertSame([], [...new HclDecoder()->decode("\n", new FormatOptions())]);
-        self::assertSame(FormatEnum::Hcl, new HclDecoder()->format());
-        self::assertSame(FormatEnum::Hcl, new HclEncoder()->format());
     }
 
     #[DataProvider('roundTrips')]

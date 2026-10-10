@@ -26,6 +26,27 @@ final class UnicodeTest extends TestCase
         self::assertSame([97, 0xE9, 0x20AC, 0x1F600], Unicode::codepoints("a\u{e9}\u{20ac}\u{1f600}"));
     }
 
+    /**
+     * @param list<int> $expected
+     */
+    #[DataProvider('invalidUtf8')]
+    public function testCodepointsOfInvalidUtf8AreReplacementCharacters(string $text, array $expected): void
+    {
+        self::assertSame($expected, Unicode::codepoints($text));
+    }
+
+    /**
+     * @return iterable<string, array{string, list<int>}>
+     */
+    public static function invalidUtf8(): iterable
+    {
+        yield 'stray lead byte at the end'  => ["a\xFF", [97, 0xFFFD]];
+        yield 'truncated two-byte sequence' => ["a\xC3", [97, 0xFFFD]];
+        yield 'truncated three-byte form'   => ["\xE2\x82", [0xFFFD]];
+        yield 'truncated four-byte form'    => ["\xF0\x9F\x98", [0xFFFD]];
+        yield 'lone continuation byte'      => ["\x80b", [0xFFFD, 98]];
+    }
+
     #[DataProvider('encodings')]
     public function testEncode(int $codepoint, string $expected): void
     {
@@ -52,16 +73,6 @@ final class UnicodeTest extends TestCase
     {
         self::assertSame([], Unicode::characters(''));
         self::assertSame(['a', "\u{e9}", "\u{1f600}"], Unicode::characters("a\u{e9}\u{1f600}"));
-    }
-
-    public function testOffsetOf(): void
-    {
-        $text = "\u{e9}a\u{1f600}b";
-
-        self::assertSame(0, Unicode::offsetOf($text, 0));
-        self::assertSame(1, Unicode::offsetOf($text, 2));
-        self::assertSame(2, Unicode::offsetOf($text, 3));
-        self::assertSame(3, Unicode::offsetOf($text, 7));
     }
 
     public function testTrim(): void

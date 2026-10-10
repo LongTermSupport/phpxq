@@ -11,15 +11,11 @@ use LTS\PhpXq\Yq\Expression\Ast\BinaryOperatorEnum;
  * implementation; operators live under Yq\Runtime\Operators, one class per operator or family, and are
  * registered by OperatorRegistry's constructor.
  *
- * @api
+ * @internal
  */
 interface OperatorRegistryInterface
 {
     public function call(string $name): ?CallOperatorInterface;
 
     public function binary(BinaryOperatorEnum $operator): ?BinaryOperatorInterface;
-
-    public function registerCall(CallOperatorInterface $operator): void;
-
-    public function registerBinary(BinaryOperatorInterface $operator): void;
 }

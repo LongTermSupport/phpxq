@@ -25,6 +25,8 @@ use LTS\PhpXq\Yaml\Exception\YamlSyntaxException;
  * blanks not followed by a hash); PLAIN_START lists the bytes that can only start a plain scalar, so no
  * indicator test is needed; `crlf` holds the line break offsets of the normalised text that were CRLF in the
  * source.
+ *
+ * @internal
  */
 final class Scanner
 {
@@ -119,6 +121,12 @@ final class Scanner
 
     /** @var array<int, true> */
     private array $crlf = [];
+
+    private int $colLineStart = -1;
+
+    private int $colIndex = 0;
+
+    private int $colContinuations = 0;
 
     /**
      * @throws YamlSyntaxException
@@ -462,6 +470,12 @@ final class Scanner
         return $this->colAt($this->p, $this->ls);
     }
 
+    /**
+     * The character column of a byte index: the bytes since the line start less the UTF-8 continuation bytes
+     * among them. The last lookup is remembered ($colLineStart, $colIndex, and $colContinuations between the
+     * two), and a lookup on the same line only counts the bytes between its index and that one, so walking a
+     * long line costs time linear in its length rather than quadratic.
+     */
     private function colAt(int $index, int $lineStart): int
     {
         $bytes = $index - $lineStart;
@@ -469,7 +483,26 @@ final class Scanner
             return $bytes;
         }
 
-        return $bytes - (int)preg_match_all('/[\x80-\xBF]/', substr($this->s, $lineStart, $bytes));
+        if ($lineStart !== $this->colLineStart) {
+            $this->colLineStart     = $lineStart;
+            $this->colIndex         = $lineStart;
+            $this->colContinuations = 0;
+        }
+
+        if ($index >= $this->colIndex) {
+            $this->colContinuations += $this->continuationBytes($this->colIndex, $index);
+        } else {
+            $this->colContinuations -= $this->continuationBytes($index, $this->colIndex);
+        }
+
+        $this->colIndex = $index;
+
+        return $bytes - $this->colContinuations;
+    }
+
+    private function continuationBytes(int $from, int $to): int
+    {
+        return $to > $from ? (int)preg_match_all('/[\x80-\xBF]/', substr($this->s, $from, $to - $from)) : 0;
     }
 
     /**
@@ -1104,7 +1137,6 @@ final class Scanner
             $this->error('found unexpected non-alphabetical character', $startLine);
         }
 
-        $value  = '';
         $suffix = '';
         if ('YAML' === $name) {
             $type = ScanToken::VERSION_DIRECTIVE;
@@ -1453,7 +1485,6 @@ final class Scanner
         $white        = '';
         $leadingBreak = '';
         $trailing     = '';
-        $brk          = 0;
 
         while (true) {
             if ($p === $ls && ('---' === substr($s, $p, 3) || '...' === substr($s, $p, 3)) && $this->blankzAt($p + 3)) {
@@ -1476,7 +1507,6 @@ final class Scanner
                 if ($single && "'" === $c && "'" === $s[$p + 1]) {
                     $out .= "'";
                     $p += 2;
-                    $brk = 0;
 
                     continue;
                 }
@@ -1491,14 +1521,12 @@ final class Scanner
                         ++$line;
                         $ls      = $p;
                         $leading = true;
-                        ++$brk;
 
                         break;
                     }
 
                     $this->sync($p, $line, $ls);
-                    $p   = $this->scanEscape($p, $out, $startLine);
-                    $brk = 0;
+                    $p = $this->scanEscape($p, $out, $startLine);
 
                     continue;
                 }
@@ -1506,7 +1534,6 @@ final class Scanner
                 $len = strcspn($s, $stop, $p);
                 $out .= substr($s, $p, $len);
                 $p += $len;
-                $brk = 0;
             }
 
             if ($s[$p] === $quote) {
@@ -1518,7 +1545,6 @@ final class Scanner
                 if (' ' === $c || "\t" === $c) {
                     if (!$leading) {
                         $white .= $c;
-                        $brk = 0;
                     }
 
                     ++$p;
@@ -1533,7 +1559,6 @@ final class Scanner
 
                     ++$p;
                     ++$line;
-                    ++$brk;
                     $ls = $p;
                 } else {
                     break;

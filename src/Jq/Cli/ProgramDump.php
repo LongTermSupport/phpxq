@@ -13,7 +13,7 @@ use LTS\PhpXq\Jq\Ast\Program;
  * other definitions (a later definition replaces an earlier one of the same name and arity, and
  * definitions nothing refers to are not bound, as in jq).
  *
- * @api
+ * @internal
  */
 final readonly class ProgramDump
 {

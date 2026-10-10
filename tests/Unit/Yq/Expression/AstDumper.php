@@ -28,6 +28,10 @@ use RuntimeException;
  */
 final class AstDumper
 {
+    private function __construct()
+    {
+    }
+
     public static function dump(ExpressionNodeInterface $node): string
     {
         return match (true) {

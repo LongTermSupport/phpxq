@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Ast;
 /**
  * `{...}` as a pattern.
  *
- * @api
+ * @internal
  */
 final readonly class ObjectPattern implements PatternInterface
 {

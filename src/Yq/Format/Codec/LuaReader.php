@@ -12,6 +12,8 @@ use LTS\PhpXq\Yq\Format\FormatException;
  * Reads the data subset of Lua that configuration files use: an optional `return`, table constructors,
  * strings, numbers, booleans, `nil`, `(1/0)` style infinities and `name = value` global assignments.
  * Comments are skipped. A table with only positional fields is a sequence, any other table a mapping.
+ *
+ * @internal
  */
 final class LuaReader
 {
@@ -371,9 +373,15 @@ final class LuaReader
                     throw $this->error('invalid \u escape');
                 }
 
+                $code = hexdec($m[1]);
+                $char = \is_int($code) ? mb_chr($code, 'UTF-8') : false;
+                if (false === $char) {
+                    throw $this->error('invalid \u escape');
+                }
+
                 $this->pos += \strlen($m[0]);
 
-                return mb_chr((int)hexdec($m[1]), 'UTF-8');
+                return $char;
             default:
                 if ($next >= '0' && $next <= '9') {
                     --$this->pos;

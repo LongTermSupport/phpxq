@@ -23,6 +23,9 @@ use PhpParser\NodeFinder;
  */
 final readonly class ClassCallGraph
 {
+    /** The names that, written before `::`, mean the class the code is in. */
+    private const array OWN_CLASS_KEYWORDS = ['self', 'static'];
+
     /**
      * @param array<string, ClassMethod>         $methods methods by lower-case name
      * @param array<string, array<string, true>> $reach   for each method, every method it can reach through any number of calls
@@ -42,7 +45,7 @@ final readonly class ClassCallGraph
         $reach     = [];
         foreach ($methods as $name => $method) {
             $reach[$name] = [];
-            foreach (self::targetsIn($method->stmts ?? [], $shortName) as $target) {
+            foreach (self::targetsIn(array_values($method->stmts ?? []), $shortName) as $target) {
                 if (isset($methods[$target])) {
                     $reach[$name][$target] = true;
                 }
@@ -69,7 +72,7 @@ final readonly class ClassCallGraph
     /**
      * The lower-case names of own methods called anywhere inside the given nodes.
      *
-     * @param array<Node> $nodes
+     * @param array<int, Node> $nodes
      *
      * @return list<string>
      */
@@ -117,6 +120,6 @@ final readonly class ClassCallGraph
     {
         $written = strtolower($name->getLast());
 
-        return \in_array($written, ['self', 'static'], true) || ('' !== $shortName && $written === $shortName);
+        return \in_array($written, self::OWN_CLASS_KEYWORDS, true) || ('' !== $shortName && $written === $shortName);
     }
 }

@@ -6,15 +6,19 @@ namespace LTS\PhpXq\Json;
 
 use InvalidArgumentException;
 use LTS\PhpXq\Json\Codec\DecimalLiteral;
+use WeakMap;
 
 /**
  * Type tests and jq's total ordering over the value model.
  *
  * Value model: null, bool, int|float|PreciseNumber, string, list (a PHP list array), JsonObject.
  *
- * @api
+ * Comparing objects needs their keys sorted; the sorted keys of each object are kept while the object
+ * lives, so sorting or grouping n objects sorts each one's keys once rather than on every comparison.
+ *
+ * @internal
  */
-final readonly class Values
+final class Values
 {
     private const array TYPE_ORDER = [
         'null'    => 0,
@@ -24,6 +28,11 @@ final readonly class Values
         'array'   => 4,
         'object'  => 5,
     ];
+
+    /**
+     * @var ?WeakMap<JsonObject, list<string>>
+     */
+    private static ?WeakMap $sortedKeys = null;
 
     private function __construct()
     {
@@ -148,11 +157,13 @@ final readonly class Values
 
     private static function compareObjects(JsonObject $left, JsonObject $right): int
     {
-        $leftKeys  = $left->sortedKeys();
-        $rightKeys = $right->sortedKeys();
-        $result    = self::compareLists($leftKeys, $rightKeys);
-        if (0 !== $result) {
-            return $result;
+        $leftKeys  = self::sortedKeys($left);
+        $rightKeys = self::sortedKeys($right);
+        if ($leftKeys !== $rightKeys) {
+            $result = self::compareLists($leftKeys, $rightKeys);
+            if (0 !== $result) {
+                return $result;
+            }
         }
 
         foreach ($leftKeys as $key) {
@@ -163,5 +174,15 @@ final readonly class Values
         }
 
         return 0;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function sortedKeys(JsonObject $object): array
+    {
+        self::$sortedKeys ??= new WeakMap();
+
+        return self::$sortedKeys[$object] ??= $object->sortedKeys();
     }
 }

@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Ast;
 /**
  * `[p0, p1, ...]` as a pattern: element i of the value is matched with $elements[i].
  *
- * @api
+ * @internal
  */
 final readonly class ArrayPattern implements PatternInterface
 {

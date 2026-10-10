@@ -19,8 +19,8 @@ final class JqApplicationValueScannerTest extends TestCase
         $scanner = new ValueScanner();
 
         self::assertSame(ValueScanner::FOUND, $scanner->find($text, 0));
-        self::assertSame($start, $scanner->start);
-        self::assertSame($slice, substr($text, $scanner->start, $scanner->end - $scanner->start));
+        self::assertSame($start, strspn($text, " \t\r\n"));
+        self::assertSame($slice, substr($text, $start, $scanner->end - $start));
     }
 
     /**
@@ -56,7 +56,8 @@ final class JqApplicationValueScannerTest extends TestCase
         $slices  = [];
         $offset  = 0;
         while (ValueScanner::FOUND === $scanner->find($text, $offset)) {
-            $slices[] = substr($text, $scanner->start, $scanner->end - $scanner->start);
+            $begin    = $offset + strspn($text, " \t\r\n", $offset);
+            $slices[] = substr($text, $begin, $scanner->end - $begin);
             $offset   = $scanner->end;
         }
 
@@ -78,7 +79,6 @@ final class JqApplicationValueScannerTest extends TestCase
         $scanner = new ValueScanner();
 
         self::assertSame(ValueScanner::INCOMPLETE, $scanner->find($text, 0));
-        self::assertSame(0, $scanner->start);
     }
 
     /**
@@ -126,6 +126,6 @@ final class JqApplicationValueScannerTest extends TestCase
         $scanner = new ValueScanner();
 
         self::assertSame(ValueScanner::FOUND, $scanner->find("\0{}", 0));
-        self::assertSame("\0", substr("\0{}", $scanner->start, $scanner->end - $scanner->start));
+        self::assertSame("\0", substr("\0{}", 0, $scanner->end));
     }
 }

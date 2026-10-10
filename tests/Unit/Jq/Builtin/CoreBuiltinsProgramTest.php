@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Jq\Builtin;
 
-use LTS\PhpXq\Jq\Builtin\CoreBuiltins;
 use LTS\PhpXq\Jq\Parser\Lexer;
 use LTS\PhpXq\Jq\Parser\Parser;
 use LTS\PhpXq\Jq\Runtime\Compiler;
@@ -14,6 +13,7 @@ use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Json\EncodeOptions;
 use LTS\PhpXq\Json\JsonDecoder;
 use LTS\PhpXq\Json\JsonEncoder;
+use LTS\PhpXq\Tests\Support\Jq\EagerBuiltins;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\StubContext;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -98,7 +98,7 @@ final class CoreBuiltinsProgramTest extends TestCase
         $encoder  = new JsonEncoder();
         $parser   = new Parser(new Lexer());
         $registry = new DefaultBuiltinRegistry();
-        new CoreBuiltins()->registerInto($registry);
+        EagerBuiltins::core($registry);
 
         $compiled = new Compiler($registry, $parser, new FileModuleLoader([], $parser, $decoder))
             ->compile($parser->parse($program))

@@ -25,8 +25,7 @@ use LTS\PhpXq\Yq\Runtime\Operators\StructureCalls;
 use LTS\PhpXq\Yq\Runtime\Operators\UnionOperator;
 
 /**
- * The lookup table the evaluator uses for Call and Binary nodes. Knows every operator of the reference;
- * more can be added (or built-ins replaced) with registerCall() and registerBinary().
+ * The lookup table the evaluator uses for Call and Binary nodes. Knows every operator of the reference.
  *
  * Operator classes are instantiated (and so autoloaded and compiled) on first use, through the CALLS and
  * BINARIES name tables below: loading all eleven call families up front costs a measurable share of the
@@ -49,6 +48,8 @@ use LTS\PhpXq\Yq\Runtime\Operators\UnionOperator;
  *  - DateCalls:       now, from_unix, to_unix, tz, format_datetime, with_dtf
  *  - EnvFileCalls:    env, strenv, envsubst, load, load_str, system
  * Binary operators: pipe, union, assignment family, alternative, and/or, comparison, arithmetic and merge.
+ *
+ * @internal
  */
 final class OperatorRegistry implements OperatorRegistryInterface
 {
@@ -257,20 +258,6 @@ final class OperatorRegistry implements OperatorRegistryInterface
         return $this->binaries[$operator->value] ?? $this->loadBinary($operator->value);
     }
 
-    public function registerCall(CallOperatorInterface $operator): void
-    {
-        foreach ($operator->names() as $name) {
-            $this->calls[$name] = $operator;
-        }
-    }
-
-    public function registerBinary(BinaryOperatorInterface $operator): void
-    {
-        foreach ($operator->operators() as $symbol) {
-            $this->binaries[$symbol->value] = $operator;
-        }
-    }
-
     private function loadCall(string $name): ?CallOperatorInterface
     {
         $class = self::CALLS[$name] ?? null;
@@ -278,13 +265,23 @@ final class OperatorRegistry implements OperatorRegistryInterface
             return null;
         }
 
-        // a name registered earlier (a replacement) keeps its operator
-        $operator = new $class();
+        $this->indexCall(new $class());
+
+        return $this->calls[$name];
+    }
+
+    private function indexCall(CallOperatorInterface $operator): void
+    {
         foreach ($operator->names() as $own) {
             $this->calls[$own] ??= $operator;
         }
+    }
 
-        return $this->calls[$name];
+    private function indexBinary(BinaryOperatorInterface $operator): void
+    {
+        foreach ($operator->operators() as $own) {
+            $this->binaries[$own->value] ??= $operator;
+        }
     }
 
     private function loadBinary(string $symbol): ?BinaryOperatorInterface
@@ -294,10 +291,7 @@ final class OperatorRegistry implements OperatorRegistryInterface
             return null;
         }
 
-        $operator = new $class();
-        foreach ($operator->operators() as $own) {
-            $this->binaries[$own->value] ??= $operator;
-        }
+        $this->indexBinary(new $class());
 
         return $this->binaries[$symbol];
     }

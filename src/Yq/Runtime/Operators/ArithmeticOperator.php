@@ -28,9 +28,14 @@ use LTS\PhpXq\Yq\Runtime\Numbers;
  * `+ - * / %`: addition and concatenation, subtraction and set difference, multiplication, merge and
  * string repetition, division and string splitting, modulo; with dates plus or minus a duration. The
  * same arithmetic backs the compound assignments (`+=`, `-=`, ...).
+ *
+ * @internal
  */
 final readonly class ArithmeticOperator implements BinaryOperatorInterface
 {
+    /** Go yq's cap on the result of a string repetition (10 MiB). */
+    private const int MAX_REPEAT_BYTES = 10485760;
+
     public function operators(): array
     {
         return [
@@ -245,11 +250,11 @@ final readonly class ArithmeticOperator implements BinaryOperatorInterface
             }
 
             if (null !== $rn && CoreSchema::TAG_STR === NodeOps::effectiveTag($l)) {
-                return self::repeat($l, $rn);
+                return self::repeat($l, $r, $rn, $l, $r);
             }
 
             if (null !== $ln && CoreSchema::TAG_STR === NodeOps::effectiveTag($r)) {
-                return self::repeat($r, $ln);
+                return self::repeat($r, $l, $ln, $l, $r);
             }
         }
 
@@ -259,9 +264,27 @@ final readonly class ArithmeticOperator implements BinaryOperatorInterface
         return $merged;
     }
 
-    private static function repeat(Node $text, int|float $times): Node
+    /**
+     * Go yq's string repetition: an `!!int` count only, never negative, and at most {@see self::MAX_REPEAT_BYTES}.
+     *
+     * @throws EvaluationException
+     */
+    private static function repeat(Node $text, Node $count, int|float $times, Node $left, Node $right): Node
     {
-        $out        = NodeOps::str(str_repeat($text->value, max(0, (int)$times)));
+        if (CoreSchema::TAG_INT !== NodeOps::effectiveTag($count)) {
+            throw new EvaluationException(\sprintf('cannot multiply %s with %s', NodeOps::effectiveTag($left), NodeOps::effectiveTag($right)));
+        }
+
+        if ($times < 0) {
+            throw new EvaluationException(\sprintf('cannot repeat string by a negative number (%s)', $count->value));
+        }
+
+        $bytes = \strlen($text->value);
+        if (!\is_int($times) || $bytes * $times > self::MAX_REPEAT_BYTES) {
+            throw new EvaluationException(\sprintf('result of repeating string (%d bytes) by %s would exceed %d bytes', $bytes, $count->value, self::MAX_REPEAT_BYTES));
+        }
+
+        $out        = NodeOps::str(str_repeat($text->value, $times));
         $out->tag   = $text->tag;
         $out->style = NodeStyleEnum::Default;
 

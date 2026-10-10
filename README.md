@@ -40,8 +40,8 @@ the same ([usage](#usage), [differences](#differences-from-upstream-and-known-ga
 ## Goals
 
 - **Equivalence, not invention.** No new functionality, no new query language.
-- **Fast.** A PHP CLI that starts quickly (about 50 ms for a small filter from the PHAR) and processes
-  input as efficiently as PHP allows.
+- **Fast.** A PHP CLI that starts quickly (about 70 ms for a small filter from the PHAR, about 30 ms from
+  the static binary) and processes input as efficiently as PHP allows.
 - **Verified against upstream.** The upstream jq and yq test suites run in CI, with every known gap
   listed and justified.
 - **No production dependencies.** `composer.json` declares the PHP version and required extensions
@@ -77,11 +77,13 @@ chmod +x phpxq.phar && ./phpxq.phar jq --version
 Needs PHP 8.5 with `ctype`, `json` and `mbstring`.
 
 ```bash
-composer global require lts/phpxq     # once listed on Packagist
-# or straight from the repository:
+composer global require lts/phpxq
+# or the development version straight from the repository:
 composer global config repositories.phpxq vcs https://github.com/LongTermSupport/phpxq
 composer global require lts/phpxq:dev-main
 ```
+
+The package is on Packagist as [lts/phpxq](https://packagist.org/packages/lts/phpxq).
 
 Composer places `phpxq` in its global `bin` directory.
 
@@ -92,6 +94,18 @@ git clone https://github.com/LongTermSupport/phpxq && cd phpxq
 composer install --no-dev
 bin/phpxq jq --version
 ```
+
+## Use as a library
+
+The Composer package can be required by another project and called from PHP code, without spawning a process:
+
+```php
+$names = LTS\PhpXq\Jq\Jq::run('.items[] | .name', (new LTS\PhpXq\Json\JsonDecoder())->decodeOne($json));
+$yaml  = LTS\PhpXq\Yq\Yq::evaluate('.items[0].n = 10', $yamlText);
+```
+
+[docs/LIBRARY.md](docs/LIBRARY.md) lists the supported public classes (everything else is internal and may
+change), with executed examples for JSON, jq, YAML and yq, the exceptions raised, and the memory limits.
 
 ## Usage
 
@@ -131,8 +145,8 @@ yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' a.yaml b.yaml
 yq -o=csv '.[] | [.name, .age]' people.yaml
 ```
 
-Formats: YAML, JSON, XML, CSV, TSV, properties, TOML, HCL, INI, Lua, base64 and URI (as in yq 4.54.1;
-`yq --help` lists the flags).
+Formats: YAML, JSON, XML, CSV, TSV, properties, TOML, HCL, INI, Lua, base64 and URI, plus shell and KYAML
+as output formats (as in yq 4.54.1; `yq --help` lists the flags).
 
 ### Common tasks
 
@@ -168,16 +182,16 @@ yq (https://github.com/mikefarah/yq/) version v4.54.1
 
 ## Differences from upstream and known gaps
 
-phpxq passes every upstream test it can: jq 878 of 879 cases and yq 565 of 574, and all of the
+phpxq passes every upstream test it can: jq 878 of 879 cases and yq 565 of 572 (two further yq examples,
+whose expected output is a Go-seeded `shuffle`, are skipped because ours is random), and all of the
 upstream shell suites. The remainder are deliberate, justified, and enforced (a gap that starts passing
 or an unlisted failure breaks the build):
 
 - [jq known gaps](tests/Conformance/Jq/known-gaps.txt): one case, an artefact of the upstream test
   runner (it has no `input` callback), not of the CLI.
-- [yq known gaps](tests/Conformance/Yq/known-gaps.txt): nine documentation examples. Three depend on a
-  frozen clock, one on Go's seeded `math/rand`, the `system` operator is intentionally unsupported
-  (it spawns processes), and the rest are an upstream header-preprocessing quirk and two damaged upstream
-  fixtures.
+- [yq known gaps](tests/Conformance/Yq/known-gaps.txt): seven documentation examples. Three depend on a
+  frozen clock, two use the `system` operator, which is intentionally
+  unsupported (it spawns processes), and two are damaged upstream fixtures.
 
 Other differences you may notice:
 
@@ -240,7 +254,8 @@ PHP 8.5 environment is defined in `.claude/ccy/Dockerfile`.
 
 ```bash
 composer install                                      # dev dependencies (lts/php-qa-ci, PHPUnit)
-vendor/bin/qa                                         # full QA pipeline
+vendor/bin/qa                                         # full QA pipeline; mutation testing only on what the branch changed (needs Xdebug)
+scripts/check-qa-measurements.bash                    # after a run: coverage and mutation ran, floors met
 vendor/bin/phpunit -c qaConfig/phpunit.xml --no-coverage   # unit tests
 ```
 
@@ -265,8 +280,8 @@ Vendored fixtures keep their own licences: see
 
 ### Benchmarks
 
-`scripts/bench/bench.bash` measures startup time and throughput (small, medium and large JSON and YAML,
-representative filters) for phpxq and, when installed, the real `jq` and mikefarah `yq`.
+`scripts/bench/bench.bash` measures startup time and throughput (small and medium JSON and YAML by
+default, large with `--sizes`; representative filters) for phpxq and, when installed, the real `jq` and mikefarah `yq`.
 
 ```bash
 scripts/bench/bench.bash run                     # JSON + Markdown report under untracked/bench/
@@ -276,7 +291,7 @@ scripts/bench/bench.bash run --compare benchmarks/baselines/NAME.json
 
 Inputs are generated deterministically and never committed. Results record the PHP, OPcache/JIT, CPU and
 kernel configuration; only compare results taken on the same machine. Methodology:
-`CLAUDE/Plan/00005-benchmarking-suite/BENCHMARKS.md`.
+`CLAUDE/Plan/Completed/00005-benchmarking-suite/BENCHMARKS.md`.
 
 ### Defence Before Fix
 
@@ -302,6 +317,12 @@ pull request into the `release` branch. Merging it runs the release workflow: fu
 PHAR and static binaries, smoke tests, the tag `vX.Y.Z` and the GitHub Release. A back-merge pull request then
 brings `VERSION` and the changelog on `main` in line. The flow, the version rules and the one-off GitHub
 settings are in [docs/RELEASING.md](docs/RELEASING.md).
+
+## Sponsor
+
+phpxq's development, including the AI tokens used to build it, is paid for by
+[Edmonds Commerce](https://www.edmondscommerce.co.uk/), a digital agency that builds and maintains
+e-commerce platforms and bespoke web applications. Thank you.
 
 ## Licence
 

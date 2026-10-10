@@ -36,6 +36,102 @@ final readonly class PathFunctions
     }
 
     /**
+     * @param Closure(mixed): void $emit
+     */
+    public static function path(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
+    {
+        $args[0]->paths([], $input, static function (?array $path, mixed $value) use ($emit): void {
+            if (null === $path) {
+                throw new JqException('Invalid path expression with result ' . Problems::dump($value));
+            }
+
+            $emit($path);
+        });
+    }
+
+    /**
+     * @param ?list<mixed>                       $path
+     * @param Closure(?list<mixed>, mixed): void $emit
+     */
+    public static function pathOfPath(RuntimeContextInterface $c, ?array $path, mixed $input, Closure $emit, FilterInterface ...$args): void
+    {
+        self::path($c, $input, static function (mixed $found) use ($emit): void {
+            $emit(null, $found);
+        }, ...$args);
+    }
+
+    /**
+     * @param Closure(mixed): void $emit
+     */
+    public static function getPath(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
+    {
+        $args[0]->run($input, static function (mixed $path) use ($input, $emit): void {
+            $emit(PathOps::getPath($input, ...self::pathArgument($path)));
+        });
+    }
+
+    /**
+     * @param ?list<mixed>                       $path
+     * @param Closure(?list<mixed>, mixed): void $emit
+     */
+    public static function getPathPaths(RuntimeContextInterface $c, ?array $path, mixed $input, Closure $emit, FilterInterface ...$args): void
+    {
+        $args[0]->run($input, static function (mixed $extra) use ($path, $input, $emit): void {
+            $steps = self::pathArgument($extra);
+            $emit(null === $path ? null : [...$path, ...$steps], PathOps::getPath($input, ...$steps));
+        });
+    }
+
+    /**
+     * Every path below the root, in document order.
+     *
+     * @param Closure(mixed): void $emit
+     */
+    public static function paths(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
+    {
+        self::walkPaths($input, $emit);
+    }
+
+    /**
+     * @param Closure(mixed): void $emit
+     */
+    public static function toStream(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
+    {
+        self::streamEvents($input, $emit);
+    }
+
+    /**
+     * @param Closure(mixed): void $emit
+     */
+    public static function fromStream(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
+    {
+        $value = null;
+        $done  = false;
+        $args[0]->run($input, static function (mixed $event) use (&$value, &$done, $emit): void {
+            if ($done) {
+                $value = null;
+                $done  = false;
+            }
+
+            if (!\is_array($event) || !isset($event[0])) {
+                throw new JqException('Invalid stream event');
+            }
+
+            $path = self::pathArgument($event[0]);
+            if (2 === \count($event)) {
+                $done  = [] === $path;
+                $value = PathOps::setPath($value, $event[1], ...$path);
+            } else {
+                $done = 1 === \count($path);
+            }
+
+            if ($done) {
+                $emit($value);
+            }
+        });
+    }
+
+    /**
      * @return list<mixed>
      */
     private static function pathArgument(mixed $path): array
@@ -67,63 +163,6 @@ final readonly class PathFunctions
     /**
      * @param Closure(mixed): void $emit
      */
-    private static function path(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
-    {
-        $args[0]->paths([], $input, static function (?array $path, mixed $value) use ($emit): void {
-            if (null === $path) {
-                throw new JqException('Invalid path expression with result ' . Problems::dump($value));
-            }
-
-            $emit($path);
-        });
-    }
-
-    /**
-     * @param ?list<mixed>                       $path
-     * @param Closure(?list<mixed>, mixed): void $emit
-     */
-    private static function pathOfPath(RuntimeContextInterface $c, ?array $path, mixed $input, Closure $emit, FilterInterface ...$args): void
-    {
-        self::path($c, $input, static function (mixed $found) use ($emit): void {
-            $emit(null, $found);
-        }, ...$args);
-    }
-
-    /**
-     * @param Closure(mixed): void $emit
-     */
-    private static function getPath(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
-    {
-        $args[0]->run($input, static function (mixed $path) use ($input, $emit): void {
-            $emit(PathOps::getPath($input, ...self::pathArgument($path)));
-        });
-    }
-
-    /**
-     * @param ?list<mixed>                       $path
-     * @param Closure(?list<mixed>, mixed): void $emit
-     */
-    private static function getPathPaths(RuntimeContextInterface $c, ?array $path, mixed $input, Closure $emit, FilterInterface ...$args): void
-    {
-        $args[0]->run($input, static function (mixed $extra) use ($path, $input, $emit): void {
-            $steps = self::pathArgument($extra);
-            $emit(null === $path ? null : [...$path, ...$steps], PathOps::getPath($input, ...$steps));
-        });
-    }
-
-    /**
-     * Every path below the root, in document order.
-     *
-     * @param Closure(mixed): void $emit
-     */
-    private static function paths(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
-    {
-        self::walkPaths($input, $emit);
-    }
-
-    /**
-     * @param Closure(mixed): void $emit
-     */
     private static function walkPaths(mixed $value, Closure $emit, mixed ...$prefix): void
     {
         if (\is_array($value)) {
@@ -139,14 +178,6 @@ final readonly class PathFunctions
                 self::walkPaths($child, $emit, ...$path);
             }
         }
-    }
-
-    /**
-     * @param Closure(mixed): void $emit
-     */
-    private static function toStream(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
-    {
-        self::streamEvents($input, $emit);
     }
 
     /**
@@ -175,36 +206,5 @@ final readonly class PathFunctions
         }
 
         $emit([[...$path, $last]]);
-    }
-
-    /**
-     * @param Closure(mixed): void $emit
-     */
-    private static function fromStream(RuntimeContextInterface $c, mixed $input, Closure $emit, FilterInterface ...$args): void
-    {
-        $value = null;
-        $done  = false;
-        $args[0]->run($input, static function (mixed $event) use (&$value, &$done, $emit): void {
-            if ($done) {
-                $value = null;
-                $done  = false;
-            }
-
-            if (!\is_array($event) || !isset($event[0])) {
-                throw new JqException('Invalid stream event');
-            }
-
-            $path = self::pathArgument($event[0]);
-            if (2 === \count($event)) {
-                $done  = [] === $path;
-                $value = PathOps::setPath($value, $event[1], ...$path);
-            } else {
-                $done = 1 === \count($path);
-            }
-
-            if ($done) {
-                $emit($value);
-            }
-        });
     }
 }

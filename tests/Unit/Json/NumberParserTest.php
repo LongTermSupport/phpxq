@@ -94,26 +94,6 @@ final class NumberParserTest extends TestCase
         yield 'leading zeros kept off'  => ['00012.50', '12.50', 12.5];
     }
 
-    public function testNegateKeepsTheDigits(): void
-    {
-        $big = NumberParser::parse('13911860366432393');
-        self::assertInstanceOf(PreciseNumber::class, $big);
-
-        $negated = NumberParser::negate($big);
-        self::assertSame('-13911860366432393', $negated->literal);
-        self::assertSame(-13911860366432392.0, $negated->value);
-        self::assertSame('13911860366432393', NumberParser::negate($negated)->literal);
-
-        $fraction = NumberParser::parse('-0.12345678901234567890123456789');
-        self::assertInstanceOf(PreciseNumber::class, $fraction);
-        self::assertSame('0.12345678901234567890123456789', NumberParser::negate($fraction)->literal);
-
-        $overflow = NumberParser::parse('1E+1000');
-        self::assertInstanceOf(PreciseNumber::class, $overflow);
-        self::assertSame('-1E+1000', NumberParser::negate($overflow)->literal);
-        self::assertSame(-\INF, NumberParser::negate($overflow)->value);
-    }
-
     public function testAbsKeepsTheDigits(): void
     {
         $negative = NumberParser::parse('-1.000');

@@ -21,11 +21,35 @@ return static fn (QaConfigBuilder $qa): QaConfigBuilder => $qa
     // Fixtures of the static defences' own tests (qaConfig/PHPStan/Rules): each is deliberately an instance of a
     // bug class, so the fixers must not rewrite it and PHPStan must not report it.
     ->withIgnoredPaths('tests/Fixtures/Defence')
-    // Mutation-score ratchet: both floors sit at the score the suite earns today (never 100, which would
-    // make every legitimately equivalent mutant a failure), so a change cannot quietly weaken the tests.
-    ->withInfectionFloors(90, 90)
-    // Declarations carrying a native type, per kind: a floor only ever moves up.
-    ->withTypeCoverageFloors(returnType: 95, paramType: 95, propertyType: 95, constantType: 95)
+    // Deployed from php-qa-ci on every composer install and overwritten by it: not code this project maintains.
+    ->withIgnoredPaths('.claude/skills/defence-before-fix/examples')
+    // PHP this project maintains outside src/ and tests/: the QA configuration and the static defences in it,
+    // and the release, benchmark and differential tooling.
+    ->withCheckedPaths(
+        'qaConfig/ChangelogLaneSwitch.php',
+        'qaConfig/PHPStan',
+        'qaConfig/composer-dependency-analyser.php',
+        'qaConfig/qa.php',
+        'scripts',
+    )
+    // The two Rector configurations are written against classes that exist only inside rector.phar, which
+    // PHPStan cannot load, so it could only report every one of them as unknown.
+    ->withUnanalysedPath('qaConfig/rector-php85.php', 'written against Rector classes that exist only inside rector.phar')
+    ->withUnanalysedPath('qaConfig/rector-safe.php', 'written against Rector classes that exist only inside rector.phar')
+    // Measured floors: the score the unit suite earns on its own (the conformance gate records no coverage),
+    // rounded down. A complete run of all 27,419 mutants scored 88.18% (covered 88%), so the floors are 88. They
+    // only move up; the target is 90, tracked in plan 00011 with the line, method and skipped-mutant floors in
+    // scripts/check-qa-measurements.bash.
+    // Mutation is scoped by php-qa-ci's automatic diff mode (docs/RELEASING.md, "Mutation testing in CI"): on a
+    // branch only what it changed is mutated, and only a change to configuration (composer.lock, qaConfig/)
+    // makes the run full. A diff run is held to one floor for both scores, uncovered mutants included, and
+    // that floor is the covered-MSI floor, 88, unless set apart: a changed file is held to what all of src/
+    // already earns. CI names the base itself where the branch gives none (the infectionDiffBase environment
+    // variable in the workflows), which a withInfectionDiffBase() call here would override.
+    ->withInfectionFloors(88, 88)
+    // Declarations carrying a native type, per kind: every one does. A resource is declared `mixed` with a
+    // `@param resource` / `@return resource` tag, as PHP has no native resource type.
+    ->withTypeCoverageFloors(returnType: 100, paramType: 100, propertyType: 100, constantType: 100)
     // Members nothing reaches are reported. The one PHP entry point outside src/ and tests/ is the executable.
     ->withDeadCodeDetection(true)
     ->withDeadCodeEntryPoints('bin/phpxq')

@@ -6,6 +6,8 @@ namespace LTS\PhpXq\Yq\Cli;
 
 /**
  * The shells `yq completion` generates a script for, valued with the name typed on the command line.
+ *
+ * @internal
  */
 enum ShellEnum: string
 {

@@ -17,6 +17,7 @@ php-qa-ci bundle and resolve from its own index.
 | `phpxq.unguardedAliasRecursion`        | `UnguardedAliasRecursionRule`        | Recursion into a node reached through a YAML alias with no compared depth bound                                    | [unguarded-alias-recursion.md](unguarded-alias-recursion.md)                 |
 | `phpxq.loopInvariantConstruction`      | `LoopInvariantConstructionRule`      | An engine object (registry, compiler, parser, encoder) built with unchanging arguments on every pass of a loop     | [loop-invariant-construction.md](loop-invariant-construction.md)             |
 | `phpxq.stringDiscriminator`            | `StringDiscriminatorRule`            | A variable or property told apart by comparing it with two or more different name literals (closed set as strings) | [string-discriminator.md](string-discriminator.md)                           |
+| `phpxq.staticOnlyClassConstructor`     | `StaticOnlyClassConstructorRule`     | A class of only static members with no constructor, so `new Helper()` builds a useless instance                    | [static-only-class-constructor.md](static-only-class-constructor.md)         |
 
 ## Production-only scope
 

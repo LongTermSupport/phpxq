@@ -8,6 +8,8 @@ use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 
 /**
  * `.` : the current matches, unchanged.
+ *
+ * @internal
  */
 final readonly class Identity implements ExpressionNodeInterface
 {

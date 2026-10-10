@@ -7,6 +7,8 @@ namespace LTS\PhpXq\Yq\Cli;
 /**
  * The shell completion scripts printed by `yq completion <shell>`. Every script asks the program itself
  * (`yq __complete ...`, see {@see CompleteCommand}) for candidates, as cobra's generated scripts do.
+ *
+ * @internal
  */
 final readonly class CompletionScripts
 {
@@ -131,6 +133,10 @@ final readonly class CompletionScripts
         }
 
         SCRIPT;
+
+    private function __construct()
+    {
+    }
 
     public static function forShell(string $shell): string
     {

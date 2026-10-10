@@ -1,9 +1,27 @@
 # Project PHPStan configuration. It replaces php-qa-ci's configDefaults/generic/phpstan.neon, so the
 # two settings that file carries are repeated here, followed by this project's own defences. The
 # rules are documented in docs/defence-before-fix.md and indexed in docs/phpstan-rules/README.md.
+includes:
+    # The checks PHPStan will turn on in its next major version, enabled now.
+    - phar://phpstan.phar/conf/bleedingEdge.neon
+
 parameters:
     level: max
     inferPrivatePropertyTypeFromConstructor: true
+    # Opt-in strictness beyond level max. Not enabled yet, each for the size of the change it needs:
+    # reportPossiblyNonexistentGeneralArrayOffset and exceptions.check.missingCheckedExceptionInThrows.
+    checkImplicitMixed: true
+    checkBenevolentUnionTypes: true
+    checkMissingCallableSignature: true
+    checkTooWideReturnTypesInProtectedAndPublicMethods: true
+    checkUninitializedProperties: true
+    reportAnyTypeWideningInVarTag: true
+    # A test case's setUp() is its constructor: PHPUnit calls it before every test.
+    additionalConstructors:
+        - PHPUnit\Framework\TestCase::setUp
+    exceptions:
+        check:
+            tooWideThrowType: true
     excludePaths:
         # Fixtures of the defences' own tests: each one is deliberately an instance of the bug class.
         analyseAndScan:
@@ -30,6 +48,7 @@ rules:
     - QaConfig\PHPStan\Rules\RecursionThroughNativeCallbackRule
     - QaConfig\PHPStan\Rules\UnguardedAliasRecursionRule
     - QaConfig\PHPStan\Rules\LoopInvariantConstructionRule
+    - QaConfig\PHPStan\Rules\StaticOnlyClassConstructorRule
 
 services:
     # Bundled with php-qa-ci but opt-in: a string literal written three or more times in one class. Production

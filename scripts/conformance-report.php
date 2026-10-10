@@ -16,7 +16,7 @@ use LTS\PhpXq\Tests\Support\Conformance\GapList;
 use LTS\PhpXq\Tests\Support\Conformance\JqConformanceSuite;
 use LTS\PhpXq\Tests\Support\Conformance\YqConformanceSuite;
 
-require \dirname(__DIR__) . '/vendor/autoload.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 $which = $argv[1] ?? 'all';
 if (!\in_array($which, ['jq', 'yq', 'all'], true)) {
@@ -51,7 +51,7 @@ foreach ($suites as $suite) {
 
     $problems = $problems || $result->hasProblems();
     $totalCases += $result->total();
-    $totalOk += $result->passed + $result->expectedFailures;
+    $totalOk    += $result->passed + $result->expectedFailures;
 }
 
 fwrite(\STDOUT, \sprintf("TOTAL: %d cases | %d as expected | %s\n", $totalCases, $totalOk, $problems ? 'PROBLEMS FOUND' : 'OK'));

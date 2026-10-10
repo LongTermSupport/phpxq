@@ -8,7 +8,7 @@ namespace LTS\PhpXq\Jq\Cli;
  * The two output streams of one jq run. Standard output is buffered; anything for standard error first
  * flushes it, so the two interleave the way they were produced.
  *
- * @api
+ * @internal
  */
 final readonly class Console
 {

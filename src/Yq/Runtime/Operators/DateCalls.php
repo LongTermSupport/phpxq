@@ -26,6 +26,8 @@ use LTS\PhpXq\Yq\Runtime\Numbers;
 /**
  * Date and time operators: `now`, `from_unix`, `to_unix`, `tz`, `format_datetime` and `with_dtf`, which
  * sets the layout the date operators in its second argument read and write.
+ *
+ * @internal
  */
 final readonly class DateCalls implements CallOperatorInterface
 {
@@ -68,8 +70,9 @@ final readonly class DateCalls implements CallOperatorInterface
                 return Cands::derive($this->dateNode(new DateTimeImmutable('now'), $layout), $match);
 
             case BuiltinNameEnum::FromUnix:
+                // a fraction of a second is dropped, as Go yq drops it; a time past the int range has no date
                 $seconds = Numbers::of($node);
-                if (null === $seconds) {
+                if (null === $seconds || \is_float($seconds) && ($seconds <= \PHP_INT_MIN || $seconds >= \PHP_INT_MAX)) {
                     throw new EvaluationException(\sprintf('cannot convert %s to a unix time', $node->value));
                 }
 

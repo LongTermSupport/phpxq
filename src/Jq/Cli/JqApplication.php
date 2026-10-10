@@ -15,6 +15,7 @@ use LTS\PhpXq\Jq\Runtime\CompiledProgramInterface;
 use LTS\PhpXq\Jq\Runtime\EvaluationStack;
 use LTS\PhpXq\Jq\Runtime\JqCompileException;
 use LTS\PhpXq\Json\Codec\JqColors;
+use LTS\PhpXq\Json\Codec\Utf8;
 use LTS\PhpXq\Json\ColorScheme;
 use LTS\PhpXq\Json\JsonDecoder;
 use LTS\PhpXq\Json\JsonDecoderInterface;
@@ -28,7 +29,7 @@ use RuntimeException;
  * formatting and exit codes (0 ok, 1 or 4 with `-e`, 2 usage or unreadable input, 3 compile error,
  * 5 runtime error or invalid input, or the status requested by `halt_error`).
  *
- * @api
+ * @internal
  */
 final readonly class JqApplication
 {
@@ -122,13 +123,19 @@ final readonly class JqApplication
             return $source;
         }
 
-        $program = $this->compile($source, $options, $console);
-        if (!$program instanceof CompiledProgramInterface) {
-            return $program;
-        }
+        // like jq, which reads the program as a jq string: invalid UTF-8 in its literals becomes U+FFFD
+        $source = Utf8::sanitize($source);
 
-        // one fiber for every input of the run: creating one per input costs more than a small program does
-        return EvaluationStack::run(fn (): int => $this->runProgram($program, $options, $stdin, $stdout, $console));
+        // one fiber for the whole run: parsing and compiling recurse as deeply as the program nests, and
+        // creating a fiber per input costs more than a small program does
+        return EvaluationStack::run(function () use ($source, $options, $stdin, $stdout, $console): int {
+            $program = $this->compile($source, $options, $console);
+            if (!$program instanceof CompiledProgramInterface) {
+                return $program;
+            }
+
+            return $this->runProgram($program, $options, $stdin, $stdout, $console);
+        });
     }
 
     /**

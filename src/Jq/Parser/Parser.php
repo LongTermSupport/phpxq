@@ -47,6 +47,7 @@ use LTS\PhpXq\Jq\Ast\VariablePattern;
 use LTS\PhpXq\Jq\Runtime\JqCompileException;
 use LTS\PhpXq\Json\JsonObject;
 use LTS\PhpXq\Json\NumberParser;
+use LTS\PhpXq\Limits\NestingLimit;
 
 /**
  * Recursive descent / precedence climbing parser for the jq 1.8 grammar.
@@ -56,7 +57,16 @@ use LTS\PhpXq\Json\NumberParser;
  * parsed with postfix chains; `as` bindings, `def` and `label` take the whole remaining pipe as their
  * body, as the grammar's lowest-precedence rules do.
  *
- * @api
+ * Nesting is limited to {@see NestingLimit::MAX_DEPTH} levels. `$depth` counts the expressions the parser is
+ * inside: every bracket, right-recursive operand (`|`, `//`, `-`) or nested construct it recurses into is one
+ * level below its parent, and the outermost expression is level 0. A chain the parser builds in a loop (`,`,
+ * `+`, `.a.b`, `.[0]`, `?`) is not nesting: `,` operands are joined into a balanced tree, and the other chains
+ * are left-deep, as deep as they are long. `$reach` is the deepest level any node of the tree under
+ * construction has reached, chains included (a wrap pushes everything parsed so far one level down); the
+ * tree is capped at {@see NestingLimit::MAX_TREE_DEPTH}, because PHP frees a tree recursively on the native
+ * stack.
+ *
+ * @internal
  */
 final class Parser implements ParserInterface
 {
@@ -142,10 +152,16 @@ final class Parser implements ParserInterface
         'eof'             => 'end of file',
     ];
 
+    private const int OUTSIDE_THE_PROGRAM = -1;
+
     /** @var list<Token> */
     private array $tokens = [];
 
     private int $pos = 0;
+
+    private int $depth = self::OUTSIDE_THE_PROGRAM;
+
+    private int $reach = self::OUTSIDE_THE_PROGRAM;
 
     private bool $bindingAllowed = true;
 
@@ -159,6 +175,8 @@ final class Parser implements ParserInterface
     {
         $this->tokens       = $this->lexer->tokenize($source);
         $this->pos          = 0;
+        $this->depth        = self::OUTSIDE_THE_PROGRAM;
+        $this->reach        = self::OUTSIDE_THE_PROGRAM;
         $this->unterminated = false;
 
         try {
@@ -390,55 +408,134 @@ final class Parser implements ParserInterface
 
     private function parseExpr(int $min): NodeInterface
     {
-        $left = $this->parseUnary();
+        $outer      = $this->depth;
+        $outerReach = $this->reach;
+        $this->nest();
+        $this->reach = $this->depth;
+        $left        = $this->parseUnary();
         while (true) {
             $tok = $this->tokens[$this->pos];
             if (TokenTypeEnum::KwAs === $tok->type && $this->bindingAllowed && $min <= self::LEVEL_ALT) {
                 // `as` binds the whole operator expression on its left (`1 + 2 as $x | ...` binds 3).
                 ++$this->pos;
-                $patterns = $this->parsePatterns();
+                $leftReach = $this->reach;
+                $patterns  = $this->parsePatterns();
                 $this->expect(TokenTypeEnum::Pipe);
+                $left = new Bind($left, $patterns, $this->parsePipe());
+                $this->deepen($leftReach + 1);
 
-                return new Bind($left, $patterns, $this->parsePipe());
+                break;
             }
 
             $level = self::LEVEL[$tok->type->value] ?? 0;
             if (0 === $level || $level < $min) {
-                return $left;
+                break;
             }
 
             ++$this->pos;
-            switch ($level) {
-                case self::LEVEL_PIPE:
-                    $left = new Pipe($left, $this->parseExpr(self::LEVEL_PIPE));
+            $leftReach = $this->reach;
+            $left      = self::LEVEL_COMMA === $level ? $this->parseCommaChain($left) : $this->parseOperation($tok->type, $level, $left);
+            $this->deepen($leftReach + 1);
+        }
 
-                    break;
+        $this->depth = $outer;
+        $this->reach = max($outerReach, $this->reach);
 
-                case self::LEVEL_COMMA:
-                    $left = new Comma($left, $this->parseExpr(self::LEVEL_ALT));
+        return $left;
+    }
 
-                    break;
+    /**
+     * After the first `,` of a chain: every operand of the chain, joined into a balanced tree of {@see Comma}
+     * nodes. `,` is associative, so the outputs keep their order however the operands are grouped, and a
+     * chain of any length (an array literal of a hundred thousand elements) stays a tree of logarithmic depth.
+     */
+    private function parseCommaChain(NodeInterface $first): NodeInterface
+    {
+        $operands = [$first, $this->parseExpr(self::LEVEL_ALT)];
+        while (TokenTypeEnum::Comma === $this->tokens[$this->pos]->type) {
+            ++$this->pos;
+            $operands[] = $this->parseExpr(self::LEVEL_ALT);
+        }
 
-                case self::LEVEL_ALT:
-                    $left = new Binary(BinaryOpEnum::Alt, $left, $this->parseExpr(self::LEVEL_ALT));
-
-                    break;
-
-                case self::LEVEL_ASSIGN:
-                    $left = new Assign($this->assignOp($tok->type), $left, $this->parseExpr(self::LEVEL_ASSIGN + 1));
-                    $this->rejectChain(self::LEVEL_ASSIGN);
-
-                    break;
-
-                case self::LEVEL_COMPARE:
-                    $left = new Binary($this->binaryOp($tok->type), $left, $this->parseExpr(self::LEVEL_COMPARE + 1));
-                    $this->rejectChain(self::LEVEL_COMPARE);
-
-                    break;
-
-                default:
-                    $left = new Binary($this->binaryOp($tok->type), $left, $this->parseExpr($level + 1));
+        // join neighbours pairwise, round after round, until one tree is left
+        while (\count($operands) > 1) {
+            $joined = [];
+            $count  = \count($operands);
+            for ($i = 0; $i + 1 < $count; $i += 2) {
+                $joined[] = new Comma($operands[$i], $operands[$i + 1]);
             }
+
+            if (1 === $count % 2) {
+                $joined[] = $operands[$count - 1];
+            }
+
+            $operands = $joined;
+        }
+
+        return $operands[0];
+    }
+
+    /**
+     * The binary node joining the operand chain so far to the right operand after an operator of the level.
+     */
+    private function parseOperation(TokenTypeEnum $operator, int $level, NodeInterface $left): NodeInterface
+    {
+        switch ($level) {
+            case self::LEVEL_PIPE:
+                return new Pipe($left, $this->parseExpr(self::LEVEL_PIPE));
+
+            case self::LEVEL_ALT:
+                return new Binary(BinaryOpEnum::Alt, $left, $this->parseExpr(self::LEVEL_ALT));
+
+            case self::LEVEL_ASSIGN:
+                $assign = new Assign($this->assignOp($operator), $left, $this->parseExpr(self::LEVEL_ASSIGN + 1));
+                $this->rejectChain(self::LEVEL_ASSIGN);
+
+                return $assign;
+
+            case self::LEVEL_COMPARE:
+                $compare = new Binary($this->binaryOp($operator), $left, $this->parseExpr(self::LEVEL_COMPARE + 1));
+                $this->rejectChain(self::LEVEL_COMPARE);
+
+                return $compare;
+
+            default:
+                return new Binary($this->binaryOp($operator), $left, $this->parseExpr($level + 1));
+        }
+    }
+
+    /**
+     * One level deeper for the node about to be parsed; the caller restores the level it saved once that node
+     * is complete.
+     *
+     * @throws JqCompileException past {@see NestingLimit::MAX_DEPTH} levels
+     */
+    private function nest(): void
+    {
+        ++$this->depth;
+        if ($this->depth > NestingLimit::MAX_DEPTH) {
+            throw $this->compileError(
+                \sprintf('syntax error, program nested deeper than %d levels', NestingLimit::MAX_DEPTH),
+                $this->tokens[$this->pos],
+            );
+        }
+
+        $this->deepen($this->depth);
+    }
+
+    /**
+     * Records that some node of the tree being built now sits at the level.
+     *
+     * @throws JqCompileException past {@see NestingLimit::MAX_TREE_DEPTH} levels
+     */
+    private function deepen(int $level): void
+    {
+        $this->reach = max($this->reach, $level);
+        if ($this->reach > NestingLimit::MAX_TREE_DEPTH) {
+            throw $this->compileError(
+                \sprintf('syntax error, program tree deeper than %d levels, counting chained operations', NestingLimit::MAX_TREE_DEPTH),
+                $this->tokens[$this->pos],
+            );
         }
     }
 
@@ -514,53 +611,69 @@ final class Parser implements ParserInterface
 
     private function parsePostfix(): NodeInterface
     {
-        $term = $this->parsePrimary();
+        $outerReach  = $this->reach;
+        $this->reach = $this->depth;
+        $term        = $this->parsePrimary();
         while (true) {
-            $tok = $this->tokens[$this->pos];
-            switch ($tok->type) {
-                case TokenTypeEnum::Field:
-                    ++$this->pos;
-                    $term = new Index($term, new Literal($tok->text));
-
-                    break;
-
-                case TokenTypeEnum::Dot:
-                    $next = $this->tokens[$this->pos + 1] ?? null;
-                    if (null === $next) {
-                        return $term;
-                    }
-
-                    if (TokenTypeEnum::StringStart === $next->type) {
-                        ++$this->pos;
-                        $term = new Index($term, $this->parseString(null));
-
-                        break;
-                    }
-
-                    if (TokenTypeEnum::LBracket === $next->type) {
-                        $this->pos += 2;
-                        $term = $this->parseBracket($term);
-
-                        break;
-                    }
-
-                    return $term;
-
-                case TokenTypeEnum::LBracket:
-                    ++$this->pos;
-                    $term = $this->parseBracket($term);
-
-                    break;
-
-                case TokenTypeEnum::Question:
-                    ++$this->pos;
-                    $term = new TryCatch($term, null);
-
-                    break;
-
-                default:
-                    return $term;
+            $termReach = $this->reach;
+            $next      = $this->postfixStep($term);
+            if (!$next instanceof NodeInterface) {
+                break;
             }
+
+            $term = $next;
+            $this->deepen($termReach + 1);
+        }
+
+        $this->reach = max($outerReach, $this->reach);
+
+        return $term;
+    }
+
+    /**
+     * The term wrapped in the postfix step at the current token, or null when no step follows.
+     */
+    private function postfixStep(NodeInterface $term): ?NodeInterface
+    {
+        $tok = $this->tokens[$this->pos];
+        switch ($tok->type) {
+            case TokenTypeEnum::Field:
+                ++$this->pos;
+
+                return new Index($term, new Literal($tok->text));
+
+            case TokenTypeEnum::Dot:
+                $next = $this->tokens[$this->pos + 1] ?? null;
+                if (null === $next) {
+                    return null;
+                }
+
+                if (TokenTypeEnum::StringStart === $next->type) {
+                    ++$this->pos;
+
+                    return new Index($term, $this->parseString(null));
+                }
+
+                if (TokenTypeEnum::LBracket === $next->type) {
+                    $this->pos += 2;
+
+                    return $this->parseBracket($term);
+                }
+
+                return null;
+
+            case TokenTypeEnum::LBracket:
+                ++$this->pos;
+
+                return $this->parseBracket($term);
+
+            case TokenTypeEnum::Question:
+                ++$this->pos;
+
+                return new TryCatch($term, null);
+
+            default:
+                return null;
         }
     }
 
@@ -689,6 +802,8 @@ final class Parser implements ParserInterface
 
             case TokenTypeEnum::KwTry:
                 ++$this->pos;
+                $outer = $this->depth;
+                $this->nest();
                 try {
                     $body = $this->parseTryOperand();
                 } catch (JqCompileException $jqCompileException) {
@@ -700,6 +815,8 @@ final class Parser implements ParserInterface
                     ++$this->pos;
                     $handler = $this->parseTryOperand();
                 }
+
+                $this->depth = $outer;
 
                 return new TryCatch($body, $handler);
 
@@ -716,8 +833,12 @@ final class Parser implements ParserInterface
     {
         if (TokenTypeEnum::Minus === $this->tokens[$this->pos]->type) {
             ++$this->pos;
+            $outer = $this->depth;
+            $this->nest();
+            $negated     = new Negate($this->parseTryOperand());
+            $this->depth = $outer;
 
-            return new Negate($this->parseTryOperand());
+            return $negated;
         }
 
         return $this->parsePostfix();
@@ -795,8 +916,12 @@ final class Parser implements ParserInterface
         $tok  = $this->current();
         if (TokenTypeEnum::KwElif === $tok->type) {
             ++$this->pos;
+            $outer = $this->depth;
+            $this->nest();
+            $elif        = new IfThenElse($condition, $then, $this->parseIfRest());
+            $this->depth = $outer;
 
-            return new IfThenElse($condition, $then, $this->parseIfRest());
+            return $elif;
         }
 
         if (TokenTypeEnum::KwElse === $tok->type) {
@@ -915,6 +1040,8 @@ final class Parser implements ParserInterface
 
             case TokenTypeEnum::LBracket:
                 ++$this->pos;
+                $outer = $this->depth;
+                $this->nest();
                 $elements = [$this->parsePattern()];
                 while (TokenTypeEnum::Comma === $this->tokens[$this->pos]->type) {
                     ++$this->pos;
@@ -922,11 +1049,14 @@ final class Parser implements ParserInterface
                 }
 
                 $this->expect(TokenTypeEnum::RBracket);
+                $this->depth = $outer;
 
                 return new ArrayPattern($elements);
 
             case TokenTypeEnum::LBrace:
                 ++$this->pos;
+                $outer = $this->depth;
+                $this->nest();
                 $entries = [$this->parseObjectPatternEntry()];
                 while (TokenTypeEnum::Comma === $this->tokens[$this->pos]->type) {
                     ++$this->pos;
@@ -934,6 +1064,7 @@ final class Parser implements ParserInterface
                 }
 
                 $this->expect(TokenTypeEnum::RBrace);
+                $this->depth = $outer;
 
                 return new ObjectPattern($entries);
 
@@ -1146,8 +1277,12 @@ final class Parser implements ParserInterface
 
         if (TokenTypeEnum::Pipe === $this->tokens[$this->pos]->type) {
             ++$this->pos;
+            $outer = $this->depth;
+            $this->nest();
+            $pipe        = new Pipe($value, $this->parseObjectValue());
+            $this->depth = $outer;
 
-            return new Pipe($value, $this->parseObjectValue());
+            return $pipe;
         }
 
         return $value;

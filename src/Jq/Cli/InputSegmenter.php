@@ -14,7 +14,7 @@ namespace LTS\PhpXq\Jq\Cli;
  * chunks is still scanned once. Nothing is validated here: a damaged value only has to end somewhere,
  * and the decoder reports it.
  *
- * @api
+ * @internal
  */
 final class InputSegmenter
 {

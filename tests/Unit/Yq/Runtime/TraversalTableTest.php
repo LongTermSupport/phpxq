@@ -6,6 +6,8 @@ namespace LTS\PhpXq\Tests\Unit\Yq\Runtime;
 
 use Generator;
 use LTS\PhpXq\Tests\Unit\Yq\Runtime\Support\YqHarness;
+use LTS\PhpXq\Yaml\MergeKey;
+use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yq\Runtime\EvaluationException;
 use LTS\PhpXq\Yq\Runtime\NodeOps;
 use LTS\PhpXq\Yq\Runtime\Traversal;
@@ -126,7 +128,7 @@ final class TraversalTableTest extends TestCase
     public function testLookupThroughAMergeKeyFindsTheMergedEntries(): void
     {
         $map = NodeOps::map([
-            NodeOps::str('<<'), NodeOps::map([NodeOps::str('x'), NodeOps::int(1)]),
+            $this->mergeKey(), NodeOps::map([NodeOps::str('x'), NodeOps::int(1)]),
             NodeOps::str('y'), NodeOps::int(2),
         ]);
 
@@ -149,7 +151,7 @@ final class TraversalTableTest extends TestCase
     public function testMergedEntriesFollowTheMergeOrder(): void
     {
         $merged = NodeOps::map([NodeOps::str('x'), NodeOps::int(2), NodeOps::str('z'), NodeOps::int(3)]);
-        $map    = NodeOps::map([NodeOps::str('x'), NodeOps::int(1), NodeOps::str('<<'), $merged]);
+        $map    = NodeOps::map([NodeOps::str('x'), NodeOps::int(1), $this->mergeKey(), $merged]);
 
         $legacy = Traversal::entries($map, false);
         $fixed  = Traversal::entries($map, true);
@@ -157,6 +159,14 @@ final class TraversalTableTest extends TestCase
         self::assertSame(['x' => '2', 'z' => '3'], array_map(static fn (array $pair): string => $pair[1]->value, $legacy));
         self::assertSame(['x' => '1', 'z' => '3'], array_map(static fn (array $pair): string => $pair[1]->value, $fixed));
         self::assertSame('x', $legacy['x'][0]->value);
+    }
+
+    /**
+     * A `<<` key as the parser reads a plain one: tagged `!!merge`.
+     */
+    private function mergeKey(): Node
+    {
+        return Node::scalar(MergeKey::NAME, MergeKey::TAG);
     }
 
     /**

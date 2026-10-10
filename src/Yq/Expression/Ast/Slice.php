@@ -9,6 +9,8 @@ use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 /**
  * `base[from:to]`; either bound may be absent. Negative bounds count from the end. `optional` marks a
  * trailing `?`, which turns the error for a value that cannot be sliced into no match.
+ *
+ * @internal
  */
 final readonly class Slice implements ExpressionNodeInterface
 {

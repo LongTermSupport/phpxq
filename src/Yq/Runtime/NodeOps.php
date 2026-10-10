@@ -13,6 +13,8 @@ use LTS\PhpXq\Yaml\Schema\CoreSchema;
  * Small constructors and predicates over {@see Node} shared by the operators: typed scalar factories,
  * alias dereferencing, truthiness, effective tags (custom tags resolve by value) and the in-place
  * update the assignment operators use.
+ *
+ * @internal
  */
 final readonly class NodeOps
 {
@@ -176,14 +178,6 @@ final readonly class NodeOps
             NodeKindEnum::Alias    => 'alias',
             default                => 'scalar',
         };
-    }
-
-    /**
-     * Keeps every key of a mapping addressable by its scalar text.
-     */
-    public static function isMergeKey(Node $key): bool
-    {
-        return NodeKindEnum::Scalar === $key->kind && '<<' === $key->value && NodeStyleEnum::Default === $key->style;
     }
 
     /**

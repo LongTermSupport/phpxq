@@ -13,6 +13,8 @@ use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 
 /**
  * Evaluation of an operator's arguments against one match.
+ *
+ * @internal
  */
 final readonly class Args
 {
@@ -73,9 +75,7 @@ final readonly class Args
             return null;
         }
 
-        $number = Numbers::of($node);
-
-        return null === $number ? null : (int)$number;
+        return Numbers::intOf($node);
     }
 
     /**

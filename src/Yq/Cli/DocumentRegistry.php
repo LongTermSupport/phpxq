@@ -12,6 +12,8 @@ use SplObjectStorage;
  * Remembers, for every Document node read, the header text slurped ahead of it and whether it was
  * synthesised for an empty input. Evaluator results are looked up here by identity, so a result that is
  * still a whole document prints with its header.
+ *
+ * @internal
  */
 final class DocumentRegistry
 {
