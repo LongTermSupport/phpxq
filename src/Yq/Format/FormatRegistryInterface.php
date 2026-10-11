@@ -8,7 +8,7 @@ namespace LTS\PhpXq\Yq\Format;
  * Finds the codec for a format. Implemented by FormatRegistry (format codecs worker), which registers one
  * decoder and one encoder class per format under Yq\Format\Codec.
  *
- * @api
+ * @internal
  */
 interface FormatRegistryInterface
 {

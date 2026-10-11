@@ -14,6 +14,8 @@ use LTS\PhpXq\Yq\Format\FormatException;
  * A byte-scanning reader that pulls one JSON value at a time out of a string holding any number of
  * concatenated values (JSON lines and pretty-printed streams alike). Numbers keep their source text. A run of
  * plain string characters ends at `"`, `\` or a control character (STRING_STOP).
+ *
+ * @internal
  */
 final class JsonReader
 {

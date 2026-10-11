@@ -97,7 +97,7 @@ final class FormatFunctionsTest extends TestCase
     public function testUriDecodeRejects(string $text): void
     {
         self::assertSame(
-            \sprintf('string (%s) is not a valid uri encoding', json_encode($text)),
+            \sprintf('string (%s) is not a valid uri encoding', json_encode($text, \JSON_THROW_ON_ERROR)),
             Harness::error('format', $text, ['urid']),
         );
     }

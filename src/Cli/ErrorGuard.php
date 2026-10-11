@@ -11,7 +11,7 @@ use ErrorException;
  * exceptions that the front controller reports in the tool's style, and a fatal error (such as running
  * out of memory) is reported as one line on standard error instead of PHP's banner.
  *
- * @api
+ * @internal
  */
 final readonly class ErrorGuard
 {
@@ -57,7 +57,7 @@ final readonly class ErrorGuard
     }
 
     /**
-     * @param ?array{type: int, message: string, file: string, line: int} $error as from error_get_last()
+     * @param ?array{type: int, message: string, file: string, line: int, ...} $error as from error_get_last()
      */
     public static function describeFatal(?array $error): ?string
     {

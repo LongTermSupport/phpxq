@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Ast;
 /**
  * `left op right` where op is an assignment operator; $left is a path expression.
  *
- * @api
+ * @internal
  */
 final readonly class Assign implements NodeInterface
 {

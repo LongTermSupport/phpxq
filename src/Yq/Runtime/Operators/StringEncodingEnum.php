@@ -7,6 +7,8 @@ namespace LTS\PhpXq\Yq\Runtime\Operators;
 /**
  * The string encodings the `@...` operators apply themselves (the data formats go through the format registry),
  * valued with the name written after the `@`.
+ *
+ * @internal
  */
 enum StringEncodingEnum: string
 {

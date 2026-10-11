@@ -10,6 +10,8 @@ use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
  * The reference's "cross function": an infix operator evaluates both sides against each match (or against
  * all matches at once when they are the roots of several documents, as in eval-all) and combines every
  * left result with every right result. A side with no result is passed as null.
+ *
+ * @internal
  */
 final readonly class Cross
 {

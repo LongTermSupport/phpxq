@@ -8,6 +8,8 @@ namespace LTS\PhpXq\Yaml\Token;
  * A comment found by the scanner, with the positions the comment-association rules need. `head` is a
  * comment block that precedes content, `line` a comment after a token on its line, `foot` a block that
  * trails earlier content. Exactly one of the three is non-empty.
+ *
+ * @internal
  */
 final readonly class ScanComment
 {

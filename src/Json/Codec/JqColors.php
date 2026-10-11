@@ -11,7 +11,7 @@ use LTS\PhpXq\Json\ColorScheme;
  * numbers, strings, arrays, objects and object keys, each rendered as an escape sequence ("0;32" becomes
  * "ESC[0;32m", an empty field "ESC[m"). Fields that are absent keep jq's defaults.
  *
- * @api
+ * @internal
  */
 final readonly class JqColors
 {

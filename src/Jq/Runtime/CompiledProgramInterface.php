@@ -9,7 +9,7 @@ use Closure;
 /**
  * A program ready to run against any number of inputs.
  *
- * @api
+ * @internal
  */
 interface CompiledProgramInterface
 {

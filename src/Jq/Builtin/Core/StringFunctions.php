@@ -172,11 +172,18 @@ final readonly class StringFunctions
             return [];
         }
 
-        $out    = [];
-        $offset = 0;
-        $ascii  = \strlen($text) === Unicode::length($text);
+        $out        = [];
+        $offset     = 0;
+        $ascii      = \strlen($text) === Unicode::length($text);
+        $lastByte   = 0;
+        $lastOffset = 0;
         while (false !== ($position = strpos($text, $needle, $offset))) {
-            $out[]  = $ascii ? $position : Unicode::offsetOf($text, $position);
+            if (!$ascii) {
+                $lastOffset += Unicode::length(substr($text, $lastByte, $position - $lastByte));
+                $lastByte = $position;
+            }
+
+            $out[]  = $ascii ? $position : $lastOffset;
             $offset = $position + 1;
         }
 

@@ -178,12 +178,6 @@ final class CsvCodecTest extends TestCase
         $this->encode("a: 1\n", FormatEnum::Csv, new FormatOptions());
     }
 
-    public function testFormats(): void
-    {
-        self::assertSame(FormatEnum::Tsv, new CsvDecoder(FormatEnum::Tsv)->format());
-        self::assertSame(FormatEnum::Csv, new CsvEncoder(FormatEnum::Csv)->format());
-    }
-
     private function decodeDoc(string $text, FormatEnum $format, ?FormatOptions $options = null): Node
     {
         foreach (new CsvDecoder($format)->decode($text, $options ?? new FormatOptions()) as $document) {

@@ -14,7 +14,7 @@ namespace LTS\PhpXq\Jq\Runtime;
  * `setpath(("a","b"|[.]); (1,2))` yields {a:1},{b:1},{a:2},{b:2}) and calls {@see self::call()} once per
  * combination.
  *
- * @api
+ * @internal
  */
 interface ValueBuiltinInterface extends BuiltinInterface
 {

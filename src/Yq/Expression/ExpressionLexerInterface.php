@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Yq\Expression;
 /**
  * Splits a yq expression into tokens. Whitespace and `#` comments are skipped.
  *
- * @api
+ * @internal
  */
 interface ExpressionLexerInterface
 {

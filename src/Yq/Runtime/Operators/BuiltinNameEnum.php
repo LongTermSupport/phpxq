@@ -8,6 +8,8 @@ namespace LTS\PhpXq\Yq\Runtime\Operators;
  * The names of the call builtins answered by the `*Calls` operator classes: one definition of each spelling, used
  * both by a class's `names()` registration table and by its dispatch. A second spelling of the same builtin is a
  * case of its own.
+ *
+ * @internal
  */
 enum BuiltinNameEnum: string
 {

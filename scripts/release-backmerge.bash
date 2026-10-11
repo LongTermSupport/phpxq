@@ -42,6 +42,10 @@ if [[ -n "$direct" ]]; then
     exit 0
 fi
 
+# An open back-merge pull request from $merge_branch is refreshed rather than joined by a second one from
+# $release_branch, even when the merge is clean by now.
+pending="$(gh pr list --head "$merge_branch" --base "$main_branch" --state open --json number --jq '.[0].number // empty')"
+
 merge_status=0
 git merge-tree --write-tree "origin/$main_branch" "origin/$release_branch" >/dev/null || merge_status=$?
 case "$merge_status" in
@@ -49,6 +53,9 @@ case "$merge_status" in
     1) head_branch="$merge_branch" ;;
     *) die "git merge-tree failed (exit $merge_status)" ;;
 esac
+if [[ -n "$pending" ]]; then
+    head_branch="$merge_branch"
+fi
 
 if [[ "$head_branch" == "$merge_branch" ]]; then
     git switch --quiet -C "$merge_branch" "origin/$main_branch"

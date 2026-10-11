@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Ast;
 /**
  * A destructuring pattern on the right of `as`, in `reduce`/`foreach`, or one alternative of `?//`.
  *
- * @api
+ * @internal
  */
 interface PatternInterface
 {

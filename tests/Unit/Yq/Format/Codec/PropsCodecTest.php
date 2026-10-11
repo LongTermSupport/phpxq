@@ -9,7 +9,6 @@ use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\Parser\YamlParser;
 use LTS\PhpXq\Yq\Format\Codec\PropsDecoder;
 use LTS\PhpXq\Yq\Format\Codec\PropsEncoder;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -186,12 +185,6 @@ final class PropsCodecTest extends TestCase
     {
         $this->expectException(FormatException::class);
         $this->decode('k=\u12');
-    }
-
-    public function testFormats(): void
-    {
-        self::assertSame(FormatEnum::Props, new PropsDecoder()->format());
-        self::assertSame(FormatEnum::Props, new PropsEncoder()->format());
     }
 
     public function testEmptyInputDecodesToNoDocuments(): void

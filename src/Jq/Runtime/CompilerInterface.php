@@ -13,7 +13,7 @@ use LTS\PhpXq\Jq\Ast\Program;
  * Resolves every name at compile time: functions by name/arity (scope, then prelude, then natives),
  * variables, labels, and imports. All of those are compile errors, never run-time ones.
  *
- * @api
+ * @internal
  */
 interface CompilerInterface
 {

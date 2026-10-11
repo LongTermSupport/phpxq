@@ -16,6 +16,7 @@ use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Jq\Runtime\StreamBuiltinInterface;
 use LTS\PhpXq\Jq\Runtime\ValueBuiltinInterface;
 use LTS\PhpXq\Json\JsonDecoder;
+use LTS\PhpXq\Tests\Support\Jq\EagerBuiltins;
 
 /**
  * Looks builtins up in a registry filled by {@see CoreBuiltins} and runs them directly, the way the
@@ -35,7 +36,7 @@ final class Harness
     {
         if (!self::$registry instanceof BuiltinRegistryInterface) {
             $registry = new DefaultBuiltinRegistry();
-            new CoreBuiltins()->registerInto($registry);
+            EagerBuiltins::core($registry);
             self::$registry = $registry;
         }
 

@@ -8,6 +8,7 @@ use PHPStan\Rules\Rule;
 use PHPStan\Testing\RuleTestCase;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\Attributes\Large;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -32,12 +33,11 @@ final class RulesNeverCrashTest extends RuleTestCase
      * @param list<string> $files
      */
     #[DataProvider('chunksOfProjectFiles')]
+    #[DoesNotPerformAssertions]
     public function testItAnalysesEveryProjectFileWithoutAnInternalError(array $files): void
     {
         // gatherAnalyserErrors() fails the test on an internal error, which is how a throwing rule surfaces.
         $this->gatherAnalyserErrors($files);
-
-        $this->addToAssertionCount(1);
     }
 
     /**

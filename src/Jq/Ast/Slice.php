@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Ast;
 /**
  * `target[from:to]`; either bound may be omitted. Path expression capable.
  *
- * @api
+ * @internal
  */
 final readonly class Slice implements NodeInterface
 {

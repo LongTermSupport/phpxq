@@ -285,28 +285,6 @@ final class NodeOpsTest extends TestCase
         yield 'document' => [new Node(NodeKindEnum::Document), self::SCALAR_NAME];
     }
 
-    #[DataProvider('mergeKeyProvider')]
-    public function testIsMergeKey(Node $key, bool $expected): void
-    {
-        self::assertSame($expected, NodeOps::isMergeKey($key));
-    }
-
-    /**
-     * @return Generator<string, array{Node, bool}>
-     */
-    public static function mergeKeyProvider(): Generator
-    {
-        yield 'a plain key' => [self::scalar('<<', CoreSchema::TAG_STR), true];
-
-        yield 'single quoted' => [self::scalar('<<', CoreSchema::TAG_STR, NodeStyleEnum::SingleQuoted), false];
-
-        yield 'double quoted' => [self::scalar('<<', CoreSchema::TAG_STR, NodeStyleEnum::DoubleQuoted), false];
-
-        yield 'another key' => [self::scalar('<', CoreSchema::TAG_STR), false];
-
-        yield 'a mapping' => [new Node(NodeKindEnum::Mapping, '', NodeStyleEnum::Default, '<<'), false];
-    }
-
     public function testBecomesAContainer(): void
     {
         $sequence = self::scalar('x', CoreSchema::TAG_STR, NodeStyleEnum::DoubleQuoted);

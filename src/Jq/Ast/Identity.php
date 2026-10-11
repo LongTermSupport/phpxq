@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Ast;
 /**
  * `.`.
  *
- * @api
+ * @internal
  */
 final readonly class Identity implements NodeInterface
 {

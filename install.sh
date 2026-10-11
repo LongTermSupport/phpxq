@@ -11,7 +11,7 @@
 #                                                                         shadow a real jq or yq)
 #   --phar            install the PHAR (needs PHP 8.5 on the machine) instead of the static binary
 #
-# Other environment: PHPXQ_REPO (owner/name), PHPXQ_BASE_URL (download root, for mirrors and tests).
+# Other environment: PHPXQ_REPO (owner/name), PHPXQ_BASE_URL (https:// download root, for mirrors).
 # Nothing is installed unless the SHA-256 of the download matches the published checksum.
 set -eu
 
@@ -79,10 +79,21 @@ else
     asset="phpxq-$os-$arch"
 fi
 
+# Downloads use HTTPS only, redirects included, so the checksum and the binary cannot be swapped in transit.
+case "$base_url" in
+    https://*) ;;
+    *) fail "the download root must be an https:// URL: $base_url" ;;
+esac
+
 if command -v curl >/dev/null; then
-    fetch() { curl --fail --silent --show-error --location --retry 3 --output "$2" "$1"; }
+    fetch() { curl --proto '=https' --proto-redir '=https' --tlsv1.2 --fail --silent --show-error --location --retry 3 --output "$2" "$1"; }
 elif command -v wget >/dev/null; then
-    fetch() { wget --quiet --output-document="$2" "$1"; }
+    # BusyBox wget has neither option: the download root is still HTTPS, but its redirects are not restricted.
+    if wget --help 2>&1 | grep -q -- --https-only; then
+        fetch() { wget --quiet --https-only --tries=3 --output-document="$2" "$1"; }
+    else
+        fetch() { wget -q -O "$2" "$1"; }
+    fi
 else
     fail "curl or wget is required"
 fi
@@ -96,7 +107,10 @@ else
 fi
 
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/phpxq-install.XXXXXX")"
-trap 'rm -rf "$tmp"' EXIT INT TERM
+trap 'rm -rf "$tmp"' EXIT
+# An interrupt ends the install (through the EXIT clean-up) instead of carrying on after it.
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 say "Downloading $asset ($version) from $base_url"
 fetch "$base_url/SHA256SUMS" "$tmp/SHA256SUMS" || fail "could not download SHA256SUMS (does release '$version' exist?)"
@@ -120,8 +134,14 @@ say "Installed $install_dir/phpxq"
 if [ "$links" = 1 ]; then
     for tool in jq yq; do
         target="$install_dir/$tool"
-        if [ -e "$target" ] && [ ! -L "$target" ]; then
-            say "Skipped $target: a regular file already exists there"
+        # Only a link this installer made is replaced; anything else there (a real jq, a version-manager shim) stays.
+        if [ -L "$target" ]; then
+            if [ "$(readlink "$target")" != phpxq ]; then
+                say "Skipped $target: a link to $(readlink "$target") already exists there"
+                continue
+            fi
+        elif [ -e "$target" ]; then
+            say "Skipped $target: a file already exists there"
             continue
         fi
         ln -sf phpxq "$target"

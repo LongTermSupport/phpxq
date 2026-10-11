@@ -13,6 +13,8 @@ folder (e.g. `00001-feature-name/`) with a `PLAN.md` file.
 - [00001: Epic Initial Build](00001-epic-initial-build/PLAN.md) - In Progress
 - [00006: Static Binary Packaging](00006-static-binary-packaging/PLAN.md) - In Progress
 - [00009: Startup Time Performance](00009-startup-time-performance/PLAN.md) - Not Started
+- [00010: Full Code Review Opus vs Haiku](00010-full-code-review-opus-vs-haiku/PLAN.md) - In Progress
+- [00011: Raise Mutation and Coverage Floors](00011-raise-mutation-and-coverage-floors/PLAN.md) - Not Started
 
 ## Completed Plans
 
@@ -25,6 +27,6 @@ folder (e.g. `00001-feature-name/`) with a `PLAN.md` file.
 
 ## Statistics
 
-- **Total**: 9
-- **Active**: 3
+- **Total**: 11
+- **Active**: 5
 - **Completed**: 6

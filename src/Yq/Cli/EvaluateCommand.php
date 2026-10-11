@@ -32,6 +32,8 @@ use Throwable;
  *
  * `eval` evaluates the expression once per document, printing as it goes; `eval-all` loads every document
  * of every file first and evaluates once over all of them.
+ *
+ * @internal
  */
 final readonly class EvaluateCommand
 {
@@ -352,6 +354,7 @@ final readonly class EvaluateCommand
             shellKeySeparator: $args->string('shell-key-separator'),
             luaUnquoted: $args->bool('lua-unquoted'),
             luaGlobals: $args->bool('lua-globals'),
+            yamlFixMergeAnchorToSpec: $args->bool('yaml-fix-merge-anchor-to-spec'),
         );
     }
 

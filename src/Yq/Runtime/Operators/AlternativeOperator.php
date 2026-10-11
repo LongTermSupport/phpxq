@@ -17,6 +17,8 @@ use LTS\PhpXq\Yq\Runtime\NodeOps;
  * `lhs // rhs`: the truthy results of the left side, or the right side's results when it has none.
  * When the right side is an assignment (`.a // (.a = 0)`), the updated targets are the result, which
  * makes "update or create" work with the compound assignments.
+ *
+ * @internal
  */
 final readonly class AlternativeOperator implements BinaryOperatorInterface
 {

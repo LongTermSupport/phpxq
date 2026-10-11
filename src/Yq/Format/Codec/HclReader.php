@@ -9,6 +9,7 @@ use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\NodeStyleEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\FormatException;
+use WeakMap;
 
 /**
  * Reads HCL (native syntax) into the node model.
@@ -21,6 +22,8 @@ use LTS\PhpXq\Yq\Format\FormatException;
  * - Markers invisible to YAML output let the HCL encoder rebuild the source shape: `explicitEnd` on a
  *   mapping means "its keys are block labels", `explicitStart` on a mapping means "object expression".
  * - Comments above an item become its key's head comment, a trailing comment its value's line comment.
+ *
+ * @internal
  */
 final class HclReader
 {
@@ -32,9 +35,13 @@ final class HclReader
 
     private string $pending = '';
 
+    /** @var WeakMap<Node, array{int, array<array-key, int>}> */
+    private WeakMap $keyPositions;
+
     public function __construct(private readonly string $source)
     {
-        $this->length = \strlen($source);
+        $this->keyPositions = new WeakMap();
+        $this->length       = \strlen($source);
         if (str_starts_with($source, "\u{FEFF}")) {
             $this->pos = 3;
         }
@@ -233,16 +240,25 @@ final class HclReader
         $map->content[]       = $value;
     }
 
+    /**
+     * Position of the first key named $key. $keyPositions holds, per mapping, how many content entries are
+     * indexed and the position of the first key of each name. Keys are only ever appended to a mapping
+     * here, so the index of a mapping is extended with the entries added since it was last used rather than
+     * rebuilt. The entry is taken out of the map while it is extended, so the position array has one owner
+     * and grows in place.
+     */
     private function find(Node $map, string $key): ?int
     {
+        [$indexed, $positions] = $this->keyPositions[$map] ?? [0, []];
+        unset($this->keyPositions[$map]);
         $counter = \count($map->content);
-        for ($i = 0; $i + 1 < $counter; $i += 2) {
-            if ($map->content[$i]->value === $key) {
-                return $i;
-            }
+        for (; $indexed + 1 < $counter; $indexed += 2) {
+            $positions[$map->content[$indexed]->value] ??= $indexed;
         }
 
-        return null;
+        $this->keyPositions[$map] = [$indexed, $positions];
+
+        return $positions[$key] ?? null;
     }
 
     private function attachFoot(Node $body): void

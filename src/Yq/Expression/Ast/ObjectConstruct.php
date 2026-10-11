@@ -8,6 +8,8 @@ use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 
 /**
  * `{ k1: v1, k2: v2 }`: builds a mapping; one result per combination when a key or value yields several.
+ *
+ * @internal
  */
 final readonly class ObjectConstruct implements ExpressionNodeInterface
 {

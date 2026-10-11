@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Ast;
 /**
  * `left | right`.
  *
- * @api
+ * @internal
  */
 final readonly class Pipe implements NodeInterface
 {

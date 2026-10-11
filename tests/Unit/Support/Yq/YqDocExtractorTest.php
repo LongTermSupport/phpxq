@@ -256,6 +256,51 @@ final class YqDocExtractorTest extends TestCase
         self::assertSame("yq -n 'error(\"x\")'", $result->skipped[4]->snippet);
     }
 
+    public function testRandomOutputExamplesAreSkippedWithAReason(): void
+    {
+        $markdown = <<<'MD'
+            ## Shuffle array
+            Given a sample.yml file of:
+            ```yaml
+            - 1
+            - 2
+            - 3
+            ```
+            then
+            ```bash
+            yq 'shuffle' sample.yml
+            ```
+            will output
+            ```yaml
+            - 3
+            - 1
+            - 2
+            ```
+
+            ## Shuffled is just a heading
+            Given a sample.yml file of:
+            ```yaml
+            a: 1
+            ```
+            then
+            ```bash
+            yq '.a' sample.yml
+            ```
+            will output
+            ```yaml
+            1
+            ```
+            MD;
+
+        $result = new YqDocExtractor()->extract($markdown, 'operators/shuffle.md');
+
+        self::assertCount(1, $result->cases);
+        self::assertSame('Shuffled is just a heading', $result->cases[0]->heading);
+        self::assertCount(1, $result->skipped);
+        self::assertSame('Shuffle array', $result->skipped[0]->heading);
+        self::assertSame('documented output is random (shuffle)', $result->skipped[0]->reason);
+    }
+
     public function testNonYqBashBlocksAreSkippedNotDropped(): void
     {
         $markdown = <<<'MD'

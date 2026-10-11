@@ -14,12 +14,10 @@ use LTS\PhpXq\Yaml\Node;
  * for index 0 and expect later results to share it. The returned text includes its trailing newline.
  * The encoder never mutates the node.
  *
- * @api
+ * @internal
  */
 interface EncoderInterface
 {
-    public function format(): FormatEnum;
-
     /**
      * @throws FormatException
      */

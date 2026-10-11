@@ -14,7 +14,7 @@ use LTS\PhpXq\Json\EncodeOptions;
  * `--indent n` sets $indent (and $tab for -1) without touching $pretty, so the order of the flags on the
  * command line decides the layout exactly as it does in jq.
  *
- * @api
+ * @internal
  */
 final readonly class CliOptions
 {

@@ -68,7 +68,7 @@ Releases are cut from the changelog. Nobody picks a version number, edits `VERSI
 | Heading                  | Bump while the major is 0 | Bump from 1.0 |
 | ------------------------ | ------------------------- | ------------- |
 | `### Changed — breaking` | minor                     | major         |
-| `### Removed`            | minor                     | minor         |
+| `### Removed`            | minor                     | major         |
 | `### Added`              | minor                     | minor         |
 | `### Changed`            | minor                     | minor         |
 | `### Deprecated`         | minor                     | minor         |
@@ -91,8 +91,8 @@ The logic is `scripts/Release/` (unit tested in `tests/Unit/Release/`), run thro
 | `scripts/release.bash verify`       | exit 0 releasable, 3 not a release commit, 1 refused                           |
 | `scripts/release.bash reconcile`    | merges a released changelog with the entries `main` gained since               |
 
-Before the first release `VERSION` (`0.1.0`) has no tag, so the release is `0.1.0` itself and no bump is
-applied. Pre-release suffixes (`-rc.1`) are not produced by this flow.
+When `VERSION` has no tag yet (only before the very first release, `0.1.0`), that version is released as it
+stands and no bump is applied. Pre-release suffixes (`-rc.1`) are not produced by this flow.
 
 ## What each stage does
 
@@ -100,7 +100,7 @@ applied. Pre-release suffixes (`-rc.1`) are not produced by this flow.
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
 | `release-pr.yml` | After QA is green on `main`: opens or refreshes `chore/release`, closes it when `## Unreleased` is empty, stands down while a back-merge is pending                          | A stale or missing pull request; nothing is released  |
 | preflight        | `VERSION`, the newest changelog section and the tags must agree; tag `vX.Y.Z` must not exist locally or on the remote                                                        | Nothing is built or published                         |
-| qa               | the full `CI=true vendor/bin/qa` pipeline, then `scripts/conformance.bash all`                                                                                               | Nothing is published                                  |
+| qa               | the full `CI=true vendor/bin/qa` pipeline (mutation limited to the change since the previous tag), the measurement check, then `scripts/conformance.bash all`                | Nothing is published                                  |
 | phar             | `scripts/build-phar.bash --check-reproducible` (two clean builds must be byte-identical), smoke test                                                                         | Nothing is published                                  |
 | binary           | `scripts/build-binary.bash` per platform, then `scripts/smoke-test.bash --static` with an empty environment                                                                  | Linux failure: nothing is published. macOS: see below |
 | release          | `scripts/release-assets.bash` (required assets, `SHA256SUMS`), re-runs preflight, `gh release create` makes the tag at the merged commit with the changelog section as notes | Nothing is published                                  |
@@ -111,6 +111,30 @@ applied. Pre-release suffixes (`-rc.1`) are not produced by this flow.
 Refusals are loud: every one prints a `::error` annotation naming the cause, and a failed stage fails the run.
 A push to `release` whose `## Unreleased` still has entries (the push that creates the branch, or a hand
 merge of `main`) is not a release commit: the run skips every stage and says so in its summary.
+
+### Mutation testing in CI
+
+Infection over all of `src/` takes hours, so php-qa-ci's automatic diff mode holds a branch to what it changed
+(php-qa-ci's `docs/tools/infection.md`, "What is mutated"): the source files added, modified or renamed since the
+merge base, plus the source named after each changed test. A change to `composer.json`, `composer.lock` or
+anything under `qaConfig/` makes the run full, because it can change any mutant's outcome. A diff run counts
+uncovered mutants as escaped and is held to one floor for both scores (88, `qaConfig/qa.php`). No script of ours
+scopes it.
+
+| Run                          | Mutated                                | Set by                                    |
+| ---------------------------- | -------------------------------------- | ----------------------------------------- |
+| pull request, branch, manual | changed since the merge base with main | automatic (`GITHUB_BASE_REF`, the branch) |
+| push to the default branch   | changed by the push                    | `infectionDiffBase` = the commit before   |
+| release                      | changed since the previous `v*` tag    | `infectionDiffBase` = that tag            |
+| local `vendor/bin/qa`        | changed since the merge base with main | automatic                                 |
+
+`scripts/check-qa-measurements.bash` reads the first `Infection:` line of the pipeline output (CI keeps it in
+`PHPXQ_QA_LOG`) and fails the gate when Infection ran in full for any reason but a configuration change or the
+default branch: a shallow clone (hence `fetch-depth: 0`), an unknown default branch or a detached HEAD would
+otherwise burn hours measuring nothing the change did. It also fails when the lane did not run, when the summary
+is older than the coverage report, or when more than 20% of mutants were skipped. A re-baseline of the floors is a
+manual `infectionDiffBase=full vendor/bin/qa` (over an hour); no scheduled full run exists. Each mutating job stops
+at a `timeout-minutes` below GitHub's 6-hour limit.
 
 ### The release pull request
 
@@ -144,10 +168,10 @@ fails the run shows a warning and the release ships without it. To make a platfo
 `optional` to `false` in the `binary` matrix and add it to `required` in `scripts/release-assets.bash`.
 The asset names are stable and unversioned so `releases/latest/download/<asset>` always works.
 
-## Cutting 0.1.0
+## Cutting the first release (0.1.0, done)
 
-`VERSION` reads `0.1.0` and `## Unreleased` holds the first release's entries, so the very first release
-goes through the same flow.
+`0.1.0` went through the same flow as every later release. These are the one-off steps that set it up, kept
+for a fresh fork or a repository that loses its `release` branch; an ordinary release needs none of them.
 
 1. Do the one-off GitHub configuration below.
 
@@ -163,7 +187,7 @@ goes through the same flow.
    ```
 
 4. Run the `Release PR` workflow (Actions tab, "Run workflow" on `main`), or push anything to `main`. It opens
-   the pull request `Release 0.1.0`. Review and merge it with a merge commit.
+   the release pull request (`Release 0.1.0` the first time). Review and merge it with a merge commit.
 
 5. Watch the `Release` run, then check the Releases page: `v0.1.0` with `phpxq.phar`,
    `phpxq-linux-x86_64`, `phpxq-linux-aarch64` (plus macOS when they built), `install.sh`, `SHA256SUMS` and the
@@ -185,7 +209,7 @@ Do these once, in the repository settings. None of it can be applied or tested f
 
 **The `release` branch**
 
-3. Create it once (see "Cutting 0.1.0"), then protect it: Settings, Branches (or Rules, Rulesets), `release`:
+3. Create it once (see "Cutting the first release"), then protect it: Settings, Branches (or Rules, Rulesets), `release`:
    - Require a pull request before merging (at least one approval if you have collaborators).
    - Require status checks to pass: `QA gate (read-only qa)`. Require branches to be up to date.
    - Restrict who can push, so only the merged pull request lands there. Block force pushes and deletion.
@@ -263,12 +287,14 @@ and a stub `gh`; the pure decisions are covered by `vendor/bin/phpunit --testsui
 - **A release is wrong or unwanted:** close the release pull request. Nothing is published until it merges.
 - **Workflow failed before `release`:** nothing was published and no tag exists. Fix on `main`; the
   release pull request refreshes. Re-run the failed `Release` run if the cause was transient.
-- **Workflow failed in `release` after the tag was created:** check the Releases page. If a release
-  exists with missing assets, delete the release and the tag (`gh release delete vX.Y.Z --cleanup-tag`),
-  then re-run the workflow from the `release` branch.
-- **`verify` failed:** the release is live but its install path is broken. Delete it as above and
-  re-run, or ship a fix as the next patch version. Prefer the next patch version once users could have
-  downloaded the release.
+- **Workflow failed in `release` after the tag was created:** check the Releases page. The `v*` tag ruleset
+  (step 7) blocks deleting or moving the tag, so the version cannot be published again. If the release exists
+  with an asset missing, attach the asset from the run's artefacts (`gh release upload vX.Y.Z <file>`, then
+  regenerate and re-upload `SHA256SUMS` with `--clobber`). Otherwise ship the fix as the next patch version.
+- **`verify` failed:** the release is live but its install path is broken. Mark it as not the latest
+  (`gh release edit vX.Y.Z --latest=false`, or delete the release but not the tag) and ship the fix as the next
+  patch version. Removing the tag itself needs a repository admin to bypass the tag ruleset; do that only when
+  the tag must not exist at all, never to re-publish the same version.
 - **Preflight says `VERSION says X but the newest section of CHANGELOG.md is Y`:** someone edited `VERSION` or a
   version section by hand. Revert it; only the release pull request writes them.
 - **The back-merge was not opened or conflicts on a file other than `CHANGELOG.md`/`VERSION`:**
@@ -285,3 +311,11 @@ and a stub `gh`; the pure decisions are covered by `vendor/bin/phpunit --testsui
 - Homebrew tap (Plan 00006 task 2.4, optional), Windows builds, and build provenance attestation
   (`actions/attest-build-provenance`, once the repository is public) are not done.
 - The macOS binaries are only ever built on GitHub's macOS runners.
+- The workflows assume a public repository. No checkout keeps the token in `.git/config`, so the preflight's
+  `git ls-remote` of the tags runs unauthenticated; only the release-PR and back-merge steps authenticate git
+  (`gh auth setup-git`). A private repository would need the same there, and the installer could not download
+  release assets anonymously either.
+- `install.sh` restricts every download and redirect to HTTPS with curl and with GNU wget. BusyBox wget has no
+  such option: the download root is still HTTPS, but a redirect from it to plain HTTP is followed. The SHA-256
+  check still applies, and `SHA256SUMS` comes from the same release, so it detects corruption, not a swapped
+  release.

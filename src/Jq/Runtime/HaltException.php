@@ -10,7 +10,7 @@ use RuntimeException;
  * `halt` and `halt_error`: stop the whole program. $stderrText is written to stderr by the CLI before
  * exiting with $exitCode (null for plain `halt`).
  *
- * @api
+ * @internal
  */
 final class HaltException extends RuntimeException
 {

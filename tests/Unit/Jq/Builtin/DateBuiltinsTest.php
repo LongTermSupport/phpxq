@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Jq\Builtin;
 
-use LTS\PhpXq\Jq\Builtin\DateBuiltins;
 use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
 use LTS\PhpXq\Jq\Runtime\DefaultBuiltinRegistry;
 use LTS\PhpXq\Jq\Runtime\InputProviderInterface;
 use LTS\PhpXq\Jq\Runtime\JqException;
 use LTS\PhpXq\Jq\Runtime\RuntimeContextInterface;
 use LTS\PhpXq\Jq\Runtime\ValueBuiltinInterface;
+use LTS\PhpXq\Tests\Support\Jq\EagerBuiltins;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
@@ -182,7 +182,7 @@ final class DateBuiltinsTest extends TestCase
     {
         if (!$this->registry instanceof BuiltinRegistryInterface) {
             $this->registry = new DefaultBuiltinRegistry();
-            new DateBuiltins()->registerInto($this->registry);
+            EagerBuiltins::date($this->registry);
         }
 
         return $this->registry;

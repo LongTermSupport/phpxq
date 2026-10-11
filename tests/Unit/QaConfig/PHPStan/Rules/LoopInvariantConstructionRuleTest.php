@@ -19,7 +19,7 @@ use QaConfig\PHPStan\Rules\LoopInvariantConstructionRule;
 #[Large]
 final class LoopInvariantConstructionRuleTest extends RuleTestCase
 {
-    private const string FIXTURES = __DIR__ . '/../../../../Fixtures/Defence/LoopConstruction';
+    private const string FIXTURES = __DIR__ . '/../../../../Fixtures/Defence/LoopInvariantConstruction';
 
     private const string REGISTRY = 'DefaultBuiltinRegistry';
 

@@ -19,9 +19,11 @@ use QaConfig\PHPStan\Rules\UnguardedAliasRecursionRule;
 #[Large]
 final class UnguardedAliasRecursionRuleTest extends RuleTestCase
 {
-    private const string FIXTURES = __DIR__ . '/../../../../Fixtures/Defence/AliasRecursion';
+    private const string FIXTURES = __DIR__ . '/../../../../Fixtures/Defence/UnguardedAliasRecursion';
 
     private const string ODD_CLASS = 'OddSyntaxUnbounded';
+
+    private const string HELPERS_CLASS = 'ResolvesThroughHelpers';
 
     public function testItFlagsEveryWayOfFollowingAnAliasWithoutABound(): void
     {
@@ -49,6 +51,31 @@ final class UnguardedAliasRecursionRuleTest extends RuleTestCase
         ]);
     }
 
+    public function testItFlagsAliasesResolvedThroughOwnHelpersAndTheMergeSourceResolver(): void
+    {
+        $this->analyse([self::FIXTURES . '/ResolvesThroughHelpers.php'], [
+            [$this->message('pairs', self::HELPERS_CLASS), 23],
+            [$this->message('transitive', self::HELPERS_CLASS), 35],
+            [$this->message('viaMergeSources', self::HELPERS_CLASS), 45],
+        ]);
+    }
+
+    /**
+     * The resolver lives in another class, as the merge-target helper of the old `explode` did: its source is read
+     * and judged like an own method's.
+     */
+    public function testItFlagsAliasesResolvedThroughAHelperOfAnotherClass(): void
+    {
+        $this->analyse([self::FIXTURES . '/ResolvesThroughAnotherClass.php'], [
+            [$this->message('fixedPairs', 'ResolvesThroughAnotherClass'), 21],
+        ]);
+    }
+
+    public function testItAcceptsOwnHelpersThatReturnNothingResolvedAndBoundedCycles(): void
+    {
+        $this->analyse([self::FIXTURES . '/HelpersThatDoNotResolve.php'], []);
+    }
+
     public function testItSurvivesFirstClassCallablesDynamicNamesAnonymousClassesAndAbstractMethods(): void
     {
         $this->analyse([self::FIXTURES . '/OddSyntaxAccepted.php'], []);
@@ -56,13 +83,13 @@ final class UnguardedAliasRecursionRuleTest extends RuleTestCase
 
     protected function getRule(): Rule
     {
-        return new UnguardedAliasRecursionRule();
+        return new UnguardedAliasRecursionRule($this->createReflectionProvider());
     }
 
     private function message(string $method, string $class = 'FollowsAliasesUnbounded'): string
     {
         return \sprintf(
-            '%s::%s() recurses into a node reached through an alias (NodeOps::deref, NodeTools::unwrap or aliasTarget) with no depth bound: a cyclic alias such as `&a [*a]` never ends. Take an int $depth, compare it with a MAX_DEPTH constant and fail past it.',
+            '%s::%s() recurses into a node reached through an alias (NodeOps::deref, NodeTools::unwrap, MergeSources::of, aliasTarget, or a method of this or another class returning what one of them found) with no depth bound: a cyclic alias such as `&a [*a]` never ends. Take an int $depth, compare it with a MAX_DEPTH constant and fail past it.',
             $class,
             $method,
         );

@@ -14,7 +14,7 @@ use LTS\PhpXq\Jq\Runtime\JqCompileException;
  * with exactly one Eof token. Lexical errors (unterminated string, bad escape, unknown character) throw
  * {@see JqCompileException} with jq's wording.
  *
- * @api
+ * @internal
  */
 interface LexerInterface
 {

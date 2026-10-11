@@ -6,6 +6,8 @@ namespace LTS\PhpXq\Yq\Cli;
 
 /**
  * The help and usage texts, laid out the way cobra lays them out.
+ *
+ * @internal
  */
 final readonly class HelpText
 {
@@ -39,6 +41,10 @@ final readonly class HelpText
         Generate the autocompletion script for yq for the specified shell.
         See each sub-command's help for details on how to use the generated script.
         TEXT;
+
+    private function __construct()
+    {
+    }
 
     /**
      * The text of `yq --help`, `yq -h` and `yq help`.

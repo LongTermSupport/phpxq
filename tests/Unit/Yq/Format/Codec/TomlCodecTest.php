@@ -9,7 +9,6 @@ use LTS\PhpXq\Yaml\Parser\YamlParser;
 use LTS\PhpXq\Yq\Format\Codec\JsonEncoder;
 use LTS\PhpXq\Yq\Format\Codec\TomlDecoder;
 use LTS\PhpXq\Yq\Format\Codec\TomlEncoder;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -116,8 +115,6 @@ final class TomlCodecTest extends TestCase
     public function testEmptyInputHasNoDocuments(): void
     {
         self::assertSame([], [...new TomlDecoder()->decode("\n", new FormatOptions())]);
-        self::assertSame(FormatEnum::Toml, new TomlDecoder()->format());
-        self::assertSame(FormatEnum::Toml, new TomlEncoder()->format());
     }
 
     public function testSpecialFloatsUseYamlSpelling(): void

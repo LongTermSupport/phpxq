@@ -9,7 +9,7 @@ use RuntimeException;
 /**
  * Whole-file reads that fail with jq's wording ("Could not open f: No such file or directory").
  *
- * @api
+ * @internal
  */
 final readonly class FileReader
 {

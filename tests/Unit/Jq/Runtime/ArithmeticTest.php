@@ -86,6 +86,36 @@ final class ArithmeticTest extends TestCase
         self::assertSame(9, $sum->get('a'));
     }
 
+    public function testAddKeepsLeftPositionsAndAppendsNewKeysInRightOrderWithNumericNames(): void
+    {
+        $left  = JsonObject::fromPairs(['1' => 'a', 'b' => 'b', '10' => 'c']);
+        $right = JsonObject::fromPairs(['b' => 'B', '2' => 'D', '1' => 'A', 'z' => 'Z']);
+        $sum   = Arithmetic::add($left, $right);
+
+        self::assertInstanceOf(JsonObject::class, $sum);
+        self::assertSame(['1', 'b', '10', '2', 'z'], $sum->keys());
+        self::assertSame(['A', 'B', 'c', 'D', 'Z'], $sum->values());
+        self::assertSame(['1', 'b', '10'], $left->keys());
+        self::assertSame(['a', 'b', 'c'], $left->values());
+    }
+
+    public function testMultiplyKeepsLeftPositionsAndAppendsNewKeysInRightOrderWithNumericNames(): void
+    {
+        $left  = JsonObject::fromPairs(['1' => new JsonObject(['x' => 1, 'y' => 2]), 'b' => 1]);
+        $right = JsonObject::fromPairs(['3' => 3, '1' => JsonObject::fromPairs(['7' => 7, 'x' => 9]), 'b' => new JsonObject(['n' => 1])]);
+
+        self::assertEquals(
+            JsonObject::fromPairs(['1' => JsonObject::fromPairs(['x' => 9, 'y' => 2, '7' => 7]), 'b' => new JsonObject(['n' => 1]), '3' => 3]),
+            Arithmetic::multiply($left, $right),
+        );
+        $product = Arithmetic::multiply($left, $right);
+        self::assertInstanceOf(JsonObject::class, $product);
+        self::assertSame(['1', 'b', '3'], $product->keys());
+        $inner = $product->get('1');
+        self::assertInstanceOf(JsonObject::class, $inner);
+        self::assertSame(['x', 'y', '7'], $inner->keys());
+    }
+
     #[DataProvider('subtractions')]
     public function testSubtract(mixed $left, mixed $right, mixed $expected): void
     {

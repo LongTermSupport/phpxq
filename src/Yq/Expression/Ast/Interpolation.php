@@ -9,6 +9,8 @@ use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 /**
  * A string with `\(expr)` interpolation: parts alternate between literal text and expressions whose
  * (string-rendered) result is spliced in.
+ *
+ * @internal
  */
 final readonly class Interpolation implements ExpressionNodeInterface
 {

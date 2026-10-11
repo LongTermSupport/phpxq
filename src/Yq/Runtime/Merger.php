@@ -12,6 +12,8 @@ use LTS\PhpXq\Yaml\NodeKindEnum;
  * by index), scalars are replaced. The flags mirror the reference's modifiers `+` (append arrays),
  * `?` (only keys the left side has), `n` (only keys it lacks), `d` (merge arrays by index) and `c`
  * (clobber custom tags).
+ *
+ * @internal
  */
 final readonly class Merger
 {

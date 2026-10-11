@@ -486,7 +486,9 @@ final readonly class CollectionFunctions
         $members = [];
         foreach ($items as $item) {
             if ($item instanceof JsonObject) {
-                $members = array_replace($members, $item->toArray());
+                foreach ($item->toArray() as $key => $value) {
+                    $members[$key] = $value;
+                }
             }
         }
 

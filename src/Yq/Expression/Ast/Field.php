@@ -13,6 +13,8 @@ use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
  * `key` is evaluated against the original input, not against `base` (as in yq's `.a[.b]`). A glob in
  * a plain name is recognised by the evaluator from the key text, not by a separate node.
  * `optional` marks a trailing `?`, which turns a traversal error into no match.
+ *
+ * @internal
  */
 final readonly class Field implements ExpressionNodeInterface
 {

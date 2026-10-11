@@ -24,6 +24,8 @@ use LTS\PhpXq\Yq\Runtime\Traversal;
 /**
  * Ordering operators: `sort`, `sort_by`, `group_by`, `unique`, `unique_by`, `min`, `max`, `reverse`,
  * `shuffle`. On a mapping `sort` and `sort_by` reorder the entries.
+ *
+ * @internal
  */
 final readonly class SortingCalls implements CallOperatorInterface
 {

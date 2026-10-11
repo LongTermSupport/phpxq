@@ -16,6 +16,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * become children keyed with their prefix. Unknown entities are left as written unless strict mode is on.
  * `errorLine` is the line of an error found inside decoded text (0 when the reader's position says it all);
  * `textStart` is the source offset of the text being decoded.
+ *
+ * @internal
  */
 final class XmlReader
 {
@@ -465,8 +467,8 @@ final class XmlReader
                 $this->errorLine = 1 + substr_count($this->source, "\n", 0, $this->textStart) + substr_count($text, "\n", 0, (int)strpos($text, $m[0]));
                 $entity          = $m[1];
                 if ('#' === $entity[0]) {
-                    $code = 'x' === substr($entity, 1, 1) ? (int)hexdec(substr($entity, 2)) : (int)substr($entity, 1);
-                    if ($code > 0 && $code <= 0x10FFFF && ($code < 0xD800 || $code > 0xDFFF)) {
+                    $code = 'x' === substr($entity, 1, 1) ? hexdec(substr($entity, 2)) : (int)substr($entity, 1);
+                    if (\is_int($code) && $code > 0 && $code <= 0x10FFFF && ($code < 0xD800 || $code > 0xDFFF)) {
                         return mb_chr($code, 'UTF-8');
                     }
 

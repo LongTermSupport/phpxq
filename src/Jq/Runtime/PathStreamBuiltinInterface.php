@@ -11,7 +11,7 @@ use Closure;
  * `path(first(.a,.b))`, `path(empty)`, `path(limit(1; .[]))`, `paths`-style walkers): it reports the
  * paths of its outputs. A builtin that is not a PathStreamBuiltin yields null paths in path mode.
  *
- * @api
+ * @internal
  */
 interface PathStreamBuiltinInterface extends StreamBuiltinInterface
 {

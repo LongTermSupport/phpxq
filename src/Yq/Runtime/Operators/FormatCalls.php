@@ -23,6 +23,8 @@ use LTS\PhpXq\Yq\Runtime\NodeOps;
  * Encoders and decoders: the `@format` operators (`@json`, `@yaml`, `@csv`, `@base64`, `@uri`, `@sh`, ...
  * and the decoding `@...d` forms) and `to_X` / `from_X` for the data formats. The data formats go through the
  * format registry; the string encodings are done here.
+ *
+ * @internal
  */
 final class FormatCalls implements CallOperatorInterface
 {
@@ -115,7 +117,7 @@ final class FormatCalls implements CallOperatorInterface
         }
 
         try {
-            $text = $context->services->formats->encoder($format)->encode($node, new FormatOptions(indent: $indent, unwrapScalar: FormatEnum::Json !== $format), 0);
+            $text = $context->services->formats->encoder($format)->encode($node, new FormatOptions(indent: $indent, unwrapScalar: FormatEnum::Json !== $format, yamlFixMergeAnchorToSpec: $context->services->yamlFixMergeAnchorToSpec), 0);
         } catch (FormatException $formatException) {
             throw new EvaluationException($formatException->getMessage(), 0, $formatException);
         }

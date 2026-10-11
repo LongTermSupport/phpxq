@@ -12,7 +12,7 @@ use RuntimeException;
  * starts a bounded run), so a catcher compares identity (`===`) and re-throws a foreign label. It is never a
  * jq error: `try` must not catch it.
  *
- * @api
+ * @internal
  */
 final class BreakException extends RuntimeException
 {

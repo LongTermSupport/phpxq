@@ -8,7 +8,6 @@ use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\DecoderInterface;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
 /**
@@ -16,14 +15,11 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * attributes become `+@name` children (first); text next to children or attributes becomes `+content`;
  * processing instructions become `+p_target` and directives `+directive`; every value is a string.
  * Comments become head, line and foot comments.
+ *
+ * @internal
  */
 final readonly class XmlDecoder implements DecoderInterface
 {
-    public function format(): FormatEnum
-    {
-        return FormatEnum::Xml;
-    }
-
     /**
      * @return iterable<Node>
      */

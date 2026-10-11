@@ -30,7 +30,8 @@ final class NativeValueOp extends AbstractOp
     }
 
     /**
-     * @param array<int, mixed> $values
+     * @param array<int, mixed>    $values
+     * @param Closure(mixed): void $emit
      */
     private function loop(?Env $env, mixed $input, int $index, array $values, Closure $emit): void
     {

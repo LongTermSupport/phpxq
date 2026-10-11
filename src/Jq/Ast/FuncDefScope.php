@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Ast;
 /**
  * `def f: ...; rest`: a nested definition visible in $rest (and recursively in its own body).
  *
- * @api
+ * @internal
  */
 final readonly class FuncDefScope implements NodeInterface
 {

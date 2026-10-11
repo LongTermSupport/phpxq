@@ -9,6 +9,8 @@ namespace LTS\PhpXq\Yq\Format\Codec;
  * newline and the indent before every start and end tag except the first tag written and the end tag of an
  * element that was just opened (so empty elements stay `<a></a>`); text, comments, processing instructions
  * and directives are written verbatim, never indented. An empty indent string turns layout off.
+ *
+ * @internal
  */
 final class XmlWriter
 {

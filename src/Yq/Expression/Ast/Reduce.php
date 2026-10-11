@@ -8,6 +8,8 @@ use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 
 /**
  * `reduce source as $name (initial; update)`.
+ *
+ * @internal
  */
 final readonly class Reduce implements ExpressionNodeInterface
 {

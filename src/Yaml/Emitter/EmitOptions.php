@@ -6,6 +6,8 @@ namespace LTS\PhpXq\Yaml\Emitter;
 
 /**
  * How the YAML emitter renders a node. Defaults match the reference yq's defaults.
+ *
+ * @internal
  */
 final readonly class EmitOptions
 {

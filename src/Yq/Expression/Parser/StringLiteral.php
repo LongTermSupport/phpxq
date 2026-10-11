@@ -4,147 +4,16 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Expression\Parser;
 
-use LTS\PhpXq\Yq\Expression\ExpressionSyntaxException;
-
 /**
- * Byte-level helpers for the string literals of the expression language: finding the closing quote of a
- * double-quoted string (skipping `\(...)` interpolations, which may themselves hold quotes), decoding
- * backslash escapes and splitting a string body into literal text and interpolated sources.
+ * Decodes the backslash escapes of the expression language's double-quoted string literals. Finding where a
+ * string ends and splitting out its interpolations is the lexer's job, done in the same pass as the tokens.
  *
  * @internal
  */
 final readonly class StringLiteral
 {
-    private const string UNTERMINATED = 'Bad expression, unterminated string';
-
     private function __construct()
     {
-    }
-
-    /**
-     * The byte index of the closing `"` of a double-quoted string whose body starts at $start.
-     *
-     * @throws ExpressionSyntaxException
-     */
-    public static function scanDouble(string $source, int $start): int
-    {
-        $length = \strlen($source);
-        $index  = $start;
-        while ($index < $length) {
-            $index += strcspn($source, '"\\', $index);
-            if ($index >= $length) {
-                break;
-            }
-
-            if ('"' === $source[$index]) {
-                return $index;
-            }
-
-            $index = ($index + 1 < $length && '(' === $source[$index + 1])
-                ? self::skipInterpolation($source, $index + 2)
-                : $index + 2;
-        }
-
-        throw new ExpressionSyntaxException(self::UNTERMINATED, $start - 1);
-    }
-
-    /**
-     * The byte index just after the `)` closing an interpolation whose body starts at $start (the byte
-     * after the opening `\(`). Nested parentheses and quoted strings inside are skipped.
-     *
-     * @throws ExpressionSyntaxException
-     */
-    public static function skipInterpolation(string $source, int $start): int
-    {
-        $length = \strlen($source);
-        $depth  = 1;
-        $index  = $start;
-        while ($index < $length) {
-            $index += strcspn($source, '()"\'', $index);
-            if ($index >= $length) {
-                break;
-            }
-
-            $char = $source[$index];
-            if ('(' === $char) {
-                ++$depth;
-                ++$index;
-
-                continue;
-            }
-
-            if (')' === $char) {
-                --$depth;
-                ++$index;
-                if (0 === $depth) {
-                    return $index;
-                }
-
-                continue;
-            }
-
-            if ('"' === $char) {
-                $index = self::scanDouble($source, $index + 1) + 1;
-
-                continue;
-            }
-
-            $close = strpos($source, "'", $index + 1);
-            if (false === $close) {
-                break;
-            }
-
-            $index = $close + 1;
-        }
-
-        throw new ExpressionSyntaxException('Bad expression, could not find matching `)`', $start);
-    }
-
-    /**
-     * Splits a double-quoted string body into decoded literal text and interpolation sources. A literal is a
-     * string; an interpolation is `[source, offset of source in $body]`. Empty literals are dropped.
-     *
-     * @return list<string|array{string, int}>
-     *
-     * @throws ExpressionSyntaxException
-     */
-    public static function split(string $body): array
-    {
-        $parts   = [];
-        $pending = '';
-        $length  = \strlen($body);
-        $index   = 0;
-        while ($index < $length) {
-            $slash = strpos($body, '\\', $index);
-            if (false === $slash) {
-                $pending .= substr($body, $index);
-
-                break;
-            }
-
-            $pending .= substr($body, $index, $slash - $index);
-            if ($slash + 1 < $length && '(' === $body[$slash + 1]) {
-                if ('' !== $pending) {
-                    $parts[] = self::decode($pending);
-                    $pending = '';
-                }
-
-                $end     = self::skipInterpolation($body, $slash + 2);
-                $parts[] = [substr($body, $slash + 2, $end - 1 - ($slash + 2)), $slash + 2];
-                $index   = $end;
-
-                continue;
-            }
-
-            $pending .= substr($body, $slash, 2);
-            $index    = $slash + 2;
-        }
-
-        if ('' !== $pending) {
-            $parts[] = self::decode($pending);
-        }
-
-        return $parts;
     }
 
     /**

@@ -125,7 +125,6 @@ final class CollectionCallsTableTest extends TestCase
             [range(5;3;-1)]➜a: 1⏎➜- 5⏎- 4⏎
             [range(0;3;2)]➜a: 1⏎➜- 0⏎- 2⏎
             [range(-1)]➜a: 1⏎➜[]⏎
-            [range(1.5)]➜a: 1⏎➜- 0⏎
             [range(0;6;5)]➜a: 1⏎➜- 0⏎- 5⏎
             [range(0;-3;-1)]➜a: 1⏎➜- 0⏎- -1⏎- -2⏎
             TABLE);
@@ -154,6 +153,7 @@ final class CollectionCallsTableTest extends TestCase
             map➜a: 1⏎➜map requires 1 argument
             map_values➜a: 1⏎➜map_values requires 1 argument
             range➜a: 1⏎➜range requires 1 argument
+            [range(1.5)]➜a: 1⏎➜strconv.ParseInt: parsing "1.5": invalid syntax
             .a | from_entries➜a: {x: 1}⏎➜Cannot convert !!map from entries
             .a | from_entries➜a: 5⏎➜Cannot convert !!int from entries
             .a | flatten➜a: 5⏎➜Cannot flatten !!int

@@ -21,8 +21,6 @@ use LTS\PhpXq\Json\JsonObject;
  */
 final readonly class Assignment
 {
-    private const int MAX_INDEX = 536870911;
-
     private function __construct()
     {
     }
@@ -189,9 +187,7 @@ final readonly class Assignment
             $highest = max($highest, (int)$key);
         }
 
-        if ($highest > self::MAX_INDEX) {
-            throw new JqException('Array index too large');
-        }
+        PathOps::checkPadding($highest, \count($elements));
 
         for ($i = \count($elements); $i <= $highest; ++$i) {
             $elements[] = null;

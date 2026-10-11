@@ -20,7 +20,7 @@ use Closure;
  * "Invalid path expression with result ...". Filters that cannot produce paths still implement
  * {@see self::paths()} by emitting null paths so that the error is raised lazily, as jq does.
  *
- * @api
+ * @internal
  */
 interface FilterInterface
 {

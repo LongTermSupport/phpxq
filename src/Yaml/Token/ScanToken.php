@@ -8,6 +8,8 @@ namespace LTS\PhpXq\Yaml\Token;
  * The scanner's internal token: integer type and style codes and byte offsets, so the hot path builds
  * one small object per token and no enums or per-character values. Lines are 0-based, columns are
  * 0-based and count characters.
+ *
+ * @internal
  */
 final readonly class ScanToken
 {

@@ -8,6 +8,8 @@ use RuntimeException;
 
 /**
  * Input that is not valid in the named format, or a node tree the output format cannot represent.
+ *
+ * @api
  */
 final class FormatException extends RuntimeException
 {

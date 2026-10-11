@@ -15,7 +15,7 @@ use LTS\PhpXq\Jq\Runtime\StreamBuiltinInterface;
 final readonly class CallbackStreamBuiltin implements StreamBuiltinInterface
 {
     /**
-     * @param Closure(mixed, Closure, FilterInterface ...): void $callback
+     * @param Closure(mixed, Closure(mixed): void, FilterInterface ...): void $callback
      */
     public function __construct(
         private string $name,

@@ -24,6 +24,8 @@ use LTS\PhpXq\Yq\Runtime\NodeOps;
  * Operators about the nodes themselves: `tag`, `type`, `kind`, `style`, `anchor`, `alias`, the comment
  * readers, `explode` and `sort_keys`. (Setting them is done with `X style = "..."` by the assignment
  * operators.).
+ *
+ * @internal
  */
 final readonly class MetaCalls implements CallOperatorInterface
 {

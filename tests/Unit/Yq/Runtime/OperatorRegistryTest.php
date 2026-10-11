@@ -5,10 +5,6 @@ declare(strict_types=1);
 namespace LTS\PhpXq\Tests\Unit\Yq\Runtime;
 
 use LTS\PhpXq\Yq\Expression\Ast\BinaryOperatorEnum;
-use LTS\PhpXq\Yq\Expression\Ast\Call;
-use LTS\PhpXq\Yq\Runtime\CallOperatorInterface;
-use LTS\PhpXq\Yq\Runtime\EvaluationContext;
-use LTS\PhpXq\Yq\Runtime\EvaluatorInterface;
 use LTS\PhpXq\Yq\Runtime\OperatorRegistry;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -63,27 +59,5 @@ final class OperatorRegistryTest extends TestCase
 
         self::assertNotNull($select);
         self::assertSame($select, $registry->call('has'));
-    }
-
-    public function testAReplacementRegisteredBeforeFirstUseKeepsItsName(): void
-    {
-        $replacement = new class implements CallOperatorInterface {
-            public function names(): array
-            {
-                return ['select'];
-            }
-
-            public function evaluate(Call $call, EvaluationContext $context, EvaluatorInterface $evaluator): array
-            {
-                return [];
-            }
-        };
-
-        $registry = new OperatorRegistry();
-        $registry->registerCall($replacement);
-
-        self::assertSame($replacement, $registry->call('select'));
-        self::assertNotSame($replacement, $registry->call('has'));
-        self::assertSame($replacement, $registry->call('select'));
     }
 }

@@ -6,19 +6,15 @@ namespace LTS\PhpXq\Yq\Format\Codec;
 
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yq\Format\DecoderInterface;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
 /**
  * HCL input: one Document holding the attributes and nested blocks (see {@see HclReader}).
+ *
+ * @internal
  */
 final readonly class HclDecoder implements DecoderInterface
 {
-    public function format(): FormatEnum
-    {
-        return FormatEnum::Hcl;
-    }
-
     /**
      * @return iterable<Node>
      */

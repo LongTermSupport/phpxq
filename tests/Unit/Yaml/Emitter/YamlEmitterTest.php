@@ -637,45 +637,12 @@ final class YamlEmitterTest extends TestCase
         self::assertSame("\n", new YamlEmitter()->emit($doc));
     }
 
-    public function testStreamSeparators(): void
-    {
-        $emitter = new YamlEmitter();
-        $a       = Node::document(self::map(['a', '1']));
-        $b       = Node::document(self::map(['b', '2']));
-
-        self::assertSame("a: 1\n---\nb: 2\n", $emitter->emitStream([$a, $b]));
-        self::assertSame("a: 1\nb: 2\n", $emitter->emitStream([$a, $b], new EmitOptions(noDocSeparator: true)));
-        self::assertSame('', $emitter->emitStream([]));
-    }
-
-    public function testStreamDoesNotDoubleSeparators(): void
-    {
-        $emitter            = new YamlEmitter();
-        $a                  = Node::document(self::map(['a', '1']));
-        $a->explicitStart   = true;
-
-        $b                  = Node::document(self::map(['b', '2']));
-        $b->explicitStart   = true;
-
-        self::assertSame("---\na: 1\n---\nb: 2\n", $emitter->emitStream([$a, $b]));
-
-        $b->headComment = '# c';
-        self::assertSame("---\na: 1\n---\n# c\n---\nb: 2\n", $emitter->emitStream([$a, $b]));
-    }
-
     public function testNoDocSeparatorSuppressesExplicitMarkers(): void
     {
         $a                = Node::document(self::map(['a', '1']));
         $a->explicitStart = true;
 
-        $b                = Node::document(self::map(['b', '2']));
-
-        self::assertSame("a: 1\nb: 2\n", new YamlEmitter()->emitStream([$a, $b], new EmitOptions(noDocSeparator: true)));
-    }
-
-    public function testStreamOfUnwrappedScalars(): void
-    {
-        self::assertSame("test\n---\ntest2\n", new YamlEmitter()->emitStream([Node::scalar('test'), Node::scalar('test2')]));
+        self::assertSame("a: 1\n", new YamlEmitter()->emit($a, new EmitOptions(noDocSeparator: true)));
     }
 
     public function testPrettyPrintNormalisesStyles(): void

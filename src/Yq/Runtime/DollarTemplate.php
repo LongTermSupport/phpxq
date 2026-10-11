@@ -9,6 +9,8 @@ use Closure;
 /**
  * The shared scanner behind `$name` / `${body}` text templates: literal text is copied, a `$name` is
  * resolved by one callback and a `${body}` by another. What counts as a template is a dialect choice.
+ *
+ * @internal
  */
 final readonly class DollarTemplate
 {

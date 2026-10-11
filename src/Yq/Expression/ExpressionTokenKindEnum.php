@@ -6,6 +6,8 @@ namespace LTS\PhpXq\Yq\Expression;
 
 /**
  * Lexical token kinds of the yq expression language.
+ *
+ * @internal
  */
 enum ExpressionTokenKindEnum
 {

@@ -6,6 +6,8 @@ namespace LTS\PhpXq\Yaml;
 
 /**
  * The structural kind of a {@see Node}; mirrors the node kinds of the reference yq (go-yaml v3).
+ *
+ * @internal
  */
 enum NodeKindEnum
 {

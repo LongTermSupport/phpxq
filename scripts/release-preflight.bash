@@ -3,7 +3,7 @@
 #
 # Reads VERSION (the single source of truth), validates it as a semantic version, requires it to agree
 # with the newest CHANGELOG.md section, and refuses when the tag vX.Y.Z already exists locally or on the
-# remote. Prints `releasable=`, `version=`, `tag=` and `prerelease=` lines (appended to $GITHUB_OUTPUT
+# remote. Prints `releasable=`, `version=` and `tag=` lines (appended to $GITHUB_OUTPUT
 # too when set). A commit whose `## Unreleased` still has entries is not a release commit: it prints
 # `releasable=false` and exits 0 so the workflow skips every later stage. Exits non-zero, loudly, on any
 # other problem.
@@ -68,19 +68,14 @@ case "$remote_status" in
     *) fail_loud "could not query tags on $remote (exit $remote_status): $remote_refs" ;;
 esac
 
-prerelease=false
-[[ "$version" == *-* ]] && prerelease=true
-
 echo "releasable=true"
 echo "version=$version"
 echo "tag=$tag"
-echo "prerelease=$prerelease"
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
     {
         echo "releasable=true"
         echo "version=$version"
         echo "tag=$tag"
-        echo "prerelease=$prerelease"
     } >>"$GITHUB_OUTPUT"
 fi
 echo "Preflight passed: $tag is free" >&2

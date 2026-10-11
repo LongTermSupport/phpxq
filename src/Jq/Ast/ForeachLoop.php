@@ -8,7 +8,7 @@ namespace LTS\PhpXq\Jq\Ast;
  * `foreach source as pattern (init; update)` or with a trailing `; extract`. (`Foreach` is a reserved
  * word in PHP, hence the name.).
  *
- * @api
+ * @internal
  */
 final readonly class ForeachLoop implements NodeInterface
 {

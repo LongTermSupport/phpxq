@@ -12,7 +12,7 @@ declare(strict_types=1);
 
 use LTS\PhpXq\Tests\Support\Yq\YqFixtureGenerator;
 
-require \dirname(__DIR__) . '/vendor/autoload.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 $clone = $argv[1] ?? null;
 if (null === $clone || !is_dir($clone)) {
@@ -22,7 +22,7 @@ if (null === $clone || !is_dir($clone)) {
 }
 
 $extraction = new YqFixtureGenerator()->generate($clone);
-$target     = \dirname(__DIR__) . '/tests/Conformance/Yq/fixtures';
+$target     = __DIR__ . '/../tests/Conformance/Yq/fixtures';
 
 if (!is_dir($target) && !mkdir($target, 0o777, true)) {
     fwrite(\STDERR, "Could not create {$target}\n");

@@ -8,7 +8,6 @@ use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -17,19 +16,16 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * `--properties-array-brackets`), empty collections omitted. Comments on keys and values are written above
  * their property, separated from the previous property by a blank line; head comments of maps and arrays
  * ride along with the first scalar below them.
+ *
+ * @internal
  */
 final readonly class PropsEncoder implements EncoderInterface
 {
     private const int MAX_DEPTH = 1000;
 
-    public function format(): FormatEnum
-    {
-        return FormatEnum::Props;
-    }
-
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
-        $root = NodeTools::unwrap($node);
+        $root = NodeTools::expandableRoot($node, $options->yamlFixMergeAnchorToSpec);
         if (NodeKindEnum::Scalar === $root->kind) {
             return $root->value . "\n";
         }
@@ -76,7 +72,7 @@ final readonly class PropsEncoder implements EncoderInterface
             return;
         }
 
-        foreach (NodeTools::pairs($node) as [$key, $value]) {
+        foreach (NodeTools::pairs($node, $options->yamlFixMergeAnchorToSpec) as [$key, $value]) {
             $name         = NodeTools::keyText($key);
             $unwrapped    = NodeTools::unwrap($value);
             $keyComments  = NodeKindEnum::Scalar === $unwrapped->kind ? $this->join($key->headComment, $key->lineComment) : $key->headComment;

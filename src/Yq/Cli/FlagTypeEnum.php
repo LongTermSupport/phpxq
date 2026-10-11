@@ -6,6 +6,8 @@ namespace LTS\PhpXq\Yq\Cli;
 
 /**
  * The value kind of a command line flag, as pflag distinguishes them.
+ *
+ * @internal
  */
 enum FlagTypeEnum
 {

@@ -9,6 +9,8 @@ use LTS\PhpXq\Yq\Format\FormatException;
 /**
  * Low-level scanning helpers for HCL text: finding where an expression ends, splitting a bracketed list
  * or object at its top-level commas, and walking over string literals with their `${ ... }` templates.
+ *
+ * @internal
  */
 final readonly class HclScanner
 {

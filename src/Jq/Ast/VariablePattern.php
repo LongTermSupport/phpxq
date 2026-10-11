@@ -7,7 +7,7 @@ namespace LTS\PhpXq\Jq\Ast;
 /**
  * `$name` as a pattern (name without the `$`).
  *
- * @api
+ * @internal
  */
 final readonly class VariablePattern implements PatternInterface
 {

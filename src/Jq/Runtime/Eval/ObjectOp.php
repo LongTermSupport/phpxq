@@ -42,6 +42,7 @@ final class ObjectOp extends AbstractOp
 
     /**
      * @param array<array-key, mixed> $members
+     * @param Closure(mixed): void    $emit
      *
      * @throws JqException
      */

@@ -13,6 +13,8 @@ use LTS\PhpXq\Yaml\Node;
  *
  * `parent` and `key` are null for a root. `key` is the key scalar of a mapping entry (the actual node in
  * the mapping, so `key` comments are reachable) or a !!int scalar index for a sequence item.
+ *
+ * @internal
  */
 final readonly class Candidate
 {

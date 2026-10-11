@@ -8,6 +8,8 @@ namespace LTS\PhpXq\Yq\Cli;
  * The in-place (`-i`) output: results are collected in memory and, only if the whole run succeeded and the
  * text differs from the file, written to a temporary file next to the target which then replaces it, with
  * the target's permissions kept.
+ *
+ * @internal
  */
 final readonly class InPlaceTarget
 {

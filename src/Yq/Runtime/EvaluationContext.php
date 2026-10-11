@@ -12,6 +12,8 @@ use LTS\PhpXq\Yaml\Node;
  *
  * yq semantics: an operator receives ALL current matches at once (not one at a time), so operators
  * such as `collect`, `sort`, `add`, `first` and `reduce` can see the whole list.
+ *
+ * @internal
  */
 final readonly class EvaluationContext
 {

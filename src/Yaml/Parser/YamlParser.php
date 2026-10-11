@@ -20,6 +20,8 @@ use LTS\PhpXq\Yaml\Node;
  *  - `directives` holds the `%YAML` and `%TAG` lines of an explicit document, joined by newlines;
  *  - anchors stay visible to aliases in later documents of the same stream;
  *  - a stream that holds only comments yields one document whose null root carries them.
+ *
+ * @internal
  */
 final readonly class YamlParser implements YamlParserInterface
 {

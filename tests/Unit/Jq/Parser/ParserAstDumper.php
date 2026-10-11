@@ -46,6 +46,10 @@ use LTS\PhpXq\Jq\Ast\VariablePattern;
  */
 final class ParserAstDumper
 {
+    private function __construct()
+    {
+    }
+
     public static function dump(NodeInterface $node): string
     {
         return match (true) {

@@ -10,7 +10,7 @@ use LTS\PhpXq\Yq\Expression\Ast\BinaryOperatorEnum;
 /**
  * An infix operator: pipe, union, the assignment family, alternative, boolean, comparison, arithmetic.
  *
- * @api
+ * @internal
  */
 interface BinaryOperatorInterface
 {

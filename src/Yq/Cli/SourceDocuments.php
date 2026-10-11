@@ -24,6 +24,8 @@ use LTS\PhpXq\Yq\Runtime\Candidate;
  *
  * An input that yields no document (an empty file, or one holding only a header) yields one synthesised
  * null document, so an expression such as `.a = 1` still has something to build on.
+ *
+ * @internal
  */
 final readonly class SourceDocuments
 {

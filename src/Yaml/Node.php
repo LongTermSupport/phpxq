@@ -20,6 +20,8 @@ use SplObjectStorage;
  * reference, not a copy); its `value` is the anchor name. `leadingContent` is the comment and blank lines
  * the CLI slurped ahead of a first document, `# ` markers included; `commentsCleared` is set on a Document
  * whose comments were assigned empty, so that slurped header is dropped with them.
+ *
+ * @internal
  */
 final class Node
 {

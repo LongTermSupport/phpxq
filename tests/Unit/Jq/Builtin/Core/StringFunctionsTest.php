@@ -169,6 +169,14 @@ final class StringFunctionsTest extends TestCase
         self::assertSame([], Harness::call('_strindices', 'abc', ['x']));
     }
 
+    public function testStringIndicesCountCodepointsBetweenSeveralMultibyteHits(): void
+    {
+        self::assertSame([1, 3, 5], Harness::call('_strindices', "\u{1f600}a\u{e9}a\u{1f600}a", ['a']));
+        self::assertSame([1, 3, 4], Harness::call('_strindices', "a\u{e9}b\u{e9}\u{e9}", ["\u{e9}"]));
+        self::assertSame([0, 1, 2], Harness::call('_strindices', "\u{e9}\u{e9}\u{e9}\u{e9}", ["\u{e9}\u{e9}"]));
+        self::assertSame([0, 4], Harness::call('_strindices', "\u{4e2d}x\u{e9}\u{1f600}\u{4e2d}", ["\u{4e2d}"]));
+    }
+
     public function testStringIndicesValidation(): void
     {
         self::assertSame('number (123) cannot be searched, as it is not a string', Harness::error('_strindices', 123, ['abc']));

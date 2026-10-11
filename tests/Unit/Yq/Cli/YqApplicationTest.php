@@ -328,7 +328,7 @@ final class YqApplicationTest extends TestCase
         $dir  = $this->cli->directory;
         $file = $this->cli->file('test.yml', "a: {$dir}/doc1\n--- \na: {$dir}/doc2\n");
 
-        self::assertSame([0, '', ''], $this->cli->run([$file, '-s', '.a']));
+        self::assertSame([0, '', ''], $this->runInDirectory($file, '-s', '.a'));
 
         self::assertSame("a: {$dir}/doc1\n", $this->cli->read('doc1.yml'));
         self::assertSame("---\na: {$dir}/doc2\n", $this->cli->read('doc2.yml'));
@@ -339,7 +339,7 @@ final class YqApplicationTest extends TestCase
         $dir  = $this->cli->directory;
         $file = $this->cli->file('test.yml', "f: {$dir}/d1/d2/one.yaml\n---\nf: {$dir}/two\n");
 
-        self::assertSame([0, '', ''], $this->cli->run(['--no-doc', '-s', '.f', $file]));
+        self::assertSame([0, '', ''], $this->runInDirectory('--no-doc', '-s', '.f', $file));
 
         self::assertSame("f: {$dir}/d1/d2/one.yaml\n", $this->cli->read('d1/d2/one.yaml'));
         self::assertSame("f: {$dir}/two\n", $this->cli->read('two.yml'));
@@ -351,25 +351,16 @@ final class YqApplicationTest extends TestCase
         $file  = $this->cli->file('test.yml', "a: {$dir}/doc1\n");
         $split = $this->cli->file('split.txt', ".a\n");
 
-        self::assertSame([0, '', ''], $this->cli->run([$file, '--split-exp-file', $split]));
+        self::assertSame([0, '', ''], $this->runInDirectory($file, '--split-exp-file', $split));
         self::assertSame("a: {$dir}/doc1\n", $this->cli->read('doc1.yml'));
     }
 
     public function testSplitBindsTheResultIndex(): void
     {
-        $dir  = $this->cli->directory;
         $file = $this->cli->file('test.yml', "a: x\n---\na: y\n");
 
         // The fake evaluator resolves $index to the counter node; its value is the file stem.
-        $previous = getcwd();
-        self::assertIsString($previous);
-        chdir($dir);
-
-        try {
-            self::assertSame([0, '', ''], $this->cli->run([$file, '-s', '$index']));
-        } finally {
-            chdir($previous);
-        }
+        self::assertSame([0, '', ''], $this->runInDirectory($file, '-s', '$index'));
 
         self::assertSame("a: x\n", $this->cli->read('0.yml'));
         self::assertSame("---\na: y\n", $this->cli->read('1.yml'));
@@ -577,5 +568,23 @@ final class YqApplicationTest extends TestCase
     {
         self::assertSame(YqApplicationInterface::EXIT_OK, $this->cli->run(['--version'])[0]);
         self::assertSame(YqApplicationInterface::EXIT_ERROR, $this->cli->run(['--nope'])[0]);
+    }
+
+    /**
+     * Runs from inside the scratch directory: `--split-exp` only writes files inside the current directory.
+     *
+     * @return array{int, string, string} exit code, stdout, stderr
+     */
+    private function runInDirectory(string ...$args): array
+    {
+        $previous = getcwd();
+        self::assertIsString($previous);
+        chdir($this->cli->directory);
+
+        try {
+            return $this->cli->run(array_values($args));
+        } finally {
+            chdir($previous);
+        }
     }
 }

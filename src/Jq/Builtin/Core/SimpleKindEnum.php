@@ -8,6 +8,8 @@ use LTS\PhpXq\Json\JsonObject;
 
 /**
  * The kinds of value `add` sums without the generic path: strings, lists, objects and plain numbers.
+ *
+ * @internal
  */
 enum SimpleKindEnum
 {

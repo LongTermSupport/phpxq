@@ -8,7 +8,7 @@ namespace LTS\PhpXq\Jq\Cli;
  * A parse error met by the {@see StreamParser}: the message, and the path of the value being read
  * when it happened (the `--stream-errors` event is `[message, path]`).
  *
- * @api
+ * @internal
  */
 final readonly class StreamError
 {

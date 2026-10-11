@@ -9,6 +9,8 @@ namespace LTS\PhpXq\Yq\Cli;
  * that is not a flag, when it names a command), interspersed flags and positionals, `--flag=value`,
  * `--flag value`, clustered shorthands (`-inP`), `-oy` and `-o=json` value forms, `--` ending the flags,
  * and a lone `-` as a positional (standard input).
+ *
+ * @internal
  */
 final readonly class ArgumentParser
 {

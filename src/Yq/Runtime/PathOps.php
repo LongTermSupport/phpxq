@@ -12,6 +12,8 @@ use SplObjectStorage;
 /**
  * Paths as data: building a path sequence from a match, following a path (optionally creating it),
  * setting a value at a path and deleting matches.
+ *
+ * @internal
  */
 final readonly class PathOps
 {

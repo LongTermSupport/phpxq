@@ -7,6 +7,8 @@ namespace LTS\PhpXq\Yq\Cli;
 /**
  * The outcome of parsing a command line: the sub-command, the value of every flag (defaults filled in),
  * which flags were given explicitly, and the remaining positional arguments in order.
+ *
+ * @internal
  */
 final readonly class ParsedArguments
 {

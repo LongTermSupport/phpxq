@@ -9,12 +9,12 @@ namespace LTS\PhpXq\Release;
  */
 enum BumpEnum: int
 {
-    case Patch = 1;
-    case Minor = 2;
-    case Major = 3;
-
     public function strongest(self $other): self
     {
         return $other->value > $this->value ? $other : $this;
     }
+
+    case Patch = 1;
+    case Minor = 2;
+    case Major = 3;
 }

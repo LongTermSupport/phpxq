@@ -6,6 +6,8 @@ namespace LTS\PhpXq\Jq\Builtin\Core;
 
 /**
  * The jq `@format` names, valued with the name written after the `@`.
+ *
+ * @internal
  */
 enum FormatNameEnum: string
 {

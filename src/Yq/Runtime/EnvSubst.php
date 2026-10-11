@@ -7,6 +7,8 @@ namespace LTS\PhpXq\Yq\Runtime;
 /**
  * The `envsubst` operator's text substitution: `$VAR`, `${VAR}` and the default forms
  * `${VAR-d}`, `${VAR:-d}`, `${VAR=d}`, `${VAR:=d}`, `${VAR+a}`, `${VAR:+a}`.
+ *
+ * @internal
  */
 final readonly class EnvSubst
 {

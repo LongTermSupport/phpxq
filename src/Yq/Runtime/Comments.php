@@ -9,6 +9,8 @@ use LTS\PhpXq\Yaml\Node;
 /**
  * Comment text conversion: nodes store comments with their `#` markers, the operators read and write the
  * bare text.
+ *
+ * @internal
  */
 final readonly class Comments
 {

@@ -20,7 +20,6 @@ final class TokenTest extends TestCase
         self::assertSame('foo', $token->text);
         self::assertSame(2, $token->line);
         self::assertSame(5, $token->column);
-        self::assertTrue($token->is(TokenTypeEnum::Field));
-        self::assertFalse($token->is(TokenTypeEnum::Ident));
+        self::assertSame(TokenTypeEnum::Field, $token->type);
     }
 }

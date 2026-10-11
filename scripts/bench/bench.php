@@ -6,5 +6,12 @@ use LTS\PhpXq\Tests\Support\Bench\BenchCli;
 
 require \dirname(__DIR__, 2) . '/vendor/autoload.php';
 
-/** @var list<string> $argv */
-exit(new BenchCli()->run(STDOUT, STDERR, ...\array_slice($argv, 1)));
+$rawArguments = $_SERVER['argv'];
+$arguments    = [];
+foreach (\array_slice(\is_array($rawArguments) ? $rawArguments : [], 1) as $argument) {
+    if (\is_string($argument)) {
+        $arguments[] = $argument;
+    }
+}
+
+exit(new BenchCli()->run(STDOUT, STDERR, ...$arguments));

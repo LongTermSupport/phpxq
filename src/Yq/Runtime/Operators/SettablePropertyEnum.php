@@ -7,6 +7,8 @@ namespace LTS\PhpXq\Yq\Runtime\Operators;
 /**
  * The node properties `X <name> = "..."` assigns instead of a value. The comment spellings (`head_comment`,
  * `headComment`) both set {@see self::Head}; `comments` sets all three.
+ *
+ * @internal
  */
 enum SettablePropertyEnum: string
 {

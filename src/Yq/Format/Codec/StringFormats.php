@@ -10,6 +10,8 @@ use LTS\PhpXq\Yq\Format\FormatException;
  * Pure string transforms behind the `@base64`, `@base64d`, `@base64url`, `@base64urld`, `@uri`, `@urid`
  * and `@sh` expression encoders and the base64, base64url, uri and shell codecs. No trailing newline is
  * added or removed; the expression operators and the codecs decide that.
+ *
+ * @internal
  */
 final readonly class StringFormats
 {

@@ -8,7 +8,7 @@ namespace LTS\PhpXq\Jq\Ast;
  * A constant in the value model: null, true, false, or a string without interpolation. Numbers are
  * {@see NumberLiteral}.
  *
- * @api
+ * @internal
  */
 final readonly class Literal implements NodeInterface
 {

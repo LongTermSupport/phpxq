@@ -9,6 +9,8 @@ use LTS\PhpXq\Yaml\NodeKindEnum;
 
 /**
  * Helpers for building and inspecting {@see Candidate}s.
+ *
+ * @internal
  */
 final readonly class Cands
 {

@@ -14,7 +14,7 @@ use LTS\PhpXq\Jq\Runtime\Eval\Core;
  * modules it has loaded, so compiling several programs with one instance parses and compiles each of them
  * once.
  *
- * @api
+ * @internal
  */
 final class Compiler implements CompilerInterface
 {

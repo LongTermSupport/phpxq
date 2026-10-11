@@ -8,6 +8,8 @@ use RuntimeException;
 
 /**
  * A malformed yq expression. `offset` is the 0-based byte offset of the problem in the expression text.
+ *
+ * @api
  */
 final class ExpressionSyntaxException extends RuntimeException
 {

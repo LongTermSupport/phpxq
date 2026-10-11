@@ -8,7 +8,7 @@ namespace LTS\PhpXq\Jq\Ast;
  * `break $name`. (`Break` is a reserved word in PHP, hence the name.) An unknown label is the compile
  * error "$*label-name is not defined".
  *
- * @api
+ * @internal
  */
 final readonly class BreakOut implements NodeInterface
 {

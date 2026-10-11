@@ -7,6 +7,8 @@ namespace LTS\PhpXq\Yq\Cli;
 /**
  * The words that can name a command on the `yq` command line, valued with the word typed. The short forms are
  * aliases; {@see self::canonical()} resolves one to the command it names.
+ *
+ * @internal
  */
 enum CommandEnum: string
 {

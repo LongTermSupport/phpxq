@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Tests\Unit\Support\Conformance;
 
+use Closure;
 use LTS\PhpXq\Cli\FrontControllerInterface;
 use LTS\PhpXq\Tests\Support\CliRunner;
 use LTS\PhpXq\Tests\Support\Conformance\ConformanceCase;
@@ -44,7 +45,7 @@ final class JqConformanceSuiteTest extends TestCase
 
     public function testPassingCases(): void
     {
-        $runner = new CliRunner($this->controller(static function (array $args, string $stdin, $out, $err): int {
+        $runner = new CliRunner($this->controller(static function (array $args, string $stdin, mixed $out, mixed $err): int {
             if (\in_array('-n', $args, true)) {
                 fwrite($err, 'compile error');
 
@@ -63,7 +64,7 @@ final class JqConformanceSuiteTest extends TestCase
 
     public function testFailureMessages(): void
     {
-        $runner = new CliRunner($this->controller(static function (array $args, string $stdin, $out, $err): int {
+        $runner = new CliRunner($this->controller(static function (array $args, string $stdin, mixed $out, mixed $err): int {
             fwrite($out, "2\n");
             fwrite($err, 'boom');
 
@@ -80,7 +81,7 @@ final class JqConformanceSuiteTest extends TestCase
 
     public function testWrongOutputValuesAndNonJsonOutput(): void
     {
-        $wrong = new CliRunner($this->controller(static function (array $args, string $stdin, $out): int {
+        $wrong = new CliRunner($this->controller(static function (array $args, string $stdin, mixed $out): int {
             fwrite($out, \in_array('-n', $args, true) ? '' : "2\n");
 
             return \in_array('-n', $args, true) ? 3 : 0;
@@ -90,7 +91,7 @@ final class JqConformanceSuiteTest extends TestCase
         self::assertStringContainsString('output', (string)$cases[0]->evaluate($wrong));
         self::assertNull($cases[1]->evaluate($wrong));
 
-        $garbage = new CliRunner($this->controller(static function (array $args, string $stdin, $out): int {
+        $garbage = new CliRunner($this->controller(static function (array $args, string $stdin, mixed $out): int {
             fwrite($out, "not json\n");
 
             return 0;
@@ -101,7 +102,7 @@ final class JqConformanceSuiteTest extends TestCase
 
     public function testFailCaseMustHaveEmptyStdout(): void
     {
-        $runner = new CliRunner($this->controller(static function (array $args, string $stdin, $out): int {
+        $runner = new CliRunner($this->controller(static function (array $args, string $stdin, mixed $out): int {
             fwrite($out, 'x');
 
             return 3;
@@ -142,15 +143,15 @@ final class JqConformanceSuiteTest extends TestCase
     }
 
     /**
-     * @param callable(list<string>, string, resource, resource): int $handler
+     * @param Closure(list<string>, string, resource, resource): int $handler
      */
-    private function controller(callable $handler): FrontControllerInterface
+    private function controller(Closure $handler): FrontControllerInterface
     {
         return new readonly class($handler) implements FrontControllerInterface {
             /**
-             * @param callable(list<string>, string, resource, resource): int $handler
+             * @param Closure(list<string>, string, resource, resource): int $handler
              */
-            public function __construct(private mixed $handler)
+            public function __construct(private Closure $handler)
             {
             }
 

@@ -18,7 +18,7 @@ use LTS\PhpXq\Json\Codec\NumberFormatter;
  * `100000000000000000000`, `1E+1000` or any integer beyond 2^53, becomes a {@see PreciseNumber} carrying that
  * canonical text.
  *
- * @api
+ * @internal
  */
 final readonly class NumberParser
 {
@@ -46,17 +46,6 @@ final readonly class NumberParser
         }
 
         return $parsed;
-    }
-
-    /**
-     * Unary minus on a preserved literal: jq negates the decimal, so the digits survive ("-1.000" becomes
-     * "1.000", "1E+1000" becomes "-1E+1000").
-     */
-    public static function negate(PreciseNumber $number): PreciseNumber
-    {
-        $literal = str_starts_with($number->literal, '-') ? substr($number->literal, 1) : '-' . $number->literal;
-
-        return new PreciseNumber(-$number->value, $literal);
     }
 
     /**

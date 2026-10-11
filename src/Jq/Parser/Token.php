@@ -10,7 +10,7 @@ namespace LTS\PhpXq\Jq\Parser;
  * $text is documented per {@see TokenTypeEnum}; for punctuation, operators and keywords it is the source
  * spelling, for Eof it is ''.
  *
- * @api
+ * @internal
  */
 final readonly class Token
 {
@@ -20,10 +20,5 @@ final readonly class Token
         public int $line,
         public int $column,
     ) {
-    }
-
-    public function is(TokenTypeEnum $type): bool
-    {
-        return $this->type === $type;
     }
 }

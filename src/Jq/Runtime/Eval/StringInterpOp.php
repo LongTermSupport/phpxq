@@ -42,7 +42,8 @@ final class StringInterpOp extends AbstractOp
     }
 
     /**
-     * @param array<int, string> $texts formatted text per part index
+     * @param array<int, string>   $texts formatted text per part index
+     * @param Closure(mixed): void $emit
      */
     private function walk(?Env $env, mixed $input, int $position, array $texts, Closure $emit): void
     {

@@ -8,7 +8,6 @@ use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\EncoderInterface;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -16,6 +15,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * Writes JSON the way the reference does: `-I n` spaces of indentation (compact at 0), aliases and merge
  * keys resolved, comments dropped, number text kept, no HTML escaping. A top-level string stays quoted.
  * Colour output uses the reference's palette: keys cyan, strings green, numbers and booleans magenta.
+ *
+ * @internal
  */
 final readonly class JsonEncoder implements EncoderInterface
 {
@@ -42,26 +43,22 @@ final readonly class JsonEncoder implements EncoderInterface
 
     private const string JSON_NUMBER = '/^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?$/D';
 
-    public function format(): FormatEnum
-    {
-        return FormatEnum::Json;
-    }
-
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string
     {
-        $root = NodeTools::unwrap($node);
+        $root = NodeTools::expandableRoot($node, $options->yamlFixMergeAnchorToSpec);
         if ($options->unwrapScalar && NodeKindEnum::Scalar === $root->kind) {
             return $root->value . "\n";
         }
 
         $out = '';
-        $this->write($out, $root, $options->indent > 0 ? str_repeat(' ', $options->indent) : '', 0, $options->colors);
+        $this->write($out, $root, $options->indent > 0 ? str_repeat(' ', $options->indent) : '', 0, $options);
 
         return $out . "\n";
     }
 
-    private function write(string &$out, Node $node, string $indent, int $depth, bool $colors): void
+    private function write(string &$out, Node $node, string $indent, int $depth, FormatOptions $options): void
     {
+        $colors = $options->colors;
         if ($depth > self::MAX_DEPTH) {
             throw new FormatException('json: exceeded max depth (alias cycle?)');
         }
@@ -91,7 +88,7 @@ final readonly class JsonEncoder implements EncoderInterface
             foreach ($node->content as $item) {
                 $out .= $first ? '' : $separator;
                 $first = false;
-                $this->write($out, $item, $indent, $depth + 1, $colors);
+                $this->write($out, $item, $indent, $depth + 1, $options);
             }
 
             $out .= ($pretty ? "\n" . str_repeat($indent, $depth) : '') . ']';
@@ -99,7 +96,7 @@ final readonly class JsonEncoder implements EncoderInterface
             return;
         }
 
-        $content = NodeTools::flatContent($node);
+        $content = NodeTools::flatContent($node, $options->yamlFixMergeAnchorToSpec);
         $count   = \count($content);
         if (0 === $count) {
             $out .= '{}';
@@ -116,7 +113,7 @@ final readonly class JsonEncoder implements EncoderInterface
             $key  = NodeTools::unwrap($key);
             $text = $this->string(NodeKindEnum::Scalar === $key->kind ? $key->value : '');
             $out .= ($colors ? $this->paint($text, self::COLOR_KEY) : $text) . $colon;
-            $this->write($out, $content[$i + 1], $indent, $depth + 1, $colors);
+            $this->write($out, $content[$i + 1], $indent, $depth + 1, $options);
         }
 
         $out .= ($pretty ? "\n" . str_repeat($indent, $depth) : '') . '}';

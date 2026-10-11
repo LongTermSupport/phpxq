@@ -8,6 +8,8 @@ use LTS\PhpXq\Yaml\NodeStyleEnum;
 
 /**
  * The names the `style` operator reads and writes for a node's presentation style.
+ *
+ * @internal
  */
 enum StyleNameEnum: string
 {

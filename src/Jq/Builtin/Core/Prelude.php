@@ -45,8 +45,6 @@ final readonly class Prelude
         def last: .[-1];
         def nth($n): .[$n];
         def nth($n; f): if $n < 0 then error("nth doesn't support negative indices") else first(skip($n; f)) end;
-        def until(cond; update): def _until: if cond then . else (update | _until) end; _until;
-        def while(cond; update): def _while: if cond then ., (update | _while) else empty end; _while;
         def sort_by(f): _sort_by_impl(map([f]));
         def group_by(f): _group_by_impl(map([f]));
         def unique_by(f): _unique_by_impl(map([f]));

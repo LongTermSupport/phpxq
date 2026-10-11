@@ -10,6 +10,8 @@ use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 /**
  * A number, string, `true`, `false` or `null` literal, already as a scalar Node (tag !!int, !!float,
  * !!str, !!bool or !!null). The evaluator deep-copies it before returning it.
+ *
+ * @internal
  */
 final readonly class Literal implements ExpressionNodeInterface
 {

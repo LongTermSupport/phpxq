@@ -17,6 +17,8 @@ use LTS\PhpXq\Yq\Format\FormatException;
  * YAML output stays block style as the reference prints it, while the TOML encoder writes it inline again.
  * Comments above an entry become its key's head comment; a trailing comment becomes the value's line
  * comment; comments at the end of the file become the document's foot comment.
+ *
+ * @internal
  */
 final class TomlParser
 {

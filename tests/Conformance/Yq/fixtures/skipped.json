@@ -354,6 +354,18 @@
         "snippet": "yq eval-all '. as $item ireduce ({}; . * $item )' sample.yml another.yml"
     },
     {
+        "source": "operators/shuffle.md",
+        "heading": "Shuffle array",
+        "reason": "documented output is random (shuffle)",
+        "snippet": "yq 'shuffle' sample.yml"
+    },
+    {
+        "source": "operators/shuffle.md",
+        "heading": "Shuffle array in place",
+        "reason": "documented output is random (shuffle)",
+        "snippet": "yq '.cool |= shuffle' sample.yml"
+    },
+    {
         "source": "operators/sort-keys.md",
         "heading": "Sort Keys",
         "reason": "no 'will output' block follows the command",

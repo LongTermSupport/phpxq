@@ -8,7 +8,7 @@ namespace LTS\PhpXq\Jq\Runtime;
  * The stream of program inputs behind `input` and `inputs`. The CLI implements it over the decoded
  * input files / stdin (and, with --slurp / --raw-input, over the slurped value or raw lines).
  *
- * @api
+ * @internal
  */
 interface InputProviderInterface
 {

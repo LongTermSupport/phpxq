@@ -188,7 +188,7 @@ final class JqApplicationInputSourceTest extends TestCase
         $items = $this->items($this->source("[1,\n2"));
 
         self::assertCount(1, $items);
-        self::assertSame('Unfinished JSON term at EOF at line 2, column 1', $items[0]->error ?? null);
+        self::assertSame('Unfinished JSON term at EOF at line 2, column 1', $items[0]->error);
     }
 
     public function testNextRaisesAParseErrorAsAJqError(): void

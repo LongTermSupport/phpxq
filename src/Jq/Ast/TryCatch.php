@@ -8,7 +8,7 @@ namespace LTS\PhpXq\Jq\Ast;
  * `try body catch handler`; `try body` and the postfix `body?` have a null handler (errors are
  * swallowed). Postfix `?` binds to the preceding postfix term only.
  *
- * @api
+ * @internal
  */
 final readonly class TryCatch implements NodeInterface
 {

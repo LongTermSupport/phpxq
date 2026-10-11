@@ -8,6 +8,8 @@ use RuntimeException;
 
 /**
  * A failure the command line reports as `Error: <message>` with exit status 1.
+ *
+ * @internal
  */
 final class CliException extends RuntimeException
 {

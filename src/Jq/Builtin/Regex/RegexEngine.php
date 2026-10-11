@@ -43,9 +43,10 @@ final readonly class RegexEngine
         $length  = \strlen($subject);
         $offset  = 0;
         $matches = [];
+        $longest = $regex->longest ? new LongestMatches($regex, $subject, $ascii) : null;
 
         do {
-            $groups = self::search($regex, $subject, $offset, $ascii);
+            $groups = $longest instanceof LongestMatches ? $longest->from($offset) : self::search($regex, $subject, $offset, $ascii);
             if (null === $groups) {
                 break;
             }
@@ -99,8 +100,7 @@ final readonly class RegexEngine
     }
 
     /**
-     * One search from $offset: the first match, or with the `l` modifier the longest match over every start
-     * position at or after $offset (the earliest one wins a tie).
+     * One search from $offset for the first match ({@see LongestMatches} searches under the `l` modifier).
      *
      * @return ?array<array{0: ?string, 1: int}>
      *
@@ -108,31 +108,11 @@ final readonly class RegexEngine
      */
     private static function search(OnigRegex $regex, string $subject, int $offset, bool $ascii): ?array
     {
-        if (!$regex->longest) {
-            $found = preg_match($regex->pcre($ascii), $subject, $groups, self::FLAGS, $offset);
-            if (false === $found) {
-                throw new JqException(preg_last_error_msg());
-            }
-
-            return 1 === $found ? $groups : null;
+        $found = preg_match($regex->pcre($ascii), $subject, $groups, self::FLAGS, $offset);
+        if (false === $found) {
+            throw new JqException(preg_last_error_msg());
         }
 
-        $anchored  = $regex->anchoredPcre($ascii);
-        $length    = \strlen($subject);
-        $best      = null;
-        $bestWidth = -1;
-        for ($position = $offset; $position <= $length; $position += CodepointCursor::characterWidth($subject, $position)) {
-            $found = preg_match($anchored, $subject, $groups, self::FLAGS, $position);
-            if (false === $found) {
-                throw new JqException(preg_last_error_msg());
-            }
-
-            if (1 === $found && \strlen((string)$groups[0][0]) > $bestWidth) {
-                $best      = $groups;
-                $bestWidth = \strlen((string)$groups[0][0]);
-            }
-        }
-
-        return $best;
+        return 1 === $found ? $groups : null;
     }
 }

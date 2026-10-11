@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace LTS\PhpXq\Yq\Format\Codec;
 
+use LTS\PhpXq\Limits\AllocationLimit;
 use LTS\PhpXq\Yaml\Node;
 use LTS\PhpXq\Yaml\NodeKindEnum;
 use LTS\PhpXq\Yaml\Schema\CoreSchema;
 use LTS\PhpXq\Yq\Format\DecoderInterface;
-use LTS\PhpXq\Yq\Format\FormatEnum;
 use LTS\PhpXq\Yq\Format\FormatException;
 use LTS\PhpXq\Yq\Format\FormatOptions;
 
@@ -16,15 +16,12 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * Java properties input. Keys are split on `.`; an all-digit segment indexes an array (missing positions
  * are filled with nulls), anything else is a map key. Every value is a string. Comment lines above a
  * property become its head comment.
+ *
+ * @internal
  */
 final readonly class PropsDecoder implements DecoderInterface
 {
     private const string BLANKS = " \t\f";
-
-    public function format(): FormatEnum
-    {
-        return FormatEnum::Props;
-    }
 
     /**
      * @return iterable<Node>
@@ -209,6 +206,10 @@ final readonly class PropsDecoder implements DecoderInterface
             if (NodeKindEnum::Sequence === $node->kind) {
                 if (!\is_int($part)) {
                     throw new FormatException('properties: cannot use "' . $part . '" as an array index');
+                }
+
+                if (AllocationLimit::padsTooFar($part, \count($node->content))) {
+                    throw new FormatException('properties: ' . AllocationLimit::paddingError($part));
                 }
 
                 while (\count($node->content) <= $part) {

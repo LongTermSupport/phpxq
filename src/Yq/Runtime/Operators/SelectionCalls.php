@@ -22,6 +22,8 @@ use LTS\PhpXq\Yq\Runtime\Traversal;
 /**
  * Filtering and testing operators: `select`, `not`, `has`, `contains`, `any`, `all`, `any_c`, `all_c`,
  * `first`, `last`, `filter`, `with`, `empty`.
+ *
+ * @internal
  */
 final readonly class SelectionCalls implements CallOperatorInterface
 {

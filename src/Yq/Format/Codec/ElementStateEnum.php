@@ -7,6 +7,8 @@ namespace LTS\PhpXq\Yq\Format\Codec;
 /**
  * Where an {@see XmlElement} is while the reader builds it: nothing but comments seen, text seen, or a child
  * just closed.
+ *
+ * @internal
  */
 enum ElementStateEnum
 {

@@ -11,7 +11,7 @@ use LTS\PhpXq\Jq\Runtime\DefaultBuiltinRegistry;
  * Builds the registry holding every builtin. FROZEN: the provider list below is the integration point,
  * each provider is edited only by its owner.
  *
- * @api
+ * @internal
  */
 final readonly class StandardBuiltins
 {

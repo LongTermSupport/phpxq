@@ -16,7 +16,7 @@ use LTS\PhpXq\Jq\Runtime\JqCompileException;
  * `def`, `reduce`, `foreach`, `if`, `try`, `label` and `source as $x | body` follow jq's grammar exactly.
  * Desugaring the parser performs is listed on each node class (object shorthand, `..`, `elif`, `?`).
  *
- * @api
+ * @internal
  */
 interface ParserInterface
 {

@@ -7,6 +7,8 @@ namespace LTS\PhpXq\Yq\Cli;
 /**
  * The hidden `__complete` command the generated completion scripts call. It prints one candidate per
  * line (`name<TAB>description`), then `:<directive>`, and reports the directive on stderr, as cobra does.
+ *
+ * @internal
  */
 final class CompleteCommand
 {

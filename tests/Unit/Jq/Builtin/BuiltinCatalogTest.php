@@ -12,16 +12,16 @@ use LTS\PhpXq\Jq\Builtin\Core\IoFunctions;
 use LTS\PhpXq\Jq\Builtin\Core\MathFunctions;
 use LTS\PhpXq\Jq\Builtin\Core\PathFunctions;
 use LTS\PhpXq\Jq\Builtin\Core\Prelude;
-use LTS\PhpXq\Jq\Builtin\Core\RecordingRegistry;
 use LTS\PhpXq\Jq\Builtin\Core\StringFunctions;
 use LTS\PhpXq\Jq\Builtin\Core\TypeFunctions;
-use LTS\PhpXq\Jq\Builtin\CoreBuiltins;
 use LTS\PhpXq\Jq\Builtin\DateBuiltins;
 use LTS\PhpXq\Jq\Builtin\RegexBuiltins;
 use LTS\PhpXq\Jq\Builtin\StandardBuiltins;
 use LTS\PhpXq\Jq\Runtime\BuiltinRegistryInterface;
 use LTS\PhpXq\Jq\Runtime\DefaultBuiltinRegistry;
 use LTS\PhpXq\Jq\Runtime\ValueBuiltinInterface;
+use LTS\PhpXq\Tests\Support\Jq\EagerBuiltins;
+use LTS\PhpXq\Tests\Support\Jq\RecordingRegistry;
 use LTS\PhpXq\Tests\Unit\Jq\Runtime\Eval\Support\StubContext;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -66,15 +66,15 @@ final class BuiltinCatalogTest extends TestCase
 
         yield 'io' => ['io', static fn (BuiltinRegistryInterface $registry) => IoFunctions::register($registry, static fn (): array => [])];
 
-        yield 'regex' => ['regex', static fn (BuiltinRegistryInterface $registry) => new RegexBuiltins()->registerInto($registry)];
+        yield 'regex' => ['regex', static fn (BuiltinRegistryInterface $registry) => new RegexBuiltins()->registerNatives($registry)];
 
-        yield 'date' => ['date', static fn (BuiltinRegistryInterface $registry) => new DateBuiltins()->registerInto($registry)];
+        yield 'date' => ['date', static fn (BuiltinRegistryInterface $registry) => new DateBuiltins()->registerNatives($registry)];
     }
 
     public function testNamesAreTheBuiltinsTheEagerRegistryReports(): void
     {
         $eager = new DefaultBuiltinRegistry();
-        new CoreBuiltins()->registerInto($eager);
+        EagerBuiltins::core($eager);
 
         $builtin = $eager->lookup('builtins', 0);
         self::assertInstanceOf(ValueBuiltinInterface::class, $builtin);
@@ -87,9 +87,9 @@ final class BuiltinCatalogTest extends TestCase
     {
         $lazy  = StandardBuiltins::create();
         $eager = new DefaultBuiltinRegistry();
-        new CoreBuiltins()->registerInto($eager);
-        new RegexBuiltins()->registerInto($eager);
-        new DateBuiltins()->registerInto($eager);
+        EagerBuiltins::core($eager);
+        EagerBuiltins::regex($eager);
+        EagerBuiltins::date($eager);
 
         foreach (BuiltinCatalog::GROUPS as $signatures) {
             foreach ($signatures as $signature) {

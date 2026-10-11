@@ -85,7 +85,9 @@ final class ExpressionLexerTest extends TestCase
 
         self::assertSame(ExpressionTokenKindEnum::String, $tokens[0]->kind);
         self::assertTrue($tokens[0]->raw);
-        self::assertSame('I like \(.v) and \"q\"', $tokens[0]->text);
+        self::assertSame('', $tokens[0]->text);
+        self::assertSame('I like ', $tokens[0]->parts[0]);
+        self::assertSame(' and "q"', $tokens[0]->parts[2]);
     }
 
     public function testPlainStringIsNotRaw(): void
@@ -99,7 +101,8 @@ final class ExpressionLexerTest extends TestCase
     {
         $tokens = new ExpressionLexer()->tokenize('"a \(.b | "c") d" | .e');
 
-        self::assertSame('a \(.b | "c") d', $tokens[0]->text);
+        self::assertCount(3, $tokens[0]->parts);
+        self::assertSame(' d', $tokens[0]->parts[2]);
         self::assertSame(ExpressionTokenKindEnum::Operator, $tokens[1]->kind);
     }
 

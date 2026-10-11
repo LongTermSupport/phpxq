@@ -8,6 +8,8 @@ use LTS\PhpXq\Yq\Expression\ExpressionNodeInterface;
 
 /**
  * `$name`. `$ENV` and `$__loc__`-style built-ins are ordinary names resolved by the evaluator.
+ *
+ * @internal
  */
 final readonly class VariableRef implements ExpressionNodeInterface
 {

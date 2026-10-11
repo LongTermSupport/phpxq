@@ -6,6 +6,8 @@ namespace LTS\PhpXq\Yq\Cli;
 
 /**
  * The arguments of `--front-matter`: `extract` reads the leading yaml, `process` also appends what follows it.
+ *
+ * @internal
  */
 enum FrontMatterModeEnum: string
 {

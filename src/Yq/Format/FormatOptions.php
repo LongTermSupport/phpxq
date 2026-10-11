@@ -7,6 +7,10 @@ namespace LTS\PhpXq\Yq\Format;
 /**
  * Every per-format switch of the reference's command line, one flat value object so the CLI fills it once
  * and each codec reads only what it needs. Defaults match the reference's defaults.
+ * `yamlFixMergeAnchorToSpec` is `--yaml-fix-merge-anchor-to-spec`, which also decides which `<<` values the
+ * encoders merge (see {@see Codec\NodeTools::pairs()}).
+ *
+ * @internal
  */
 final readonly class FormatOptions
 {
@@ -31,6 +35,7 @@ final readonly class FormatOptions
         public string $shellKeySeparator = '_',
         public bool $luaUnquoted = false,
         public bool $luaGlobals = false,
+        public bool $yamlFixMergeAnchorToSpec = false,
     ) {
     }
 }

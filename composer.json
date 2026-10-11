@@ -2,7 +2,7 @@
     "name": "lts/phpxq",
     "description": "Pure PHP command-line equivalents of jq and yq",
     "license": "MIT",
-    "type": "project",
+    "type": "library",
     "keywords": [
         "jq",
         "yq",

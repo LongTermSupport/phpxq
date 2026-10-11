@@ -13,7 +13,7 @@ use LTS\PhpXq\Json\JsonEncoderInterface;
  * The {@see RuntimeContextInterface} of a command line run: inputs, `$ENV` / `$ARGS` / named arguments, `-L`
  * paths, and `debug` / `stderr` output on the console's standard error.
  *
- * @api
+ * @internal
  */
 final readonly class CliRuntimeContext implements RuntimeContextInterface
 {

@@ -20,6 +20,8 @@ use LTS\PhpXq\Yq\Runtime\PathOps;
 
 /**
  * Operators that reshape a tree: `pick`, `omit`, `del` (`delete`), `delpaths`, `setpath`.
+ *
+ * @internal
  */
 final readonly class StructureCalls implements CallOperatorInterface
 {

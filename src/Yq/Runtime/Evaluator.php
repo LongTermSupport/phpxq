@@ -34,6 +34,8 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
  * {@see Candidate}s (node plus parent and key), so assignment mutates the document in place and
  * `path`, `key` and `parent` know where a match came from. A name that is not a registered operator and
  * takes no arguments is a field name, as the reference lets `a.b` stand for `.a.b`.
+ *
+ * @internal
  */
 final readonly class Evaluator implements EvaluatorInterface
 {
@@ -187,7 +189,7 @@ final readonly class Evaluator implements EvaluatorInterface
         $fixed = $context->services->yamlFixMergeAnchorToSpec;
         $out   = [];
         foreach ($bases as $base) {
-            foreach (Traversal::values($base, $fixed) as $child) {
+            foreach (Traversal::values($base, $fixed, listing: false) as $child) {
                 $out[] = $child;
             }
         }
@@ -259,9 +261,9 @@ final readonly class Evaluator implements EvaluatorInterface
     private function firstInt(ExpressionNodeInterface $expression, EvaluationContext $context): ?int
     {
         foreach ($this->evaluate($expression, $context) as $match) {
-            $number = Numbers::of(Cands::node($match));
+            $number = Numbers::intOf(Cands::node($match));
             if (null !== $number) {
-                return (int)$number;
+                return $number;
             }
         }
 

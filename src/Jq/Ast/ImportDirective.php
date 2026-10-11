@@ -10,7 +10,7 @@ namespace LTS\PhpXq\Jq\Ast;
  * $alias is the name without the leading `$` or null for include. $metadata is the optional constant
  * object that follows the path (for example {"search": "./"}), already evaluated to the value model.
  *
- * @api
+ * @internal
  */
 final readonly class ImportDirective
 {

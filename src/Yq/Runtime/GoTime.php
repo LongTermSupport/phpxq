@@ -12,6 +12,8 @@ use DateTimeZone;
  * reference-time layouts such as `Monday, 02-Jan-06 at 3:04PM MST`, and `ParseDuration` strings. Layout
  * tokens made of digits get symbolic names (SYMBOLS): `switch` compares numeric strings numerically, so `3`
  * and `03` would otherwise be the same case.
+ *
+ * @internal
  */
 final class GoTime
 {

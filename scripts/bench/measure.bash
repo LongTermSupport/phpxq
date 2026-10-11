@@ -2,7 +2,7 @@
 # Times one command and prints a single tab-separated measurement line (the format RawResultParser reads):
 #   target-id  workload-id  status  output-bytes  samples-ms(comma separated)  note
 #
-# usage: measure.bash TARGET_ID WORKLOAD_ID WARMUP REPS BATCH -- COMMAND [ARGS...]
+# Usage: scripts/bench/measure.bash TARGET_ID WORKLOAD_ID WARMUP REPS BATCH -- COMMAND [ARGS...]
 #
 # The first warm-up run doubles as a probe: if it fails, the status is recorded ("not-implemented" when
 # stderr says so, otherwise "failed") and no timing is attempted. One sample is the wall-clock time of

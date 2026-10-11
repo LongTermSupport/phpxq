@@ -16,11 +16,16 @@ final readonly class ReduceOp implements OpInterface
 {
     private ?SingleOpInterface $updateSingle;
 
+    /**
+     * @param ?AccumulatorUpdate $inPlace the update in its in-place form, when it has one; it must compute
+     *                                    what $update computes
+     */
     public function __construct(
         private OpInterface $source,
         private BinderInterface $binder,
         private OpInterface $init,
         private OpInterface $update,
+        private ?AccumulatorUpdate $inPlace = null,
     ) {
         $this->updateSingle = $update instanceof SingleOpInterface ? $update : null;
     }
@@ -28,10 +33,17 @@ final readonly class ReduceOp implements OpInterface
     public function run(?Env $env, mixed $input, Closure $emit): void
     {
         $this->init->run($env, $input, function (mixed $initial) use ($env, $input, $emit): void {
-            $state  = $initial;
-            $update = $this->update;
-            $single = $this->updateSingle;
-            SourceBindings::each($this->source, $this->binder, $env, $input, static function (?Env $bound) use (&$state, $update, $single): void {
+            $state   = $initial;
+            $update  = $this->update;
+            $single  = $this->updateSingle;
+            $inPlace = $this->inPlace;
+            SourceBindings::each($this->source, $this->binder, $env, $input, static function (?Env $bound) use (&$state, $update, $single, $inPlace): void {
+                if ($inPlace instanceof AccumulatorUpdate) {
+                    $inPlace->apply($bound, $state);
+
+                    return;
+                }
+
                 if ($single instanceof SingleOpInterface) {
                     $state = $single->value($bound, $state);
 

@@ -15,16 +15,13 @@ use LTS\PhpXq\Yq\Format\FormatOptions;
 /**
  * base64 and base64url output. Only string scalars can be encoded, as in the reference; pipe other values
  * through another encoder first.
+ *
+ * @internal
  */
 final readonly class Base64Encoder implements EncoderInterface
 {
     public function __construct(private FormatEnum $format = FormatEnum::Base64)
     {
-    }
-
-    public function format(): FormatEnum
-    {
-        return $this->format;
     }
 
     public function encode(Node $node, FormatOptions $options, int $resultIndex): string

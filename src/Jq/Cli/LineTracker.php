@@ -13,7 +13,7 @@ namespace LTS\PhpXq\Jq\Cli;
  * jq feeds its parser line by line, so the count of a value includes the whole line it ended on: for
  * `1\n2\n` the value 1 is on line 1, and `{"a":1}` without a trailing newline is on line 0.
  *
- * @api
+ * @internal
  */
 final class LineTracker
 {
