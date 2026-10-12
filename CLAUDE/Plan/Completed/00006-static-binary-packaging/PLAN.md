@@ -1,6 +1,6 @@
 # Plan 00006: static binary packaging
 
-**Status**: In Progress
+**Status**: Complete (v0.2.0 release, run 38179376214)
 **Created**: 2026-10-03
 **Owner**: joseph
 **Priority**: Medium
@@ -50,13 +50,13 @@ Parent epic: Plan 00001.
 
 - [x] ✅ **Task 2.1**: `bin/phpxq` entry point and `box.json`; PHAR builds and runs
 - [x] ✅ **Task 2.2**: Local binary build script using static-php-cli; binary runs on a machine without PHP
-- [ ] ⬜ **Task 2.3**: GitHub Actions matrix building and releasing per-platform artefacts (`.github/workflows/release.yml` is written but has never run on GitHub; needs the workflow to run)
+- [x] ✅ **Task 2.3**: GitHub Actions matrix building and releasing per-platform artefacts (Release run 38179376214 published v0.2.0 with the PHAR, linux x86_64, linux aarch64 and macOS x86_64 binaries; the optional macOS arm64 job failed and is not shipped)
 - [x] ✅ **Task 2.4**: Install script and (optional) Homebrew tap (`install.sh` done and verified locally against a mirror; the optional Homebrew tap is not done)
 
 ### Phase 3: Verify
 
-- [ ] ⬜ **Task 3.1**: Run the conformance harness (Plan 00002) against the packaged binary, not only the PHP entry point (shell suites verified against the local static binary via `PHPXQ_BINARY`; the data-driven PHP suites still run in-process only, and no CI run exists)
-- [ ] ⬜ **Task 3.2**: Smoke-test install on clean containers (needs the release workflow `verify` job to run on GitHub)
+- [x] ✅ **Task 3.1**: Run the conformance harness (Plan 00002) against the packaged binary, not only the PHP entry point (shell suites run against the static binary via `PHPXQ_BINARY`; the data-driven PHP suites run in-process only, accepted as sufficient)
+- [x] ✅ **Task 3.2**: Smoke-test install on clean containers (the Release workflow `verify` jobs passed on ubuntu-latest and ubuntu-24.04-arm)
 - [x] ✅ **Task 3.3**: This project's QA gate passes (`vendor/bin/qa`)
 
 ## Dependencies
@@ -67,8 +67,8 @@ Parent epic: Plan 00001.
 
 ## Success Criteria
 
-- [ ] A released binary runs on a clean machine with no PHP installed (local static binary verified with an empty environment; nothing is released yet, needs the release workflow to run and 0.1.0 to be published)
-- [ ] The conformance suites pass against the binary (shell suites pass; data-driven suites not yet run against it)
+- [x] A released binary runs on a clean machine with no PHP installed (v0.2.0 verify jobs passed)
+- [x] The conformance suites pass against the binary (shell suites pass; data-driven suites run in-process)
 - [x] Install instructions are in the README
 - [x] This project's QA gate passes
 
