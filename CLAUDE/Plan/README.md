@@ -11,9 +11,7 @@ folder (e.g. `00001-feature-name/`) with a `PLAN.md` file.
 ## Active Plans
 
 - [00001: Epic Initial Build](00001-epic-initial-build/PLAN.md) - In Progress
-- [00006: Static Binary Packaging](00006-static-binary-packaging/PLAN.md) - In Progress
 - [00009: Startup Time Performance](00009-startup-time-performance/PLAN.md) - Not Started
-- [00010: Full Code Review Opus vs Haiku](00010-full-code-review-opus-vs-haiku/PLAN.md) - In Progress
 - [00011: Raise Mutation and Coverage Floors](00011-raise-mutation-and-coverage-floors/PLAN.md) - Not Started
 
 ## Completed Plans
@@ -22,11 +20,13 @@ folder (e.g. `00001-feature-name/`) with a `PLAN.md` file.
 - [00003: jq JSON Functionality](Completed/00003-jq-json-functionality/PLAN.md) - Complete (delivered in b995067)
 - [00004: yq YAML Functionality](Completed/00004-yq-yaml-functionality/PLAN.md) - Complete (delivered in f8dd0e7)
 - [00005: Benchmarking Suite](Completed/00005-benchmarking-suite/PLAN.md) - Complete (delivered in 3d22c46)
+- [00006: Static Binary Packaging](Completed/00006-static-binary-packaging/PLAN.md) - Complete (delivered in the v0.2.0 release)
 - [00007: Performance Optimisation Round](Completed/00007-performance-optimisation-round/PLAN.md) - Complete (delivered in f47103c)
 - [00008: Xdebug Auto Disable](Completed/00008-xdebug-auto-disable/PLAN.md) - Complete (delivered in the feature/xdebug-auto-disable PR)
+- [00010: Full Code Review Opus vs Haiku](Completed/00010-full-code-review-opus-vs-haiku/PLAN.md) - Complete (delivered in PR #13 and PR #15)
 
 ## Statistics
 
 - **Total**: 11
-- **Active**: 5
-- **Completed**: 6
+- **Active**: 3
+- **Completed**: 8
