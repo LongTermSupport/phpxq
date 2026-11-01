@@ -47,11 +47,20 @@ ENV XDEBUG_MODE=off
 
 # actionlint: lints .github/workflows (expressions, job wiring, and shellcheck over every `run:` block).
 # Pinned and checksum-verified; the release system (docs/RELEASING.md) is workflow-heavy.
+# The asset and its sha256 follow the build architecture (from the release's actionlint_<ver>_checksums.txt);
+# any other architecture stops the build rather than installing a binary that cannot run.
 ARG ACTIONLINT_VERSION=1.7.12
-ARG ACTIONLINT_SHA256=8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
-RUN curl -fsSL -o /tmp/actionlint.tgz \
-        "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" && \
-    echo "${ACTIONLINT_SHA256}  /tmp/actionlint.tgz" | sha256sum -c - && \
+ARG ACTIONLINT_SHA256_AMD64=8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+ARG ACTIONLINT_SHA256_ARM64=325e971b6ba9bfa504672e29be93c24981eeb1c07576d730e9f7c8805afff0c6
+RUN arch="$(dpkg --print-architecture)" && \
+    case "${arch}" in \
+        amd64) actionlint_sha256="${ACTIONLINT_SHA256_AMD64}" ;; \
+        arm64) actionlint_sha256="${ACTIONLINT_SHA256_ARM64}" ;; \
+        *) echo "actionlint: unsupported architecture '${arch}' (expected amd64 or arm64)" >&2; exit 1 ;; \
+    esac && \
+    curl -fsSL -o /tmp/actionlint.tgz \
+        "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_${arch}.tar.gz" && \
+    echo "${actionlint_sha256}  /tmp/actionlint.tgz" | sha256sum -c - && \
     tar -xzf /tmp/actionlint.tgz -C /usr/local/bin actionlint && \
     rm /tmp/actionlint.tgz
 
