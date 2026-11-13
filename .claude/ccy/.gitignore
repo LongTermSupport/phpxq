@@ -9,3 +9,4 @@
 !mounts
 !claude-supervise*
 !claude-supervise.py
+!ccy.env.local.dist
