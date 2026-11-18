@@ -23,8 +23,11 @@
 #    new head commit. It is the only job with `actions: write`, which that dispatch needs, and it runs no code
 #    from the pull request.
 #
-# Triggers: every push, but the gate runs for a push only on the default branch (a feature branch is covered
-# by its pull request), so nothing runs twice and no branch name is hard-coded.
+# 4. actions-qa-ci (pull requests only) lints .github/ with LongTermSupport/actions-qa-ci.
+#
+# Triggers: every push that changes more than documentation (the paths filter below), but the gate runs for
+# a push only on the default branch (a feature branch is covered by its pull request), so nothing runs twice
+# and no branch name is hard-coded.
 #
 # Required GitHub configuration: Settings > Actions > General > Workflow permissions "Read and write", and
 # the default branch protected with the "QA gate (read-only qa)" check required.
@@ -35,8 +38,9 @@
 
 name: QA
 
-# A push that changes only documentation starts no run; pull requests are never filtered. CHANGELOG.md
-# stays in: the changelog lane reads it and release-pr.yml refreshes the release PR when QA passes on main.
+# A push that changes only documentation starts no run; pull requests are never filtered. Markdown the
+# pipeline consumes stays in: CHANGELOG.md (the changelog lane, and release-pr.yml follows QA on main),
+# docs/LIBRARY.md (LibraryDocsTest runs its examples) and docs/phpstan-rules/ (qaConfig/rule-docs.json).
 on:
   push:
     paths:
@@ -44,6 +48,8 @@ on:
       - "!**.md"
       - "!docs/**"
       - "CHANGELOG.md"
+      - "docs/LIBRARY.md"
+      - "docs/phpstan-rules/**"
       - "**/CLAUDE.md"
       - "**/AGENTS.md"
       - ".claude/**"
