@@ -30,10 +30,21 @@
 
 name: Release
 
+# A push that changes only documentation starts no run: preflight would find no release in it.
+# CHANGELOG.md and VERSION, which a release commit always changes, stay in.
 on:
   push:
     branches:
       - release
+    paths:
+      - "**"
+      - "!**.md"
+      - "!docs/**"
+      - "CHANGELOG.md"
+      - "**/CLAUDE.md"
+      - "**/AGENTS.md"
+      - ".claude/**"
+      - ".github/**"
   workflow_dispatch:
 
 # Never cancel a release in flight; a second push to `release` queues behind it.

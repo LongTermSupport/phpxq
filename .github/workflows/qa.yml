@@ -23,8 +23,11 @@
 #    new head commit. It is the only job with `actions: write`, which that dispatch needs, and it runs no code
 #    from the pull request.
 #
-# Triggers: every push, but the gate runs for a push only on the default branch (a feature branch is covered
-# by its pull request), so nothing runs twice and no branch name is hard-coded.
+# 4. actions-qa-ci (pull requests only) lints .github/ with LongTermSupport/actions-qa-ci.
+#
+# Triggers: every push that changes more than documentation (the paths filter below), but the gate runs for
+# a push only on the default branch (a feature branch is covered by its pull request), so nothing runs twice
+# and no branch name is hard-coded.
 #
 # Required GitHub configuration: Settings > Actions > General > Workflow permissions "Read and write", and
 # the default branch protected with the "QA gate (read-only qa)" check required.
@@ -35,8 +38,22 @@
 
 name: QA
 
+# A push that changes only documentation starts no run; pull requests are never filtered. Markdown the
+# pipeline consumes stays in: CHANGELOG.md (the changelog lane, and release-pr.yml follows QA on main),
+# docs/LIBRARY.md (LibraryDocsTest runs its examples) and docs/phpstan-rules/ (qaConfig/rule-docs.json).
 on:
   push:
+    paths:
+      - "**"
+      - "!**.md"
+      - "!docs/**"
+      - "CHANGELOG.md"
+      - "docs/LIBRARY.md"
+      - "docs/phpstan-rules/**"
+      - "**/CLAUDE.md"
+      - "**/AGENTS.md"
+      - ".claude/**"
+      - ".github/**"
   pull_request:
   workflow_dispatch:
 
@@ -186,3 +203,21 @@ jobs:
 
       - name: Upstream shell conformance (jq shtest, yq acceptance)
         run: scripts/conformance-shell.bash all
+
+  # The workflow lint (LongTermSupport/actions-qa-ci): actionlint, shellcheck and the CI-cost rules over
+  # .github/. Pull requests only; it reads the tree and needs no token beyond contents: read.
+  actions-qa-ci:
+    name: actions-qa-ci
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Check the workflows and actions
+        uses: LongTermSupport/actions-qa-ci@2784a484769348f14ed780db9b45cd3a402bf31e # v0.1.0
